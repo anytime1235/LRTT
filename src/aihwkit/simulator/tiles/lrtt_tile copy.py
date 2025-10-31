@@ -145,8 +145,6 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             units_in_mbatch=self.units_in_mbatch,
             lora_alpha=self.lora_alpha,
             reinit_gain=self.reinit_gain,
-            reinit_mode=getattr(self.lrtt_config, 'reinit_mode', 'standard'),
-            decay_factor=getattr(self.lrtt_config, 'decay_factor', 0.9),
             correct_gradient_magnitudes=self.correct_gradient_magnitudes,
             rank_chunk=self.rank_chunk,
             forward_inject=getattr(self.lrtt_config, 'forward_inject', True)
@@ -256,9 +254,6 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         if bias:
             raise TileError("LRTT does not support bias")
             
-        # Store input for potential local A,B update when forward_inject=False
-        self._last_x_input = x_input.detach().clone()
-            
         # Single source of truth: Use controller's forward_inject_enabled flag only
         # This avoids confusion from multiple forward_inject flags
         if self.controller.forward_inject_enabled:
@@ -280,9 +275,7 @@ class LRTTSimulatorTile(SimulatorTile, Module):
     ) -> Tensor:
         """LRTT backward pass using only analog tile operations.
         
-        Computes: 
-        - If forward_inject_enabled: x_grad = C^T @ d + α * B^T @ (A^T @ d)
-        - If forward_inject_disabled: x_grad = C^T @ d (for upstream), but store gradients for A,B local update
+        Computes: x_grad = C^T @ d + α * B^T @ (A^T @ d)
         All operations use tile.backward() to ensure proper analog constraints.
         """
         if bias:
@@ -291,29 +284,15 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         # 1) Input to batch-first
         d_bf = d_input.t() if in_trans else d_input  # [batch, d_size]
         
-        # 2) Always compute C gradient for upstream propagation
+        # 2) C^T·d, A^T·d, B^T·(A^T·d) — all using tile backward
         xg_c = self.tile_c.backward(d_bf)   # [batch, x_size]
+        da = self.tile_a.backward(d_bf)     # [batch, rank]
+        xg_ab = self.tile_b.backward(da)    # [batch, x_size]
         
-        if self.controller.forward_inject_enabled:
-            # Full LRTT backward: C^T·d + α * B^T·(A^T·d)
-            da = self.tile_a.backward(d_bf)     # [batch, rank]
-            xg_ab = self.tile_b.backward(da)    # [batch, x_size]
-            x_grad = xg_c + self.lora_alpha * xg_ab
-        else:
-            # forward_inject=False: Upstream gets C-only gradient
-            # But store gradients for local A,B update (unless skipped by child class)
-            da = self.tile_a.backward(d_bf)     # [batch, rank] - for local update
-            xg_ab = self.tile_b.backward(da)    # [batch, x_size] - for local update
-            
-            # Store for local A,B update during update() call (unless child class handles it)
-            if not hasattr(self, '_skip_gradient_storage'):
-                self._stored_d_input = d_input.detach().clone()
-                self._stored_x_input = getattr(self, '_last_x_input', None)
-            
-            # Return only C gradient for upstream propagation
-            x_grad = xg_c
+        # 3) Composition
+        x_grad = xg_c + self.lora_alpha * xg_ab
         
-        # 3) Output transpose
+        # 4) Output transpose
         return x_grad.t() if out_trans else x_grad
     
     def update(
@@ -346,29 +325,10 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         # Get current learning rate (assuming all tiles have same LR)
         lr = self.get_learning_rate()
         
-        # For forward_inject=False, use stored gradients for local A,B update
-        if not self.controller.forward_inject_enabled and hasattr(self, '_stored_d_input') and hasattr(self, '_stored_x_input'):
-            if self._stored_x_input is not None and self._stored_d_input is not None:
-                # Use stored inputs/gradients for A,B local update
-                update_x = self._stored_x_input
-                update_d = self._stored_d_input
-                
-                # Clear stored gradients after use
-                delattr(self, '_stored_d_input')
-                delattr(self, '_stored_x_input')
-            else:
-                # Fallback to current inputs if stored inputs are not available
-                update_x = x_input
-                update_d = d_input
-        else:
-            # Normal case: use current inputs
-            update_x = x_input
-            update_d = d_input
-        
         # Perform A/B LoRA-style updates with projections
         self.controller.ab_weight_update(
-            x=update_x,
-            d=update_d, 
+            x=x_input,
+            d=d_input, 
             lr=lr,
             in_trans=in_trans,
             out_trans=out_trans

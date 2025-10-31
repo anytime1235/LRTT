@@ -54,8 +54,8 @@ BATCH_SIZE = 64
 
 # LRTT parameters - using different ranks for different layer sizes
 LRTT_RANKS = [32, 32]  # Ranks for LRTT layers (input->hidden1, hidden1->hidden2)
-TRANSFER_EVERY = 1000 #fer A⊗B to C every N updates
-LORA_ALPHA = 32 #LoRA scaling factor - reduced from 100.0 for stability
+TRANSFER_EVERY = 100 #fer A⊗B to C every N updates
+LORA_ALPHA = 4 #LoRA scaling factor - reduced from 100.0 for stability
 
 
 def load_images():
@@ -92,7 +92,8 @@ def create_lrtt_config(rank):
     # Stability improvements
     device_config.reinit_gain = 0.5  # Increased from 0.1 for stronger initial signals
     device_config.correct_gradient_magnitudes = True  # Important for convergence
-    device_config.transfer_lr = device_config.lora_alpha
+    device_config.transfer_lr = LORA_ALPHA
+    device_config.forward_injection = True
     
     return PythonLRTTRPUConfig(device=device_config)
 

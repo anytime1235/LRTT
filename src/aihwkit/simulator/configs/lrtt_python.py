@@ -42,6 +42,16 @@ class PythonLRTTDevice(_PrintableMixin):
     
     reinit_gain: float = 0.1
     """Kaiming initialization gain for B matrix after transfer."""
+
+    reinit_mode: str = "standard"
+    """Reinit strategy after transfer:
+    - 'standard': A=0, B=Kaiming (original LRTT)
+    - 'decay': A*=decay_factor, B*=decay_factor (gradual decay)
+    - 'hybrid': A=0, B*=decay_factor (hybrid approach)
+    """
+
+    decay_factor: float = 0.9
+    """Decay factor for 'decay' and 'hybrid' reinit modes (0 < decay_factor < 1)."""
     
     # === Advanced Parameters ===
     units_in_mbatch: bool = False
@@ -93,6 +103,15 @@ class PythonLRTTDevice(_PrintableMixin):
             
         if self.reinit_gain < 0:
             raise ValueError(f"reinit_gain must be non-negative, got {self.reinit_gain}")
+
+        # Validate reinit_mode
+        valid_modes = ["standard", "decay", "hybrid"]
+        if self.reinit_mode not in valid_modes:
+            raise ValueError(f"reinit_mode must be one of {valid_modes}, got '{self.reinit_mode}'")
+
+        # Validate decay_factor
+        if not (0 < self.decay_factor <= 1):
+            raise ValueError(f"decay_factor must be in (0, 1], got {self.decay_factor}")
             
         # Validate rank_chunk
         if self.rank_chunk is not None and self.rank_chunk <= 0:
@@ -139,6 +158,8 @@ class PythonLRTTDevice(_PrintableMixin):
             'units_in_mbatch': self.units_in_mbatch,
             'lora_alpha': self.lora_alpha,
             'reinit_gain': self.reinit_gain,
+            'reinit_mode': self.reinit_mode,
+            'decay_factor': self.decay_factor,
             'correct_gradient_magnitudes': self.correct_gradient_magnitudes,
             'rank_chunk': self.rank_chunk,
             'ab_bl_mgmt': self.ab_bl_mgmt,

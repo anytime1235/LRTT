@@ -52,6 +52,8 @@ class LRTTController:
         units_in_mbatch: bool = False,
         lora_alpha: float = 1.0,
         reinit_gain: float = 0.1,
+        reinit_mode: str = "standard",
+        decay_factor: float = 0.9,
         correct_gradient_magnitudes: bool = False,
         rank_chunk: Optional[int] = None,
         ab_bl_mgmt: Optional[Dict[str, Any]] = None,
@@ -74,6 +76,11 @@ class LRTTController:
             units_in_mbatch: Whether transfer_every counts samples vs steps
             lora_alpha: LoRA scaling factor α
             reinit_gain: Kaiming initialization gain for B matrix
+            reinit_mode: Reinit strategy after transfer:
+                        "standard" - A=0, B=Kaiming (original LRTT)
+                        "decay" - A*=decay_factor, B*=decay_factor (gradual decay)
+                        "hybrid" - A=0, B*=decay_factor (hybrid approach)
+            decay_factor: Decay factor for "decay" and "hybrid" modes (0 < decay_factor < 1)
             correct_gradient_magnitudes: Scale lr by sqrt(rank) for gradient correction
             rank_chunk: Chunk size for transfer (None = full rank)
             ab_bl_mgmt: BL management for A/B updates {update_bl_management, update_management, desired_BL}
@@ -100,6 +107,8 @@ class LRTTController:
         self.units_in_mbatch = units_in_mbatch
         self.lora_alpha = lora_alpha
         self.reinit_gain = reinit_gain
+        self.reinit_mode = reinit_mode
+        self.decay_factor = decay_factor
         self.correct_gradient_magnitudes = correct_gradient_magnitudes
         self.rank_chunk = rank_chunk or rank
         self.forward_inject_enabled = forward_inject
@@ -183,25 +192,65 @@ class LRTTController:
             )
     
     def reinit(self) -> None:
-        """Reinit: A=0; B[:rank,:] ~ Kaiming; optional visible init.
-        
-        Following LoRA convention:
-        - A: zero the full matrix → ensures A_lr == 0
-        - B: zero full matrix, then Kaiming Normal for first rank rows only  
-        - Visible (C): small Kaiming init if needed for forward_inject
+        """Reinit A,B matrices based on reinit_mode.
+
+        Three modes:
+        - "standard": A=0, B=Kaiming (original LRTT)
+        - "decay": A*=decay_factor, B*=decay_factor (gradual decay)
+        - "hybrid": A=0, B*=decay_factor (hybrid approach)
         """
-        # A matrix: full zero
-        A_zeros = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
-        self.tile_a.set_weights(A_zeros)
-        
-        # B matrix: [rank, x_size] - Kaiming Normal initialization
-        # Kaiming Normal: std = gain * sqrt(2 / fan_in), fan_in = x_size
-        std = self.reinit_gain * math.sqrt(2.0 / self.x_size)
-        B_kaiming = torch.normal(0, std, size=(self.rank, self.x_size), device=self.device, dtype=self.dtype)
-        
-        self.tile_b.set_weights(B_kaiming)
-        
+        with torch.no_grad():
+            if self.reinit_mode == "standard":
+                # Original LRTT: A=0, B=Kaiming
+                A_zeros = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
+                self.tile_a.set_weights(A_zeros)
+
+                # B matrix: Kaiming Normal initialization
+                std = self.reinit_gain * math.sqrt(2.0 / self.x_size)
+                B_kaiming = torch.normal(0, std, size=(self.rank, self.x_size), device=self.device, dtype=self.dtype)
+                self.tile_b.set_weights(B_kaiming)
+
+            elif self.reinit_mode == "decay":
+                # First time initialization or decay mode
+                if not self._tiles_initialized:
+                    # First time: Initialize A and B with small random values for decay mode
+                    # A matrix: Small random initialization
+                    A_std = self.reinit_gain * math.sqrt(2.0 / self.rank) * 0.1  # Small init for A
+                    A_init = torch.normal(0, A_std, size=(self.d_size, self.rank), device=self.device, dtype=self.dtype)
+                    self.tile_a.set_weights(A_init)
+
+                    # B matrix: Standard Kaiming initialization
+                    B_std = self.reinit_gain * math.sqrt(2.0 / self.x_size)
+                    B_init = torch.normal(0, B_std, size=(self.rank, self.x_size), device=self.device, dtype=self.dtype)
+                    self.tile_b.set_weights(B_init)
+                else:
+                    # After transfer: Decay both A and B
+                    A_weights = self.tile_a.get_weights()[0] * self.decay_factor
+                    B_weights = self.tile_b.get_weights()[0] * self.decay_factor
+                    self.tile_a.set_weights(A_weights)
+                    self.tile_b.set_weights(B_weights)
+
+            elif self.reinit_mode == "hybrid":
+                # A=0, B decayed or initialized
+                A_zeros = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
+                self.tile_a.set_weights(A_zeros)
+
+                if not self._tiles_initialized:
+                    # First time: Initialize B with Kaiming
+                    B_std = self.reinit_gain * math.sqrt(2.0 / self.x_size)
+                    B_init = torch.normal(0, B_std, size=(self.rank, self.x_size), device=self.device, dtype=self.dtype)
+                    self.tile_b.set_weights(B_init)
+                else:
+                    # After transfer: Decay B
+                    B_weights = self.tile_b.get_weights()[0] * self.decay_factor
+                    self.tile_b.set_weights(B_weights)
+
+            else:
+                raise ValueError(f"Unknown reinit_mode: {self.reinit_mode}. Must be 'standard', 'decay', or 'hybrid'")
+
         # Apply device clipping if available
+        if hasattr(self.tile_a, 'clip_weights'):
+            self.tile_a.clip_weights()
         if hasattr(self.tile_b, 'clip_weights'):
             self.tile_b.clip_weights()
             
@@ -365,12 +414,28 @@ class LRTTController:
             
             self.tile_c.set_learning_rate(old_lr)
         self.num_transfers += 1
-        
+
         # CRITICAL: Reset transfer counter after transfer (matches CUDA)
         self.transfer_counter = 0
-        
+
+        # DEBUG: Check A before reinit (first few transfers only)
+        if self.num_transfers <= 3:
+            A_before_reinit = self.tile_a.get_weights()[0] if hasattr(self.tile_a, 'get_weights') else None
+            if A_before_reinit is not None:
+                print(f"TRANSFER #{self.num_transfers} - Before reinit: A norm={A_before_reinit.norm():.6f}")
+
         # Unconditional reinit after transfer
         self.reinit()
+
+        # DEBUG: Check A after reinit (first few transfers only)
+        if self.num_transfers <= 3:
+            A_after_reinit = self.tile_a.get_weights()[0] if hasattr(self.tile_a, 'get_weights') else None
+            if A_after_reinit is not None:
+                print(f"TRANSFER #{self.num_transfers} - After reinit ({self.reinit_mode}): A norm={A_after_reinit.norm():.6f}")
+                if self.reinit_mode == "decay":
+                    expected = A_before_reinit.norm() * self.decay_factor if A_before_reinit is not None else 0
+                    print(f"  Expected A norm (decay): {expected:.6f}")
+                print()
     
     def _ab_weight_transfer_onehot(self) -> None:
         """One-hot based transfer following transfer.py pattern (lines 247-263).
@@ -559,6 +624,8 @@ class LRTTController:
             'units_in_mbatch': self.units_in_mbatch,
             'lora_alpha': self.lora_alpha,
             'reinit_gain': self.reinit_gain,
+            'reinit_mode': self.reinit_mode,
+            'decay_factor': self.decay_factor,
             'forward_inject_enabled': self.forward_inject_enabled
         }
         

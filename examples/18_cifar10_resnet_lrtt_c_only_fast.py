@@ -8,13 +8,14 @@
 
 CIFAR10 dataset on a ResNet inspired network using LRTT (Low-Rank Tensor-Train)
 analog layers based on the paper: https://arxiv.org/abs/1512.03385
+
+Optimized version with faster C-only validation.
 """
 # pylint: disable=invalid-name
 
 # Imports
 import os
 from datetime import datetime
-from time import time
 
 # Imports from PyTorch.
 import torch
@@ -25,11 +26,10 @@ import torch.nn.functional as F
 from torch.cuda.amp import autocast, GradScaler
 
 from torchvision import datasets, transforms
-import pandas as pd
 
 # Imports from aihwkit.
 from aihwkit.optim import AnalogSGD
-from aihwkit.nn import AnalogConv2d
+from aihwkit.nn import AnalogConv2d, AnalogLinear
 from aihwkit.nn.conversion import convert_to_analog
 from aihwkit.simulator.configs.lrtt_config import PythonLRTTRPUConfig
 from aihwkit.simulator.configs.lrtt_python import PythonLRTTPreset
@@ -47,6 +47,11 @@ DEVICE = device("cuda" if USE_CUDA else "cpu")
 # Path to store datasets
 PATH_DATASET = os.path.join(os.getcwd(), "data", "DATASET")
 
+# Path to store results
+RESULTS = os.path.join(os.getcwd(), "results", "RESNET_LRTT_FAST")
+os.makedirs(RESULTS, exist_ok=True)
+WEIGHT_PATH = os.path.join(RESULTS, "example_18_lrtt_fast_model_weight.pth")
+
 # Training parameters
 SEED = 1
 N_EPOCHS = 100  # Reduced for LRTT demonstration
@@ -60,15 +65,9 @@ LRTT_RANK_CONV = 8  # Rank for convolutional layers
 LRTT_RANK_FC = 16  # Rank for fully connected layers
 TRANSFER_EVERY = 100  # Transfer A⊗B to C more frequently for better convergence
 LORA_ALPHA = 1  # LoRA scaling factor
-VALIDATE_C_ONLY_EVERY = 1  # Validate with C-only every N epochs
 
-# Path to store results
-RESULTS = os.path.join(os.getcwd(), "results_cifar10_lrtt")
-os.makedirs(RESULTS, exist_ok=True)
-WEIGHT_PATH = os.path.join(RESULTS, "model_weight.pth")
-
-# Excel file path with parameters in filename
-EXCEL_PATH = os.path.join(RESULTS, f"cifar10_lrtt_te{TRANSFER_EVERY}_r{LRTT_RANK_CONV}_a{LORA_ALPHA}.xlsx")
+# Validation frequency
+VALIDATE_C_ONLY_EVERY = 10  # Only validate with C-only every N epochs for speed
 
 
 def create_lrtt_config_conv():
@@ -202,7 +201,6 @@ def create_model():
     l3 = nn.Sequential(*concatenate_layer_blocks_lrtt(channel[1], channel[2], block_per_layers[2]))
     
     # Final classification layer uses FloatingPointDevice for better stability
-    from aihwkit.nn import AnalogLinear
     l4 = nn.Sequential(
         nn.AdaptiveAvgPool2d((1, 1)),
         nn.Flatten(),
@@ -255,64 +253,71 @@ def create_sgd_optimizer(model, learning_rate):
     Returns:
         Optimizer: created analog optimizer
     """
-    optimizer = AnalogSGD(model.parameters(), lr=learning_rate)
+    optimizer = AnalogSGD(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=5e-4)
     optimizer.regroup_param_groups(model)
 
     return optimizer
 
 
-def train_step(train_data, model, criterion, optimizer):
-    """Train network.
+def train_step(train_data, model, criterion, optimizer, scaler):
+    """Train a single epoch.
 
     Args:
-        train_data (DataLoader): Validation set to perform the evaluation
-        model (nn.Module): Trained model to be evaluated
-        criterion (nn.CrossEntropyLoss): criterion to compute loss
-        optimizer (Optimizer): analog model optimizer
+        train_data (DataLoader): train data set
+        model (nn.Module): model to train
+        criterion: criterion to compute loss
+        optimizer: analog optimizer
+        scaler: gradient scaler for mixed precision
 
     Returns:
-        nn.Module, Optimizer, float: model, optimizer, and epoch loss
+        float: train loss of the epoch
     """
     total_loss = 0
-
     model.train()
 
     for images, labels in train_data:
-        images = images.to(DEVICE)
-        labels = labels.to(DEVICE)
+        images = images.to(DEVICE, non_blocking=True)
+        labels = labels.to(DEVICE, non_blocking=True)
         optimizer.zero_grad()
 
-        # Add training Tensor to the model (input).
-        output = model(images)
-        loss = criterion(output, labels)
+        # Enable autocast for mixed precision
+        with autocast():
+            output = model(images)
+            loss = criterion(output, labels)
 
-        # Run training (backward propagation).
-        loss.backward()
+        # Scale gradients and update
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
 
-        # Optimize weights.
-        optimizer.step()
         total_loss += loss.item() * images.size(0)
+    
     epoch_loss = total_loss / len(train_data.dataset)
+    return epoch_loss
 
-    return model, optimizer, epoch_loss
 
-
-def set_forward_inject(model, enabled):
-    """Set forward_inject state for all LRTT layers.
+def validate_c_only_fast(model):
+    """Fast C-only validation by temporarily disabling forward_inject.
+    
+    This is much faster than manually traversing layers because it uses
+    the optimized model forward pass.
     
     Args:
         model (nn.Module): Model with LRTT layers
-        enabled (bool): Whether to enable forward_inject
         
     Returns:
-        list: Original states for restoration
+        None (modifies model in place)
     """
+    # Store original forward_inject states
     original_states = []
+    
+    # Disable forward_inject for all LRTT layers
     for module in model.modules():
         if hasattr(module, 'analog_tiles') and hasattr(module.analog_tiles, 'controller'):
             controller = module.analog_tiles.controller
             original_states.append((controller, controller.forward_inject_enabled))
-            controller.forward_inject_enabled = enabled
+            controller.forward_inject_enabled = False
+    
     return original_states
 
 
@@ -327,237 +332,184 @@ def restore_forward_inject(original_states):
 
 
 def test_evaluation(validation_data, model, criterion, c_only=False):
-    """Test trained network with option for C-only validation.
-
+    """Test model with option for C-only mode.
+    
     Args:
-        validation_data (DataLoader): Validation set to perform the evaluation
-        model (nn.Module): Trained model to be evaluated
-        criterion (nn.CrossEntropyLoss): criterion to compute loss
-        c_only (bool): If True, use C-only mode (no A@B contribution)
-
+        validation_data (DataLoader): Validation set
+        model (nn.Module): Trained model
+        criterion: Loss criterion
+        c_only (bool): If True, temporarily disable forward_inject for C-only validation
+        
     Returns:
-        nn.Module, float, float, float: model, test epoch loss, test error, and test accuracy
+        float, float: test loss and test accuracy
     """
     total_loss = 0
     predicted_ok = 0
     total_images = 0
-
+    
     model.eval()
     
     # Temporarily disable forward_inject if C-only mode
     original_states = None
     if c_only:
-        original_states = set_forward_inject(model, enabled=False)
-
+        original_states = validate_c_only_fast(model)
+    
     try:
         with no_grad():
             for images, labels in validation_data:
-                images = images.to(DEVICE)
-                labels = labels.to(DEVICE)
-
+                images = images.to(DEVICE, non_blocking=True)
+                labels = labels.to(DEVICE, non_blocking=True)
+                
                 pred = model(images)
                 loss = criterion(pred, labels)
                 total_loss += loss.item() * images.size(0)
-
+                
                 _, predicted = torch_max(pred.data, 1)
                 total_images += labels.size(0)
                 predicted_ok += (predicted == labels).sum().item()
+                
     finally:
         # Restore original forward_inject states
         if original_states:
             restore_forward_inject(original_states)
-            
+    
     epoch_loss = total_loss / len(validation_data.dataset)
     accuracy = predicted_ok / total_images * 100
-    error = (1 - predicted_ok / total_images) * 100
+    
+    return epoch_loss, accuracy
 
-    return model, epoch_loss, error, accuracy
 
-
-def print_lrtt_statistics(model, epoch):
+def print_lrtt_statistics(model):
     """Print LRTT statistics for monitoring.
     
     Args:
         model (nn.Module): Model with LRTT layers
-        epoch (int): Current epoch number
     """
-    if epoch % 1 == 0:  # Print every 10 epochs
-        print(f"\nLRTT Statistics at epoch {epoch}:")
-        
-        # Count LRTT layers and get statistics
-        lrtt_count = 0
-        total_transfers = 0
-        
-        for name, module in model.named_modules():
-            if hasattr(module, 'analog_module') and hasattr(module.analog_module, 'controller'):
-                controller = module.analog_module.controller
-                lrtt_count += 1
-                total_transfers += controller.num_transfers
-                
-                if lrtt_count <= 3:  # Print first 3 layers
-                    print(f"  {name}: A/B updates={controller.num_a_updates}, "
-                          f"Transfers={controller.num_transfers}")
-        
-        print(f"  Total LRTT layers: {lrtt_count}")
-        print(f"  Total transfers: {total_transfers}\n")
-
-
-def save_results_to_excel(results_df, params_dict, excel_path):
-    """Save training results and parameters to Excel file.
+    # Count LRTT layers and get statistics
+    lrtt_count = 0
+    total_transfers = 0
     
+    for name, module in model.named_modules():
+        if hasattr(module, 'analog_tiles') and hasattr(module.analog_tiles, 'controller'):
+            controller = module.analog_tiles.controller
+            lrtt_count += 1
+            total_transfers += controller.num_transfers
+    
+    if lrtt_count > 0:
+        return f" | LRTT: {lrtt_count} layers, {total_transfers} transfers"
+    return ""
+
+
+def train_model(model, train_data, validation_data):
+    """Train the model with optimized C-only validation.
+
     Args:
-        results_df: DataFrame with training results
-        params_dict: Dictionary with training parameters
-        excel_path: Path to save Excel file
+        model (nn.Module): model to be trained
+        train_data (DataLoader): train dataset
+        validation_data (DataLoader): validation dataset
     """
-    # Create parameters DataFrame
-    params_df = pd.DataFrame(list(params_dict.items()), columns=['Parameter', 'Value'])
+    print(f"Training on {DEVICE}")
     
-    # Save to Excel with multiple sheets
-    with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
-        results_df.to_excel(writer, sheet_name='Training_Results', index=False)
-        params_df.to_excel(writer, sheet_name='Parameters', index=False)
+    # Criterion
+    criterion = nn.CrossEntropyLoss()
     
-    print(f"\nResults saved to: {excel_path}")
+    # Optimizer
+    optimizer = create_sgd_optimizer(model, LEARNING_RATE)
+    
+    # Learning rate scheduler
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[30, 60, 90], gamma=0.1)
+    
+    # Gradient scaler for mixed precision
+    scaler = GradScaler()
+    
+    best_accuracy = 0.0
+    best_c_only_accuracy = 0.0
+    
+    print(f"\n{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - Starting training...")
+    print("-" * 80)
+    
+    for epoch in range(N_EPOCHS):
+        # Train
+        train_loss = train_step(train_data, model, criterion, optimizer, scaler)
+        
+        # Always validate with full model (fast)
+        val_loss_full, val_acc_full = test_evaluation(validation_data, model, criterion, c_only=False)
+        
+        # Periodically validate with C-only (slower)
+        if (epoch + 1) % VALIDATE_C_ONLY_EVERY == 0 or epoch == 0 or epoch == N_EPOCHS - 1:
+            val_loss_c_only, val_acc_c_only = test_evaluation(validation_data, model, criterion, c_only=True)
+            c_only_str = f"C-only: {val_acc_c_only:.2f}% | "
+            
+            if val_acc_c_only > best_c_only_accuracy:
+                best_c_only_accuracy = val_acc_c_only
+        else:
+            c_only_str = ""
+        
+        # Update learning rate
+        scheduler.step()
+        
+        # Save best model (based on full accuracy)
+        if val_acc_full > best_accuracy:
+            best_accuracy = val_acc_full
+            save(model.state_dict(), WEIGHT_PATH)
+        
+        # Print progress every epoch
+        current_lr = scheduler.get_last_lr()[0]
+        lrtt_stats = print_lrtt_statistics(model)
+        
+        print(f"Epoch {epoch+1:3d}/{N_EPOCHS} | "
+              f"Train: {train_loss:.4f} | "
+              f"{c_only_str}"
+              f"Full: {val_acc_full:.2f}% | "
+              f"Best: {best_accuracy:.2f}% | "
+              f"LR: {current_lr:.4f}"
+              f"{lrtt_stats}")
+    
+    print("-" * 80)
+    print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - Training completed!")
+    print(f"Best validation accuracy (Full model): {best_accuracy:.2f}%")
+    if best_c_only_accuracy > 0:
+        print(f"Best validation accuracy (C-only): {best_c_only_accuracy:.2f}%")
+    print(f"Model weights saved to: {WEIGHT_PATH}")
 
 
 def main():
-    """Train a PyTorch ResNet analog model with LRTT to classify CIFAR10."""
-    # Seed
+    """Train ResNet on CIFAR10 with LRTT layers using optimized C-only validation."""
+    
+    # Seed for reproducibility
     manual_seed(SEED)
-
-    # Load the images.
-    train_data, validation_data = load_images()
-
-    # Make the model
-    model = create_model()
-
     if USE_CUDA:
-        model = model.to(DEVICE)
-
-    print(f"Model moved to {DEVICE}")
+        torch.cuda.manual_seed(SEED)
     
-    # Count parameters - analog tiles don't register weights as PyTorch parameters
-    pytorch_params = sum(p.numel() for p in model.parameters())
-    print(f"PyTorch registered parameters: {pytorch_params:,}")
-    print("Note: Analog tile weights are stored internally in C++ and not counted here")
-
-    # Define the loss function and optimizer
+    # Load datasets
+    train_data, validation_data = load_images()
+    
+    # Create model
+    model = create_model()
+    model.to(DEVICE)
+    
+    # Train model
+    train_model(model, train_data, validation_data)
+    
+    # Final test
+    print("\n" + "="*80)
+    print("FINAL EVALUATION")
+    print("="*80)
+    
+    # Load best model
+    model.load_state_dict(torch.load(WEIGHT_PATH))
     criterion = nn.CrossEntropyLoss()
-    optimizer = create_sgd_optimizer(model, LEARNING_RATE)
-
-    best_accuracy = 0
-    best_epoch = 0
     
-    # Lists to store results for Excel
-    results = []
+    # Test with C-only (fast method)
+    test_loss_c_only, test_acc_c_only = test_evaluation(validation_data, model, criterion, c_only=True)
     
-    print("\nStarting LRTT training on CIFAR10...")
-    print("=" * 60)
-
-    for epoch in range(N_EPOCHS):
-        epoch_start = time()
-        
-        # Train
-        model, optimizer, train_loss = train_step(train_data, model, criterion, optimizer)
-
-        # Validate with full model (C + A@B)
-        model, val_loss, error, accuracy = test_evaluation(validation_data, model, criterion, c_only=False)
-        
-        # Also validate with C-only periodically
-        c_only_acc = None
-        if (epoch + 1) % VALIDATE_C_ONLY_EVERY == 0 or epoch == 0 or epoch == N_EPOCHS - 1:
-            _, val_loss_c, _, c_only_acc = test_evaluation(validation_data, model, criterion, c_only=True)
-
-        # Update learning rate
-        current_lr = optimizer.param_groups[0]['lr']
-        if epoch == 30 or epoch == 60:
-            for param_group in optimizer.param_groups:
-                param_group["lr"] = param_group["lr"] * 0.1
-                current_lr = param_group["lr"]
-                print(f"Reducing learning rate to {param_group['lr']}")
-
-        # Track best accuracy
-        if accuracy > best_accuracy:
-            best_accuracy = accuracy
-            best_epoch = epoch
-            save(model.state_dict(), WEIGHT_PATH)
-        
-        # Calculate epoch time
-        epoch_time = time() - epoch_start
-        
-        # Store results
-        result_row = {
-            'epoch': epoch + 1,
-            'train_loss': train_loss,
-            'val_loss': val_loss,
-            'val_accuracy': accuracy,
-            'val_accuracy_c_only': c_only_acc if c_only_acc is not None else None,
-            'val_error': error,
-            'learning_rate': current_lr,
-            'epoch_time': epoch_time
-        }
-        results.append(result_row)
-
-        # Print progress every epoch
-        if c_only_acc is not None:
-            print(f"Epoch {epoch + 1:3d}: "
-                  f"Train Loss {train_loss:.4f}, "
-                  f"Val Loss {val_loss:.4f}, "
-                  f"Val Acc {accuracy:.2f}% (C-only: {c_only_acc:.2f}%), "
-                  f"Val Err {error:.2f}%, "
-                  f"Time {epoch_time:.1f}s")
-        else:
-            print(f"Epoch {epoch + 1:3d}: "
-                  f"Train Loss {train_loss:.4f}, "
-                  f"Val Loss {val_loss:.4f}, "
-                  f"Val Acc {accuracy:.2f}%, "
-                  f"Val Err {error:.2f}%, "
-                  f"Time {epoch_time:.1f}s")
-        
-        # Print LRTT statistics
-        print_lrtt_statistics(model, epoch + 1)
-
-    print("=" * 60)
-    print(f"\nTraining completed!")
-    print(f"Best validation accuracy: {best_accuracy:.2f}% at epoch {best_epoch + 1}")
-    print(f"Model weights saved to: {WEIGHT_PATH}")
+    # Test with full model
+    test_loss_full, test_acc_full = test_evaluation(validation_data, model, criterion, c_only=False)
     
-    # Final evaluation with both C-only and full model
-    print("\nFinal Evaluation:")
-    _, _, _, final_c_only_acc = test_evaluation(validation_data, model, criterion, c_only=True)
-    _, _, _, final_full_acc = test_evaluation(validation_data, model, criterion, c_only=False)
-    print(f"  C-only accuracy: {final_c_only_acc:.2f}%")
-    print(f"  Full model accuracy: {final_full_acc:.2f}%")
-    print(f"  Improvement from LoRA: +{final_full_acc - final_c_only_acc:.2f}%")
-    
-    # Add final test accuracy to last row
-    if results:
-        results[-1]['test_accuracy'] = final_full_acc
-        results[-1]['test_accuracy_c_only'] = final_c_only_acc
-    
-    # Create DataFrame and save to Excel
-    results_df = pd.DataFrame(results)
-    
-    # Parameters to save
-    params_dict = {
-        'seed': SEED,
-        'epochs': N_EPOCHS,
-        'batch_size': BATCH_SIZE,
-        'learning_rate': LEARNING_RATE,
-        'lrtt_rank_conv': LRTT_RANK_CONV,
-        'lrtt_rank_fc': LRTT_RANK_FC,
-        'transfer_every': TRANSFER_EVERY,
-        'lora_alpha': LORA_ALPHA,
-        'validate_c_only_every': VALIDATE_C_ONLY_EVERY,
-        'best_val_accuracy': best_accuracy,
-        'best_epoch': best_epoch + 1,
-        'final_test_accuracy': final_full_acc,
-        'final_test_accuracy_c_only': final_c_only_acc,
-        'lora_improvement': final_full_acc - final_c_only_acc
-    }
-    
-    save_results_to_excel(results_df, params_dict, EXCEL_PATH)
+    print(f"Final Test Accuracy (C-only): {test_acc_c_only:.2f}%")
+    print(f"Final Test Accuracy (Full model): {test_acc_full:.2f}%")
+    print(f"Improvement from LoRA (A@B): +{test_acc_full - test_acc_c_only:.2f}%")
+    print("="*80)
 
 
 if __name__ == "__main__":
