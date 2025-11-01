@@ -1473,6 +1473,14 @@ def main():
         print(f"  ReLoRA enabled: reset every {RELORA_RESET_EVERY} steps (≈{RELORA_RESET_EVERY // steps_per_epoch} epochs), warmup {RELORA_WARMUP_STEPS} steps")
     print("=" * 60)
 
+    # Special case: Save initial model when N_EPOCHS = 0
+    if N_EPOCHS == 0:
+        save(model.state_dict(), WEIGHT_PATH)
+        print(f"\nN_EPOCHS = 0: Initial model saved to {WEIGHT_PATH}")
+        print("No training performed.")
+        wandb.finish()
+        return
+
     # Create overall progress bar for epochs
     epoch_pbar = tqdm(range(N_EPOCHS), desc="Overall Progress", position=0)
 
