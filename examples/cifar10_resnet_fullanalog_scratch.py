@@ -51,11 +51,11 @@ PATH_DATASET = os.path.join(os.getcwd(), "data", "DATASET")
 # Path to store results
 RESULTS = os.path.join(os.getcwd(), "results", "RESNET_FULLANALOG_SCRATCH")
 os.makedirs(RESULTS, exist_ok=True)
-WEIGHT_PATH = os.path.join(RESULTS, "fullanalog_scratch_model_weight_30epoch.pth")
+WEIGHT_PATH = os.path.join(RESULTS, "fullanalog_scratch_model_weight_50epoch.pth")
 
 # Training parameters
 SEED = 1
-N_EPOCHS = 30
+N_EPOCHS = 50
 BATCH_SIZE = 128
 LEARNING_RATE = 0.1
 MOMENTUM = 0.9  # SGD momentum

@@ -1236,13 +1236,14 @@ def print_lrtt_statistics(model, epoch):
             # Check if it's spatial LRTT for parameter info
             if hasattr(module.analog_module, 'get_parameter_info'):
                 param_info = module.analog_module.get_parameter_info()
-                total_original_params += param_info['original_params']
-                total_spatial_params += param_info['spatial_params']
+                total_original_params += param_info['standard_lora_params']
+                total_spatial_params += param_info['spatial_lora_params']
 
                 if lrtt_count <= 3:  # Print first 3 layers only
+                    reduction = 1.0 - (param_info['spatial_lora_params'] / param_info['standard_lora_params'])
                     print(f"  {name}: A/B updates={controller.num_a_updates}, "
                           f"Transfers={controller.num_transfers}, "
-                          f"Param reduction={param_info['reduction_percentage']}")
+                          f"Param change={reduction:+.1%}")
             else:
                 if lrtt_count <= 3:  # Print first 3 layers only
                     print(f"  {name}: A/B updates={controller.num_a_updates}, "
