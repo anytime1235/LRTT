@@ -490,7 +490,8 @@ def load_pretrained_weights(analog_model):
             
             if is_spatial_lrtt:
                 # Handle kernel size mismatch (e.g., 7x7 -> 3x3)
-                target_k = int((analog_out_size / out_ch)**0.5) if out_ch > 0 else k_h
+                # For Spatial LRTT: analog_out_size = c_out * k, so target_k = analog_out_size / out_ch
+                target_k = analog_out_size // out_ch if out_ch > 0 else k_h
                 
                 if k_h != target_k:
                     # Center crop if source kernel is larger
@@ -912,53 +913,6 @@ def apply_warmup_cosine_lr(optimizer, epoch, total_epochs, base_lr, warmup_ratio
     for param_group in optimizer.param_groups:
         param_group['lr'] = current_lr
 
-
-def print_lrtt_statistics(model, epoch):
-    """Print LRTT statistics for monitoring.
-    
-    Args:
-        model (nn.Module): Model with LRTT layers
-        epoch (int): Current epoch number
-    """
-    if epoch % 1 == 0:  # Print every 10 epochs
-        print(f"\nLRTT Statistics at epoch {epoch}:")
-        
-        # Count LRTT layers and get statistics
-        lrtt_count = 0
-        total_transfers = 0
-        total_original_params = 0
-        total_spatial_params = 0
-        
-        for name, module in model.named_modules():
-            if hasattr(module, 'analog_module') and hasattr(module.analog_module, 'controller'):
-                controller = module.analog_module.controller
-                lrtt_count += 1
-                total_transfers += controller.num_transfers
-                
-                # Check if it's spatial LRTT for parameter info
-                if hasattr(module.analog_module, 'get_parameter_info'):
-                    param_info = module.analog_module.get_parameter_info()
-                    total_original_params += param_info['standard_lora_params']
-                    total_spatial_params += param_info['spatial_lora_params']
-
-                    if lrtt_count <= 3:  # Print first 3 layers
-                        reduction = 1.0 - (param_info['spatial_lora_params'] / param_info['standard_lora_params'])
-                        print(f"  {name}: A/B updates={controller.num_a_updates}, "
-                              f"Transfers={controller.num_transfers}, "
-                              f"Param change={reduction:+.1%}")
-                else:
-                    if lrtt_count <= 3:  # Print first 3 layers
-                        print(f"  {name}: A/B updates={controller.num_a_updates}, "
-                              f"Transfers={controller.num_transfers}")
-        
-        print(f"  Total LRTT layers: {lrtt_count}")
-        print(f"  Total transfers: {total_transfers}")
-        
-        if total_original_params > 0:
-            total_reduction = 1.0 - (total_spatial_params / total_original_params)
-            print(f"  Total parameter reduction: {total_reduction:.1%} "
-                  f"({total_original_params:,} → {total_spatial_params:,})")
-        print()
 
 
 def main():

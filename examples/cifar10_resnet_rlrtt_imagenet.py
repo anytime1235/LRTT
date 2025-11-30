@@ -4,10 +4,11 @@
 #
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 
-"""aihwkit example 18 with LRTT: ResNet32 CNN with CIFAR10 using LRTT layers.
+"""aihwkit example: ResNet18 CNN with CIFAR10 using LRTT layers + ImageNet pretrained weights.
 
-CIFAR10 dataset on a ResNet inspired network using LRTT (Low-Rank Tensor-Train)
-analog layers based on the paper: https://arxiv.org/abs/1512.03385
+CIFAR10 dataset on a ResNet18 network using LRTT (Low-Rank Tensor-Train)
+analog layers with ImageNet pretrained weights as initialization.
+Based on the paper: https://arxiv.org/abs/1512.03385
 """
 # pylint: disable=invalid-name
 
@@ -21,7 +22,7 @@ from torch import max as torch_max
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 
-from torchvision import datasets, transforms
+from torchvision import datasets, transforms, models
 
 # Progress bar
 from tqdm import tqdm
@@ -50,21 +51,18 @@ DEVICE = device("cuda" if USE_CUDA else "cpu")
 PATH_DATASET = os.path.join(os.getcwd(), "data", "DATASET")
 
 # Path to store results
-RESULTS = os.path.join(os.getcwd(), "results", "RESNET_LRTT")
+RESULTS = os.path.join(os.getcwd(), "results", "RESNET_REGULAR_LRTT_IMAGENET")
 os.makedirs(RESULTS, exist_ok=True)
-WEIGHT_PATH = os.path.join(RESULTS, "example_18_lrtt_model_weight.pth")
+WEIGHT_PATH = os.path.join(RESULTS, "cifar10_resnet_regular_lrtt_imagenet_model_weight.pth")
 
-# Baseline model loading (2-stage training)
-# Set to None to skip baseline loading (train from scratch)
-# Set to path to load pretrained baseline weights into LRTT C matrices
-BASELINE_CHECKPOINT_PATH = "results/RESNET_BASELINE/baseline_model_weight.pth"  # Example: "results/RESNET_BASELINE/baseline_model_weight.pth"
-LOAD_BASELINE = True  # Set to True to load baseline weights
+# ImageNet pretrained weights loading
+USE_IMAGENET_PRETRAINED = True  # Set to True to load ImageNet pretrained weights into C matrices
 
 # Training parameters
 SEED = 1
-N_EPOCHS = 100  # Reduced for LRTT demonstration
+N_EPOCHS = 300  # Reduced for LRTT demonstration
 BATCH_SIZE = 128  # Reduced to prevent CUDA memory issues
-LEARNING_RATE = 0.1
+LEARNING_RATE = 0.03
 MOMENTUM = 0.9  # SGD momentum
 WEIGHT_DECAY = 0.0005  # L2 regularization
 NESTEROV = True  # Nesterov momentum
@@ -80,16 +78,15 @@ LORA_ALPHA = 2.0  # LoRA scaling factor
 TRANSFER_LR = LORA_ALPHA  # Transfer learning rate (defaults to LORA_ALPHA, can be set independently)
 
 # Spatial LRTT for parameter reduction
-USE_SPATIAL_LRTT = True  # Use spatial LRTT to reduce parameter count
+USE_SPATIAL_LRTT = False  # Use Regular LRTT (standard parameter count)
 
 # ReLoRA-style configuration
-ENABLE_RELORA = True  # Enable ReLoRA-style periodic reset
-RELORA_RESET_EVERY = 1000  # Reset LoRA (A, B) every N steps (≈10 epochs with batch_size=128)
+ENABLE_RELORA = False  # Enable ReLoRA-style jagged cosine LR schedule
+RELORA_RESET_EVERY = 500  # LR cycle period for jagged cosine (≈10 epochs with batch_size=128)
                             # CIFAR-10: 50000/128 ≈ 390 steps/epoch, so 10 epochs = 3900 steps
-RELORA_WARMUP_STEPS = 100  # Warmup steps after each reset (must be < RELORA_RESET_EVERY)
+                            # Note: A,B weight reinit happens via TRANSFER_EVERY (independent)
+RELORA_WARMUP_STEPS = 50  # LR warmup steps after each cycle (must be < RELORA_RESET_EVERY)
 
-# Debug monitoring (set to False for production/faster training)
-ENABLE_DEBUG_MONITORING = False  # Enable C matrix monitoring and detailed statistics
 
 # Layer-wise digital/analog configuration
 # Set which layers use analog (LRTT) vs digital (FloatingPoint)
@@ -153,67 +150,33 @@ LAYER_CONFIG = {
 
 
 def create_lrtt_config_conv():
-    """Create LRTT configuration for convolutional layers.
-    
-    Returns:
-        PythonLRTTRPUConfig: LRTT configuration for conv layers
-    """
-    # Choose device preset:
-    # - idealized: IdealizedPresetDevice (no noise, perfect)
-    # - constant_step: ConstantStepDevice (realistic analog)
-    #device_config = PythonLRTTPreset.idealized(
-    #    rank=LRTT_RANK_CONV,
-    #    transfer_every=TRANSFER_EVERY,
-    #    lora_alpha=LORA_ALPHA
-    #)
-    
-    # Alternative: ConstantStepDevice
-    # device_config = PythonLRTTPreset.constant_step(
-    #     rank=LRTT_RANK_CONV,
-    #     transfer_every=TRANSFER_EVERY,
-    #     dw_min=0.01
-    # )
-    
-    # Alternative: Custom devices (FloatingPoint for all tiles)
-    # device_config = PythonLRTTDevice(
-    #     rank=LRTT_RANK_CONV,
-    #     transfer_every=TRANSFER_EVERY,
-    #     lora_alpha=LORA_ALPHA,
-    #     unit_cell_devices=[
-    #         FloatingPointDevice(),  # A 행렬: floating point
-    #         FloatingPointDevice(),  # B 행렬: floating point  
-    #         FloatingPointDevice(),  # C 행렬: floating point
-    #     ]
-    # )
-    
-    # Alternative: A,B=FloatingPoint, C=Idealized with custom parameters
+    """Create LRTT configuration for convolutional layers."""
     if USE_SPATIAL_LRTT:
         # Use spatial LRTT for parameter reduction
-        print(f"Using Spatial LRTT with rank={LRTT_RANK_CONV} for parameter reduction")
+        print(f"Using Spatial LRTT with rank={LRTT_RANK_CONV}")
         device_config = SpatialPythonLRTTDevice(
             rank=LRTT_RANK_CONV,
             transfer_every=TRANSFER_EVERY,
             lora_alpha=LORA_ALPHA,
-            forward_inject=False,  # Enable forward_inject for conv layers
+            forward_inject=False,
             correct_gradient_magnitudes=True,
             unit_cell_devices=[
-                IdealizedPresetDevice(),  # A 행렬: idealized device
-                IdealizedPresetDevice(),  # B 행렬: idealized device
-                IdealizedPresetDevice(),  # C 행렬: use all defaults
+                IdealizedPresetDevice(),
+                IdealizedPresetDevice(),
+                IdealizedPresetDevice(),
             ]
         )
     else:
-        # Use standard LRTT
         print(f"Using Standard LRTT with rank={LRTT_RANK_CONV}")
         device_config = PythonLRTTDevice(
             rank=LRTT_RANK_CONV,
             transfer_every=TRANSFER_EVERY,
             lora_alpha=LORA_ALPHA,
-            forward_inject=False,  # Enable forward_inject for conv layers
+            forward_inject=False,
             unit_cell_devices=[
-                IdealizedPresetDevice(),  # A 행렬: idealized device
-                IdealizedPresetDevice(),  # B 행렬: idealized device
-                IdealizedPresetDevice(),  # C 행렬: use all defaults
+                IdealizedPresetDevice(),
+                IdealizedPresetDevice(),
+                IdealizedPresetDevice(),
             ]
         )
     
@@ -221,53 +184,37 @@ def create_lrtt_config_conv():
 
     # Add mapping for larger layers
     mapping = MappingParameter(
-        weight_scaling_omega=0.6,
+        weight_scaling_omega=1.0,
         learn_out_scaling=False,
-        weight_scaling_lr_compensation=False,
+        weight_scaling_lr_compensation=True,
         digital_bias=True,
         weight_scaling_columnwise=False,
-        out_scaling_columnwise=False,
+        out_scaling_columnwise=True,
         max_input_size=512,
         max_output_size=512
     )
     
-    # Optional: Add I/O configuration for forward/backward passes
     forward_io = IOParameters(
-        # DAC (input) configuration (PresetIOParameters defaults)
-        inp_res=0.007937,     # default: 7-bit DAC 1.0/(2**7-2) (≈0.007937)
-        inp_bound=1.0,            # default: 1.0 
-        inp_noise=0.0,            # default: 0.0 (no input noise)
-        inp_sto_round=False,      # default: False (no stochastic rounding)
-        
-        # ADC (output) configuration (PresetIOParameters defaults) 
-        out_res=0.001961,     # default: 9-bit ADC 1.0/(2**9-2) (≈0.001961)
-        out_bound=12.0,           # default: 12.0 (dynamic range ratio)
-        out_noise=0.06,            # default: 0.06 (~1 LSB of ADC)
-        
-        # Weight noise configuration (PresetIOParameters defaults)
-        w_noise=0.0,              # default: 0.0 (no read noise)
-        w_noise_type=WeightNoiseType.NONE,  # default: NONE
-        
-        # Management configuration (PresetIOParameters defaults)
-        bound_management=BoundManagementType.ITERATIVE,  # default: ITERATIVE
-        noise_management=NoiseManagementType.ABS_MAX,    # default: ABS_MAX
-        is_perfect=False,         # default: False
-        max_bm_factor=1000,       # default: 1000
+        inp_res=0.007937,
+        inp_bound=1.0,
+        inp_noise=0.0,
+        inp_sto_round=False,
+        out_res=0.001961,
+        out_bound=12.0,
+        out_noise=0.06,
+        w_noise=0.0,
+        w_noise_type=WeightNoiseType.NONE,
+        bound_management=BoundManagementType.ITERATIVE,
+        noise_management=NoiseManagementType.ABS_MAX,
+        is_perfect=False,
+        max_bm_factor=1000,
     )
-    
+
     return PythonLRTTRPUConfig(device=device_config, mapping=mapping, forward=forward_io, backward=forward_io)
-    # return PythonLRTTRPUConfig(device=device_config, mapping=mapping)
 
 
 def create_lrtt_config_fc():
-    """Create LRTT configuration for fully connected layers.
-    
-    Returns:
-        PythonLRTTRPUConfig: LRTT configuration for FC layers
-    """
-    # Choose device preset:
-    # - idealized: IdealizedPresetDevice (no noise, perfect)
-    # - constant_step: ConstantStepDevice (realistic analog)
+    """Create LRTT configuration for fully connected layers."""
     device_config = PythonLRTTPreset.idealized(
         rank=LRTT_RANK_FC,
         transfer_every=TRANSFER_EVERY,
@@ -275,70 +222,7 @@ def create_lrtt_config_fc():
         forward_inject=False,
         correct_gradient_magnitudes=False
     )
-    
-    # Alternative: ConstantStepDevice  
-    # device_config = PythonLRTTPreset.constant_step(
-    #     rank=LRTT_RANK_FC,
-    #     transfer_every=TRANSFER_EVERY,
-    #     dw_min=0.01
-    # )
-    # device_config.forward_inject = True
-    # device_config.correct_gradient_magnitudes = True
-    
-    # Alternative: Custom devices (mixed devices)
-    # device_config = PythonLRTTDevice(
-    #     rank=LRTT_RANK_FC,
-    #     transfer_every=TRANSFER_EVERY,
-    #     lora_alpha=LORA_ALPHA,
-    #     forward_inject=True,
-    #     correct_gradient_magnitudes=True,
-    #     unit_cell_devices=[
-    #         ConstantStepDevice(dw_min=0.01),  # A: 빠른 업데이트
-    #         ConstantStepDevice(dw_min=0.01),  # B: 빠른 업데이트
-    #         FloatingPointDevice(),            # C: 정확한 저장
-    #     ]
-    # )
-    
-    # Alternative: A,B=FloatingPoint, C=Idealized
-    # device_config = PythonLRTTDevice(
-    #     rank=LRTT_RANK_FC,
-    #     transfer_every=TRANSFER_EVERY,
-    #     lora_alpha=LORA_ALPHA,
-    #     forward_inject=True,
-    #     correct_gradient_magnitudes=True,
-    #     unit_cell_devices=[
-    #         FloatingPointDevice(),    # A 행렬: 정확한 floating point
-    #         FloatingPointDevice(),    # B 행렬: 정확한 floating point
-    #         IdealizedPresetDevice(),  # C 행렬: idealized analog
-    #     ]
-    # )
-    
     device_config.transfer_lr = TRANSFER_LR
-
-    # Optional: Add I/O configuration for FC layers (PresetIOParameters defaults)
-    # forward_io = IOParameters(
-    #     # DAC (input) configuration (PresetIOParameters defaults)
-    #     inp_res=1.0/(2**7-2),     # default: 7-bit DAC (≈0.007937)
-    #     inp_bound=1.0,            # default: 1.0
-    #     inp_noise=0.0,            # default: 0.0 (no input noise)
-    #     inp_sto_round=False,      # default: False (no stochastic rounding)
-    #     
-    #     # ADC (output) configuration (PresetIOParameters defaults)
-    #     out_res=1.0/(2**9-2),     # default: 9-bit ADC (≈0.001961)
-    #     out_bound=20.0,           # default: 20.0 (dynamic range ratio)
-    #     out_noise=0.1,            # default: 0.1 (~1 LSB of ADC)
-    #     
-    #     # Weight noise configuration (PresetIOParameters defaults)
-    #     w_noise=0.0,              # default: 0.0 (no read noise)
-    #     w_noise_type=WeightNoiseType.NONE,  # default: NONE
-    #     
-    #     # Management configuration (PresetIOParameters defaults)  
-    #     bound_management=BoundManagementType.ITERATIVE,  # default: ITERATIVE
-    #     noise_management=NoiseManagementType.ABS_MAX,    # default: ABS_MAX
-    #     is_perfect=False,         # default: False
-    # )
-    
-    # return PythonLRTTRPUConfig(device=device_config, forward=forward_io, backward=forward_io)
     return PythonLRTTRPUConfig(device=device_config)
 
 
@@ -349,35 +233,14 @@ class ResidualBlockLRTT(nn.Module):
                  use_analog_conv1=True, use_analog_conv2=True, use_analog_convskip=True):
         super().__init__()
 
-        # Conv1 configuration
-        if use_analog_conv1:
-            rpu_config_conv1 = create_lrtt_config_conv()
-            bias_conv1 = False  # LRTT doesn't support bias
-        else:
-            rpu_config_conv1 = FloatingPointRPUConfig()
-            bias_conv1 = False  # Standard ResNet: no bias in Conv (BatchNorm handles it)
+        rpu_config_conv1 = create_lrtt_config_conv() if use_analog_conv1 else FloatingPointRPUConfig()
+        rpu_config_conv2 = create_lrtt_config_conv() if use_analog_conv2 else FloatingPointRPUConfig()
+        rpu_config_convskip = create_lrtt_config_conv() if use_analog_convskip else FloatingPointRPUConfig()
 
-        # Conv2 configuration
-        if use_analog_conv2:
-            rpu_config_conv2 = create_lrtt_config_conv()
-            bias_conv2 = False
-        else:
-            rpu_config_conv2 = FloatingPointRPUConfig()
-            bias_conv2 = False
-
-        # Convskip configuration
-        if use_analog_convskip:
-            rpu_config_convskip = create_lrtt_config_conv()
-            bias_convskip = False
-        else:
-            rpu_config_convskip = FloatingPointRPUConfig()
-            bias_convskip = False
-
-        # Build layers with individual configurations
         self.conv1 = AnalogConv2d(
             in_ch, hidden_ch,
             kernel_size=3, padding=1, stride=stride,
-            bias=bias_conv1,
+            bias=False,
             rpu_config=rpu_config_conv1
         )
         self.bn1 = nn.BatchNorm2d(hidden_ch)
@@ -385,7 +248,7 @@ class ResidualBlockLRTT(nn.Module):
         self.conv2 = AnalogConv2d(
             hidden_ch, hidden_ch,
             kernel_size=3, padding=1,
-            bias=bias_conv2,
+            bias=False,
             rpu_config=rpu_config_conv2
         )
         self.bn2 = nn.BatchNorm2d(hidden_ch)
@@ -394,7 +257,7 @@ class ResidualBlockLRTT(nn.Module):
             self.convskip = AnalogConv2d(
                 in_ch, hidden_ch,
                 kernel_size=1, stride=stride,
-                bias=bias_convskip,
+                bias=False,
                 rpu_config=rpu_config_convskip
             )
         else:
@@ -583,7 +446,10 @@ def create_model():
     print(f"  Transfer every: {TRANSFER_EVERY} updates")
     print(f"  LoRA alpha: {LORA_ALPHA}")
     print(f"  Transfer LR: {TRANSFER_LR}")
-    print(f"  Using random initialization (no pretrained weights)\n")
+    print(f"  Note: Weights will be initialized from ImageNet pretrained ResNet18\n")
+
+    # Apply Kaiming initialization to ensure consistent initialization
+    initialize_resnet_weights(model)
 
     return model
 
@@ -673,191 +539,350 @@ def initialize_resnet_weights(model):
     print("Weight initialization completed\n")
 
 
-def load_baseline_weights_to_lrtt(lrtt_model, baseline_checkpoint_path):
-    """Load baseline model weights into LRTT model (ALL non-LoRA parameters).
-
-    This function loads weights from a trained baseline model and initializes:
-    1. LRTT C matrices (base weights) - from analog tile weights
-    2. BatchNorm parameters (weight, bias, running_mean, running_var)
-    3. Digital layer parameters (FloatingPoint conv1, fc)
-
-    LoRA matrices (A, B) are NOT loaded and remain randomly initialized.
+def load_pretrained_weights(analog_model):
+    """Load ImageNet pretrained weights into analog model.
 
     Args:
-        lrtt_model: LRTT model with spatial/regular LRTT layers
-        baseline_checkpoint_path: Path to baseline model checkpoint (.pth file)
+        analog_model: Analog model with LRTT layers
 
     Returns:
-        dict: Statistics of loaded parameters
+        int: Number of layers with weights transferred
     """
     print(f"\n{'='*70}")
-    print(f"Loading Baseline Weights (C + BatchNorm + Digital)")
+    print(f"Loading ImageNet Pretrained Weights")
     print(f"{'='*70}")
-    print(f"Baseline checkpoint: {baseline_checkpoint_path}")
 
-    # Load baseline checkpoint
-    if not os.path.exists(baseline_checkpoint_path):
-        print(f"❌ Error: Checkpoint not found at {baseline_checkpoint_path}")
-        return {'analog_c': 0, 'batchnorm': 0, 'digital': 0}
+    # Load standard PyTorch ResNet18 pretrained weights
+    pretrained_model = models.resnet18(weights='IMAGENET1K_V1')
 
-    baseline_state_dict = torch.load(baseline_checkpoint_path, map_location=DEVICE, weights_only=False)
-    print(f"✓ Loaded baseline checkpoint with {len(baseline_state_dict)} keys")
-
-    # Categorize baseline parameters
-    analog_weights = {}  # Analog tile weights (for C matrix)
-    batchnorm_params = {}  # BatchNorm parameters
-    digital_params = {}  # Other digital parameters
-
-    for key, value in baseline_state_dict.items():
-        if '.analog_module.analog_tile_state' in key:
-            # Analog tile weights (C matrix)
-            layer_name = key.replace('.analog_module.analog_tile_state', '')
-            if isinstance(value, dict) and 'analog_tile_weights' in value:
-                analog_weights[layer_name] = value['analog_tile_weights']
-        elif '.bn' in key or 'BatchNorm' in key:
-            # BatchNorm parameters
-            batchnorm_params[key] = value
-        else:
-            # Other parameters (digital layers, etc.)
-            digital_params[key] = value
-
-    print(f"✓ Baseline breakdown:")
-    print(f"  - Analog layers: {len(analog_weights)}")
-    print(f"  - BatchNorm params: {len(batchnorm_params)}")
-    print(f"  - Digital params: {len(digital_params)}")
-
-    # Statistics counters
-    analog_c_loaded = 0
-    analog_c_skipped = 0
-    batchnorm_loaded = 0
-    batchnorm_skipped = 0
-    digital_loaded = 0
-    digital_skipped = 0
-
-    # ========================================================================
-    # Step 1: Load Analog C matrices (LRTT only)
-    # ========================================================================
-    print(f"\n1. Loading Analog C Matrices:")
-    print(f"-" * 70)
-
-    for name, module in lrtt_model.named_modules():
-        if isinstance(module, AnalogConv2d) or (hasattr(module, '__class__') and 'AnalogLinear' in module.__class__.__name__):
-            if hasattr(module, 'analog_module'):
-                if name not in analog_weights:
-                    continue  # Skip if no baseline weight
-
-                baseline_weight = analog_weights[name]
-
-                try:
-                    # LRTT layer - load into C matrix only
-                    if hasattr(module.analog_module, 'get_lrtt_component_weights'):
-                        C, A, B = module.analog_module.get_lrtt_component_weights()
-                        if baseline_weight.shape == C.shape:
-                            module.analog_module.set_lrtt_component_weights(
-                                baseline_weight.to(C.device),  # New C from baseline
-                                A,  # Keep A unchanged (LoRA)
-                                B   # Keep B unchanged (LoRA)
-                            )
-                            analog_c_loaded += 1
-                            print(f"  ✓  {name}: C matrix loaded (shape={C.shape})")
-                        else:
-                            print(f"  ⚠️  {name}: Shape mismatch (C={C.shape}, baseline={baseline_weight.shape})")
-                            analog_c_skipped += 1
-
-                    # Regular analog layer - direct weight setting
-                    elif hasattr(module.analog_module, 'set_weights'):
-                        current_weights, current_bias = module.analog_module.get_weights()
-                        if baseline_weight.shape == current_weights.shape:
-                            module.analog_module.set_weights(baseline_weight.to(current_weights.device), current_bias)
-                            analog_c_loaded += 1
-                            print(f"  ✓  {name}: Weight loaded (Regular Analog)")
-                        else:
-                            print(f"  ⚠️  {name}: Shape mismatch")
-                            analog_c_skipped += 1
-
-                except Exception as e:
-                    print(f"  ❌  {name}: Error - {e}")
-                    analog_c_skipped += 1
-
-    # ========================================================================
-    # Step 2: Load BatchNorm parameters
-    # ========================================================================
-    print(f"\n2. Loading BatchNorm Parameters:")
-    print(f"-" * 70)
-
-    for name, module in lrtt_model.named_modules():
-        if isinstance(module, torch.nn.BatchNorm2d):
-            # Try to load all BatchNorm parameters
-            for param_name in ['weight', 'bias', 'running_mean', 'running_var', 'num_batches_tracked']:
-                key = f"{name}.{param_name}"
-                if key in batchnorm_params:
-                    try:
-                        target_param = getattr(module, param_name, None)
-                        if target_param is not None:
-                            if isinstance(target_param, torch.nn.Parameter):
-                                # For weight and bias (learnable parameters)
-                                target_param.data.copy_(batchnorm_params[key].to(DEVICE))
-                            else:
-                                # For buffers (running_mean, running_var, num_batches_tracked)
-                                target_param.copy_(batchnorm_params[key].to(DEVICE))
-                            batchnorm_loaded += 1
-                        else:
-                            batchnorm_skipped += 1
-                    except Exception as e:
-                        print(f"  ⚠️  {key}: Error - {e}")
-                        batchnorm_skipped += 1
-
-    print(f"  ✓  Loaded {batchnorm_loaded} BatchNorm parameters")
-    if batchnorm_skipped > 0:
-        print(f"  ⚠️  Skipped {batchnorm_skipped} BatchNorm parameters")
-
-    # ========================================================================
-    # Step 3: Load Digital layer parameters (if any)
-    # ========================================================================
-    print(f"\n3. Loading Digital Layer Parameters:")
-    print(f"-" * 70)
-
-    # Digital layers don't have analog_module, so we use standard PyTorch loading
-    # Create a filtered state dict with only digital parameters
-    lrtt_state_dict = lrtt_model.state_dict()
-    digital_state_dict = {}
-
-    for key in lrtt_state_dict.keys():
-        # Skip analog_module and BatchNorm (already loaded)
-        if 'analog_module' not in key and '.bn' not in key and 'BatchNorm' not in key:
-            if key in digital_params:
-                digital_state_dict[key] = digital_params[key]
-
-    if len(digital_state_dict) > 0:
+    def transfer_weights(analog_layer, pretrained_layer):
+        """Transfer weights to analog layer (both conv and linear)"""
         try:
-            # Use load_state_dict with strict=False to allow partial loading
-            missing_keys, unexpected_keys = lrtt_model.load_state_dict(digital_state_dict, strict=False)
-            digital_loaded = len(digital_state_dict)
-            print(f"  ✓  Loaded {digital_loaded} digital parameters")
-            if len(missing_keys) > 0:
-                print(f"  ⚠️  Missing keys: {len(missing_keys)}")
-        except Exception as e:
-            print(f"  ❌  Error loading digital params: {e}")
-            digital_skipped = len(digital_state_dict)
-    else:
-        print(f"  ℹ️  No digital parameters to load")
+            if hasattr(analog_layer, 'set_weights'):
+                # For analog layers, set the visible weights (C matrix)
+                weight = pretrained_layer.weight.data
+                bias = pretrained_layer.bias.data if pretrained_layer.bias is not None else None
+                analog_layer.set_weights(weight, bias)
+                return True
+            elif hasattr(analog_layer, 'weight') and analog_layer.weight is not None:
+                # For regular layers with PyTorch parameters, direct copy
+                analog_layer.weight.data.copy_(pretrained_layer.weight.data)
+                if hasattr(analog_layer, 'bias') and analog_layer.bias is not None:
+                    if pretrained_layer.bias is not None:
+                        analog_layer.bias.data.copy_(pretrained_layer.bias.data)
+                return True
+            elif hasattr(analog_layer, 'analog_module'):
+                # For FloatingPointTile or other analog tiles without PyTorch parameters
+                weight = pretrained_layer.weight.data
+                bias = pretrained_layer.bias.data if pretrained_layer.bias is not None else None
+                analog_layer.analog_module.set_weights(weight, bias)
+                return True
+            else:
+                return False
+        except Exception:
+            return False
 
-    # ========================================================================
-    # Summary
-    # ========================================================================
-    print(f"-" * 70)
-    print(f"\n✓ Loading Complete:")
-    print(f"  Analog C matrices: {analog_c_loaded} loaded, {analog_c_skipped} skipped")
-    print(f"  BatchNorm params: {batchnorm_loaded} loaded, {batchnorm_skipped} skipped")
-    print(f"  Digital params: {digital_loaded} loaded, {digital_skipped} skipped")
-    print(f"\n✓ LoRA matrices (A, B) remain randomly initialized")
+    def find_analog_conv_layers(module):
+        """Recursively find AnalogConv2d layers"""
+        analog_layers = []
+        for child in module.children():
+            if isinstance(child, (AnalogConv2d,)):
+                analog_layers.append(child)
+            else:
+                analog_layers.extend(find_analog_conv_layers(child))
+        return analog_layers
+
+    def find_analog_linear_layers(module):
+        """Recursively find AnalogLinear layers"""
+        from aihwkit.nn import AnalogLinear
+        analog_layers = []
+        for child in module.children():
+            if isinstance(child, AnalogLinear):
+                analog_layers.append(child)
+            else:
+                analog_layers.extend(find_analog_linear_layers(child))
+        return analog_layers
+
+    # Get pretrained layers
+    pretrained_conv_layers = []
+    pretrained_linear_layers = []
+
+    # Extract conv layers from ResNet18
+    def extract_conv_layers(module):
+        layers = []
+        for child in module.children():
+            if isinstance(child, nn.Conv2d):
+                layers.append(child)
+            else:
+                layers.extend(extract_conv_layers(child))
+        return layers
+
+    def extract_linear_layers(module):
+        layers = []
+        for child in module.children():
+            if isinstance(child, nn.Linear):
+                layers.append(child)
+            else:
+                layers.extend(extract_linear_layers(child))
+        return layers
+
+    pretrained_conv_layers = extract_conv_layers(pretrained_model)
+    pretrained_linear_layers = extract_linear_layers(pretrained_model)
+
+    # Get analog layers
+    analog_conv_layers = find_analog_conv_layers(analog_model)
+    analog_linear_layers = find_analog_linear_layers(analog_model)
+
+    transferred_count = 0
+
+    # Transfer conv layers
+    min_conv_layers = min(len(analog_conv_layers), len(pretrained_conv_layers))
+    print(f"  Transferring {min_conv_layers} conv layers...")
+    for i in range(min_conv_layers):
+        analog_layer = analog_conv_layers[i]
+        pretrained_layer = pretrained_conv_layers[i]
+
+        # Check and reshape weights for compatibility
+        try:
+            pretrained_weight = pretrained_layer.weight.data  # [out_ch, in_ch, k, k]
+            pretrained_shape = pretrained_weight.shape
+
+            # Handle both LRTT and regular analog layers
+            if hasattr(analog_layer, 'analog_module'):
+                # For Spatial LRTT: d_size = c_out×k, x_size = c_in×k
+                if hasattr(analog_layer.analog_module, 'c_out'):  # Spatial LRTT
+                    c_out = analog_layer.analog_module.c_out
+                    c_in = analog_layer.analog_module.c_in
+                    k = analog_layer.analog_module.k
+                    analog_out_size = c_out * k
+                    analog_in_size = c_in * k
+                elif hasattr(analog_layer.analog_module, 'd_size'):  # Regular LRTT
+                    analog_out_size = analog_layer.analog_module.d_size
+                    analog_in_size = analog_layer.analog_module.x_size
+                else:
+                    # Not LRTT, treat as regular analog layer (FloatingPointTile)
+                    try:
+                        # For FloatingPointTile, get weights from the tile
+                        weights_result = analog_layer.analog_module.get_weights()
+                        if isinstance(weights_result, tuple):
+                            weights = weights_result[0]  # Get weight tensor
+                        else:
+                            weights = weights_result  # Might return tensor directly
+                        analog_weight_shape = weights.shape
+                        analog_out_size, analog_in_size = analog_weight_shape[0], analog_weight_shape[1] * analog_weight_shape[2] * analog_weight_shape[3]
+                    except Exception:
+                        # Try alternative approach - use the expected shape from layer definition
+                        try:
+                            # Get expected dimensions from conv layer definition
+                            out_features = getattr(analog_layer, 'out_channels', None)
+                            in_features = getattr(analog_layer, 'in_channels', None)
+                            kernel_size = getattr(analog_layer, 'kernel_size', (3, 3))
+                            if isinstance(kernel_size, int):
+                                kernel_size = (kernel_size, kernel_size)
+
+                            if out_features and in_features:
+                                analog_out_size = out_features
+                                analog_in_size = in_features * kernel_size[0] * kernel_size[1]
+                            else:
+                                continue
+                        except Exception:
+                            continue
+            elif hasattr(analog_layer, 'weight') and analog_layer.weight is not None:
+                # Regular analog layer (FloatingPoint)
+                analog_weight_shape = analog_layer.weight.shape
+                analog_out_size, analog_in_size = analog_weight_shape[0], analog_weight_shape[1] * analog_weight_shape[2] * analog_weight_shape[3]
+            else:
+                continue  # Skip if not analog layer
+
+            # Reshape conv weight [out_ch, in_ch, k, k] -> [out_ch, in_ch*k*k] for regular LRTT
+            # or -> [out_ch*k, in_ch*k] for Spatial LRTT
+            pretrained_shape = pretrained_weight.shape
+            out_ch, in_ch, k_h, k_w = pretrained_shape
+
+            # Check if this is spatial LRTT (parameter reduction) or regular analog layer
+            is_spatial_lrtt = (analog_out_size == out_ch * k_h and analog_in_size == in_ch * k_w)
+            is_regular_lrtt = (analog_out_size == out_ch and analog_in_size == in_ch * k_h * k_w)
+            # Regular analog layer: has analog_module but not LRTT (e.g., FloatingPointTile)
+            is_regular_analog = (hasattr(analog_layer, 'analog_module') and
+                                not hasattr(analog_layer.analog_module, 'c_out') and
+                                not hasattr(analog_layer.analog_module, 'd_size'))
+
+
+            reshaped_weight = None
+
+            if is_spatial_lrtt:
+                # Handle kernel size mismatch (e.g., 7x7 -> 3x3)
+                # For Spatial LRTT: analog_out_size = c_out * k, so target_k = analog_out_size / out_ch
+                target_k = analog_out_size // out_ch if out_ch > 0 else k_h
+
+                if k_h != target_k:
+                    # Center crop if source kernel is larger
+                    if k_h > target_k:
+                        start = (k_h - target_k) // 2
+                        end = start + target_k
+                        pretrained_weight = pretrained_weight[:, :, start:end, start:end]
+                        k_h = k_w = target_k
+                        transfer_type = f"Spatial LRTT (cropped {pretrained_shape[2]}x{pretrained_shape[3]} -> {k_h}x{k_w})"
+                    else:
+                        continue
+                else:
+                    transfer_type = "Spatial LRTT"
+
+                # Spatial LRTT: [out_ch, in_ch, k, k] -> [out_ch*k, in_ch*k]
+                # Rearrange spatial dimensions
+                weight_reshaped = pretrained_weight.permute(0, 2, 1, 3)  # [out_ch, k, in_ch, k]
+                reshaped_weight = weight_reshaped.reshape(out_ch * k_h, in_ch * k_w)
+
+            elif is_regular_lrtt:
+                # Regular LRTT: [out_ch, in_ch, k, k] -> [out_ch, in_ch*k*k]
+                reshaped_weight = pretrained_weight.view(out_ch, in_ch * k_h * k_w)
+                transfer_type = "Regular LRTT"
+
+            elif is_regular_analog:
+                # Regular analog layer (FloatingPoint) - keep original conv weight format
+                try:
+                    # For regular analog layer (FloatingPoint) - handle different weight formats
+                    if hasattr(analog_layer, 'weight') and analog_layer.weight is not None:
+                        # Has PyTorch parameter - keep original conv weight format
+                        target_shape = analog_layer.weight.shape  # Should be [out_ch, in_ch, k, k]
+                        if pretrained_shape == target_shape:
+                            reshaped_weight = pretrained_weight
+                            transfer_type = "Direct copy"
+                        elif k_h > target_shape[2]:  # Need to crop kernel (e.g., 7x7 -> 3x3)
+                            start = (k_h - target_shape[2]) // 2
+                            end = start + target_shape[2]
+                            reshaped_weight = pretrained_weight[:, :, start:end, start:end]
+                            transfer_type = f"Cropped {k_h}x{k_w} -> {target_shape[2]}x{target_shape[3]}"
+                        else:
+                            continue
+                    else:
+                        # FloatingPointTile stores weight as flattened [out_ch, in_ch*k*k]
+                        # Reshape pretrained weight to match: [out_ch, in_ch, k, k] -> [out_ch, in_ch*k*k]
+                        if k_h == 7 and analog_out_size == out_ch and analog_in_size == in_ch * 3 * 3:
+                            # ImageNet ResNet first layer: 7x7 -> 3x3 (CIFAR-10 typical)
+                            start = (k_h - 3) // 2  # Center crop 7x7 -> 3x3
+                            end = start + 3
+                            cropped_weight = pretrained_weight[:, :, start:end, start:end]  # [64, 3, 3, 3]
+                            reshaped_weight = cropped_weight.reshape(out_ch, in_ch * 3 * 3)  # [64, 27]
+                            transfer_type = f"Cropped and flattened {k_h}x{k_w} -> 3x3 -> [{out_ch}, {in_ch * 3 * 3}]"
+                        elif analog_out_size == out_ch and analog_in_size == in_ch * k_h * k_w:
+                            # Standard case: flatten to match analog tile format
+                            reshaped_weight = pretrained_weight.view(out_ch, in_ch * k_h * k_w)
+                            transfer_type = f"Flattened [{out_ch}, {in_ch}, {k_h}, {k_w}] -> [{out_ch}, {in_ch * k_h * k_w}]"
+                        else:
+                            continue
+                except Exception:
+                    continue
+
+            if reshaped_weight is not None:
+                # Create modified pretrained layer with reshaped weight
+                class MockLayer:
+                    def __init__(self, weight):
+                        self.weight = torch.nn.Parameter(weight)
+                        self.bias = None
+
+                mock_layer = MockLayer(reshaped_weight)
+
+                if transfer_weights(analog_layer, mock_layer):
+                    transferred_count += 1
+
+        except Exception:
+            continue
+
+    # Transfer linear layers - adjust for CIFAR-10 (10 classes vs ImageNet 1000)
+    if len(analog_linear_layers) > 0 and len(pretrained_linear_layers) > 0:
+        print(f"  Transferring linear layers...")
+        analog_fc = analog_linear_layers[0]  # Final FC layer
+        pretrained_fc = pretrained_linear_layers[0]  # ImageNet FC layer
+
+        # For CIFAR-10, we only transfer the input projection weights (512 dim)
+        # but not the output weights (1000 -> 10 classes)
+        analog_in_features = getattr(analog_fc, 'in_features', None)
+        if hasattr(analog_fc, 'analog_module'):
+            analog_in_features = analog_fc.analog_module.in_size
+
+        if analog_in_features == pretrained_fc.in_features:
+            # Create a new weight tensor with proper output size
+            analog_out_features = getattr(analog_fc, 'out_features', None)
+            if hasattr(analog_fc, 'analog_module'):
+                analog_out_features = analog_fc.analog_module.out_size
+
+            analog_weight_shape = (analog_out_features, analog_in_features)  # [10, 512] for CIFAR-10
+            pretrained_weight = pretrained_fc.weight.data  # [1000, 512] for ImageNet
+
+            # Use Kaiming initialization for CIFAR-10 classifier (PyTorch nn.Linear default)
+            # Don't copy ImageNet classes since they're unrelated to CIFAR-10
+            import torch.nn.init as init
+            import math
+            new_weight = torch.empty(analog_weight_shape)
+            init.kaiming_uniform_(new_weight, a=math.sqrt(5))
+
+            try:
+                if hasattr(analog_fc, 'set_weights'):
+                    analog_fc.set_weights(new_weight, None)  # No bias for simplicity
+                else:
+                    analog_fc.weight.data.copy_(new_weight)
+                transferred_count += 1
+            except Exception:
+                pass
+
+    # Transfer BatchNorm parameters and statistics
+    print(f"\n  Transferring BatchNorm parameters and statistics...")
+
+    # Extract all BatchNorm layers from both models (in order)
+    analog_bn_layers = []
+    pretrained_bn_layers = []
+
+    for module in analog_model.modules():
+        if isinstance(module, nn.BatchNorm2d):
+            analog_bn_layers.append(module)
+
+    for module in pretrained_model.modules():
+        if isinstance(module, nn.BatchNorm2d):
+            pretrained_bn_layers.append(module)
+
+    bn_transferred = 0
+    min_bn_layers = min(len(analog_bn_layers), len(pretrained_bn_layers))
+
+    for i in range(min_bn_layers):
+        analog_bn = analog_bn_layers[i]
+        pretrained_bn = pretrained_bn_layers[i]
+
+        try:
+            # Transfer learnable parameters (γ, β)
+            analog_bn.weight.data.copy_(pretrained_bn.weight.data)
+            analog_bn.bias.data.copy_(pretrained_bn.bias.data)
+
+            # Transfer running statistics (for inference and initial training)
+            analog_bn.running_mean.copy_(pretrained_bn.running_mean)
+            analog_bn.running_var.copy_(pretrained_bn.running_var)
+            analog_bn.num_batches_tracked.copy_(pretrained_bn.num_batches_tracked)
+
+            bn_transferred += 1
+        except Exception as e:
+            print(f"  ⚠️  Failed to transfer BatchNorm layer {i}: {e}")
+            continue
+
+    print(f"  ✓  Transferred {bn_transferred} BatchNorm layers (weights + running statistics)")
+
+    # Reinitialize A, B matrices for LRTT layers (must be done AFTER loading C)
+    print(f"\n  Reinitializing A, B matrices (A=0, B=Kaiming)...")
+    ab_reinit_count = 0
+    for name, module in analog_model.named_modules():
+        if hasattr(module, 'analog_module') and hasattr(module.analog_module, 'controller'):
+            controller = module.analog_module.controller
+            # Force reinit to ensure A=0, B=Kaiming (standard mode)
+            controller.reinit()
+            ab_reinit_count += 1
+
+    print(f"  ✓  Reinitialized {ab_reinit_count} LRTT layers (A=0, B=Kaiming)")
+    print(f"\n✓ Transfer Summary:")
+    print(f"  - Conv/Linear layers: {transferred_count}")
+    print(f"  - BatchNorm layers: {bn_transferred}")
+    print(f"  - LRTT reinit: {ab_reinit_count}")
     print(f"{'='*70}\n")
 
-    return {
-        'analog_c': analog_c_loaded,
-        'batchnorm': batchnorm_loaded,
-        'digital': digital_loaded
-    }
+    return transferred_count
 
 
 def load_images():
@@ -1051,40 +1076,7 @@ def toggle_forward_inject(model, enabled=True):
             module.analog_module.controller.forward_inject_enabled = enabled
 
 
-def apply_warmup_cosine_lr(optimizer, epoch, total_epochs, base_lr, warmup_ratio=0.1, min_lr=1e-5):
-    """Apply learning rate warmup + cosine annealing.
-
-    Args:
-        optimizer: SGD optimizer
-        epoch: Current epoch (1-indexed)
-        total_epochs: Total number of epochs
-        base_lr: Base learning rate
-        warmup_ratio: Fraction of epochs for warmup
-        min_lr: Minimum learning rate
-
-    Returns:
-        float: Current learning rate
-    """
-    import math
-
-    warmup_epochs = int(total_epochs * warmup_ratio)
-
-    if epoch <= warmup_epochs:
-        # Linear warmup: lr = base_lr * (epoch / warmup_epochs)
-        current_lr = base_lr * (epoch / warmup_epochs)
-    else:
-        # Cosine annealing after warmup
-        # Progress through the cosine schedule (0 to π)
-        progress = (epoch - warmup_epochs) / (total_epochs - warmup_epochs)
-        current_lr = min_lr + (base_lr - min_lr) * 0.5 * (1 + math.cos(math.pi * progress))
-
-    for param_group in optimizer.param_groups:
-        param_group['lr'] = current_lr
-
-    return current_lr
-
-
-def get_base_cosine_lr(global_step, total_steps, base_lr, warmup_steps, min_lr_ratio=0.1):
+def get_base_cosine_lr(global_step, total_steps, base_lr, warmup_steps, min_lr=1e-5):
     """Get base cosine schedule LR at given step (ReLoRA-style).
 
     Args:
@@ -1092,7 +1084,7 @@ def get_base_cosine_lr(global_step, total_steps, base_lr, warmup_steps, min_lr_r
         total_steps: Total training steps
         base_lr: Base learning rate
         warmup_steps: Initial warmup steps
-        min_lr_ratio: Minimum LR as ratio of base (default 0.1)
+        min_lr: Minimum LR (absolute value, default 1e-5 to match epoch-based schedule)
 
     Returns:
         float: Learning rate at this step
@@ -1106,12 +1098,12 @@ def get_base_cosine_lr(global_step, total_steps, base_lr, warmup_steps, min_lr_r
     # Cosine decay after warmup
     progress = (global_step - warmup_steps) / max(1, total_steps - warmup_steps)
     cosine_decay = 0.5 * (1.0 + math.cos(math.pi * progress))
-    return base_lr * (min_lr_ratio + (1.0 - min_lr_ratio) * cosine_decay)
+    return min_lr + (base_lr - min_lr) * cosine_decay
 
 
 def apply_relora_jagged_lr(optimizer, model, epoch, global_step, total_steps, base_lr,
                             reset_every_steps, restart_warmup_steps, initial_warmup_steps,
-                            min_lr_ratio=0.1):
+                            min_lr=1e-5):
     """Apply ReLoRA-style jagged cosine LR schedule to LoRA (A, B).
 
     Digital layers (BatchNorm, bias, FloatingPoint) use normal cosine schedule.
@@ -1133,7 +1125,7 @@ def apply_relora_jagged_lr(optimizer, model, epoch, global_step, total_steps, ba
         reset_every_steps: Reset LoRA every N steps
         restart_warmup_steps: Warmup steps after each reset
         initial_warmup_steps: Initial warmup steps
-        min_lr_ratio: Minimum LR ratio
+        min_lr: Minimum LR (absolute value, default 1e-5 to match epoch-based)
 
     Returns:
         tuple: (jagged_lr for analog, base_lr for digital)
@@ -1142,7 +1134,7 @@ def apply_relora_jagged_lr(optimizer, model, epoch, global_step, total_steps, ba
 
     # Get base cosine schedule value at this step
     base_schedule_lr = get_base_cosine_lr(
-        global_step, total_steps, base_lr, initial_warmup_steps, min_lr_ratio
+        global_step, total_steps, base_lr, initial_warmup_steps, min_lr
     )
 
     # Calculate steps since last reset
@@ -1156,21 +1148,35 @@ def apply_relora_jagged_lr(optimizer, model, epoch, global_step, total_steps, ba
         # Use base schedule value
         jagged_lr = base_schedule_lr
 
-    # Apply base schedule LR to digital parameters (BatchNorm, bias, FloatingPoint layers)
-    # Digital layers should NOT use jagged schedule
-    for param_group in optimizer.param_groups:
-        param_group['lr'] = base_schedule_lr
+    # CRITICAL FIX: Set param_group['lr'] correctly BEFORE optimizer.step()
+    # The optimizer internally calls analog_tile.set_learning_rate(param_group['lr'])
+    # during step(), so we must set the correct LR for each param_group.
+    #
+    # - LRTT analog layers (A, B tiles) → jagged_lr (with warmup restarts)
+    # - Digital layers (BatchNorm, bias, first/last FloatingPoint) → base_schedule_lr
 
-    # Apply jagged LR to analog LRTT layers (A, B, C tiles)
-    # NOTE: Although we set LR for all three (A, B, C), only A and B actually use it
-    # C doesn't receive direct gradients (forward_inject=False), so its LR doesn't matter
-    for module in model.modules():
-        if hasattr(module, 'analog_module'):
-            if hasattr(module.analog_module, 'set_learning_rate'):
-                # Check if this is LRTT layer (not FloatingPoint digital layer)
-                if hasattr(module.analog_module, 'controller'):
-                    # This is LRTT layer - apply jagged LR
-                    module.analog_module.set_learning_rate(jagged_lr)
+    from aihwkit.optim.context import AnalogContext
+
+    for param_group in optimizer.param_groups:
+        # Check if this param_group contains LRTT analog parameters
+        is_lrtt_group = False
+        for param in param_group['params']:
+            if isinstance(param, AnalogContext):
+                # Check if it's LRTT layer (has controller attribute)
+                if hasattr(param.analog_tile, 'controller'):
+                    is_lrtt_group = True
+                    break
+
+        # Apply appropriate LR
+        if is_lrtt_group:
+            # LRTT analog layers get jagged LR with warmup restarts
+            param_group['lr'] = jagged_lr
+        else:
+            # Digital layers get base cosine schedule LR (no warmup restarts)
+            param_group['lr'] = base_schedule_lr
+
+    # NOTE: No need to manually call analog_module.set_learning_rate()
+    # The optimizer.step() will automatically apply param_group['lr'] to analog tiles
 
     return jagged_lr, base_schedule_lr
 
@@ -1210,53 +1216,6 @@ def trigger_relora_reset(model):
     print(f"{'='*70}\n")
 
     return reset_count
-
-
-def print_lrtt_statistics(model, epoch):
-    """Print LRTT statistics for monitoring.
-
-    Args:
-        model (nn.Module): Model with LRTT layers
-        epoch (int): Current epoch number
-    """
-    print(f"\nLRTT Statistics at epoch {epoch}:")
-
-    # Count LRTT layers and get statistics
-    lrtt_count = 0
-    total_transfers = 0
-    total_original_params = 0
-    total_spatial_params = 0
-
-    for name, module in model.named_modules():
-        if hasattr(module, 'analog_module') and hasattr(module.analog_module, 'controller'):
-            controller = module.analog_module.controller
-            lrtt_count += 1
-            total_transfers += controller.num_transfers
-
-            # Check if it's spatial LRTT for parameter info
-            if hasattr(module.analog_module, 'get_parameter_info'):
-                param_info = module.analog_module.get_parameter_info()
-                total_original_params += param_info['standard_lora_params']
-                total_spatial_params += param_info['spatial_lora_params']
-
-                if lrtt_count <= 3:  # Print first 3 layers only
-                    reduction = 1.0 - (param_info['spatial_lora_params'] / param_info['standard_lora_params'])
-                    print(f"  {name}: A/B updates={controller.num_a_updates}, "
-                          f"Transfers={controller.num_transfers}, "
-                          f"Param change={reduction:+.1%}")
-            else:
-                if lrtt_count <= 3:  # Print first 3 layers only
-                    print(f"  {name}: A/B updates={controller.num_a_updates}, "
-                          f"Transfers={controller.num_transfers}")
-
-    print(f"  Total LRTT layers: {lrtt_count}")
-    print(f"  Total transfers: {total_transfers}")
-
-    if total_original_params > 0:
-        total_reduction = 1.0 - (total_spatial_params / total_original_params)
-        print(f"  Total parameter reduction: {total_reduction:.1%} "
-              f"({total_original_params:,} → {total_spatial_params:,})")
-    print()
 
 
 def main():
@@ -1306,13 +1265,13 @@ def main():
     
     # Initialize wandb
     wandb.init(
-        project="aihwkit-lrtt-resnet18-cifar10-scratch-warmstart",
-        name=f"resnet18_cifar10_scratch_bs{BATCH_SIZE}_e{N_EPOCHS}_wr{WARMUP_RATIO}_mm{device_type_str}_aLR{LEARNING_RATE}_wd{WEIGHT_DECAY}_fwdIR{inp_res:.6f}_fwdOR{out_res:.6f}_fwdIN{forward_io.inp_noise}_fwdON{forward_io.out_noise}_mapW{mapping.weight_scaling_omega}_mapLOS{str(mapping.learn_out_scaling).lower()}_mapWSLC{str(mapping.weight_scaling_lr_compensation).lower()}_cgm{str(cgm).lower()}_fwdInj{str(fwd_inject).lower()}_r{LRTT_RANK_CONV}_t{TRANSFER_EVERY}_alpha{LORA_ALPHA}_tlr{TRANSFER_LR}_relora{str(ENABLE_RELORA).lower()}_rre{RELORA_RESET_EVERY}_rws{RELORA_WARMUP_STEPS}",
+        project="new_cifar10_resnet18_regularlrtt_imagenet",
+        name=f"resnet18_cifar10_imagenet_bs{BATCH_SIZE}_e{N_EPOCHS}_wr{WARMUP_RATIO}_mm{device_type_str}_aLR{LEARNING_RATE}_wd{WEIGHT_DECAY}_fwdIR{inp_res:.6f}_fwdOR{out_res:.6f}_fwdIN{forward_io.inp_noise}_fwdON{forward_io.out_noise}_mapW{mapping.weight_scaling_omega}_mapLOS{str(mapping.learn_out_scaling).lower()}_mapWSLC{str(mapping.weight_scaling_lr_compensation).lower()}_cgm{str(cgm).lower()}_fwdInj{str(fwd_inject).lower()}_r{LRTT_RANK_CONV}_t{TRANSFER_EVERY}_alpha{LORA_ALPHA}_tlr{TRANSFER_LR}_relora{str(ENABLE_RELORA).lower()}_rre{RELORA_RESET_EVERY}_rws{RELORA_WARMUP_STEPS}",
         config={
             # Model and dataset
             "model": "ResNet32-LRTT",
             "dataset": "CIFAR-10",
-            "pretrained": "none",
+            "pretrained": "imagenet" if USE_IMAGENET_PRETRAINED else "none",
 
             # Basic training parameters
             "epochs": N_EPOCHS,
@@ -1416,21 +1375,49 @@ def main():
 
     print(f"Model moved to {DEVICE}")
 
-    # Load baseline weights if requested (2-stage training)
-    if LOAD_BASELINE and BASELINE_CHECKPOINT_PATH is not None:
+    # Load ImageNet pretrained weights if requested
+    if USE_IMAGENET_PRETRAINED:
         print(f"\n{'='*70}")
-        print("2-Stage Training: Loading baseline weights")
+        print("Loading ImageNet Pretrained Weights")
         print(f"{'='*70}")
-        load_stats = load_baseline_weights_to_lrtt(model, BASELINE_CHECKPOINT_PATH)
-        total_loaded = load_stats['analog_c'] + load_stats['batchnorm'] + load_stats['digital']
-        if total_loaded > 0:
-            print(f"✓ Successfully loaded baseline weights:")
-            print(f"  - Analog C matrices: {load_stats['analog_c']}")
-            print(f"  - BatchNorm params: {load_stats['batchnorm']}")
-            print(f"  - Digital params: {load_stats['digital']}")
-            print("  Training will start from pretrained baseline weights")
+        transferred_count = load_pretrained_weights(model)
+
+        if transferred_count > 0:
+            print(f"✓ Successfully loaded ImageNet pretrained weights")
+            print(f"  - Transferred weights to {transferred_count} layers")
+            print("  Training will start from ImageNet pretrained initialization")
+
+            # Evaluate pretrained model immediately after loading to verify
+            print(f"\n{'='*70}")
+            print("Evaluating loaded pretrained model (before any CIFAR-10 training)...")
+            print(f"{'='*70}")
+
+            # Check forward_inject status and C matrix
+            forward_inject_status = []
+            for name, module in model.named_modules():
+                if hasattr(module, 'analog_module') and hasattr(module.analog_module, 'controller'):
+                    controller = module.analog_module.controller
+                    forward_inject_status.append(controller.forward_inject_enabled)
+                    if len(forward_inject_status) == 1:  # Print first one as example
+                        print(f"Forward inject status (first LRTT layer): {controller.forward_inject_enabled}")
+                        print(f"Reinit mode: {controller.reinit_mode}")
+
+                        # Check C matrix values
+                        C_weights = controller.tile_c.get_weights()[0]
+                        print(f"C matrix shape: {C_weights.shape}")
+                        print(f"C matrix mean: {C_weights.mean().item():.6f}")
+                        print(f"C matrix std: {C_weights.std().item():.6f}")
+                        print(f"C matrix norm: {C_weights.norm().item():.6f}")
+
+            model.eval()
+            with torch.no_grad():
+                _, pretrained_loss, pretrained_error, pretrained_acc = test_evaluation(validation_data, model, nn.CrossEntropyLoss())
+            print(f"✓ Pretrained model validation accuracy on CIFAR-10: {pretrained_acc:.2f}%")
+            print(f"  (ImageNet weights → CIFAR-10, before any fine-tuning)")
+            print(f"{'='*70}\n")
+            model.train()
         else:
-            print("⚠️  No baseline weights loaded - training from scratch")
+            print("⚠️  No pretrained weights loaded - training from random initialization")
         print(f"{'='*70}\n")
 
     # Count parameters - analog tiles don't register weights as PyTorch parameters
@@ -1441,24 +1428,6 @@ def main():
     # Define the loss function and optimizer
     criterion = nn.CrossEntropyLoss()
     optimizer = create_sgd_optimizer(model, LEARNING_RATE, MOMENTUM, WEIGHT_DECAY)
-
-    # C matrix monitoring for debugging (only if enabled)
-    prev_c_norms = {}
-    if ENABLE_DEBUG_MONITORING:
-        print("\nRecording initial C matrix norms...")
-        for name, module in model.named_modules():
-            if hasattr(module, 'analog_module'):
-                try:
-                    if hasattr(module.analog_module, 'get_lrtt_component_weights'):
-                        C, A, B = module.analog_module.get_lrtt_component_weights()
-                        prev_c_norms[f"{name}_C"] = C.norm().item()
-                        print(f"  {name}_C initial norm: {C.norm().item():.8f}")
-                    elif hasattr(module.analog_module, 'get_weights'):
-                        weights, _ = module.analog_module.get_weights()
-                        prev_c_norms[f"{name}_W"] = weights.norm().item()
-                        print(f"  {name}_W initial norm: {weights.norm().item():.8f}")
-                except Exception as e:
-                    print(f"  {name}: Could not access weights ({e})")
 
     best_accuracy = 0
     best_epoch = 0
@@ -1498,10 +1467,6 @@ def main():
         batch_pbar = tqdm(train_data, desc=f"Epoch {epoch + 1}", leave=False)
 
         for batch_idx, (images, labels) in enumerate(batch_pbar):
-            # ReLoRA reset check (at each training step)
-            if ENABLE_RELORA and global_step > 0 and global_step % RELORA_RESET_EVERY == 0:
-                trigger_relora_reset(model)
-
             # Apply learning rate schedule (at each training step)
             if ENABLE_RELORA:
                 # Use ReLoRA jagged cosine LR
@@ -1514,10 +1479,15 @@ def main():
                 analog_lrtt_lr = jagged_lr
                 digital_lr = base_lr
             else:
-                # Use standard warmup + cosine annealing
-                current_lr = apply_warmup_cosine_lr(
-                    optimizer, epoch + 1, N_EPOCHS, LEARNING_RATE, WARMUP_RATIO
+                # Use standard step-based cosine schedule (no jagged warmup restarts)
+                current_lr = get_base_cosine_lr(
+                    global_step, total_training_steps, LEARNING_RATE, initial_warmup_steps
                 )
+
+                # Apply to all param groups
+                for param_group in optimizer.param_groups:
+                    param_group['lr'] = current_lr
+
                 # Both use same LR when ReLoRA is disabled
                 analog_lrtt_lr = current_lr
                 digital_lr = current_lr
@@ -1607,67 +1577,6 @@ def main():
             tqdm.write(f"Epoch {epoch + 1:3d}: "
                       f"Train Loss {train_loss:.4f} (Acc {train_acc:.2f}%)"
                       f"{val_info}")
-
-        # Debug monitoring (only if enabled)
-        if ENABLE_DEBUG_MONITORING and (epoch + 1) % 10 == 0:
-            # Check C matrix changes every 10 epochs
-            lrtt_max_change = 0.0
-            fp_max_change = 0.0
-            lrtt_changes = []
-            fp_changes = []
-
-            for name, module in model.named_modules():
-                if hasattr(module, 'analog_module'):
-                    try:
-                        if hasattr(module.analog_module, 'get_lrtt_component_weights'):
-                            # LRTT layer - track C matrix
-                            C, A, B = module.analog_module.get_lrtt_component_weights()
-                            current_norm = C.norm().item()
-                            if f"{name}_C" in prev_c_norms:
-                                change = abs(current_norm - prev_c_norms[f"{name}_C"])
-                                lrtt_max_change = max(lrtt_max_change, change)
-                                lrtt_changes.append(f"{name}_C:{change:.8f}")
-                                prev_c_norms[f"{name}_C"] = current_norm  # Update for next check
-                        elif hasattr(module.analog_module, 'get_weights'):
-                            # FloatingPoint layer - track W matrix
-                            weights, _ = module.analog_module.get_weights()
-                            current_norm = weights.norm().item()
-                            if f"{name}_W" in prev_c_norms:
-                                change = abs(current_norm - prev_c_norms[f"{name}_W"])
-                                fp_max_change = max(fp_max_change, change)
-                                fp_changes.append(f"{name}_W:{change:.8f}")
-                                prev_c_norms[f"{name}_W"] = current_norm  # Update for next check
-                    except Exception as e:
-                        pass
-
-            # Print separate status for LRTT C matrices and FloatingPoint layers
-            lrtt_status = "🔴CHANGING!" if lrtt_max_change > 1e-6 else "🟡small" if lrtt_max_change > 1e-8 else "🟢stable"
-            fp_status = "🔴CHANGING!" if fp_max_change > 1e-6 else "🟡small" if fp_max_change > 1e-8 else "🟢stable"
-
-            print(f"LRTT C Matrix: {lrtt_status} (max: {lrtt_max_change:.8f}) | FloatingPoint: {fp_status} (max: {fp_max_change:.8f})")
-
-            # Print LRTT statistics
-            print_lrtt_statistics(model, epoch + 1)
-
-            # Detailed matrix changes - separate LRTT and FloatingPoint
-            if lrtt_changes or fp_changes:
-                print(f"\nDetailed Matrix Changes at epoch {epoch + 1}:")
-
-                if lrtt_changes:
-                    print("  LRTT C Matrices:")
-                    for change_info in lrtt_changes[:3]:  # Show first 3 LRTT layers
-                        layer_name, change_val = change_info.split(':')
-                        print(f"    {layer_name}: {change_val}")
-                    if len(lrtt_changes) > 3:
-                        print(f"    ... and {len(lrtt_changes) - 3} more LRTT layers")
-
-                if fp_changes:
-                    print("  FloatingPoint Layers:")
-                    for change_info in fp_changes[:2]:  # Show first 2 FP layers
-                        layer_name, change_val = change_info.split(':')
-                        print(f"    {layer_name}: {change_val}")
-                    if len(fp_changes) > 2:
-                        print(f"    ... and {len(fp_changes) - 2} more FP layers")
 
     print("=" * 60)
     print(f"\nTraining completed!")

@@ -327,14 +327,14 @@ class LRTTController:
         # 5) Counter
         self.transfer_counter += (x.shape[0] if self.units_in_mbatch else 1)
             
-    def ab_weight_transfer(self, use_onehot: bool = False) -> None:
+    def ab_weight_transfer(self, use_onehot: bool = True) -> None:
         """Memory-optimized pulsed A⊗B -> visible transfer, then reinit.
-        
+
         Transfer: C += transfer_lr * (A @ B) via pulsed outer product.
-        
+
         Args:
-            use_onehot: If True, use one-hot reading (analog-realistic).
-                       If False, use direct weight access (default).
+            use_onehot: If True, use one-hot reading (analog-realistic, default).
+                       If False, use direct weight access.
         
         Direct mode:
         1. Get weights to CPU first to avoid GPU memory spike
@@ -356,93 +356,109 @@ class LRTTController:
             self._ab_weight_transfer_direct()
     
     def _ab_weight_transfer_direct(self) -> None:
-        """Original transfer implementation using direct weight access."""
+        """Direct transfer using tile.update() with chunk-based approach."""
         with torch.no_grad():
             # Get weights (they come in the tile's native device)
             A_weights = self.tile_a.get_weights()[0]  # [d_size, rank]
             B_weights = self.tile_b.get_weights()[0]  # [rank, x_size]
-            
+            C_before = self.tile_c.get_weights()[0].clone()  # For debug
+
             A_lr = A_weights[:, :self.rank]  # [d_size, rank]
-            
-            # Transfer in chunks to manage memory
+            B_lr = B_weights[:self.rank, :]  # [rank, x_size]
+
+            # DEBUG: Compute expected change
+            expected_delta = self.transfer_lr * (A_lr @ B_lr)
+
+            # Transfer using tile.update() with chunks
             lr_eff = abs(self.transfer_lr)
             old_lr = self.tile_c.get_learning_rate()
             self.tile_c.set_learning_rate(lr_eff)
-            
-            # Apply transfer BL management  
-            if self.transfer_bl_mgmt:
-                # Apply transfer_bl_mgmt settings
-                pass
-                
+
             chunk_size = self.rank_chunk
             for off in range(0, self.rank, chunk_size):
                 end = min(off + chunk_size, self.rank)
-                cur = end - off
-                
-                # Pack chunks (keep on same device as tiles)
+
+                # Pack chunks
                 D_chunk = A_lr[:, off:end].contiguous()  # [d_size, cur]
-                X_chunk = B_weights[off:end, :].contiguous()     # [cur, x_size]
-                
+                X_chunk = B_lr[off:end, :].contiguous()  # [cur, x_size]
+
                 # Sign rule: PWU computes W += -lr * D @ X^T, we want W += +transfer_lr * D @ X^T
-                # So when transfer_lr > 0, negate D to get correct sign
                 if self.transfer_lr > 0:
                     D_chunk = -D_chunk
-                elif self.transfer_lr < 0:
-                    # transfer_lr < 0: want W += transfer_lr * D @ X^T (negative), so keep D positive
-                    # PWU does W += -lr * D @ X^T with lr > 0, so net effect is W += -D @ X^T (negative) ✓
-                    pass
-                    
-                # Use controller's device (single source of truth)
-                dev = self.device
-                X_chunk_d = X_chunk.contiguous().to(dev, non_blocking=True)
-                D_chunk_t_d = D_chunk.t().contiguous().to(dev, non_blocking=True)
-                
-                # Debug assertion to ensure same device
-                assert X_chunk_d.device == D_chunk_t_d.device, \
-                    f"Device mismatch: X={X_chunk_d.device}, D={D_chunk_t_d.device}"
-                
-                # Pulsed update to C tile
-                if hasattr(self.tile_c, '_orig_update'):
-                    self.tile_c._orig_update(X_chunk_d, D_chunk_t_d)
-                else:
-                    self.tile_c.update(X_chunk_d, D_chunk_t_d)
-                
-                # OPTIMIZATION: Immediately free GPU memory
-                del X_chunk_d, D_chunk_t_d
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
-            
+
+                # tile.update expects (x_input, d_input) with shapes [batch, in_size] and [batch, out_size]
+                # Update formula: W += -lr * d_input^T @ x_input
+                # We want: C += lr * D_chunk @ X_chunk where D_chunk=[d_size, cur], X_chunk=[cur, x_size]
+                # So: x_input = X_chunk.t() = [x_size, cur].t() = [cur, x_size] (batch=cur)
+                # And: d_input = D_chunk.t() = [d_size, cur].t() = [cur, d_size] (batch=cur)
+                X_for_update = X_chunk.contiguous()      # [cur, x_size] - batch=cur
+                D_for_update = D_chunk.t().contiguous()  # [cur, d_size] - batch=cur
+
+                # DEBUG: Print shapes and values for first transfer
+                if self.num_transfers == 0 and off == 0:
+                    actual_lr = self.tile_c.get_learning_rate()
+                    print(f"\n=== tile.update DEBUG ===")
+                    print(f"  X_for_update shape: {X_for_update.shape}, norm: {X_for_update.norm():.6f}")
+                    print(f"  D_for_update shape: {D_for_update.shape}, norm: {D_for_update.norm():.6f}")
+                    print(f"  tile_c x_size: {self.tile_c.tile.get_x_size()}, d_size: {self.tile_c.tile.get_d_size()}")
+                    print(f"  tile_c.in_trans: {self.tile_c.in_trans}, tile_c.out_trans: {self.tile_c.out_trans}")
+                    print(f"  lr_eff (set): {lr_eff}, actual tile lr: {actual_lr}")
+                    print(f"  Expected update norm: {(lr_eff * D_for_update.t() @ X_for_update).norm():.6f}")
+
+                    # Test: Try direct set_weights update to verify
+                    C_test_before = self.tile_c.get_weights()[0].clone()
+                    test_delta = actual_lr * D_for_update.t() @ X_for_update
+                    print(f"  Test delta norm: {test_delta.norm():.6f}")
+                    print(f"=== END DEBUG ===\n")
+
+                # Apply transpose if tile expects transposed inputs
+                # tile.update passes in_trans and out_trans to underlying tile
+                # If in_trans=True, tile expects [in_size, batch] instead of [batch, in_size]
+                # If out_trans=True, tile expects [out_size, batch] instead of [batch, out_size]
+                X_final = X_for_update.t() if self.tile_c.in_trans else X_for_update
+                D_final = D_for_update.t() if self.tile_c.out_trans else D_for_update
+
+                self.tile_c.update(X_final, D_final)
+
             self.tile_c.set_learning_rate(old_lr)
+
+        # DEBUG: Measure actual C change
+        if self.num_transfers < 5:
+            C_after = self.tile_c.get_weights()[0]
+            actual_delta = C_after - C_before
+            print(f"\n=== TRANSFER #{self.num_transfers + 1} DEBUG (direct tile.update) ===")
+            print(f"  A norm: {A_lr.norm():.6f}")
+            print(f"  B norm: {B_lr.norm():.6f}")
+            print(f"  transfer_lr: {self.transfer_lr}")
+            print(f"  Expected ΔC norm: {expected_delta.norm():.6f}")
+            print(f"  Actual ΔC norm: {actual_delta.norm():.6f}")
+            print(f"  Ratio (actual/expected): {actual_delta.norm() / expected_delta.norm():.6f}")
+            print(f"  C norm before: {C_before.norm():.6f}")
+            print(f"  C norm after: {C_after.norm():.6f}")
+            print(f"=== END TRANSFER ===\n")
+
         self.num_transfers += 1
 
         # CRITICAL: Reset transfer counter after transfer (matches CUDA)
         self.transfer_counter = 0
 
-        # DEBUG: Check A before reinit (first few transfers only)
-        if self.num_transfers <= 3:
-            A_before_reinit = self.tile_a.get_weights()[0] if hasattr(self.tile_a, 'get_weights') else None
-            if A_before_reinit is not None:
-                print(f"TRANSFER #{self.num_transfers} - Before reinit: A norm={A_before_reinit.norm():.6f}")
-
         # Unconditional reinit after transfer
         self.reinit()
-
-        # DEBUG: Check A after reinit (first few transfers only)
-        if self.num_transfers <= 3:
-            A_after_reinit = self.tile_a.get_weights()[0] if hasattr(self.tile_a, 'get_weights') else None
-            if A_after_reinit is not None:
-                print(f"TRANSFER #{self.num_transfers} - After reinit ({self.reinit_mode}): A norm={A_after_reinit.norm():.6f}")
-                if self.reinit_mode == "decay":
-                    expected = A_before_reinit.norm() * self.decay_factor if A_before_reinit is not None else 0
-                    print(f"  Expected A norm (decay): {expected:.6f}")
-                print()
     
     def _ab_weight_transfer_onehot(self) -> None:
         """One-hot based transfer following transfer.py pattern (lines 247-263).
-        
+
         Uses analog-realistic reading via forward/backward passes with one-hot vectors.
         """
         with torch.no_grad():
+            # DEBUG: Get C before transfer
+            C_before = self.tile_c.get_weights()[0].clone()
+
+            # Also compute expected change via direct method for comparison
+            A_weights = self.tile_a.get_weights()[0][:, :self.rank]
+            B_weights = self.tile_b.get_weights()[0][:self.rank, :]
+            expected_delta = self.transfer_lr * (A_weights @ B_weights)
+
             # Create one-hot vectors using controller's device
             if not hasattr(self, '_transfer_vec_a') or self._transfer_vec_a is None:
                 self._transfer_vec_a = torch.eye(
@@ -450,40 +466,82 @@ class LRTTController:
                     dtype=self.dtype,
                     device=self.device  # Use controller's device
                 )
-            
+
             # Save and set learning rate for transfer
             lr_eff = abs(self.transfer_lr)
             old_lr = self.tile_c.get_learning_rate()
             self.tile_c.set_learning_rate(lr_eff)
-            
+
             # Process each rank dimension sequentially (like transfer.py)
+            # DEBUG: Track per-rank updates for first few transfers
+            debug_first = (self.num_transfers < 3)
+            if debug_first:
+                C_before_loop = self.tile_c.get_weights()[0].clone()
+
             for k in range(self.rank):
                 # Prepare one-hot input as [1, rank] for batch dimension
                 e_k = self._transfer_vec_a[k].unsqueeze(0)  # [1, rank]
-                
+
                 # Read column k of A using forward with one-hot
                 a_col_b1 = self.tile_a.forward(e_k)  # Shape: [1, d_size]
-                
+
                 # Read row k of B using backward with one-hot
                 b_row_b1 = self.tile_b.backward(e_k)  # Shape: [1, x_size]
-                
+
                 # Apply sign correction (same as direct method)
                 if self.transfer_lr > 0:
                     a_col_b1 = -a_col_b1
-                
+
                 # Ensure tensors are on controller's device
                 X_k = b_row_b1.to(self.device, non_blocking=True)  # [1, x_size]
                 D_k = a_col_b1.to(self.device, non_blocking=True)  # [1, d_size]
-                
+
+                # DEBUG: Check single rank update
+                if debug_first and k == 0:
+                    C_before_k = self.tile_c.get_weights()[0].clone()
+                    # tile.update does: W += -lr * D^T @ X, so expected is negative
+                    expected_delta_k = -lr_eff * D_k.t() @ X_k  # [d_size, x_size]
+                    print(f"  [Rank 0] X_k norm: {X_k.norm():.6f}, D_k norm: {D_k.norm():.6f}")
+                    print(f"  [Rank 0] Expected ΔC_k norm: {expected_delta_k.norm():.6f}")
+                    print(f"  [Rank 0] lr_eff: {lr_eff}, old_lr: {old_lr}")
+
                 # Update C tile with rank-1 outer product
                 if hasattr(self.tile_c, '_orig_update'):
                     self.tile_c._orig_update(X_k, D_k)
                 else:
                     self.tile_c.update(X_k, D_k)
-            
+
+                # DEBUG: Check actual change for rank 0
+                if debug_first and k == 0:
+                    C_after_k = self.tile_c.get_weights()[0]
+                    actual_delta_k = C_after_k - C_before_k
+                    # Check correlation (direction match) - ensure same device
+                    expected_on_device = expected_delta_k.to(actual_delta_k.device)
+                    correlation = (actual_delta_k * expected_on_device).sum() / (actual_delta_k.norm() * expected_on_device.norm() + 1e-10)
+                    print(f"  [Rank 0] Actual ΔC_k norm: {actual_delta_k.norm():.6f}")
+                    print(f"  [Rank 0] Ratio: {actual_delta_k.norm() / expected_delta_k.norm():.6f}")
+                    print(f"  [Rank 0] Correlation: {correlation.item():.6f}")
+
             # Restore learning rate
             self.tile_c.set_learning_rate(old_lr)
-            
+
+            # DEBUG: Compare actual vs expected change
+            if self.num_transfers < 5:
+                C_after = self.tile_c.get_weights()[0]
+                actual_delta = C_after - C_before
+                print(f"\n=== TRANSFER #{self.num_transfers + 1} DEBUG (onehot tile.update) ===")
+                print(f"  A norm: {A_weights.norm():.6f}")
+                print(f"  B norm: {B_weights.norm():.6f}")
+                print(f"  transfer_lr: {self.transfer_lr}")
+                print(f"  Expected ΔC norm: {expected_delta.norm():.6f}")
+                print(f"  Actual ΔC norm: {actual_delta.norm():.6f}")
+                print(f"  Ratio (actual/expected): {actual_delta.norm() / expected_delta.norm():.6f}")
+                print(f"  C norm before: {C_before.norm():.6f}")
+                print(f"  C norm after: {C_after.norm():.6f}")
+                print(f"  tile_c.in_trans: {self.tile_c.in_trans}")
+                print(f"  tile_c.out_trans: {self.tile_c.out_trans}")
+                print(f"=== END TRANSFER ===\n")
+
         self.num_transfers += 1
         self.transfer_counter = 0
         self.reinit()

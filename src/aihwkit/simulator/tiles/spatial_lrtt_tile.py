@@ -70,7 +70,9 @@ class SpatialLRTTSimulatorTile(LRTTSimulatorTile):
         # Try to find k such that x_size = c_in * k * k
 
         self.c_out = d_size
-        possible_k_values = [1, 3, 5, 7]  # Common kernel sizes
+        # Try kernel sizes from largest to smallest to detect the actual kernel size
+        # k=1 is valid for skip connections (1×1 conv), but we prefer larger k if divisible
+        possible_k_values = [7, 5, 3, 1]  # Common kernel sizes, largest first
 
         for k in possible_k_values:
             if x_size % (k * k) == 0:
@@ -115,46 +117,7 @@ class SpatialLRTTSimulatorTile(LRTTSimulatorTile):
         self.spatial_lora_params = self.base_rank * self.k * self.k * (self.c_out + self.c_in)
         # Parameter increase ratio (LoRA-C has MORE parameters)
         self.param_ratio = self.spatial_lora_params / self.standard_lora_params
-        
-    def _patch_to_blocks(self, x_input: Tensor) -> Tensor:
-        """Split a conv patch [*, Cin*k*k] into k blocks of [Cin*k].
-        Each block corresponds to one row (u) across the k columns (v).
-        Shape:
-            in : [*, Cin*k*k]
-            out: [*, k, Cin*k]
-        """
-        batch_dims = x_input.shape[:-1]
-        x4 = x_input.view(*batch_dims, self.c_in, self.k, self.k)            # [*, Cin, k_u, k_v]
-        # blocks[u] = x4[:, :, u, :] → [*, Cin, k_v] ⇒ flatten to [*, Cin*k]
-        x_blocks = x4.permute(*range(len(batch_dims)), -2, -3, -1)           # [*, k_u, Cin, k_v]
-        x_blocks = x_blocks.contiguous().view(*batch_dims, self.k, self.c_in * self.k)
-        return x_blocks
-        
-    def _blocks_to_patch_grad(self, xg_blocks: Tensor) -> Tensor:
-        """Merge k blocks of [Cin*k] gradient back to a patch [Cin*k*k].
-        Shape:
-            in : [*, k, Cin*k]
-            out: [*, Cin*k*k]
-        """
-        batch_dims = xg_blocks.shape[:-2]
-        xg4 = xg_blocks.view(*batch_dims, self.k, self.c_in, self.k)         # [*, k_u, Cin, k_v]
-        xg4 = xg4.permute(*range(len(batch_dims)), -2, -3, -1)               # [*, Cin, k_u, k_v]
-        return xg4.contiguous().view(*batch_dims, self.c_in * self.k * self.k)
-        
-    def _expand_error_for_blocks(self, d_input: Tensor) -> Tensor:
-        """For y = sum over (u,v) of Y_block[u][:, v], the gradient w.r.t. each
-        block output is just replication (no 1/k!), because forward used SUM.
-        Shape:
-            in  : [*, Cout]
-            out : [*, k, Cout*k]
-        """
-        batch_dims = d_input.shape[:-1]
-        d = d_input.unsqueeze(-1).expand(*batch_dims, self.c_out, self.k)    # [*, Cout, k_v]
-        d = d.contiguous().view(*batch_dims, self.c_out * self.k)            # [*, Cout*k]
-        d = d.unsqueeze(-2).expand(*batch_dims, self.k, self.c_out * self.k) # [*, k_u, Cout*k]
-        return d
-        
-        
+
     def forward(
         self,
         x_input: Tensor,
@@ -165,27 +128,77 @@ class SpatialLRTTSimulatorTile(LRTTSimulatorTile):
         non_blocking: bool = False,
         tensor_view: Optional[Tuple] = None,
     ) -> Tensor:
-        """Im2Col-like block forward: split patch into k blocks → A/B → sum over (u,v)."""
-        # 1) Patch → k blocks of size [Cin*k]
-        x_blocks = self._patch_to_blocks(x_input)                            # [*, k, Cin*k]
-        batch_dims = x_blocks.shape[:-2]
-        xb2 = x_blocks.reshape(-1, self.c_in * self.k)                        # [*, Cin*k] with * = (batch... * k)
+        """Multi-pass spatial forward with full LoRA-C support.
 
-        # 2) Run analog LRTT chain (A/B) on blocks → [*, Cout*k]
-        # Note: parent's forward() will store _last_x_input = xb2, which is the spatial format
-        yb2 = super().forward(xb2, bias=bias, in_trans=in_trans,
-                              out_trans=out_trans, is_test=is_test,
-                              non_blocking=non_blocking, tensor_view=tensor_view)
+        Complete LoRA-C forward: y = C@x + alpha * A@(B@x)
 
-        # 3) Sum over (u, v): reshape to [batch, k_u, Cout, k_v] then sum (1,3)
-        yb4 = yb2.view(*batch_dims, self.k, self.c_out, self.k)               # [*, k, Cout, k]
-        y_out = yb4.sum(dim=( -3, -1 ))                                       # → [*, Cout]
+        Forward flow for each spatial position u:
+        1. Extract input slice x_u: [batch, c_in*k]
+        2. C tile forward: y_c_u = C @ x_u^T → [batch, c_out*k]
+        3. B tile forward: tmp_u = B @ x_u^T → [batch, rank*k] (LoRA compression)
+        4. A tile forward: y_ab_u = A @ tmp_u^T → [batch, c_out*k] (LoRA expansion)
+        5. Extract rows for position u from both y_c_u and y_ab_u
+        6. Accumulate: y = Σ_u(y_c_u + alpha * y_ab_u)
 
-        # Store original input (channel-wise patch) for potential local A,B update
-        # This overwrites parent's _last_x_input which is in spatial format
-        self._last_x_input = x_input.detach().clone()
+        This is mathematically equivalent to spatial LoRA-C convolution!
+        """
+        # Store input for backward (detach only - no clone to save memory)
+        self._last_x_input = x_input.detach()
 
-        return y_out
+        if bias:
+            raise TileError("Spatial LRTT does not support bias")
+
+        # Handle input transpose
+        if in_trans:
+            x_input = x_input.t()
+
+        # Get batch dimension
+        batch_size = x_input.shape[0]
+
+        # Reshape input to spatial format: [batch, c_in, k, k]
+        x_4d = x_input.view(batch_size, self.c_in, self.k, self.k)
+
+        # Accumulate outputs directly (memory efficient - no lists)
+        y_c = None
+        y_ab = None if self.controller.forward_inject_enabled else None
+
+        for u in range(self.k):
+            # Extract kernel row u: [batch, c_in, k] → [batch, c_in*k]
+            x_u = x_4d[:, :, u, :].contiguous().view(batch_size, self.c_in * self.k)
+
+            # === C tile forward (main convolution) ===
+            y_c_u = self.tile_c.forward(x_u, in_trans=False, out_trans=False)
+            y_c_u_selected = y_c_u[:, u::self.k]
+
+            # Accumulate directly
+            if y_c is None:
+                y_c = y_c_u_selected
+            else:
+                y_c.add_(y_c_u_selected)  # In-place add
+
+            # === A, B tile forward (LoRA term) ===
+            if self.controller.forward_inject_enabled:
+                tmp_u = self.tile_b.forward(x_u, in_trans=False, out_trans=False)
+                y_ab_u = self.tile_a.forward(tmp_u, in_trans=False, out_trans=False)
+                y_ab_u_selected = y_ab_u[:, u::self.k]
+
+                # Accumulate directly
+                if y_ab is None:
+                    y_ab = y_ab_u_selected
+                else:
+                    y_ab.add_(y_ab_u_selected)  # In-place add
+
+        # Combine C and LoRA terms
+        if self.controller.forward_inject_enabled and y_ab is not None:
+            y = y_c + self.controller.lora_alpha * y_ab
+        else:
+            y = y_c
+
+        # Handle output transpose
+        if out_trans:
+            y = y.t()
+
+        return y
         
     def backward(
         self,
@@ -195,31 +208,70 @@ class SpatialLRTTSimulatorTile(LRTTSimulatorTile):
         out_trans: bool = False,
         non_blocking: bool = False,
     ) -> Tensor:
-        """Backward through block-sum. Expand dY to each block's (Cout*k), run A/Bᵀ, merge."""
-        # Store original upstream grad (channel-wise) for potential local update
+        """Multi-pass spatial backward with full LoRA-C support.
+
+        Complete LoRA-C backward: dx = C^T @ dy + alpha * B^T @ (A^T @ dy)
+
+        Backward flow for each spatial position u:
+        1. Expand gradient d_u for position u: [batch, c_out*k]
+        2. C tile backward: x_grad_c_u = C^T @ d_u^T → [batch, c_in*k]
+        3. If forward_inject enabled:
+           - A tile backward: tmp_grad_u = A^T @ d_u^T → [batch, rank*k]
+           - B tile backward: x_grad_ab_u = B^T @ tmp_grad_u^T → [batch, c_in*k]
+        4. Combine: x_grad_u = x_grad_c_u + alpha * x_grad_ab_u
+        5. Merge all spatial slices back to [batch, c_in*k*k]
+        """
+        # Store for A, B update (detach only - no clone to save memory)
         if not self.controller.forward_inject_enabled:
-            self._stored_d_input = d_input.detach().clone()                   # [*, Cout]
-            self._stored_x_input = getattr(self, '_last_x_input', None)       # [*, Cin*k*k]
-            # Temporarily disable gradient storage in parent class
-            self._skip_gradient_storage = True
+            self._stored_d_input = d_input.detach()
+            self._stored_x_input = getattr(self, '_last_x_input', None)
 
-        # 1) dY replication for all (u,v) positions (SUM in forward ⇒ replicate)
-        d_blocks = self._expand_error_for_blocks(d_input)                     # [*, k, Cout*k]
-        batch_dims = d_blocks.shape[:-2]
-        db2 = d_blocks.reshape(-1, self.c_out * self.k)                       # [*, Cout*k]
+        # Handle output transpose
+        if out_trans:
+            d_input = d_input.t()
 
-        # 2) Run analog LRTT backward on blocks → grad wrt [Cin*k]
-        xg2 = super().backward(db2, bias=bias, in_trans=in_trans,
-                               out_trans=out_trans, non_blocking=non_blocking) # [*, Cin*k]
-        
-        # Re-enable gradient storage in parent class
-        if hasattr(self, '_skip_gradient_storage'):
-            delattr(self, '_skip_gradient_storage')
+        # Get batch dimension
+        batch_size = d_input.shape[0]
 
-        # 3) Merge k block-gradients back to patch space [Cin*k*k]
-        xg_blocks = xg2.view(*batch_dims, self.k, self.c_in * self.k)         # [*, k, Cin*k]
-        xg_out = self._blocks_to_patch_grad(xg_blocks)                        # [*, Cin*k*k]
-        return xg_out
+        # Pre-allocate d_u buffer (reuse across loop)
+        d_u = torch.zeros(batch_size, self.c_out * self.k,
+                         device=d_input.device, dtype=d_input.dtype)
+
+        # Pre-allocate output gradient buffer
+        x_grad = torch.zeros(batch_size, self.c_in, self.k, self.k,
+                            device=d_input.device, dtype=d_input.dtype)
+
+        # Multi-pass over spatial positions
+        for u in range(self.k):
+            # Reuse d_u buffer - zero out and fill
+            d_u.zero_()
+            d_u[:, u::self.k] = d_input  # Place gradient at corresponding rows
+
+            # === C tile backward (main path) ===
+            x_grad_c_u = self.tile_c.backward(d_u, in_trans=False, out_trans=False)
+            # x_grad_c_u: [batch, c_in*k]
+
+            # Reshape and accumulate into x_grad
+            x_grad_c_u_4d = x_grad_c_u.view(batch_size, self.c_in, self.k)
+            x_grad[:, :, u, :].add_(x_grad_c_u_4d)  # In-place add to row u
+
+            # === A, B tile backward (LoRA path) ===
+            if self.controller.forward_inject_enabled:
+                tmp_grad_u = self.tile_a.backward(d_u, in_trans=False, out_trans=False)
+                x_grad_ab_u = self.tile_b.backward(tmp_grad_u, in_trans=False, out_trans=False)
+
+                # Reshape and accumulate
+                x_grad_ab_u_4d = x_grad_ab_u.view(batch_size, self.c_in, self.k)
+                x_grad[:, :, u, :].add_(x_grad_ab_u_4d * self.controller.lora_alpha)
+
+        # Flatten back to [batch, c_in*k*k]
+        x_grad = x_grad.contiguous().view(batch_size, self.c_in * self.k * self.k)
+
+        # Handle input transpose
+        if in_trans:
+            x_grad = x_grad.t()
+
+        return x_grad
         
     def update(
         self,
@@ -230,30 +282,87 @@ class SpatialLRTTSimulatorTile(LRTTSimulatorTile):
         out_trans: bool = False,
         non_blocking: bool = False,
     ) -> None:
-        """Local A/B update using the same block mapping as forward/backward."""
-        # 0) Pick original (stored) tensors if forward_inject=False
-        if (not self.controller.forward_inject_enabled and
-            hasattr(self, '_stored_d_input') and hasattr(self, '_stored_x_input') and
+        """Multi-pass spatial update for A/B tiles.
+
+        Update flow (matching forward/backward spatial slicing):
+        1. For each spatial position u:
+           - Extract input slice x_u: [batch, c_in*k]
+           - Expand gradient d_u: [batch, c_out*k] with values at positions u
+           - Analog tile update: A/B tiles updated with (x_u, d_u)
+
+        Note: Since Spatial LRTT uses forward_inject=False, we update using stored gradients.
+        """
+        # Pick stored tensors (always use stored for Spatial LRTT)
+        if (hasattr(self, '_stored_d_input') and hasattr(self, '_stored_x_input') and
             self._stored_x_input is not None and self._stored_d_input is not None):
-            ux = self._stored_x_input                                         # [*, Cin*k*k]
-            ud = self._stored_d_input                                         # [*, Cout]
+            ux = self._stored_x_input  # [batch, c_in*k*k]
+            ud = self._stored_d_input  # [batch, c_out]
             # Clear after use
             delattr(self, '_stored_x_input')
             delattr(self, '_stored_d_input')
         else:
             ux, ud = x_input, d_input
 
-        # 1) Patch → blocks, and dY → block errors
-        x_blocks = self._patch_to_blocks(ux)                                  # [*, k, Cin*k]
-        d_blocks = self._expand_error_for_blocks(ud)                          # [*, k, Cout*k]
+        # Get batch dimension
+        batch_size = ux.shape[0]
 
-        xb2 = x_blocks.reshape(-1, self.c_in * self.k)                        # [*, Cin*k]
-        db2 = d_blocks.reshape(-1, self.c_out * self.k)                       # [*, Cout*k]
+        # Reshape input to spatial format
+        x_4d = ux.view(batch_size, self.c_in, self.k, self.k)
 
-        # 2) Local analog update for A/B tiles on blocks
-        super().update(xb2, db2, bias=bias, in_trans=in_trans,
-                       out_trans=out_trans, non_blocking=non_blocking)
+        # Pre-allocate d_u buffer (reuse across loop)
+        d_u = torch.zeros(batch_size, self.c_out * self.k,
+                         device=ud.device, dtype=ud.dtype)
+
+        # Multi-pass update over spatial positions
+        for u in range(self.k):
+            # Extract input slice for position u
+            x_u = x_4d[:, :, u, :].contiguous().view(batch_size, self.c_in * self.k)
+
+            # Reuse d_u buffer - zero out and fill
+            d_u.zero_()
+            d_u[:, u::self.k] = ud
+
+            # Analog tile update for this spatial slice
+            # This updates A and B tiles using analog outer product
+            super().update(x_u, d_u, bias=bias, in_trans=in_trans,
+                          out_trans=out_trans, non_blocking=non_blocking)
         
+    def set_weights(self, weight: Tensor, bias: Optional[Tensor] = None) -> None:
+        """Set weights with automatic reshape to spatial format.
+
+        Args:
+            weight: Conv weight [c_out, c_in, k, k] or flattened [c_out, c_in*k*k]
+            bias: Bias (not supported)
+        """
+        if bias is not None:
+            raise TileError("Spatial LRTT does not support bias")
+
+        # Detect input format and reshape to spatial format
+        if weight.dim() == 4:
+            # 4D conv weight: [c_out, c_in, k, k]
+            if weight.shape != (self.c_out, self.c_in, self.k, self.k):
+                raise TileError(f"Weight shape {weight.shape} does not match expected "
+                               f"[{self.c_out}, {self.c_in}, {self.k}, {self.k}]")
+            # Reshape to spatial format: permute(0,2,1,3) then flatten
+            weight_spatial = weight.permute(0, 2, 1, 3).reshape(self.c_out * self.k, self.c_in * self.k)
+
+        elif weight.dim() == 2:
+            # 2D flattened weight: [c_out, c_in*k*k]
+            if weight.shape == (self.c_out, self.c_in * self.k * self.k):
+                # Regular LRTT format → reshape to spatial format
+                weight_4d = weight.view(self.c_out, self.c_in, self.k, self.k)
+                weight_spatial = weight_4d.permute(0, 2, 1, 3).reshape(self.c_out * self.k, self.c_in * self.k)
+            elif weight.shape == (self.c_out * self.k, self.c_in * self.k):
+                # Already in spatial format
+                weight_spatial = weight
+            else:
+                raise TileError(f"Weight shape {weight.shape} does not match expected formats")
+        else:
+            raise TileError(f"Weight must be 2D or 4D, got {weight.dim()}D")
+
+        # Set to C tile in spatial format
+        self.tile_c.set_weights(weight_spatial, None)
+
     def get_parameter_info(self) -> Dict[str, Any]:
         """Get parameter count comparison."""
         return {

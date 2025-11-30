@@ -35,6 +35,7 @@ import wandb
 from aihwkit.optim import AnalogSGD
 from aihwkit.nn import AnalogConv2d
 from aihwkit.nn.conversion import convert_to_analog
+from aihwkit.simulator.configs.lrtt_config import PythonLRTTRPUConfig
 from aihwkit.simulator.configs.lrtt_python import PythonLRTTPreset, PythonLRTTDevice
 from aihwkit.simulator.configs.spatial_lrtt_python import SpatialPythonLRTTPreset, SpatialPythonLRTTDevice
 from aihwkit.simulator.configs import MappingParameter, IOParameters
@@ -489,7 +490,8 @@ def load_pretrained_weights(analog_model):
             
             if is_spatial_lrtt:
                 # Handle kernel size mismatch (e.g., 7x7 -> 3x3)
-                target_k = int((analog_out_size / out_ch)**0.5) if out_ch > 0 else k_h
+                # For Spatial LRTT: analog_out_size = c_out * k, so target_k = analog_out_size / out_ch
+                target_k = analog_out_size // out_ch if out_ch > 0 else k_h
                 
                 if k_h != target_k:
                     # Center crop if source kernel is larger

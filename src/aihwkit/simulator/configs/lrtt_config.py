@@ -22,13 +22,14 @@ from aihwkit.simulator.parameters.enums import RPUDataType
 @dataclass
 class PythonLRTTRPUConfig(IOManagedRPUConfig):
     """RPU Configuration for Python-level LRTT implementation.
-    
-    This configuration automatically selects LRTTSimulatorTile when used
+
+    This configuration automatically selects the appropriate LRTT tile based on
+    the device configuration (standard LRTTSimulatorTile or SpatialLRTTSimulatorTile)
     and provides all necessary parameters for Python LRTT operation.
     """
-    
+
     tile_class: Type = LRTTSimulatorTile
-    """Tile class: Always LRTTSimulatorTile for Python LRTT."""
+    """Default tile class: LRTTSimulatorTile (may be overridden by device config)."""
     
     tile_array_class: Type = TileModuleArray
     """Tile array class for multi-tile scenarios."""
@@ -37,22 +38,32 @@ class PythonLRTTRPUConfig(IOManagedRPUConfig):
     """Python LRTT device configuration."""
     
     def get_default_tile_module_class(self, out_size: int = 0, in_size: int = 0) -> Type:
-        """Always returns LRTTSimulatorTile for Python LRTT."""
+        """Return tile class from device configuration.
+
+        Delegates to device.get_default_tile_module_class() if available,
+        allowing SpatialPythonLRTTDevice to return SpatialLRTTSimulatorTile.
+        """
+        if hasattr(self.device, 'get_default_tile_module_class'):
+            return self.device.get_default_tile_module_class()
         return LRTTSimulatorTile
     
-    def create_tile(self, x_size: int, d_size: int, dtype: RPUDataType = RPUDataType.FLOAT, **kwargs) -> LRTTSimulatorTile:
-        """Create LRTTSimulatorTile with this configuration.
-        
+    def create_tile(self, x_size: int, d_size: int, dtype: RPUDataType = RPUDataType.FLOAT, **kwargs):
+        """Create LRTT tile with this configuration.
+
+        Uses get_default_tile_module_class() to determine the correct tile class,
+        enabling both standard LRTTSimulatorTile and SpatialLRTTSimulatorTile.
+
         Args:
             x_size: Input size
-            d_size: Output size  
+            d_size: Output size
             dtype: Data type for tiles
             **kwargs: Additional arguments
-            
+
         Returns:
-            Configured LRTTSimulatorTile instance
+            Configured LRTT tile instance (LRTTSimulatorTile or SpatialLRTTSimulatorTile)
         """
-        return LRTTSimulatorTile(
+        tile_class = self.get_default_tile_module_class(out_size=d_size, in_size=x_size)
+        return tile_class(
             x_size=x_size,
             d_size=d_size,
             rpu_config=self,

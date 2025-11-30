@@ -4,11 +4,11 @@
 #
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 
-"""aihwkit baseline: ResNet18 CNN with CIFAR10 using mixed digital/analog layers.
+"""aihwkit baseline: ResNet18 CNN with CIFAR100 using mixed digital/analog layers.
 
-CIFAR10 dataset on a ResNet18 network with configurable digital (FloatingPoint)
+CIFAR100 dataset on a ResNet18 network with configurable digital (FloatingPoint)
 and analog (base trainable) layers. No LRTT - just standard analog tiles.
-Based on cifar10_resnet_lrtt_scratch.py but with LRTT removed.
+Based on cifar100_resnet_lrtt_scratch.py but with LRTT removed.
 """
 # pylint: disable=invalid-name
 
@@ -49,9 +49,10 @@ DEVICE = device("cuda" if USE_CUDA else "cpu")
 PATH_DATASET = os.path.join(os.getcwd(), "data", "DATASET")
 
 # Path to store results
-RESULTS = os.path.join(os.getcwd(), "results", "RESNET_FULLANALOG_SCRATCH")
+RESULTS = os.path.join(os.getcwd(), "results", "RESNET_FULLANALOG_SCRATCH_REGULAR_CIFAR100")
 os.makedirs(RESULTS, exist_ok=True)
-WEIGHT_PATH = os.path.join(RESULTS, "fullanalog_scratch_model_weight_50epoch.pth")
+# Note: WEIGHT_PATH will be set in main() based on N_EPOCHS
+WEIGHT_PATH = None  # Will be set dynamically
 
 # Training parameters
 SEED = 1
@@ -62,7 +63,7 @@ MOMENTUM = 0.9  # SGD momentum
 WEIGHT_DECAY = 0.0005  # L2 regularization
 NESTEROV = True  # Nesterov momentum
 WARMUP_RATIO = 0.04  # No warmup
-N_CLASSES = 10
+N_CLASSES = 100
 NUM_WORKERS = 4  # For faster data loading
 
 # Analog device type: 'idealized', 'constant_step', 'floating_point', or 'ecram'
@@ -130,23 +131,107 @@ LAYER_CONFIG = {
 
 
 def create_analog_config():
-    """Create analog configuration for trainable base layers (no LRTT).
+    """Create analog configuration for trainable base layers.
+
+    Uses Spatial LRTT format for weight compatibility with LRTT training.
+    Only C matrix is trained (A, B are not used in forward pass).
 
     Returns:
-        SingleRPUConfig: Analog configuration with trainable base weights
+        Config: Analog configuration with trainable base weights in Spatial format
     """
-    # Choose device type
-    if ANALOG_DEVICE_TYPE == 'idealized':
-        device_config = IdealizedPresetDevice()
-    elif ANALOG_DEVICE_TYPE == 'constant_step':
-        device_config = ConstantStepDevice(dw_min=0.01)
-    elif ANALOG_DEVICE_TYPE == 'floating_point':
-        device_config = FloatingPointDevice()
-    elif ANALOG_DEVICE_TYPE == 'ecram':
-        device_config = EcRamPresetDevice()
-    else:
-        # Default to idealized
-        device_config = IdealizedPresetDevice()
+    from dataclasses import dataclass
+    from aihwkit.simulator.configs.lrtt_config import PythonLRTTRPUConfig
+    from aihwkit.simulator.configs.lrtt_python import PythonLRTTDevice
+    from aihwkit.simulator.tiles.lrtt_tile import LRTTSimulatorTile
+    from aihwkit.exceptions import TileError
+
+    # Define custom tile class that updates only C matrix
+    class LRTTSimulatorTileFullAnalog(LRTTSimulatorTile):
+        """Regular LRTT tile for fullanalog training (C-only update)."""
+
+        def _hook_tile_updates(self) -> None:
+            """Override parent's hook to update only C matrix for fullanalog training.
+
+            CRITICAL: Optimizer calls tile_c.update() directly (not self.update()!),
+            so we must hook tile_c.update() to implement C-only training.
+            """
+            # Store original update methods
+            if hasattr(self, 'tile_a'):
+                self.tile_a._orig_update = self.tile_a.update
+            if hasattr(self, 'tile_b'):
+                self.tile_b._orig_update = self.tile_b.update
+            self.tile_c._orig_update = self.tile_c.update
+
+            # Track if we've already handled this batch
+            self._update_handled = False
+
+            parent_tile = self  # Capture reference to parent tile
+
+            # Hook tile_c.update() to process spatial blocks and update C only
+            def tile_c_update_wrapper(x_input, d_input, bias=False, in_trans=False,
+                                     out_trans=False, non_blocking=False):
+                if bias:
+                    raise TileError("LRTT does not support bias")
+
+                # Prevent double updates
+                if parent_tile._update_handled:
+                    return None
+                parent_tile._update_handled = True
+
+                # NOTE: x_input and d_input are ALREADY in spatial format [*, c_in×k] and [*, c_out×k]
+                # because parent's update() already converted them via _patch_to_blocks and _expand_error_for_blocks
+                # So we just pass them through directly to tile_c without any conversion
+
+                # Update C tile directly with spatial format inputs
+                # Note: AnalogTile.update() only takes x_input and d_input
+                # Learning rate is already set by optimizer
+                parent_tile.tile_c._orig_update(x_input, d_input)
+
+                return None
+
+            # Hook tile_a and tile_b to do nothing (no A, B updates for fullanalog)
+            def noop_update(*args, **kwargs):
+                return None
+
+            # Replace update methods
+            if hasattr(self, 'tile_a'):
+                self.tile_a.update = noop_update
+            if hasattr(self, 'tile_b'):
+                self.tile_b.update = noop_update
+            self.tile_c.update = tile_c_update_wrapper
+
+    # Define custom device config that uses the fullanalog tile
+    @dataclass
+    class PythonLRTTDeviceFullAnalog(PythonLRTTDevice):
+        """Regular LRTT device for fullanalog training."""
+
+        def get_default_tile_module_class(self):
+            """Return the fullanalog regular LRTT tile class."""
+            return LRTTSimulatorTileFullAnalog
+
+    # CRITICAL: Custom RPU Config to override tile_class
+    @dataclass
+    class PythonLRTTRPUConfigFullAnalog(PythonLRTTRPUConfig):
+        """Custom RPU Config that uses LRTTSimulatorTileFullAnalog."""
+
+        tile_class: type = LRTTSimulatorTileFullAnalog
+
+        def get_default_tile_module_class(self, out_size: int = 0, in_size: int = 0) -> type:
+            """Return the fullanalog tile class."""
+            return LRTTSimulatorTileFullAnalog
+
+    # Use Regular LRTT FullAnalog device which updates only C matrix
+    device_config = PythonLRTTDeviceFullAnalog(
+        rank=1,  # Minimum rank (not used in forward)
+        transfer_every=10000000000,  # Very large to avoid transfers during training
+        lora_alpha=1.0,
+        forward_inject=False,  # Only use C matrix in forward pass
+        unit_cell_devices=[
+            IdealizedPresetDevice() if ANALOG_DEVICE_TYPE == 'idealized' else FloatingPointDevice(),
+            IdealizedPresetDevice() if ANALOG_DEVICE_TYPE == 'idealized' else FloatingPointDevice(),
+            IdealizedPresetDevice() if ANALOG_DEVICE_TYPE == 'idealized' else FloatingPointDevice(),
+        ]
+    )
 
     # Add mapping for larger layers
     mapping = MappingParameter(
@@ -184,7 +269,7 @@ def create_analog_config():
         max_bm_factor=1000,
     )
 
-    return SingleRPUConfig(device=device_config, mapping=mapping, forward=forward_io, backward=forward_io)
+    return PythonLRTTRPUConfigFullAnalog(device=device_config, mapping=mapping, forward=forward_io, backward=forward_io)
 
 
 class ResidualBlockBaseline(nn.Module):
@@ -391,7 +476,7 @@ def create_model():
         nn.AdaptiveAvgPool2d((1, 1)),
         nn.Flatten(),
         AnalogLinear(
-            channel[3], N_CLASSES,  # 512 -> 10 for CIFAR-10
+            channel[3], N_CLASSES,  # 512 -> 100 for CIFAR-100
             bias=fc_bias,
             rpu_config=fc_rpu_config
         )
@@ -426,6 +511,9 @@ def create_model():
     print(f"    {format_block_config('layer4_block1')}")
     print(f"  fc: {'Analog (trainable base)' if fc_use_analog else 'Digital (FloatingPoint)'}")
     print(f"  Using random initialization (no pretrained weights)\n")
+
+    # Apply Kaiming initialization to ensure consistent initialization
+    initialize_resnet_weights(model)
 
     return model
 
@@ -526,8 +614,8 @@ def load_images():
         transforms.RandomCrop(32, padding=4),
         transforms.ToTensor(),
         transforms.Normalize(
-            mean=[0.4914, 0.4822, 0.4465],
-            std=[0.2470, 0.2435, 0.2616]
+            mean=[0.5071, 0.4867, 0.4408],
+            std=[0.2675, 0.2565, 0.2761]
         ),
     ])
 
@@ -535,13 +623,13 @@ def load_images():
     val_transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(
-            mean=[0.4914, 0.4822, 0.4465],
-            std=[0.2470, 0.2435, 0.2616]
+            mean=[0.5071, 0.4867, 0.4408],
+            std=[0.2675, 0.2565, 0.2761]
         ),
     ])
 
-    train_set = datasets.CIFAR10(PATH_DATASET, download=True, train=True, transform=train_transform)
-    val_set = datasets.CIFAR10(PATH_DATASET, download=True, train=False, transform=val_transform)
+    train_set = datasets.CIFAR100(PATH_DATASET, download=True, train=True, transform=train_transform)
+    val_set = datasets.CIFAR100(PATH_DATASET, download=True, train=False, transform=val_transform)
     train_data = DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True,
                           num_workers=NUM_WORKERS, pin_memory=True if USE_CUDA else False)
     validation_data = DataLoader(val_set, batch_size=BATCH_SIZE, shuffle=False,
@@ -708,7 +796,7 @@ def apply_warmup_cosine_lr(optimizer, epoch, total_epochs, base_lr, warmup_ratio
 
 
 def main():
-    """Train a PyTorch ResNet model with mixed analog/digital to classify CIFAR10."""
+    """Train a PyTorch ResNet model with mixed analog/digital to classify CIFAR100."""
     # Seed
     manual_seed(SEED)
 
@@ -723,12 +811,12 @@ def main():
 
     # Initialize wandb
     wandb.init(
-        project="aihwkit-resnet18-cifar10-fullanalog-scratch",
-        name=f"resnet18_cifar10_fullanalog_scratch_bs{BATCH_SIZE}_e{N_EPOCHS}_wr{WARMUP_RATIO}_dev{ANALOG_DEVICE_TYPE}_aLR{LEARNING_RATE}_wd{WEIGHT_DECAY}_fwdIR{inp_res:.6f}_fwdOR{out_res:.6f}_fwdIN{forward_io.inp_noise}_fwdON{forward_io.out_noise}_mapW{mapping.weight_scaling_omega}",
+        project="new_cifar100_resnet18_fullanalog_scratch",
+        name=f"resnet18_cifar100_fullanalog_scratch_bs{BATCH_SIZE}_e{N_EPOCHS}_wr{WARMUP_RATIO}_dev{ANALOG_DEVICE_TYPE}_aLR{LEARNING_RATE}_wd{WEIGHT_DECAY}_fwdIR{inp_res:.6f}_fwdOR{out_res:.6f}_fwdIN{forward_io.inp_noise}_fwdON{forward_io.out_noise}_mapW{mapping.weight_scaling_omega}",
         config={
             # Model and dataset
             "model": "ResNet18-Fullanalog-Scratch",
-            "dataset": "CIFAR-10",
+            "dataset": "CIFAR-100",
             "pretrained": "none",
 
             # Basic training parameters
@@ -822,11 +910,25 @@ def main():
     criterion = nn.CrossEntropyLoss()
     optimizer = create_sgd_optimizer(model, LEARNING_RATE, MOMENTUM, WEIGHT_DECAY)
 
+    print("\nUsing SpatialLRTTSimulatorTileFullAnalog for C-only training")
+
     best_accuracy = 0
     best_epoch = 0
 
-    print("\nStarting scratch fullanalog training on CIFAR10...")
+    # Set weight path based on N_EPOCHS
+    global WEIGHT_PATH
+    WEIGHT_PATH = os.path.join(RESULTS, f"fullanalog_scratch_model_weight_{N_EPOCHS}epoch.pth")
+
+    print("\nStarting scratch fullanalog training on CIFAR100...")
     print("=" * 60)
+
+    # Special case: Save initial model when N_EPOCHS = 0
+    if N_EPOCHS == 0:
+        save(model.state_dict(), WEIGHT_PATH)
+        print(f"\nN_EPOCHS = 0: Initial model saved to {WEIGHT_PATH}")
+        print("No training performed.")
+        wandb.finish()
+        return
 
     # Create overall progress bar for epochs
     epoch_pbar = tqdm(range(N_EPOCHS), desc="Overall Progress", position=0)
@@ -856,12 +958,11 @@ def main():
             "learning_rate": optimizer.param_groups[0]["lr"]
         })
 
-        # Track best accuracy
+        # Track best accuracy (for logging only, not for saving)
         latest_val_acc = val_accuracy
         if latest_val_acc > best_accuracy:
             best_accuracy = latest_val_acc
             best_epoch = epoch
-            save(model.state_dict(), WEIGHT_PATH)
         epoch_pbar.set_postfix({
             'Train_Acc': f'{train_acc:.2f}%',
             'Val_Acc': f'{latest_val_acc:.2f}%',
@@ -875,10 +976,14 @@ def main():
                       f"Train Loss {train_loss:.4f} (Acc {train_acc:.2f}%)"
                       f"{val_info}")
 
+    # Save the final epoch model (not best model)
     print("=" * 60)
     print(f"\nTraining completed!")
     print(f"Best validation accuracy: {best_accuracy:.2f}% at epoch {best_epoch + 1}")
-    print(f"Model weights saved to: {WEIGHT_PATH}")
+    print(f"Final epoch validation accuracy: {latest_val_acc:.2f}%")
+    print(f"Saving final epoch model to: {WEIGHT_PATH}")
+    save(model.state_dict(), WEIGHT_PATH)
+    print(f"✓ Model weights saved (final epoch)")
 
 
 if __name__ == "__main__":
