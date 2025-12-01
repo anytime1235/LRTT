@@ -189,8 +189,8 @@ def create_fullanalog_config(rank=1):
     # Update parameters - disable BL management for debugging
     update_params = UpdateParameters(
         desired_bl=127,
-        update_bl_management=False,
-        update_management=False,
+        update_bl_management=True,
+        update_management=True,
     )
 
     return PythonLRTTRPUConfig(device=device_config, mapping=mapping, forward=forward_io, backward=forward_io, update=update_params)
@@ -250,8 +250,8 @@ def create_lrtt_config(rank, is_conv=True):
     # Update parameters - disable BL management for debugging
     update_params = UpdateParameters(
         desired_bl=127,
-        update_bl_management=False,
-        update_management=False,
+        update_bl_management=True,
+        update_management=True,
     )
 
     return PythonLRTTRPUConfig(device=device_config, mapping=mapping, forward=forward_io, backward=forward_io, update=update_params)
@@ -647,30 +647,36 @@ def train_2stage():
                                  momentum=MOMENTUM, weight_decay=WEIGHT_DECAY, nesterov=NESTEROV)
     optimizer_stage1.regroup_param_groups(model_stage1)
 
-    for epoch in range(N_EPOCHS_STAGE1):
-        # Apply constant LR for Stage 1 (no decay - keep weights "fluid")
-        lr = apply_constant_lr(optimizer_stage1, LEARNING_RATE_STAGE1)
-
-        # Train
-        train_loss, train_acc = train_one_epoch(model_stage1, train_loader, optimizer_stage1, criterion)
-
-        # Validate
+    # Handle N_EPOCHS_STAGE1 = 0 case (skip Stage 1, use random init)
+    if N_EPOCHS_STAGE1 == 0:
+        print("N_EPOCHS_STAGE1 = 0: Skipping Stage 1 training (random initialization)")
         val_loss, val_acc = evaluate(model_stage1, val_loader, criterion)
+        print(f"Initial Val Accuracy (random): {val_acc:.2f}%\n")
+    else:
+        for epoch in range(N_EPOCHS_STAGE1):
+            # Apply constant LR for Stage 1 (no decay - keep weights "fluid")
+            lr = apply_constant_lr(optimizer_stage1, LEARNING_RATE_STAGE1)
 
-        print(f"[Stage1 {epoch+1:02d}/{N_EPOCHS_STAGE1}] "
-              f"Loss={train_loss:.4f} TrainAcc={train_acc:.2f}% "
-              f"ValAcc={val_acc:.2f}% LR={lr:.6f} (constant)")
+            # Train
+            train_loss, train_acc = train_one_epoch(model_stage1, train_loader, optimizer_stage1, criterion)
 
-        wandb.log({
-            "stage": 1,
-            "epoch": epoch + 1,
-            "train_loss": train_loss,
-            "train_accuracy": train_acc,
-            "val_accuracy": val_acc,
-            "learning_rate": lr,
-        })
+            # Validate
+            val_loss, val_acc = evaluate(model_stage1, val_loader, criterion)
 
-    print(f"\n✓ Stage 1 Complete: Val Accuracy = {val_acc:.2f}%\n")
+            print(f"[Stage1 {epoch+1:02d}/{N_EPOCHS_STAGE1}] "
+                  f"Loss={train_loss:.4f} TrainAcc={train_acc:.2f}% "
+                  f"ValAcc={val_acc:.2f}% LR={lr:.6f} (constant)")
+
+            wandb.log({
+                "stage": 1,
+                "epoch": epoch + 1,
+                "train_loss": train_loss,
+                "train_accuracy": train_acc,
+                "val_accuracy": val_acc,
+                "learning_rate": lr,
+            })
+
+        print(f"\n✓ Stage 1 Complete: Val Accuracy = {val_acc:.2f}%\n")
 
     # ========================================================================
     # Weight Transfer: FullAnalog → LRTT
