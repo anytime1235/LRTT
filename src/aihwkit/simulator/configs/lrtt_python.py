@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Any, Dict
 import warnings
 
-from aihwkit.simulator.configs.devices import PulsedDevice, ConstantStepDevice
+from aihwkit.simulator.configs.devices import PulsedDevice, ConstantStepDevice, LinearStepDevice
 from aihwkit.simulator.parameters.enums import RPUDataType
 from aihwkit.simulator.parameters.helpers import _PrintableMixin
 
@@ -323,3 +323,283 @@ class PythonLRTTPreset(_PrintableMixin):
             columns_mode=True,  # Optimized mode
             unit_cell_devices=[IdealizedPresetDevice(), IdealizedPresetDevice(), IdealizedPresetDevice()]
         )
+
+    @staticmethod
+    def sixt1c_ab(
+        rank: int = 4,
+        transfer_every: int = 32,
+        lora_alpha: float = 1.0,
+        dt_batch_sec: float = 1.0,
+        include_retention: bool = True,
+        c_device: Optional[PulsedDevice] = None
+    ) -> 'PythonLRTTDevice':
+        """LRTT with 6T1C devices for A/B tiles and configurable C tile.
+
+        A/B tiles use 6T1C (6 Transistors, 1 Capacitor) devices based on
+        experimental measurements. C tile (visible) can use any device.
+
+        6T1C Device Characteristics (A/B tiles):
+            - ~1000 conductance states per direction
+            - Capacitor-based weight storage with exponential decay
+            - Time constant τ ≈ 775 min (12.9 hours)
+            - Decay target: 0V
+
+        Update Model (LinearStepDevice):
+            - dw_min = 0.001981
+            - gamma_up = -0.1678 (slight saturation)
+            - gamma_down = +0.1410 (near-linear)
+
+        Args:
+            rank: LoRA rank dimension
+            transfer_every: Transfer frequency (steps)
+            lora_alpha: LoRA scaling factor
+            dt_batch_sec: Assumed time per mini-batch in seconds (for 6T1C retention)
+            include_retention: Whether to include retention effects for 6T1C
+            c_device: Device for C tile (visible). If None, uses IdealizedPresetDevice.
+                      Can be any PulsedDevice: IdealizedPresetDevice, PCM, RRAM, etc.
+
+        Returns:
+            PythonLRTTDevice configuration with 6T1C A/B and custom C device
+
+        Example:
+            >>> from aihwkit.simulator.presets.devices import PCMPresetDevice, ReRamESPresetDevice
+            >>> # 6T1C A/B with PCM C tile
+            >>> device = PythonLRTTPreset.sixt1c_ab(c_device=PCMPresetDevice())
+            >>> # 6T1C A/B with RRAM C tile
+            >>> device = PythonLRTTPreset.sixt1c_ab(c_device=ReRamESPresetDevice())
+        """
+        import math
+
+        # Calculate lifetime from physical τ for 6T1C
+        TAU_SEC = 46505.0  # Physical time constant: 775.1 min = 46505 sec
+        if include_retention and dt_batch_sec > 0:
+            delta = 1 - math.exp(-dt_batch_sec / TAU_SEC)
+            lifetime = 1.0 / delta
+        else:
+            lifetime = 0.0  # No retention
+
+        # Create 6T1C device for A/B tiles (LinearStepDevice)
+        sixt1c_device = LinearStepDevice(
+            # Core update parameters (fitted from 6T1C data)
+            dw_min=0.001981,
+            up_down=0.0,
+            w_max=1.0,
+            w_min=-1.0,
+            gamma_up=-0.1678,
+            gamma_down=0.1410,
+            mult_noise=True,
+
+            # Device-to-device variation
+            dw_min_dtod=0.1,
+            up_down_dtod=0.01,
+            w_max_dtod=0.05,
+            w_min_dtod=0.05,
+            gamma_up_dtod=0.05,
+            gamma_down_dtod=0.05,
+
+            # Cycle-to-cycle variation
+            dw_min_std=0.3,
+            write_noise_std=0.0182,
+
+            # LinearStepDevice specific
+            mean_bound_reference=True,
+
+            # Retention (capacitor leakage)
+            lifetime=lifetime,
+            lifetime_dtod=0.1 if include_retention else 0.0,
+            reset=0.0,  # Decay toward 0V
+            reset_dtod=0.0,
+        )
+
+        # C tile device: use provided device or default to Idealized
+        if c_device is None:
+            from aihwkit.simulator.presets.devices import IdealizedPresetDevice
+            c_device = IdealizedPresetDevice()
+
+        return PythonLRTTDevice(
+            rank=rank,
+            transfer_every=transfer_every,
+            lora_alpha=lora_alpha,
+            reinit_gain=0.1,
+            forward_inject=True,
+            unit_cell_devices=[sixt1c_device, sixt1c_device, c_device]
+        )
+
+    @staticmethod
+    def sixt1c_ab_pcm(
+        rank: int = 4,
+        transfer_every: int = 32,
+        lora_alpha: float = 1.0,
+        dt_batch_sec: float = 1.0
+    ) -> 'PythonLRTTDevice':
+        """LRTT with 6T1C A/B tiles and PCM C tile.
+
+        Args:
+            rank: LoRA rank dimension
+            transfer_every: Transfer frequency (steps)
+            lora_alpha: LoRA scaling factor
+            dt_batch_sec: Assumed time per mini-batch in seconds
+
+        Returns:
+            PythonLRTTDevice with 6T1C A/B and PCM C
+        """
+        from aihwkit.simulator.presets.devices import PCMPresetDevice
+        return PythonLRTTPreset.sixt1c_ab(
+            rank=rank,
+            transfer_every=transfer_every,
+            lora_alpha=lora_alpha,
+            dt_batch_sec=dt_batch_sec,
+            c_device=PCMPresetDevice()
+        )
+
+    @staticmethod
+    def sixt1c_ab_rram(
+        rank: int = 4,
+        transfer_every: int = 32,
+        lora_alpha: float = 1.0,
+        dt_batch_sec: float = 1.0
+    ) -> 'PythonLRTTDevice':
+        """LRTT with 6T1C A/B tiles and RRAM C tile.
+
+        Args:
+            rank: LoRA rank dimension
+            transfer_every: Transfer frequency (steps)
+            lora_alpha: LoRA scaling factor
+            dt_batch_sec: Assumed time per mini-batch in seconds
+
+        Returns:
+            PythonLRTTDevice with 6T1C A/B and RRAM C
+        """
+        from aihwkit.simulator.presets.devices import ReRamESPresetDevice
+        return PythonLRTTPreset.sixt1c_ab(
+            rank=rank,
+            transfer_every=transfer_every,
+            lora_alpha=lora_alpha,
+            dt_batch_sec=dt_batch_sec,
+            c_device=ReRamESPresetDevice()
+        )
+
+    @staticmethod
+    def sixt1c_ab_ideal(
+        rank: int = 4,
+        transfer_every: int = 32,
+        lora_alpha: float = 1.0,
+        dt_batch_sec: float = 1.0
+    ) -> 'PythonLRTTDevice':
+        """LRTT with 6T1C A/B tiles and Idealized C tile.
+
+        Args:
+            rank: LoRA rank dimension
+            transfer_every: Transfer frequency (steps)
+            lora_alpha: LoRA scaling factor
+            dt_batch_sec: Assumed time per mini-batch in seconds
+
+        Returns:
+            PythonLRTTDevice with 6T1C A/B and Idealized C
+        """
+        from aihwkit.simulator.presets.devices import IdealizedPresetDevice
+        return PythonLRTTPreset.sixt1c_ab(
+            rank=rank,
+            transfer_every=transfer_every,
+            lora_alpha=lora_alpha,
+            dt_batch_sec=dt_batch_sec,
+            c_device=IdealizedPresetDevice()
+        )
+
+    @staticmethod
+    def sixt1c_all(
+        rank: int = 4,
+        transfer_every: int = 32,
+        lora_alpha: float = 1.0,
+        dt_batch_sec: float = 1.0,
+        include_retention: bool = True
+    ) -> 'PythonLRTTDevice':
+        """LRTT with 6T1C devices for ALL tiles (A, B, and C).
+
+        All three tiles use identical 6T1C device characteristics.
+
+        Args:
+            rank: LoRA rank dimension
+            transfer_every: Transfer frequency (steps)
+            lora_alpha: LoRA scaling factor
+            dt_batch_sec: Assumed time per mini-batch in seconds (for retention)
+            include_retention: Whether to include retention effects
+
+        Returns:
+            PythonLRTTDevice configuration with 6T1C for all tiles
+        """
+        import math
+
+        # Calculate lifetime from physical τ
+        TAU_SEC = 46505.0
+        if include_retention and dt_batch_sec > 0:
+            delta = 1 - math.exp(-dt_batch_sec / TAU_SEC)
+            lifetime = 1.0 / delta
+        else:
+            lifetime = 0.0
+
+        # Create 6T1C device (same for A, B, C)
+        sixt1c_device = LinearStepDevice(
+            dw_min=0.001981,
+            up_down=0.0,
+            w_max=1.0,
+            w_min=-1.0,
+            gamma_up=-0.1678,
+            gamma_down=0.1410,
+            mult_noise=True,
+            dw_min_dtod=0.1,
+            up_down_dtod=0.01,
+            w_max_dtod=0.05,
+            w_min_dtod=0.05,
+            gamma_up_dtod=0.05,
+            gamma_down_dtod=0.05,
+            dw_min_std=0.3,
+            write_noise_std=0.0182,
+            mean_bound_reference=True,
+            lifetime=lifetime,
+            lifetime_dtod=0.1 if include_retention else 0.0,
+            reset=0.0,
+            reset_dtod=0.0,
+        )
+
+        return PythonLRTTDevice(
+            rank=rank,
+            transfer_every=transfer_every,
+            lora_alpha=lora_alpha,
+            reinit_gain=0.1,
+            forward_inject=True,
+            unit_cell_devices=[sixt1c_device, sixt1c_device, sixt1c_device]
+        )
+
+
+# =============================================================================
+# 6T1C Device Utility Functions
+# =============================================================================
+
+def get_6t1c_lifetime_for_dt_batch(dt_batch_sec: float) -> float:
+    """Calculate AIHWKit lifetime parameter for 6T1C given dt_batch.
+
+    The 6T1C capacitor has a physical time constant τ = 46505 seconds (775.1 min).
+    The AIHWKit lifetime parameter depends on the dt_batch assumption.
+
+    Args:
+        dt_batch_sec: Assumed time per mini-batch in seconds.
+
+    Returns:
+        Lifetime parameter for AIHWKit configuration.
+
+    Example:
+        >>> # For 1 second per batch
+        >>> lifetime = get_6t1c_lifetime_for_dt_batch(1.0)
+        >>> print(f"lifetime = {lifetime:.0f}")
+        lifetime = 46506
+
+        >>> # For 1 minute per batch
+        >>> lifetime = get_6t1c_lifetime_for_dt_batch(60.0)
+        >>> print(f"lifetime = {lifetime:.0f}")
+        lifetime = 776
+    """
+    import math
+    TAU_SEC = 46505.0  # Physical time constant in seconds
+    delta = 1 - math.exp(-dt_batch_sec / TAU_SEC)
+    return 1.0 / delta

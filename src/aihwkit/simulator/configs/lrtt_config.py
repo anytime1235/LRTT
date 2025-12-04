@@ -178,13 +178,170 @@ def lrtt_inference_config(rank: int = 2, lora_alpha: float = 0.5) -> PythonLRTTR
     return PythonLRTTRPUConfig(device=device)
 
 
+# =============================================================================
+# 6T1C Device Configurations
+# =============================================================================
+
+def lrtt_sixt1c_ab_config(
+    rank: int = 4,
+    transfer_every: int = 32,
+    lora_alpha: float = 1.0,
+    dt_batch_sec: float = 1.0,
+    include_retention: bool = True,
+    c_device=None
+) -> PythonLRTTRPUConfig:
+    """Create LRTT configuration with 6T1C A/B tiles and configurable C tile.
+
+    A/B tiles use 6T1C devices. C tile (visible) can use any device.
+
+    Args:
+        rank: LoRA rank dimension
+        transfer_every: Transfer frequency (steps)
+        lora_alpha: LoRA scaling factor
+        dt_batch_sec: Assumed time per mini-batch in seconds (for 6T1C retention)
+        include_retention: Whether to include retention effects for 6T1C
+        c_device: Device for C tile. If None, uses IdealizedPresetDevice.
+                  Can be: PCMPresetDevice, ReRamESPresetDevice, etc.
+
+    Returns:
+        Configured PythonLRTTRPUConfig with 6T1C A/B and custom C
+
+    Example:
+        >>> from aihwkit.simulator.presets.devices import PCMPresetDevice
+        >>> config = lrtt_sixt1c_ab_config(c_device=PCMPresetDevice())
+    """
+    from .lrtt_python import PythonLRTTPreset
+    device = PythonLRTTPreset.sixt1c_ab(
+        rank=rank,
+        transfer_every=transfer_every,
+        lora_alpha=lora_alpha,
+        dt_batch_sec=dt_batch_sec,
+        include_retention=include_retention,
+        c_device=c_device
+    )
+    return PythonLRTTRPUConfig(device=device)
+
+
+def lrtt_sixt1c_ab_pcm_config(
+    rank: int = 4,
+    transfer_every: int = 32,
+    lora_alpha: float = 1.0,
+    dt_batch_sec: float = 1.0
+) -> PythonLRTTRPUConfig:
+    """Create LRTT configuration with 6T1C A/B tiles and PCM C tile.
+
+    Args:
+        rank: LoRA rank dimension
+        transfer_every: Transfer frequency (steps)
+        lora_alpha: LoRA scaling factor
+        dt_batch_sec: Assumed time per mini-batch in seconds
+
+    Returns:
+        Configured PythonLRTTRPUConfig with 6T1C A/B and PCM C
+    """
+    from .lrtt_python import PythonLRTTPreset
+    device = PythonLRTTPreset.sixt1c_ab_pcm(
+        rank=rank,
+        transfer_every=transfer_every,
+        lora_alpha=lora_alpha,
+        dt_batch_sec=dt_batch_sec
+    )
+    return PythonLRTTRPUConfig(device=device)
+
+
+def lrtt_sixt1c_ab_rram_config(
+    rank: int = 4,
+    transfer_every: int = 32,
+    lora_alpha: float = 1.0,
+    dt_batch_sec: float = 1.0
+) -> PythonLRTTRPUConfig:
+    """Create LRTT configuration with 6T1C A/B tiles and RRAM C tile.
+
+    Args:
+        rank: LoRA rank dimension
+        transfer_every: Transfer frequency (steps)
+        lora_alpha: LoRA scaling factor
+        dt_batch_sec: Assumed time per mini-batch in seconds
+
+    Returns:
+        Configured PythonLRTTRPUConfig with 6T1C A/B and RRAM C
+    """
+    from .lrtt_python import PythonLRTTPreset
+    device = PythonLRTTPreset.sixt1c_ab_rram(
+        rank=rank,
+        transfer_every=transfer_every,
+        lora_alpha=lora_alpha,
+        dt_batch_sec=dt_batch_sec
+    )
+    return PythonLRTTRPUConfig(device=device)
+
+
+def lrtt_sixt1c_ab_ideal_config(
+    rank: int = 4,
+    transfer_every: int = 32,
+    lora_alpha: float = 1.0,
+    dt_batch_sec: float = 1.0
+) -> PythonLRTTRPUConfig:
+    """Create LRTT configuration with 6T1C A/B tiles and Idealized C tile.
+
+    Args:
+        rank: LoRA rank dimension
+        transfer_every: Transfer frequency (steps)
+        lora_alpha: LoRA scaling factor
+        dt_batch_sec: Assumed time per mini-batch in seconds
+
+    Returns:
+        Configured PythonLRTTRPUConfig with 6T1C A/B and Idealized C
+    """
+    from .lrtt_python import PythonLRTTPreset
+    device = PythonLRTTPreset.sixt1c_ab_ideal(
+        rank=rank,
+        transfer_every=transfer_every,
+        lora_alpha=lora_alpha,
+        dt_batch_sec=dt_batch_sec
+    )
+    return PythonLRTTRPUConfig(device=device)
+
+
+def lrtt_sixt1c_all_config(
+    rank: int = 4,
+    transfer_every: int = 32,
+    lora_alpha: float = 1.0,
+    dt_batch_sec: float = 1.0,
+    include_retention: bool = True
+) -> PythonLRTTRPUConfig:
+    """Create LRTT configuration with 6T1C devices for ALL tiles (A, B, C).
+
+    All three tiles use identical 6T1C device characteristics.
+
+    Args:
+        rank: LoRA rank dimension
+        transfer_every: Transfer frequency (steps)
+        lora_alpha: LoRA scaling factor
+        dt_batch_sec: Assumed time per mini-batch in seconds (for retention)
+        include_retention: Whether to include retention effects
+
+    Returns:
+        Configured PythonLRTTRPUConfig with 6T1C for all tiles
+    """
+    from .lrtt_python import PythonLRTTPreset
+    device = PythonLRTTPreset.sixt1c_all(
+        rank=rank,
+        transfer_every=transfer_every,
+        lora_alpha=lora_alpha,
+        dt_batch_sec=dt_batch_sec,
+        include_retention=include_retention
+    )
+    return PythonLRTTRPUConfig(device=device)
+
+
 # Legacy compatibility layer
 def migrate_from_legacy_lrtt_compound(legacy_compound) -> PythonLRTTRPUConfig:
     """Migrate from legacy LRTTTransferCompound to Python LRTT.
-    
+
     Args:
         legacy_compound: LRTTTransferCompound instance
-        
+
     Returns:
         Equivalent PythonLRTTRPUConfig
     """
