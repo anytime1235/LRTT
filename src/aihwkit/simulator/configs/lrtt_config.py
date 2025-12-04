@@ -10,13 +10,21 @@ RPU configuration classes designed specifically for Python LRTT implementation.
 """
 
 from dataclasses import dataclass, field
-from typing import Type, Any
+from typing import Type, Any, TYPE_CHECKING
 
 from aihwkit.simulator.configs.configs import IOManagedRPUConfig
-from aihwkit.simulator.tiles.lrtt_tile import LRTTSimulatorTile
 from aihwkit.simulator.tiles.array import TileModuleArray
 from aihwkit.simulator.configs.lrtt_python import PythonLRTTDevice
 from aihwkit.simulator.parameters.enums import RPUDataType
+
+if TYPE_CHECKING:
+    from aihwkit.simulator.tiles.lrtt_tile import LRTTSimulatorTile
+
+
+def _get_lrtt_tile_class():
+    """Lazy import to avoid circular dependency."""
+    from aihwkit.simulator.tiles.lrtt_tile import LRTTSimulatorTile
+    return LRTTSimulatorTile
 
 
 @dataclass
@@ -28,7 +36,7 @@ class PythonLRTTRPUConfig(IOManagedRPUConfig):
     and provides all necessary parameters for Python LRTT operation.
     """
 
-    tile_class: Type = LRTTSimulatorTile
+    tile_class: Type = field(default_factory=_get_lrtt_tile_class)
     """Default tile class: LRTTSimulatorTile (may be overridden by device config)."""
     
     tile_array_class: Type = TileModuleArray
@@ -45,7 +53,7 @@ class PythonLRTTRPUConfig(IOManagedRPUConfig):
         """
         if hasattr(self.device, 'get_default_tile_module_class'):
             return self.device.get_default_tile_module_class()
-        return LRTTSimulatorTile
+        return _get_lrtt_tile_class()
     
     def create_tile(self, x_size: int, d_size: int, dtype: RPUDataType = RPUDataType.FLOAT, **kwargs):
         """Create LRTT tile with this configuration.
