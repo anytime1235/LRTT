@@ -140,6 +140,16 @@ class LRTTController:
         self._c_initialized = True
         self._tiles_initialized = False
 
+        # Transfer robustness knobs (safe defaults)
+        self.transfer_micro_steps: int = 4          # M: micro-transfer 반복 횟수 (>=2 권장)
+        self.transfer_centering: bool = False       # 행/열 평균 제거 (기본 off - gradient 왜곡 방지)
+        self.transfer_normalize: bool = False       # 랭크별 ℓ2 정규화 (기본 off - gradient 왜곡 방지)
+        self.transfer_gamma_mode: str = "pilot"     # {"pilot", "off"} - 파일럿 캘리브레이션 모드
+        self.transfer_pilot_frac: float = 1.0/16.0  # 파일럿 전송 lr = |transfer_lr| * frac
+
+        # Transfer one-hot vectors cache
+        self._transfer_vec_a: Optional[Tensor] = None
+
     def _infer_device_from_tile(self) -> torch.device:
         """Safely infer device from tile.
 
@@ -437,52 +447,199 @@ class LRTTController:
                     print(f"  Expected A norm (decay): {expected:.6f}")
                 print()
 
-    def _ab_weight_transfer_onehot(self) -> None:
-        """One-hot based transfer following transfer.py pattern (lines 247-263).
+    def _read_ab_onehot_symmetric(self) -> tuple:
+        """± one-hot 차분 읽기로 DC/짝수차 왜곡 제거.
 
-        Uses analog-realistic reading via forward/backward passes with one-hot vectors.
+        Returns:
+            (A_cols: [d_size, rank], B_rows: [rank, x_size])
+        """
+        if self._transfer_vec_a is None:
+            self._transfer_vec_a = torch.eye(
+                self.rank, dtype=self.dtype, device=self.device
+            )
+
+        I = self._transfer_vec_a
+        A_cols = []
+        B_rows = []
+
+        for k in range(self.rank):
+            e = I[k].unsqueeze(0)  # [1, rank], +one-hot
+
+            # ± forward/backward for symmetric reading
+            a_p = self.tile_a.forward(e).squeeze(0)   # [d_size]
+            a_m = self.tile_a.forward(-e).squeeze(0)  # [d_size]
+            b_p = self.tile_b.backward(e).squeeze(0)  # [x_size]
+            b_m = self.tile_b.backward(-e).squeeze(0) # [x_size]
+
+            # Differential: cancels DC offset and even-order distortions
+            a_k = 0.5 * (a_p - a_m)
+            b_k = 0.5 * (b_p - b_m)
+
+            A_cols.append(a_k)
+            B_rows.append(b_k)
+
+        A_cols = torch.stack(A_cols, dim=1)  # [d_size, rank]
+        B_rows = torch.stack(B_rows, dim=0)  # [rank, x_size]
+        return A_cols, B_rows
+
+    def _center_and_normalize(self, A_cols: Tensor, B_rows: Tensor, eps: float = 1e-8) -> tuple:
+        """(선택) 행/열 평균 제거 + 랭크별 ℓ2 정규화.
+
+        Args:
+            A_cols: [d_size, rank]
+            B_rows: [rank, x_size]
+            eps: Numerical stability epsilon
+
+        Returns:
+            (A_cols_processed, B_rows_processed)
+        """
+        if self.transfer_centering:
+            A_cols = A_cols - A_cols.mean(dim=0, keepdim=True)
+            B_rows = B_rows - B_rows.mean(dim=1, keepdim=True)
+
+        if self.transfer_normalize:
+            for k in range(self.rank):
+                ak = A_cols[:, k]
+                bk = B_rows[k, :]
+                na = ak.norm()
+                nb = bk.norm()
+                if na > eps:
+                    A_cols[:, k] = ak / na
+                if nb > eps:
+                    B_rows[k, :] = bk / nb
+
+        return A_cols, B_rows
+
+    def _ze_norm2_via_gram(self, A_cols: Tensor, B_rows: Tensor) -> float:
+        """||Σ_k a_k⊗b_k||_F^2 = sum_{i,j} (a_i^T a_j)*(b_i^T b_j).
+
+        Computes Frobenius norm squared of the outer product sum efficiently
+        using Gram matrices without materializing the full [d_size, x_size] matrix.
+        """
+        G_A = A_cols.t() @ A_cols      # [rank, rank]
+        G_B = B_rows @ B_rows.t()      # [rank, rank]
+        return (G_A * G_B).sum().item()
+
+    def _ab_weight_transfer_onehot(self) -> None:
+        """One-hot 기반 전송 (± 차분, 파일럿 γ 보정, micro-transfer 포함).
+
+        Hardware-friendly transfer using:
+        1. ± one-hot symmetric reading to cancel DC/even-order distortions
+        2. Pilot-based γ calibration for scale correction
+        3. Micro-transfer for smoother accumulation
         """
         with torch.no_grad():
-            # Create one-hot vectors using controller's device
-            if not hasattr(self, '_transfer_vec_a') or self._transfer_vec_a is None:
+            # 0) 준비: one-hot 캐시, LR/노이즈 백업
+            if self._transfer_vec_a is None:
                 self._transfer_vec_a = torch.eye(
-                    self.rank,
-                    dtype=self.dtype,
-                    device=self.device  # Use controller's device
+                    self.rank, dtype=self.dtype, device=self.device
                 )
 
-            # Save and set learning rate for transfer
-            lr_eff = abs(self.transfer_lr)
-            old_lr = self.tile_c.get_learning_rate()
-            self.tile_c.set_learning_rate(lr_eff)
+            old_lr_c = self.tile_c.get_learning_rate()
 
-            # Process each rank dimension sequentially (like transfer.py)
-            for k in range(self.rank):
-                # Prepare one-hot input as [1, rank] for batch dimension
-                e_k = self._transfer_vec_a[k].unsqueeze(0)  # [1, rank]
+            # A/B/C 읽기·계측 동안 out_noise=0으로 (out_res 등은 유지)
+            old_out_a = self.tile_a.rpu_config.forward.out_noise
+            old_out_b_f = self.tile_b.rpu_config.forward.out_noise
+            old_out_b_b = self.tile_b.rpu_config.backward.out_noise
+            old_out_c = getattr(self.tile_c.rpu_config.forward, "out_noise", 0.0)
 
-                # Read column k of A using forward with one-hot
-                a_col_b1 = self.tile_a.forward(e_k)  # Shape: [1, d_size]
+            self.tile_a.rpu_config.forward.out_noise = 0.0
+            self.tile_b.rpu_config.forward.out_noise = 0.0
+            self.tile_b.rpu_config.backward.out_noise = 0.0
+            if hasattr(self.tile_c.rpu_config.forward, "out_noise"):
+                self.tile_c.rpu_config.forward.out_noise = 0.0
 
-                # Read row k of B using backward with one-hot
-                b_row_b1 = self.tile_b.backward(e_k)  # Shape: [1, x_size]
+            try:
+                # 1) ± one-hot 차분 읽기
+                A_cols, B_rows = self._read_ab_onehot_symmetric()
 
-                # Apply sign correction (same as direct method)
-                if self.transfer_lr > 0:
-                    a_col_b1 = -a_col_b1
+                # (선택) 중심화/정규화
+                A_cols, B_rows = self._center_and_normalize(A_cols, B_rows)
 
-                # Ensure tensors are on controller's device
-                X_k = b_row_b1.to(self.device, non_blocking=True)  # [1, x_size]
-                D_k = a_col_b1.to(self.device, non_blocking=True)  # [1, d_size]
+                # 2) 파일럿 기반 γ 산출 (스칼라 캘리브레이션)
+                Z_norm2 = self._ze_norm2_via_gram(A_cols, B_rows) + 1e-12
+                pilot_frac = max(1e-4, float(self.transfer_pilot_frac))
+                M_total = max(2, int(self.transfer_micro_steps))
+                lr_abs = abs(self.transfer_lr)
 
-                # Update C tile with rank-1 outer product
-                if hasattr(self.tile_c, '_orig_update'):
-                    self.tile_c._orig_update(X_k, D_k)
-                else:
-                    self.tile_c.update(X_k, D_k)
+                # 파일럿 lr
+                lr_pilot = lr_abs * pilot_frac
+                gamma = 1.0  # Default gamma
 
-            # Restore learning rate
-            self.tile_c.set_learning_rate(old_lr)
+                if self.transfer_gamma_mode == "pilot":
+                    # 파일럿 전송으로 실제 스케일 측정
+                    num_acc = 0.0
+
+                    def _forward_c(x_row):
+                        """Forward C tile with input row vector."""
+                        y = self.tile_c.forward(x_row.unsqueeze(0))  # [1, d_size]
+                        return y.squeeze(0)
+
+                    for k in range(self.rank):
+                        a_k = A_cols[:, k]
+                        b_k = B_rows[k, :]
+
+                        # 전송 전 응답
+                        y0 = _forward_c(b_k)
+
+                        # 서명 규칙: PWU는 W += -lr * D @ X^T
+                        D_k = -a_k if self.transfer_lr > 0 else a_k
+                        X_k = b_k
+
+                        # 파일럿 전송 1회
+                        self.tile_c.set_learning_rate(lr_pilot)
+                        if hasattr(self.tile_c, '_orig_update'):
+                            self.tile_c._orig_update(X_k.unsqueeze(0), D_k.unsqueeze(0))
+                        else:
+                            self.tile_c.update(X_k.unsqueeze(0), D_k.unsqueeze(0))
+
+                        # 전송 후 변화량 계측
+                        y1 = _forward_c(b_k)
+                        dy = y1 - y0
+                        num_acc += (dy * a_k).sum().item()
+
+                    # γ 계산 (측정된 변화 / 예상 변화)
+                    gamma = num_acc / (lr_pilot * Z_norm2)
+                    # 방어적 클램핑 (극단값/계측 오차 대비)
+                    gamma = float(torch.clamp(
+                        torch.tensor(gamma, device=self.device), 0.05, 20.0
+                    ).item())
+
+                # 3) 본 전송: 남은 lr를 M_rest로 나누어 micro-transfer 수행
+                lr_remain = lr_abs * gamma - (lr_pilot if self.transfer_gamma_mode == "pilot" else 0.0)
+                lr_remain = max(0.0, lr_remain)
+                M_rest = max(1, M_total - 1) if self.transfer_gamma_mode == "pilot" else M_total
+                lr_step = lr_remain / M_rest if M_rest > 0 else 0.0
+
+                # 학습률 세팅
+                self.tile_c.set_learning_rate(lr_step if lr_step > 0 else 1e-12)
+
+                for k in range(self.rank):
+                    a_k = A_cols[:, k]
+                    b_k = B_rows[k, :]
+                    D_k = -a_k if self.transfer_lr > 0 else a_k
+                    X_k = b_k
+
+                    # M_rest 회 micro-transfer
+                    for _ in range(M_rest):
+                        if hasattr(self.tile_c, '_orig_update'):
+                            self.tile_c._orig_update(X_k.unsqueeze(0), D_k.unsqueeze(0))
+                        else:
+                            self.tile_c.update(X_k.unsqueeze(0), D_k.unsqueeze(0))
+
+                # 디버그 로깅 (처음 몇 번만)
+                if self.num_transfers < 3:
+                    print(f"[LRTT onehot] gamma={gamma:.3f} lr_pilot={lr_pilot:.3e} "
+                          f"lr_remain={lr_remain:.3e} Znorm2={Z_norm2:.3e}")
+
+            finally:
+                # 5) 복구 + 후처리
+                self.tile_c.set_learning_rate(old_lr_c)
+                self.tile_a.rpu_config.forward.out_noise = old_out_a
+                self.tile_b.rpu_config.forward.out_noise = old_out_b_f
+                self.tile_b.rpu_config.backward.out_noise = old_out_b_b
+                if hasattr(self.tile_c.rpu_config.forward, "out_noise"):
+                    self.tile_c.rpu_config.forward.out_noise = old_out_c
 
         self.num_transfers += 1
         self.transfer_counter = 0
