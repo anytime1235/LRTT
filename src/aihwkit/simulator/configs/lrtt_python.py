@@ -60,7 +60,7 @@ class PythonLRTTDevice(_PrintableMixin):
     correct_gradient_magnitudes: bool = False
     """If True, scale learning rate by sqrt(rank) for gradient correction."""
     
-    forward_inject: bool = True
+    forward_inject: bool = False
     """Enable forward injection optimization: W_eff composition."""
     
     rank_chunk: Optional[int] = None
@@ -216,7 +216,7 @@ class PythonLRTTPreset(_PrintableMixin):
             transfer_every=transfer_every,
             lora_alpha=lora_alpha,
             reinit_gain=0.1,
-            forward_inject=True,
+            forward_inject=False,
             unit_cell_devices=[ideal_device, ideal_device, ideal_device]
         )
     
@@ -245,7 +245,7 @@ class PythonLRTTPreset(_PrintableMixin):
             transfer_every=transfer_every,
             lora_alpha=1.0,
             reinit_gain=0.1,
-            forward_inject=True,
+            forward_inject=False,
             unit_cell_devices=[device, device, device]
         )
     
@@ -270,7 +270,7 @@ class PythonLRTTPreset(_PrintableMixin):
             transfer_every=transfer_every,
             lora_alpha=lora_alpha,
             reinit_gain=0.05,  # Smaller reinit for frequent transfers
-            forward_inject=True,
+            forward_inject=False,
             correct_gradient_magnitudes=True,  # Better scaling for higher ranks
             unit_cell_devices=[IdealizedPresetDevice(), IdealizedPresetDevice(), IdealizedPresetDevice()]
         )
@@ -297,7 +297,7 @@ class PythonLRTTPreset(_PrintableMixin):
             transfer_every=transfer_every,
             lora_alpha=1.0,
             reinit_gain=0.1,
-            forward_inject=True,
+            forward_inject=False,
             unit_cell_devices=[low_precision, low_precision, high_precision]
         )
     
@@ -319,7 +319,7 @@ class PythonLRTTPreset(_PrintableMixin):
             transfer_every=1,  # Transfer immediately
             lora_alpha=lora_alpha,
             reinit_gain=0.0,  # No reinit needed for inference
-            forward_inject=True,  # Essential for inference
+            forward_inject=False,
             columns_mode=True,  # Optimized mode
             unit_cell_devices=[IdealizedPresetDevice(), IdealizedPresetDevice(), IdealizedPresetDevice()]
         )
@@ -435,7 +435,7 @@ class PythonLRTTPreset(_PrintableMixin):
             reinit_gain=0.1,
             reinit_mode=reinit_mode,
             decay_factor=decay_factor,
-            forward_inject=True,
+            forward_inject=False,
             unit_cell_devices=[sixt1c_device, sixt1c_device, c_device]
         )
 
@@ -581,7 +581,7 @@ class PythonLRTTPreset(_PrintableMixin):
             transfer_every=transfer_every,
             lora_alpha=lora_alpha,
             reinit_gain=0.1,
-            forward_inject=True,
+            forward_inject=False,
             unit_cell_devices=[sixt1c_device, sixt1c_device, sixt1c_device]
         )
 

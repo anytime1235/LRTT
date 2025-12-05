@@ -141,29 +141,37 @@ class LRTTController:
         self._tiles_initialized = False
 
         # Transfer robustness knobs (safe defaults)
-        self.transfer_micro_steps: int = 4          # M: micro-transfer 반복 횟수 (>=2 권장)
+        self.transfer_micro_steps: int = 1          # M: micro-transfer 반복 횟수
         self.transfer_centering: bool = False       # 행/열 평균 제거 (기본 off - gradient 왜곡 방지)
         self.transfer_normalize: bool = False       # 랭크별 ℓ2 정규화 (기본 off - gradient 왜곡 방지)
-        self.transfer_gamma_mode: str = "pilot"     # {"pilot", "off"} - 파일럿 캘리브레이션 모드
-        self.transfer_pilot_frac: float = 1.0/16.0  # 파일럿 전송 lr = |transfer_lr| * frac
+
+        # --- Sigma-Delta (ΣΔ) core state ---
+        self.sd_quantum: Optional[float] = None     # g: unit quantum for rank-wise pulses (None -> derive per transfer)
+        self.sd_acc: Optional[Tensor] = None        # h_k residuals [rank], persistent across transfers
 
         # Transfer one-hot vectors cache
         self._transfer_vec_a: Optional[Tensor] = None
 
-    def _infer_device_from_tile(self) -> torch.device:
-        """Safely infer device from tile.
+    def _ensure_sd_state(self) -> None:
+        """Ensure ΣΔ state tensors exist on the right device/dtype."""
+        if self.sd_acc is None or self.sd_acc.numel() != self.rank or self.sd_acc.device != self.device:
+            self.sd_acc = torch.zeros(self.rank, device=self.device, dtype=self.dtype)
 
-        This is now a simple fallback since device should be explicitly synchronized
-        via set_device() when tiles are moved.
+    def _infer_device_from_tile(self) -> torch.device:
+        """Safely infer device from tile by checking the underlying tile type.
+
+        Note: get_weights() always returns CPU tensors (copies), so we must check
+        the tile backend type instead.
         """
-        # Check tile backend type
+        # Primary method: Check tile backend type string
+        # get_weights() returns CPU copies, so we check the tile type instead
         if hasattr(self.tile_c, 'tile'):
             tile_str = str(type(self.tile_c.tile).__name__)
             if 'Cuda' in tile_str or 'CUDA' in tile_str:
                 return torch.device('cuda')
 
-        # Default based on CUDA availability
-        return torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        # Fallback: CPU (safer default)
+        return torch.device('cpu')
 
     def _get_tile_device(self) -> torch.device:
         """Get device that tiles expect for operations."""
@@ -521,23 +529,24 @@ class LRTTController:
         return (G_A * G_B).sum().item()
 
     def _ab_weight_transfer_onehot(self) -> None:
-        """One-hot 기반 전송 (± 차분, 파일럿 γ 보정, micro-transfer 포함).
+        """One-hot 기반 전송 (ΣΔ 핵심 버전: 랭크별 적분기 h_k + 고정 quantum g).
 
-        Hardware-friendly transfer using:
-        1. ± one-hot symmetric reading to cancel DC/even-order distortions
-        2. Pilot-based γ calibration for scale correction
-        3. Micro-transfer for smoother accumulation
+        핵심:
+          - 원하는 스칼라 투영: δ_k := |transfer_lr| (랭크별 동일 스칼라)
+          - ΣΔ 1차: h_k <- h_k + δ_k; n_k <- round(h_k / g); h_k <- h_k - n_k*g
+          - sign rule: tile.update는 W += -lr * D @ X^T → transfer_lr>0일 때 D=-a_k
+          - g(quantum): sd_quantum 사용. None이면 기본값 g := max(|transfer_lr| / max(1, self.transfer_micro_steps), 1e-12)
+
+        관리/최적화(버스트캡, 게이트, EMA 보정 등)는 추후 추가.
         """
         with torch.no_grad():
-            # 0) 준비: one-hot 캐시, LR/노이즈 백업
+            # --- 준비: one-hot 캐시, LR/노이즈 백업 ---
             if self._transfer_vec_a is None:
-                self._transfer_vec_a = torch.eye(
-                    self.rank, dtype=self.dtype, device=self.device
-                )
+                self._transfer_vec_a = torch.eye(self.rank, dtype=self.dtype, device=self.device)
 
             old_lr_c = self.tile_c.get_learning_rate()
 
-            # A/B/C 읽기·계측 동안 out_noise=0으로 (out_res 등은 유지)
+            # A/B/C 읽기 동안 out_noise=0 (out_res 등은 유지)
             old_out_a = self.tile_a.rpu_config.forward.out_noise
             old_out_b_f = self.tile_b.rpu_config.forward.out_noise
             old_out_b_b = self.tile_b.rpu_config.backward.out_noise
@@ -550,90 +559,66 @@ class LRTTController:
                 self.tile_c.rpu_config.forward.out_noise = 0.0
 
             try:
-                # 1) ± one-hot 차분 읽기
+                # --- 1) ± one-hot 차분 읽기: A_cols[d, r], B_rows[r, x] ---
                 A_cols, B_rows = self._read_ab_onehot_symmetric()
 
                 # (선택) 중심화/정규화
                 A_cols, B_rows = self._center_and_normalize(A_cols, B_rows)
 
-                # 2) 파일럿 기반 γ 산출 (스칼라 캘리브레이션)
-                Z_norm2 = self._ze_norm2_via_gram(A_cols, B_rows) + 1e-12
-                pilot_frac = max(1e-4, float(self.transfer_pilot_frac))
-                M_total = max(2, int(self.transfer_micro_steps))
-                lr_abs = abs(self.transfer_lr)
+                # --- 2) ΣΔ 상태/파라미터 확보 ---
+                self._ensure_sd_state()
+                # quantum g 설정: 기본은 transfer_lr를 micro_steps로 쪼갠 크기
+                lr_abs = float(abs(self.transfer_lr))
+                g = float(self.sd_quantum) if (self.sd_quantum is not None and self.sd_quantum > 0.0) \
+                    else max(lr_abs / float(max(1, int(self.transfer_micro_steps))), 1e-12)
 
-                # 파일럿 lr
-                lr_pilot = lr_abs * pilot_frac
-                gamma = 1.0  # Default gamma
+                # 랭크별 목표 스칼라 δ_k := |transfer_lr|  (모든 k 동일)
+                delta = torch.full((self.rank,), lr_abs, device=self.device, dtype=self.dtype)
 
-                if self.transfer_gamma_mode == "pilot":
-                    # 파일럿 전송으로 실제 스케일 측정
-                    num_acc = 0.0
+                # --- 3) ΣΔ 적분/정수화: h_k 누적 -> 정수 펄스 n_k, 잔여 갱신 ---
+                self.sd_acc = self.sd_acc + delta  # h_k += δ_k
+                n_float = self.sd_acc / g          # n* ≈ h_k/g
+                n = torch.round(n_float).to(torch.int64)  # 정수 펄스
+                self.sd_acc = self.sd_acc - n.to(self.dtype) * g  # h_k <- h_k - n_k*g
 
-                    def _forward_c(x_row):
-                        """Forward C tile with input row vector."""
-                        y = self.tile_c.forward(x_row.unsqueeze(0))  # [1, d_size]
-                        return y.squeeze(0)
+                # --- 4) C에 정수 펄스 n_k만큼 전송 ---
+                # sign rule: transfer_lr>0 이면 D=-a_k (W += +transfer_lr*A@B를 얻기 위함)
+                sign = -1.0 if (self.transfer_lr > 0) else 1.0
 
-                    for k in range(self.rank):
-                        a_k = A_cols[:, k]
-                        b_k = B_rows[k, :]
+                # unit pulse의 lr = g 로 통일
+                self.tile_c.set_learning_rate(g)
 
-                        # 전송 전 응답
-                        y0 = _forward_c(b_k)
-
-                        # 서명 규칙: PWU는 W += -lr * D @ X^T
-                        D_k = -a_k if self.transfer_lr > 0 else a_k
-                        X_k = b_k
-
-                        # 파일럿 전송 1회
-                        self.tile_c.set_learning_rate(lr_pilot)
-                        if hasattr(self.tile_c, '_orig_update'):
-                            self.tile_c._orig_update(X_k.unsqueeze(0), D_k.unsqueeze(0))
-                        else:
-                            self.tile_c.update(X_k.unsqueeze(0), D_k.unsqueeze(0))
-
-                        # 전송 후 변화량 계측
-                        y1 = _forward_c(b_k)
-                        dy = y1 - y0
-                        num_acc += (dy * a_k).sum().item()
-
-                    # γ 계산 (측정된 변화 / 예상 변화)
-                    gamma = num_acc / (lr_pilot * Z_norm2)
-                    # 방어적 클램핑 (극단값/계측 오차 대비)
-                    gamma = float(torch.clamp(
-                        torch.tensor(gamma, device=self.device), 0.05, 20.0
-                    ).item())
-
-                # 3) 본 전송: 남은 lr를 M_rest로 나누어 micro-transfer 수행
-                lr_remain = lr_abs * gamma - (lr_pilot if self.transfer_gamma_mode == "pilot" else 0.0)
-                lr_remain = max(0.0, lr_remain)
-                M_rest = max(1, M_total - 1) if self.transfer_gamma_mode == "pilot" else M_total
-                lr_step = lr_remain / M_rest if M_rest > 0 else 0.0
-
-                # 학습률 세팅
-                self.tile_c.set_learning_rate(lr_step if lr_step > 0 else 1e-12)
+                nonzero = int((n != 0).sum().item())
+                max_rep = int(n.abs().max().item()) if nonzero > 0 else 0
 
                 for k in range(self.rank):
-                    a_k = A_cols[:, k]
-                    b_k = B_rows[k, :]
-                    D_k = -a_k if self.transfer_lr > 0 else a_k
-                    X_k = b_k
+                    reps = int(n[k].item())
+                    if reps == 0:
+                        continue
 
-                    # M_rest 회 micro-transfer
-                    for _ in range(M_rest):
+                    a_k = (sign * A_cols[:, k]).unsqueeze(0)  # [1, d]
+                    b_k = B_rows[k, :].unsqueeze(0)          # [1, x]
+
+                    # 양수/음수 reps 모두 지원: reps<0이면 부호를 D로 흡수
+                    if reps < 0:
+                        a_k = -a_k
+                        reps = -reps
+
+                    # 핵심만: reps 번 unit 업데이트 (추후 burst-cap/macro-call 최적화 가능)
+                    for _ in range(reps):
                         if hasattr(self.tile_c, '_orig_update'):
-                            self.tile_c._orig_update(X_k.unsqueeze(0), D_k.unsqueeze(0))
+                            self.tile_c._orig_update(b_k, a_k)
                         else:
-                            self.tile_c.update(X_k.unsqueeze(0), D_k.unsqueeze(0))
+                            self.tile_c.update(b_k, a_k)
 
-                # 디버그 로깅 (처음 몇 번만)
+                # 디버그 (초기 몇 회만)
                 if self.num_transfers < 3:
-                    print(f"[LRTT onehot] gamma={gamma:.3f} lr_pilot={lr_pilot:.3e} "
-                          f"lr_remain={lr_remain:.3e} Znorm2={Z_norm2:.3e}")
+                    res_max = float(self.sd_acc.abs().max().item())
+                    print(f"[ΣΔ transfer] g={g:.3e}, nonzero_ranks={nonzero}, max_reps={max_rep}, "
+                          f"residual_max<=g/2? {res_max <= 0.5*g + 1e-12} (res_max={res_max:.3e})")
 
             finally:
-                # 5) 복구 + 후처리
+                # 복구
                 self.tile_c.set_learning_rate(old_lr_c)
                 self.tile_a.rpu_config.forward.out_noise = old_out_a
                 self.tile_b.rpu_config.forward.out_noise = old_out_b_f
@@ -641,6 +626,7 @@ class LRTTController:
                 if hasattr(self.tile_c.rpu_config.forward, "out_noise"):
                     self.tile_c.rpu_config.forward.out_noise = old_out_c
 
+        # 계수/카운터 및 reinit는 기존과 동일
         self.num_transfers += 1
         self.transfer_counter = 0
         self.reinit()
@@ -810,3 +796,5 @@ class LRTTController:
         self._d_pad = None
         # Clear transfer vectors (one-hot reading)
         self._transfer_vec_a = None
+        # Clear ΣΔ state for reallocation on new device
+        self.sd_acc = None
