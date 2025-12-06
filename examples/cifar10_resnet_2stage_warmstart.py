@@ -36,7 +36,7 @@ from aihwkit.simulator.configs import MappingParameter, IOParameters
 from aihwkit.simulator.parameters import BoundManagementType, NoiseManagementType, WeightNoiseType, UpdateParameters
 from aihwkit.simulator.configs import FloatingPointRPUConfig
 from aihwkit.simulator.presets.devices import IdealizedPresetDevice
-from aihwkit.simulator.configs.devices import FloatingPointDevice
+from aihwkit.simulator.configs.devices import FloatingPointDevice, LinearStepDevice
 
 # Logging
 import wandb
@@ -55,12 +55,12 @@ RESULTS = os.path.join(os.getcwd(), "results", "RESNET_2STAGE_WARMSTART")
 os.makedirs(RESULTS, exist_ok=True)
 
 # Training - Stage 1 (FullAnalog)
-N_EPOCHS_STAGE1 = 1  # FullAnalog warm-start epochs
+N_EPOCHS_STAGE1 = 30  # FullAnalog warm-start epochs
 LEARNING_RATE_STAGE1 = 0.1
 WARMUP_RATIO_STAGE1 = 0.04
 
 # Training - Stage 2 (LRTT)
-N_EPOCHS_STAGE2 = 299  # LRTT fine-tuning epochs
+N_EPOCHS_STAGE2 = 270  # LRTT fine-tuning epochs
 LEARNING_RATE_STAGE2 = 0.1  # Lower LR for fine-tuning (BN/conv1/fc already converged)
 WARMUP_RATIO_STAGE2 = 0.0  # No warmup for stage 2
 
@@ -79,6 +79,20 @@ LRTT_RANK_FC = 32
 TRANSFER_EVERY = 100
 LORA_ALPHA = 2.0
 TRANSFER_LR = LORA_ALPHA
+
+# Transfer robustness settings (from lrtt_controller.py)
+TRANSFER_MICRO_STEPS = 4        # M: micro-transfer 반복 횟수 (>=2 권장)
+TRANSFER_CENTERING = False      # 행/열 평균 제거 (기본 off)
+TRANSFER_NORMALIZE = False      # 랭크별 ℓ2 정규화 (기본 off)
+TRANSFER_GAMMA_MODE = "pilot"   # {"pilot", "off"} - 파일럿 캘리브레이션 모드
+TRANSFER_PILOT_FRAC = 1.0/16.0  # 파일럿 전송 lr 비율
+
+# Multi-read settings for one-hot transfer
+NUM_READS = 1                   # Number of reads per rank (1 = original behavior)
+MULTI_READ_MODE = "average"     # "average" or "per_read"
+
+# A/B tile device type
+USE_6T1C_AB = True              # Use 6T1C for A/B tiles (if False, use IdealizedPresetDevice)
 
 
 # ==============================================================================
@@ -144,6 +158,20 @@ class PythonLRTTDeviceFullAnalog(PythonLRTTDevice):
 
 def create_fullanalog_config(rank=1):
     """Create FullAnalog LRTT configuration (C-only training)."""
+
+    # C tile configuration (A/B not used in fullanalog mode)
+    c_device = IdealizedPresetDevice(
+        dw_min=0.0002,       # Optimized for accurate transfer (default: 0.0002)
+        dw_min_dtod=0.3,    # Device-to-device variation (default: 0.3)
+        dw_min_std=0.3,     # Cycle-to-cycle variation (default: 0.3)
+        up_down=0.0,        # Up/down asymmetry (default: 0.0)
+        up_down_dtod=0.0,   # Asymmetry variation (default: 0.0)
+        w_max=1.0,          # Max weight bound (default: 1.0)
+        w_min=-1.0,         # Min weight bound (default: -1.0)
+        w_max_dtod=0.3,     # Max bound variation (default: 0.3)
+        w_min_dtod=0.3,     # Min bound variation (default: 0.3)
+    )
+
     device_config = PythonLRTTDeviceFullAnalog(
         rank=rank,  # Minimal rank (not used in forward)
         transfer_every=10000000000,  # Very large to avoid transfers
@@ -151,15 +179,15 @@ def create_fullanalog_config(rank=1):
         forward_inject=False,  # Use only C matrix in forward pass
         correct_gradient_magnitudes=False,
         unit_cell_devices=[
-            IdealizedPresetDevice(),
-            IdealizedPresetDevice(),
-            IdealizedPresetDevice()
+            IdealizedPresetDevice(),  # A tile (not used)
+            IdealizedPresetDevice(),  # B tile (not used)
+            c_device                  # C tile (main weight matrix)
         ]
     )
 
     # Add mapping configuration (same as rlrtt_scratch)
     mapping = MappingParameter(
-        weight_scaling_omega=0.0,  #0.6
+        weight_scaling_omega=0.6,  #0.6
         learn_out_scaling=False,
         weight_scaling_lr_compensation=False,
         digital_bias=True,
@@ -171,24 +199,24 @@ def create_fullanalog_config(rank=1):
 
     # Add forward/backward IO configuration (same as rlrtt_scratch)
     forward_io = IOParameters(
-        inp_res=0.0,   #0.007937
+        inp_res=0.007937,   #0.007937
         inp_bound=1.0,
         inp_noise=0.0,
         inp_sto_round=False,
-        out_res=0.00,   #0.001961
+        out_res=0.001961,   #0.001961
         out_bound=12.0,
-        out_noise=0.0,     #0.06
+        out_noise=0.06,     #0.06
         w_noise=0.0,
         w_noise_type=WeightNoiseType.NONE,
         bound_management=BoundManagementType.ITERATIVE,
         noise_management=NoiseManagementType.ABS_MAX,
-        is_perfect=True,   #False
+        is_perfect=False,   #False
         max_bm_factor=1000,
     )
 
     # Update parameters - disable BL management for debugging
     update_params = UpdateParameters(
-        desired_bl=127,
+        desired_bl=31,
         update_bl_management=True,
         update_management=True,
     )
@@ -200,27 +228,100 @@ def create_fullanalog_config(rank=1):
 # LRTT configuration for Stage 2
 # ==============================================================================
 
+def create_6t1c_device(dt_batch_sec=1.0, include_retention=True):
+    """Create 6T1C device for A/B tiles.
+
+    6T1C Device Characteristics:
+        - ~1000 conductance states per direction
+        - Capacitor-based weight storage with exponential decay
+        - Time constant τ ≈ 775 min (12.9 hours)
+
+    Args:
+        dt_batch_sec: Assumed time per mini-batch in seconds (for retention calculation)
+        include_retention: Whether to include retention effects
+    """
+    import math
+
+    # Calculate lifetime from physical τ for 6T1C
+    TAU_SEC = 46505.0  # Physical time constant: 775.1 min = 46505 sec
+    if include_retention and dt_batch_sec > 0:
+        delta = 1 - math.exp(-dt_batch_sec / TAU_SEC)
+        lifetime = 1.0 / delta
+    else:
+        lifetime = 0.0  # No retention
+
+    return LinearStepDevice(
+        # Core update parameters (fitted from 6T1C data)
+        dw_min=0.001981,
+        up_down=0.0,
+        w_max=1.0,
+        w_min=-1.0,
+        gamma_up=-0.1678,
+        gamma_down=0.1410,
+        mult_noise=True,
+
+        # Device-to-device variation
+        dw_min_dtod=0.1,
+        up_down_dtod=0.01,
+        w_max_dtod=0.05,
+        w_min_dtod=0.05,
+        gamma_up_dtod=0.05,
+        gamma_down_dtod=0.05,
+
+        # Cycle-to-cycle variation
+        dw_min_std=0.3,
+        write_noise_std=0.0182,
+
+        # LinearStepDevice specific
+        mean_bound_reference=True,
+
+        # Retention (capacitor leakage)
+        lifetime=lifetime,
+        lifetime_dtod=0.1 if include_retention else 0.0,
+        reset=0.0,  # Decay toward 0V
+        reset_dtod=0.0,
+    )
+
+
 def create_lrtt_config(rank, is_conv=True):
     """Create LRTT configuration for Stage 2."""
+
+    # Select devices for A/B tiles
+    if USE_6T1C_AB:
+        ab_device = create_6t1c_device()
+    else:
+        ab_device = IdealizedPresetDevice()
+
+    # C tile uses IdealizedPresetDevice with optimized dw_min for accurate transfer
+    c_device = IdealizedPresetDevice(
+        dw_min=0.001,       # Optimized for accurate transfer (default: 0.0002)
+        dw_min_dtod=0.3,    # Device-to-device variation (default: 0.3)
+        dw_min_std=0.3,     # Cycle-to-cycle variation (default: 0.3)
+        up_down=0.0,        # Up/down asymmetry (default: 0.0)
+        up_down_dtod=0.0,   # Asymmetry variation (default: 0.0)
+        w_max=1.0,          # Max weight bound (default: 1.0)
+        w_min=-1.0,         # Min weight bound (default: -1.0)
+        w_max_dtod=0.3,     # Max bound variation (default: 0.3)
+        w_min_dtod=0.3,     # Min bound variation (default: 0.3)
+    )
+
     device_config = PythonLRTTDevice(
         rank=rank,
         transfer_every=TRANSFER_EVERY,
         lora_alpha=LORA_ALPHA,
         transfer_lr=TRANSFER_LR,
         forward_inject=False,  # Use C matrix only in forward (A⊗B accumulated via transfers)
-        correct_gradient_magnitudes=False,
+        correct_gradient_magnitudes=True,
         reinit_gain=0.1,
         reinit_mode="standard",  # A=0, B=Kaiming
-        unit_cell_devices=[
-            IdealizedPresetDevice(),
-            IdealizedPresetDevice(),
-            IdealizedPresetDevice()
-        ]
+        num_reads=NUM_READS,
+        multi_read_mode=MULTI_READ_MODE,
+        unit_cell_devices=[ab_device, ab_device, c_device]
     )
 
     # Add mapping configuration (same as rlrtt_scratch)
     mapping = MappingParameter(
-        weight_scaling_omega=0.0,    #0.6
+        weight_scaling_omega=0.6,    #0.6
         learn_out_scaling=False,
         weight_scaling_lr_compensation=False,
         digital_bias=True,
@@ -232,13 +333,13 @@ def create_lrtt_config(rank, is_conv=True):
 
     # Add forward/backward IO configuration (same as rlrtt_scratch)
     forward_io = IOParameters(
-        inp_res=0.00, #0.07937
+        inp_res=0.007937, #0.007937
         inp_bound=1.0,
         inp_noise=0.0,
         inp_sto_round=False,
-        out_res=0.00,  #0.001961
+        out_res=0.001961,  #0.001961
         out_bound=12.0,
-        out_noise=0.0,  #0.06
+        out_noise=0.06,  #0.06
         w_noise=0.0,
         w_noise_type=WeightNoiseType.NONE,
         bound_management=BoundManagementType.ITERATIVE,
@@ -249,7 +350,7 @@ def create_lrtt_config(rank, is_conv=True):
 
     # Update parameters - disable BL management for debugging
     update_params = UpdateParameters(
-        desired_bl=127,
+        desired_bl=31,
         update_bl_management=True,
         update_management=True,
     )
@@ -378,6 +479,25 @@ def build_fullanalog_model():
     return model
 
 
+def configure_lrtt_controllers(model):
+    """Configure LRTT controller transfer robustness settings.
+
+    Sets transfer_micro_steps, transfer_centering, transfer_normalize,
+    transfer_gamma_mode, and transfer_pilot_frac on all LRTT controllers.
+    """
+    configured = 0
+    for name, module in model.named_modules():
+        if hasattr(module, 'analog_module') and hasattr(module.analog_module, 'controller'):
+            ctrl = module.analog_module.controller
+            ctrl.transfer_micro_steps = TRANSFER_MICRO_STEPS
+            ctrl.transfer_centering = TRANSFER_CENTERING
+            ctrl.transfer_normalize = TRANSFER_NORMALIZE
+            ctrl.transfer_gamma_mode = TRANSFER_GAMMA_MODE
+            ctrl.transfer_pilot_frac = TRANSFER_PILOT_FRAC
+            configured += 1
+    return configured
+
+
 def build_lrtt_model():
     """Build LRTT model for Stage 2 (without weight loading)."""
     lrtt_config_conv = create_lrtt_config(LRTT_RANK_CONV, is_conv=True)
@@ -388,6 +508,9 @@ def build_lrtt_model():
     if USE_CUDA:
         model = model.to(DEVICE)
 
+    # Configure LRTT controller transfer robustness settings
+    num_configured = configure_lrtt_controllers(model)
+
     print("\n" + "="*70)
     print("Stage 2: LRTT Model")
     print("="*70)
@@ -396,9 +519,15 @@ def build_lrtt_model():
     print("  - fc: Digital (FloatingPoint)")
     print(f"  - Transfer every: {TRANSFER_EVERY} steps")
     print(f"  - LoRA alpha: {LORA_ALPHA}")
+    print(f"  - Transfer robustness:")
+    print(f"      micro_steps={TRANSFER_MICRO_STEPS}, centering={TRANSFER_CENTERING}")
+    print(f"      normalize={TRANSFER_NORMALIZE}, gamma_mode='{TRANSFER_GAMMA_MODE}'")
+    print(f"      pilot_frac={TRANSFER_PILOT_FRAC:.4f}")
+    print(f"  - Multi-read: num_reads={NUM_READS}, mode='{MULTI_READ_MODE}'")
     print(f"  - Total epochs: {N_EPOCHS_STAGE2}")
     print(f"  - Learning rate: {LEARNING_RATE_STAGE2} (COSINE decay)")
     print(f"  - Warmup ratio: {WARMUP_RATIO_STAGE2}")
+    print(f"  - Configured {num_configured} LRTT controllers")
     print("="*70 + "\n")
 
     return model
@@ -628,6 +757,15 @@ def train_2stage():
             "lrtt_rank": LRTT_RANK_CONV,
             "lora_alpha": LORA_ALPHA,
             "transfer_every": TRANSFER_EVERY,
+            # Transfer robustness settings
+            "transfer_micro_steps": TRANSFER_MICRO_STEPS,
+            "transfer_centering": TRANSFER_CENTERING,
+            "transfer_normalize": TRANSFER_NORMALIZE,
+            "transfer_gamma_mode": TRANSFER_GAMMA_MODE,
+            "transfer_pilot_frac": TRANSFER_PILOT_FRAC,
+            # Multi-read settings
+            "num_reads": NUM_READS,
+            "multi_read_mode": MULTI_READ_MODE,
         }
     )
 
@@ -830,6 +968,9 @@ def main():
     print(f"LRTT Rank: {LRTT_RANK_CONV}")
     print(f"LoRA Alpha: {LORA_ALPHA}")
     print(f"Transfer Every: {TRANSFER_EVERY} steps")
+    print(f"Transfer Robustness: micro_steps={TRANSFER_MICRO_STEPS}, "
+          f"gamma_mode='{TRANSFER_GAMMA_MODE}', pilot_frac={TRANSFER_PILOT_FRAC:.4f}")
+    print(f"Multi-read: num_reads={NUM_READS}, mode='{MULTI_READ_MODE}'")
     print("="*70 + "\n")
 
     t0 = time()

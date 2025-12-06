@@ -515,7 +515,36 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         self.tile_a.diffuse_weights(alpha)
         self.tile_b.diffuse_weights(alpha)
         self.tile_c.diffuse_weights(alpha)
-        
+
+    def post_update_step(self) -> None:
+        """Operators that need to be called once per mini-batch.
+
+        Called by AnalogSGD after weight updates. Applies decay and diffusion
+        to all three tiles (A, B, C) if enabled by their device configs.
+
+        Note:
+            - C tile (6T1C): Has lifetime parameter for retention decay
+            - A/B tiles: May be ideal devices (no decay) or capacitor-based
+        """
+        # Apply decay to each tile based on its device config
+        # tile_a
+        if hasattr(self.tile_a, 'rpu_config') and self.tile_a.rpu_config.device.requires_decay():
+            self.tile_a.decay_weights()
+        # tile_b
+        if hasattr(self.tile_b, 'rpu_config') and self.tile_b.rpu_config.device.requires_decay():
+            self.tile_b.decay_weights()
+        # tile_c (6T1C - typically has decay)
+        if hasattr(self.tile_c, 'rpu_config') and self.tile_c.rpu_config.device.requires_decay():
+            self.tile_c.decay_weights()
+
+        # Apply diffusion if needed
+        if hasattr(self.tile_a, 'rpu_config') and self.tile_a.rpu_config.device.requires_diffusion():
+            self.tile_a.diffuse_weights()
+        if hasattr(self.tile_b, 'rpu_config') and self.tile_b.rpu_config.device.requires_diffusion():
+            self.tile_b.diffuse_weights()
+        if hasattr(self.tile_c, 'rpu_config') and self.tile_c.rpu_config.device.requires_diffusion():
+            self.tile_c.diffuse_weights()
+
     def clip_weights(self, clip_type: str = "", sigma: float = 0.0) -> None:
         """Apply weight clipping to all tiles.""" 
         self.tile_a.clip_weights(clip_type, sigma)
