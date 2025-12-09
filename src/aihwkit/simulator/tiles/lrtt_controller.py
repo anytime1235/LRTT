@@ -60,6 +60,8 @@ class LRTTController:
         ab_bl_mgmt: Optional[Dict[str, Any]] = None,
         transfer_bl_mgmt: Optional[Dict[str, Any]] = None,
         forward_inject: bool = True,
+        use_onehot: bool = True,
+        use_sigma_delta: bool = True,
         device: Optional[torch.device] = None,  # Explicit device to avoid get_weights()
         dtype: torch.dtype = torch.float32      # Explicit dtype
     ):
@@ -91,6 +93,8 @@ class LRTTController:
             ab_bl_mgmt: BL management for A/B updates {update_bl_management, update_management, desired_BL}
             transfer_bl_mgmt: BL management for transfers
             forward_inject: Enable forward injection optimization
+            use_onehot: Transfer read mode (True=one-hot, False=direct)
+            use_sigma_delta: Transfer write mode when use_onehot=True (True=ΣΔ, False=simple)
             device: Explicit device (if None, safely inferred from tiles using tiny dummy forward)
                    Strongly recommended to pass the tile device explicitly for best performance
             dtype: Explicit dtype for tensors
@@ -125,6 +129,10 @@ class LRTTController:
         self.correct_gradient_magnitudes = correct_gradient_magnitudes
         self.rank_chunk = rank_chunk or rank
         self.forward_inject_enabled = forward_inject
+
+        # Transfer mode settings
+        self.use_onehot = use_onehot
+        self.use_sigma_delta = use_sigma_delta
 
         # BL management settings
         self.ab_bl_mgmt = ab_bl_mgmt or {}
@@ -786,31 +794,36 @@ class LRTTController:
         # 6) Counter
         self.transfer_counter += (x.shape[0] if self.units_in_mbatch else 1)
 
-    def ab_weight_transfer(self, use_onehot: bool = True) -> None:
+    def ab_weight_transfer(self, use_onehot: bool = True, use_sigma_delta: bool = True) -> None:
         """Memory-optimized pulsed A⊗B -> visible transfer, then reinit.
 
         Transfer: C += transfer_lr * (A @ B) via pulsed outer product.
 
         Args:
             use_onehot: If True, use one-hot reading (analog-realistic).
-                       If False, use direct weight access (default).
+                       If False, use direct weight access.
+            use_sigma_delta: If True and use_onehot=True, use ΣΔ modulation.
+                            If False, use simple pulsed update.
+                            Ignored when use_onehot=False.
 
-        Direct mode:
-        1. Get weights to CPU first to avoid GPU memory spike
-        2. For chunks of rank: pack D_chunk = A[:, off:off+cur], X_chunk = B[off:off+cur, :]
-        3. Move only chunks to GPU for update
-        4. Call visible pulsed updater: C.update(X_chunk^T, D_chunk, lr=|transfer_lr|)
-        5. Handle sign rule: negate D when transfer_lr > 0
-        6. Unconditionally call reinit() after transfer
+        Three modes:
+        1. Direct (use_onehot=False):
+           - Read: get_weights() 직접 접근
+           - Write: chunk 단위 pulsed update
 
-        One-hot mode:
-        1. Read A columns using forward pass with one-hot vectors
-        2. Read B rows using backward pass with one-hot vectors
-        3. Accumulate outer products into C
-        4. Unconditionally call reinit() after transfer
+        2. One-hot + ΣΔ (use_onehot=True, use_sigma_delta=True):
+           - Read: one-hot forward/backward
+           - Write: ΣΔ 적분 후 정수 펄스만큼 반복 update
+
+        3. One-hot Simple (use_onehot=True, use_sigma_delta=False):
+           - Read: one-hot forward/backward
+           - Write: rank별 외적을 개별 pulsed update (1회씩)
         """
         if use_onehot:
-            self._ab_weight_transfer_onehot()
+            if use_sigma_delta:
+                self._ab_weight_transfer_onehot()
+            else:
+                self._ab_weight_transfer_onehot_simple()
         else:
             self._ab_weight_transfer_direct()
 
@@ -1104,6 +1117,49 @@ class LRTTController:
                 self.tile_c.set_learning_rate(old_lr_c)
 
         # 계수/카운터 및 reinit는 기존과 동일
+        self.num_transfers += 1
+        self.transfer_counter = 0
+        self.reinit()
+
+    def _ab_weight_transfer_onehot_simple(self) -> None:
+        """One-hot read 후 단순 pulsed update (ΣΔ 없음).
+
+        Direct와 동일한 write 로직이지만, read만 one-hot 방식 사용.
+        - Read: one-hot forward/backward (analog-realistic)
+        - Write: rank별 외적을 개별 pulsed update (ΣΔ 없음)
+
+        수학적으로: C += transfer_lr * Σ_k (a_k ⊗ b_k) = transfer_lr * A @ B
+        """
+        with torch.no_grad():
+            # 1) One-hot으로 A, B 읽기
+            A_cols, B_rows = self._read_ab_onehot_symmetric()
+
+            # (선택) 중심화/정규화
+            A_cols, B_rows = self._center_and_normalize(A_cols, B_rows)
+
+            # 2) LR 설정
+            lr_eff = abs(self.transfer_lr)
+            old_lr = self.tile_c.get_learning_rate()
+            self.tile_c.set_learning_rate(lr_eff)
+
+            # Sign rule: PWU does C += -lr * D @ X^T
+            # We want C += +transfer_lr * a_k @ b_k^T
+            # So when transfer_lr > 0, negate a_k
+            sign = -1.0 if self.transfer_lr > 0 else 1.0
+
+            # 3) rank번 반복하여 각 외적을 개별 update
+            for k in range(self.rank):
+                a_k = (sign * A_cols[:, k]).unsqueeze(0)  # [1, d_size]
+                b_k = B_rows[k, :].unsqueeze(0)           # [1, x_size]
+
+                # Pulsed update: C += lr * a_k^T @ b_k
+                if hasattr(self.tile_c, '_orig_update'):
+                    self.tile_c._orig_update(b_k, a_k)
+                else:
+                    self.tile_c.update(b_k, a_k)
+
+            self.tile_c.set_learning_rate(old_lr)
+
         self.num_transfers += 1
         self.transfer_counter = 0
         self.reinit()

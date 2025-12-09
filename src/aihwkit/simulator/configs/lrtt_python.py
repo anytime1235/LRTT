@@ -50,8 +50,9 @@ class PythonLRTTDevice(_PrintableMixin):
     reinit_gain: float = 0.1
     """Kaiming initialization gain for B matrix after transfer."""
 
-    reinit_mode: str = "standard"
+    reinit_mode: str = "orthogonal"
     """Reinit strategy after transfer:
+    - 'orthogonal': A=0, B=orthogonal matrix via QR (default, best stability)
     - 'standard': A=0, B=Kaiming (original LRTT)
     - 'decay': A*=decay_factor, B*=decay_factor (gradual decay)
     - 'hybrid': A=0, B*=decay_factor (hybrid approach)
@@ -63,18 +64,31 @@ class PythonLRTTDevice(_PrintableMixin):
     # === Advanced Parameters ===
     units_in_mbatch: bool = False
     """If True, transfer_every counts samples; if False, counts steps."""
-    
+
     correct_gradient_magnitudes: bool = False
     """If True, scale learning rate by sqrt(rank) for gradient correction."""
-    
+
     forward_inject: bool = False
     """Enable forward injection optimization: W_eff composition."""
-    
+
     rank_chunk: Optional[int] = None
     """Chunk size for transfer (None = use full rank). For memory management."""
-    
+
     columns_mode: bool = True
     """Transfer mode: True=columns (forward), False=rows (backward)."""
+
+    # === Transfer Mode Parameters ===
+    use_onehot: bool = True
+    """Transfer read mode:
+    - True: Use one-hot forward/backward for analog-realistic reading (default)
+    - False: Use direct weight access via get_weights()
+    """
+
+    use_sigma_delta: bool = True
+    """Transfer write mode (only used when use_onehot=True):
+    - True: Use ΣΔ modulation with integer pulses (default)
+    - False: Use simple pulsed update (rank times, 1 update per rank)
+    """
     
     # === Device Configuration ===
     unit_cell_devices: List[PulsedDevice] = field(default_factory=lambda: [
@@ -186,7 +200,7 @@ class PythonLRTTDevice(_PrintableMixin):
     
     def to_controller_kwargs(self) -> Dict[str, Any]:
         """Convert to LRTTController constructor arguments.
-        
+
         Returns:
             Dictionary of arguments for LRTTController.__init__()
         """
@@ -202,7 +216,9 @@ class PythonLRTTDevice(_PrintableMixin):
             'rank_chunk': self.rank_chunk,
             'ab_bl_mgmt': self.ab_bl_mgmt,
             'transfer_bl_mgmt': self.transfer_bl_mgmt,
-            'forward_inject': self.forward_inject
+            'forward_inject': self.forward_inject,
+            'use_onehot': self.use_onehot,
+            'use_sigma_delta': self.use_sigma_delta,
         }
     
     @classmethod
@@ -370,8 +386,8 @@ class PythonLRTTPreset(_PrintableMixin):
         dt_batch_sec: float = 1.0,
         include_retention: bool = True,
         c_device: Optional[PulsedDevice] = None,
-        reinit_mode: str = "decay",
-        decay_factor: float = 1.0
+        reinit_mode: str = "orthogonal",
+        decay_factor: float = 0.9
     ) -> 'PythonLRTTDevice':
         """LRTT with 6T1C devices for A/B tiles and configurable C tile.
 
@@ -397,10 +413,9 @@ class PythonLRTTPreset(_PrintableMixin):
             include_retention: Whether to include retention effects for 6T1C
             c_device: Device for C tile (visible). If None, uses IdealizedPresetDevice.
                       Can be any PulsedDevice: IdealizedPresetDevice, PCM, RRAM, etc.
-            reinit_mode: Reinit strategy after transfer ('standard', 'decay', 'hybrid').
-                         Default 'decay' for 6T1C to allow natural retention decay.
-            decay_factor: Decay factor for reinit (default 1.0 = no artificial reinit,
-                          only natural 6T1C retention decay affects A/B weights).
+            reinit_mode: Reinit strategy after transfer ('orthogonal', 'standard', 'decay', 'hybrid').
+                         Default 'orthogonal' for best stability via QR decomposition.
+            decay_factor: Decay factor for 'decay'/'hybrid' modes (default 0.9).
 
         Returns:
             PythonLRTTDevice configuration with 6T1C A/B and custom C device

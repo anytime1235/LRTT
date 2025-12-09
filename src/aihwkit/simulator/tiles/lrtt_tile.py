@@ -150,7 +150,9 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             decay_factor=getattr(self.lrtt_config, 'decay_factor', 0.9),
             correct_gradient_magnitudes=self.correct_gradient_magnitudes,
             rank_chunk=self.rank_chunk,
-            forward_inject=getattr(self.lrtt_config, 'forward_inject', True)
+            forward_inject=getattr(self.lrtt_config, 'forward_inject', True),
+            use_onehot=getattr(self.lrtt_config, 'use_onehot', True),
+            use_sigma_delta=getattr(self.lrtt_config, 'use_sigma_delta', True),
         )
 
         # Set reconstruction parameters from config (for forward_inject=False mode)
@@ -207,7 +209,10 @@ class LRTTSimulatorTile(SimulatorTile, Module):
                     
                     # Check for transfer
                     if self.controller.should_transfer():
-                        self.controller.ab_weight_transfer(use_onehot=False)  # Direct transfer
+                        self.controller.ab_weight_transfer(
+                            use_onehot=self.controller.use_onehot,
+                            use_sigma_delta=self.controller.use_sigma_delta
+                        )
                     
                 # Don't call original update on any tile - LRTT handles all updates
                 return None
@@ -387,7 +392,10 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         
         # Check for transfer
         if self.controller.should_transfer():
-            self.controller.ab_weight_transfer(use_onehot=False)  # Direct transfer
+            self.controller.ab_weight_transfer(
+                use_onehot=self.controller.use_onehot,
+                use_sigma_delta=self.controller.use_sigma_delta
+            )
 
     def get_weights(self) -> Tuple[Tensor, Optional[Tensor]]:
         """Get visible weights (source of truth), matching CUDA semantics.
@@ -582,7 +590,10 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         
     def manual_transfer(self) -> None:
         """Manually trigger A⊗B -> visible transfer (for testing)."""
-        self.controller.ab_weight_transfer(use_onehot=False)  # Direct transfer
+        self.controller.ab_weight_transfer(
+            use_onehot=self.controller.use_onehot,
+            use_sigma_delta=self.controller.use_sigma_delta
+        )
     
     def _infer_device_from_self(self) -> torch.device:
         """Infer device from submodule parameters/buffers."""
