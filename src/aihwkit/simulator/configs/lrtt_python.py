@@ -36,7 +36,14 @@ class PythonLRTTDevice(_PrintableMixin):
     
     transfer_lr: float = 1.0
     """Transfer learning rate scalar applied during A⊗B -> visible transfer."""
-    
+
+    transfer_lr_scale: str = "sqrt_rank"
+    """Auto-scaling mode for transfer_lr based on rank:
+    - 'none': No scaling, use transfer_lr as-is
+    - 'sqrt_rank': Scale by 1/sqrt(rank), i.e., transfer_lr / sqrt(rank) (default)
+    - 'rank': Scale by 1/rank, i.e., transfer_lr / rank
+    """
+
     lora_alpha: float = 1.0
     """LoRA scaling factor α in W_eff = W_visible + α * A @ B."""
     
@@ -80,9 +87,40 @@ class PythonLRTTDevice(_PrintableMixin):
     # === BL Management (Simplified for Python) ===
     ab_bl_mgmt: Optional[Dict[str, Any]] = None
     """BL management settings for A/B updates (optional)."""
-    
-    transfer_bl_mgmt: Optional[Dict[str, Any]] = None  
+
+    transfer_bl_mgmt: Optional[Dict[str, Any]] = None
     """BL management settings for transfers (optional)."""
+
+    # === Reconstruction Update Parameters (for forward_inject=False) ===
+    # When forward_inject=False, A,B act as "gradient buffers" storing low-rank
+    # approximation of gradient G = D^T @ X. Goal: minimize L_rec = ||AB + G||^2
+    # so that AB ≈ -G, making C += transfer_lr*AB equivalent to SGD descent.
+
+    recon_lambda_a: float = 1e-3
+    """L2 regularization coefficient for A in reconstruction loss."""
+
+    recon_lambda_b: float = 1e-3
+    """L2 regularization coefficient for B in reconstruction loss."""
+
+    recon_use_scalar_stabilizer: bool = False
+    """Use scalar approximation for stabilizer terms (BB^T ≈ sB*I, A^TA ≈ sA*I).
+    Disabled by default as orthogonal reinit + transfer provides natural stability."""
+
+    recon_use_exact_gram: bool = False
+    """Use exact Gram matrix (BB^T, A^TA) for stabilizer terms.
+    Only for debugging - expensive O(rank^2) computation."""
+
+    recon_ema_beta: float = 0.9
+    """EMA decay for tracking sA, sB norms (0.9~0.99 recommended)."""
+
+    recon_lr_scale: float = 1.0
+    """Additional learning rate scale for reconstruction updates (0.1~1.0)."""
+
+    recon_clip_norm: float = 10.0
+    """Max norm for A,B clipping (safety fallback). Only used if recon_use_clip_norm=True."""
+
+    recon_use_clip_norm: bool = False
+    """Enable norm clipping for A,B. Disabled by default as orthogonal reinit provides stability."""
     
     def __post_init__(self):
         """Validate configuration parameters."""
@@ -105,7 +143,7 @@ class PythonLRTTDevice(_PrintableMixin):
             raise ValueError(f"reinit_gain must be non-negative, got {self.reinit_gain}")
 
         # Validate reinit_mode
-        valid_modes = ["standard", "decay", "hybrid"]
+        valid_modes = ["standard", "decay", "hybrid", "orthogonal"]
         if self.reinit_mode not in valid_modes:
             raise ValueError(f"reinit_mode must be one of {valid_modes}, got '{self.reinit_mode}'")
 

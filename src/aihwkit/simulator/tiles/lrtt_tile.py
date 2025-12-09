@@ -141,6 +141,7 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             x_size=x_size,
             rank=self.rank,
             transfer_lr=self.transfer_lr,
+            transfer_lr_scale=getattr(self.lrtt_config, 'transfer_lr_scale', 'sqrt_rank'),
             transfer_every=self.transfer_every,
             units_in_mbatch=self.units_in_mbatch,
             lora_alpha=self.lora_alpha,
@@ -151,7 +152,17 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             rank_chunk=self.rank_chunk,
             forward_inject=getattr(self.lrtt_config, 'forward_inject', True)
         )
-        
+
+        # Set reconstruction parameters from config (for forward_inject=False mode)
+        self.controller.recon_lambda_a = getattr(self.lrtt_config, 'recon_lambda_a', 1e-3)
+        self.controller.recon_lambda_b = getattr(self.lrtt_config, 'recon_lambda_b', 1e-3)
+        self.controller.recon_use_scalar_stabilizer = getattr(self.lrtt_config, 'recon_use_scalar_stabilizer', False)
+        self.controller.recon_use_exact_gram = getattr(self.lrtt_config, 'recon_use_exact_gram', False)
+        self.controller.recon_ema_beta = getattr(self.lrtt_config, 'recon_ema_beta', 0.9)
+        self.controller.recon_lr_scale = getattr(self.lrtt_config, 'recon_lr_scale', 1.0)
+        self.controller.recon_clip_norm = getattr(self.lrtt_config, 'recon_clip_norm', 10.0)
+        self.controller.recon_use_clip_norm = getattr(self.lrtt_config, 'recon_use_clip_norm', False)
+
         # Initialize LRTT weights
         self.controller.reinit()
         
@@ -196,7 +207,7 @@ class LRTTSimulatorTile(SimulatorTile, Module):
                     
                     # Check for transfer
                     if self.controller.should_transfer():
-                        self.controller.ab_weight_transfer()
+                        self.controller.ab_weight_transfer(use_onehot=False)  # Direct transfer
                     
                 # Don't call original update on any tile - LRTT handles all updates
                 return None
@@ -376,8 +387,8 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         
         # Check for transfer
         if self.controller.should_transfer():
-            self.controller.ab_weight_transfer()
-            
+            self.controller.ab_weight_transfer(use_onehot=False)  # Direct transfer
+
     def get_weights(self) -> Tuple[Tensor, Optional[Tensor]]:
         """Get visible weights (source of truth), matching CUDA semantics.
         
@@ -571,7 +582,7 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         
     def manual_transfer(self) -> None:
         """Manually trigger A⊗B -> visible transfer (for testing)."""
-        self.controller.ab_weight_transfer()
+        self.controller.ab_weight_transfer(use_onehot=False)  # Direct transfer
     
     def _infer_device_from_self(self) -> torch.device:
         """Infer device from submodule parameters/buffers."""
@@ -629,5 +640,22 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         # Synchronize controller
         if hasattr(self, 'controller'):
             self.controller.set_device(torch.device('cpu'))
-            
+
         return self
+
+    def _apply(self, fn):
+        """Override _apply to synchronize controller device after parameter moves.
+
+        This is called by Module.cuda(), Module.to(), etc. when moving parameters.
+        We need to update the controller device after all child modules are moved.
+        """
+        # Call parent _apply first to move all parameters/buffers
+        result = super()._apply(fn)
+
+        # After all moves, synchronize controller device with the actual tile device
+        if hasattr(self, 'controller'):
+            # Infer device from the moved parameters
+            device = self._infer_device_from_self()
+            self.controller.set_device(device)
+
+        return result
