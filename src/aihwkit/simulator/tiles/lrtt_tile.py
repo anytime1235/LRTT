@@ -132,7 +132,7 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         )
         self.tile_c = rpu_config_c.tile_class(d_size, x_size, rpu_config_c)
         
-        # Create LRTT controller
+        # Create LRTT controller with all parameters
         self.controller = LRTTController(
             tile_a=self.tile_a,
             tile_b=self.tile_b,
@@ -141,6 +141,7 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             x_size=x_size,
             rank=self.rank,
             transfer_lr=self.transfer_lr,
+            transfer_lr_scale=getattr(self.lrtt_config, 'transfer_lr_scale', 'none'),
             transfer_every=self.transfer_every,
             units_in_mbatch=self.units_in_mbatch,
             lora_alpha=self.lora_alpha,
@@ -149,8 +150,45 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             decay_factor=getattr(self.lrtt_config, 'decay_factor', 0.9),
             correct_gradient_magnitudes=self.correct_gradient_magnitudes,
             rank_chunk=self.rank_chunk,
-            forward_inject=getattr(self.lrtt_config, 'forward_inject', True)
+            forward_inject=getattr(self.lrtt_config, 'forward_inject', True),
+            num_reads=getattr(self.lrtt_config, 'num_reads', 1),
+            multi_read_mode=getattr(self.lrtt_config, 'multi_read_mode', 'average'),
+            update_mode=getattr(self.lrtt_config, 'update_mode', 'lora'),
+            use_onehot_transfer=getattr(self.lrtt_config, 'use_onehot_transfer', True),
         )
+
+        # Apply post-init settings from config._post_init
+        kwargs = self.lrtt_config.to_controller_kwargs()
+        post_init = kwargs.get('_post_init', {})
+
+        # Transfer mode & calibration
+        self.controller.transfer_mode = post_init.get('transfer_mode', 'pilot')
+        self.controller.transfer_micro_steps = post_init.get('transfer_micro_steps', 1)
+        self.controller.transfer_pilot_frac = post_init.get('transfer_pilot_frac', 1.0/16.0)
+        self.controller.sd_quantum = post_init.get('sd_quantum', None)
+
+        # Read noise reduction
+        self.controller.read_n_avg = post_init.get('read_n_avg', 1)
+
+        # AGC settings
+        self.controller.agc_enabled = post_init.get('agc_enabled', False)
+        self.controller.agc_margin = post_init.get('agc_margin', 0.85)
+        self.controller.agc_max_iters = post_init.get('agc_max_iters', 6)
+
+        # Two-amplitude settings
+        self.controller.two_amp_enabled = post_init.get('two_amp_enabled', False)
+        self.controller.two_amp_ratio = post_init.get('two_amp_ratio', 0.5)
+
+        # Reconstruction parameters (for update_mode='reconstruction')
+        self.controller.recon_lambda_a = post_init.get('recon_lambda_a', 1e-3)
+        self.controller.recon_lambda_b = post_init.get('recon_lambda_b', 1e-3)
+        self.controller.recon_use_scalar_stabilizer = post_init.get('recon_use_scalar_stabilizer', False)
+        self.controller.recon_use_exact_gram = post_init.get('recon_use_exact_gram', False)
+        self.controller.recon_exact_gram_every = post_init.get('recon_exact_gram_every', 0)
+        self.controller.recon_ema_beta = post_init.get('recon_ema_beta', 0.9)
+        self.controller.recon_lr_scale = post_init.get('recon_lr_scale', 1.0)
+        self.controller.recon_clip_norm = post_init.get('recon_clip_norm', 10.0)
+        self.controller.recon_use_clip_norm = post_init.get('recon_use_clip_norm', False)
         
         # Initialize LRTT weights
         self.controller.reinit()
@@ -569,9 +607,14 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         """Get LRTT controller state for debugging/monitoring."""
         return self.controller.get_state_dict()
         
-    def manual_transfer(self) -> None:
-        """Manually trigger A⊗B -> visible transfer (for testing)."""
-        self.controller.ab_weight_transfer()
+    def manual_transfer(self, use_onehot: Optional[bool] = None) -> None:
+        """Manually trigger A⊗B -> visible transfer (for testing).
+
+        Args:
+            use_onehot: If True, use one-hot transfer. If False, use direct transfer.
+                       If None, use controller's use_onehot_transfer setting.
+        """
+        self.controller.ab_weight_transfer(use_onehot=use_onehot)
     
     def _infer_device_from_self(self) -> torch.device:
         """Infer device from submodule parameters/buffers."""

@@ -55,14 +55,20 @@ RESULTS = os.path.join(os.getcwd(), "results", "RESNET_2STAGE_WARMSTART")
 os.makedirs(RESULTS, exist_ok=True)
 
 # Training - Stage 1 (FullAnalog)
-N_EPOCHS_STAGE1 = 30  # FullAnalog warm-start epochs
+N_EPOCHS_STAGE1 = 300  # FullAnalog warm-start epochs
 LEARNING_RATE_STAGE1 = 0.1
-WARMUP_RATIO_STAGE1 = 0.04
+WARMUP_RATIO_STAGE1 = 0.0
+LR_SCHEDULE_STAGE1 = "cosine"     # LR schedule: "constant", "cosine", "multistep"
+LR_MILESTONES_STAGE1 = [150, 225]   # multistep용: LR 감소 epoch 리스트
+LR_GAMMA_STAGE1 = 0.1               # multistep용: LR 감소 비율 (lr *= gamma)
 
 # Training - Stage 2 (LRTT)
-N_EPOCHS_STAGE2 = 270  # LRTT fine-tuning epochs
+N_EPOCHS_STAGE2 = 0  # LRTT fine-tuning epochs
 LEARNING_RATE_STAGE2 = 0.1  # Lower LR for fine-tuning (BN/conv1/fc already converged)
 WARMUP_RATIO_STAGE2 = 0.0  # No warmup for stage 2
+LR_SCHEDULE_STAGE2 = "cosine"       # LR schedule: "constant", "cosine", "multistep"
+LR_MILESTONES_STAGE2 = [30, 60]     # multistep용: LR 감소 epoch 리스트
+LR_GAMMA_STAGE2 = 0.1               # multistep용: LR 감소 비율 (lr *= gamma)
 
 # Common
 SEED = 1
@@ -73,26 +79,127 @@ NESTEROV = True
 N_CLASSES = 10
 NUM_WORKERS = 4
 
-# LRTT configuration
-LRTT_RANK_CONV = 32
-LRTT_RANK_FC = 32
-TRANSFER_EVERY = 100
-LORA_ALPHA = 2.0
-TRANSFER_LR = LORA_ALPHA
+# ==============================================================================
+# LRTT Configuration
+# ==============================================================================
 
-# Transfer robustness settings (from lrtt_controller.py)
-TRANSFER_MICRO_STEPS = 4        # M: micro-transfer 반복 횟수 (>=2 권장)
-TRANSFER_CENTERING = False      # 행/열 평균 제거 (기본 off)
-TRANSFER_NORMALIZE = False      # 랭크별 ℓ2 정규화 (기본 off)
-TRANSFER_GAMMA_MODE = "pilot"   # {"pilot", "off"} - 파일럿 캘리브레이션 모드
-TRANSFER_PILOT_FRAC = 1.0/16.0  # 파일럿 전송 lr 비율
+# --- 기본 LRTT 파라미터 ---
+LRTT_RANK_CONV = 32             # Conv 레이어 LoRA rank (낮을수록 파라미터 감소, 높을수록 표현력 증가)
+LRTT_RANK_FC = 32               # FC 레이어 LoRA rank
+TRANSFER_EVERY = 100            # A⊗B → C 전송 주기 (mini-batch 단위)
+LORA_ALPHA = 2.0                # LoRA 스케일 팩터 α (y = Cx + α*A(Bx))
+TRANSFER_LR = LORA_ALPHA        # 전송 learning rate (기본적으로 α와 동일)
 
-# Multi-read settings for one-hot transfer
-NUM_READS = 1                   # Number of reads per rank (1 = original behavior)
-MULTI_READ_MODE = "average"     # "average" or "per_read"
+# --- Transfer LR 스케일링 ---
+TRANSFER_LR_SCALE = "none"      # transfer_lr 자동 스케일링 모드
+                                #   "none": 스케일링 없음, transfer_lr 그대로 사용
+                                #   "sqrt_rank": transfer_lr / sqrt(rank) - rank가 커질수록 줄임
+                                #   "rank": transfer_lr / rank - 더 강한 정규화
+
+# --- Transfer 방식 선택 ---
+USE_ONEHOT_TRANSFER = True      # True: one-hot 전송 (아날로그 현실적)
+                                # False: direct 전송 (get_weights() 직접 접근)
+
+# --- Transfer 캘리브레이션 모드 ---
+TRANSFER_MODE = "off"           # 전송 캘리브레이션 모드
+                                #   "pilot": 파일럿 기반 γ 보정 (실측 후 스케일 조정)
+                                #   "sigma_delta": ΣΔ 양자화 (잔여 누적, 정수 펄스 전송)
+                                #   "off": 캘리브레이션 없음, 직접 전송
+TRANSFER_MICRO_STEPS = 1        # micro-transfer 반복 횟수 (>=2 권장, 분산 감소)
+TRANSFER_PILOT_FRAC = 1.0/16.0  # 파일럿 전송 lr 비율 (transfer_mode='pilot' 시)
+SD_QUANTUM = None               # ΣΔ 단위 양자 g (None이면 |transfer_lr|/micro_steps로 자동 계산)
+
+# --- Transfer 전처리 ---
+TRANSFER_CENTERING = False      # 행/열 평균 제거 (DC offset 보정, 기본 off)
+TRANSFER_NORMALIZE = False      # 랭크별 ℓ2 정규화 (gradient 왜곡 가능성으로 기본 off)
+
+# --- Reinit 모드 ---
+REINIT_MODE = "standard"        # 전송 후 A/B 재초기화 전략
+                                #   "standard": A=0, B=Kaiming (원래 LRTT)
+                                #   "decay": A*=decay_factor, B*=decay_factor (점진적 감쇠)
+                                #   "hybrid": A=0, B*=decay_factor (하이브리드)
+                                #   "orthogonal": A=0, B=직교행렬(고정) - B@B^T=I, 투영 유지
+REINIT_DECAY_FACTOR = 0.9       # decay/hybrid 모드 감쇠 계수 (0 < factor < 1)
+
+# ==============================================================================
+# Read Noise Reduction (읽기 노이즈 감소)
+# ==============================================================================
+
+# --- 오버샘플링 ---
+READ_N_AVG = 1                  # 오버샘플링 횟수 (노이즈 1/√N 감소)
+                                #   1: 기본 단일 읽기
+                                #   4-8: 권장 (노이즈 2~2.8x 감소)
+
+# --- Legacy 멀티-리드 (호환성용) ---
+NUM_READS = 1                   # (구버전 호환) per-rank 읽기 횟수
+MULTI_READ_MODE = "average"     # "average": 평균 후 전송, "per_read": 읽기마다 전송
+
+# ==============================================================================
+# AGC (Automatic Gain Control) - 자동 이득 제어
+# ==============================================================================
+
+AGC_ENABLED = False             # AGC 활성화 (읽기 amplitude 최적화)
+                                # True: Binary search로 ADC 클리핑 없이 SNR 최대화
+AGC_MARGIN = 0.85               # 출력 경계 비율 (0.85 = 85%, 클리핑 방지 마진)
+AGC_MAX_ITERS = 6               # AGC binary search 최대 반복 횟수
+
+# ==============================================================================
+# Two-Amplitude Differential Read (홀수차 왜곡 제거)
+# ==============================================================================
+
+TWO_AMP_ENABLED = False         # Two-amplitude 읽기 활성화
+                                # True: 두 amplitude로 홀수차 왜곡 상쇄
+                                #   d(α1) = α1·w + b_odd
+                                #   d(α2) = α2·w + b_odd
+                                #   → w = (d(α2) - d(α1)) / (α2 - α1)
+TWO_AMP_RATIO = 0.5             # α1/α2 비율 (기본 0.5 = 저amplitude가 고amplitude의 절반)
+
+# ==============================================================================
+# Update Mode (A/B 업데이트 방식)
+# ==============================================================================
+
+UPDATE_MODE = "lora"            # A/B 업데이트 모드
+                                #   "lora": LoRA chain rule (원래 LRTT, forward_inject=True 필요)
+                                #     ΔA = -lr * D^T @ (B@X)
+                                #     ΔB = -lr * (A^T@D)^T @ X
+                                #
+                                #   "reconstruction": TikiTaka 스타일 gradient reconstruction
+                                #     forward_inject=False에서 사용
+                                #     A@B ≈ -G (C의 이상적 gradient) 근사
+                                #     L_rec = 0.5*||AB + G||_F² + (λ_A/2)*||A||_F² + (λ_B/2)*||B||_F²
+
+# ==============================================================================
+# Reconstruction Update Parameters (UPDATE_MODE="reconstruction" 시)
+# ==============================================================================
+
+RECON_LAMBDA_A = 1e-3           # A에 대한 L2 정규화 계수
+RECON_LAMBDA_B = 1e-3           # B에 대한 L2 정규화 계수
+
+RECON_USE_SCALAR_STABILIZER = False  # 스칼라 근사 안정화 사용
+                                     # True: BB^T ≈ sB*I, A^TA ≈ sA*I로 근사
+                                     # 계산 효율적이나 덜 정확
+
+RECON_USE_EXACT_GRAM = False    # 정확한 Gram 행렬 사용 (디버깅용)
+                                # True: BB^T, A^TA 정확히 계산 (O(rank^2) 비용)
+
+RECON_EXACT_GRAM_EVERY = 0      # N 스텝마다 exact Gram 사용 (0 = 비활성)
+                                # 주기적 정확 안정화용
+
+RECON_EMA_BETA = 0.9            # sA, sB norm 추적용 EMA 감쇠 (0.9~0.99 권장)
+
+RECON_LR_SCALE = 1.0            # reconstruction 업데이트 추가 lr 스케일 (0.1~1.0)
+
+RECON_USE_CLIP_NORM = False     # A,B norm 클리핑 활성화 (안전 fallback)
+RECON_CLIP_NORM = 10.0          # 최대 norm (RECON_USE_CLIP_NORM=True 시)
+
+# ==============================================================================
+# Device Configuration
+# ==============================================================================
 
 # A/B tile device type
-USE_6T1C_AB = True              # Use 6T1C for A/B tiles (if False, use IdealizedPresetDevice)
+USE_6T1C_AB = True              # A/B 타일에 6T1C 디바이스 사용
+                                # True: 6T1C (커패시터 기반, retention decay 있음)
+                                # False: IdealizedPresetDevice (이상적, 노이즈만)
 
 
 # ==============================================================================
@@ -284,7 +391,11 @@ def create_6t1c_device(dt_batch_sec=1.0, include_retention=True):
 
 
 def create_lrtt_config(rank, is_conv=True):
-    """Create LRTT configuration for Stage 2."""
+    """Create LRTT configuration for Stage 2.
+
+    Uses global configuration variables defined at the top of the file.
+    All LRTT features can be configured via those variables.
+    """
 
     # Select devices for A/B tiles
     if USE_6T1C_AB:
@@ -294,7 +405,7 @@ def create_lrtt_config(rank, is_conv=True):
 
     # C tile uses IdealizedPresetDevice with optimized dw_min for accurate transfer
     c_device = IdealizedPresetDevice(
-        dw_min=0.001,       # Optimized for accurate transfer (default: 0.0002)
+        dw_min=0.0002,       # Optimized for accurate transfer (default: 0.0002)
         dw_min_dtod=0.3,    # Device-to-device variation (default: 0.3)
         dw_min_std=0.3,     # Cycle-to-cycle variation (default: 0.3)
         up_down=0.0,        # Up/down asymmetry (default: 0.0)
@@ -307,15 +418,57 @@ def create_lrtt_config(rank, is_conv=True):
 
     device_config = PythonLRTTDevice(
         rank=rank,
+        # --- 기본 LRTT 파라미터 ---
         transfer_every=TRANSFER_EVERY,
         lora_alpha=LORA_ALPHA,
         transfer_lr=TRANSFER_LR,
+        transfer_lr_scale=TRANSFER_LR_SCALE,
+
+        # --- Forward/Update 모드 ---
         forward_inject=False,  # Use C matrix only in forward (A⊗B accumulated via transfers)
+        update_mode=UPDATE_MODE,
         correct_gradient_magnitudes=True,
+
+        # --- Transfer 방식 ---
+        use_onehot_transfer=USE_ONEHOT_TRANSFER,
+
+        # --- Reinit 모드 ---
         reinit_gain=0.1,
-        reinit_mode="standard",  # A=0, B=Kaiming
-        num_reads=NUM_READS,
+        reinit_mode=REINIT_MODE,
+        decay_factor=REINIT_DECAY_FACTOR,
+
+        # --- Transfer 캘리브레이션 ---
+        transfer_mode=TRANSFER_MODE,
+        transfer_micro_steps=TRANSFER_MICRO_STEPS,
+        transfer_pilot_frac=TRANSFER_PILOT_FRAC,
+        sd_quantum=SD_QUANTUM,
+
+        # --- Read noise reduction ---
+        read_n_avg=READ_N_AVG,
+        num_reads=NUM_READS,  # Legacy compatibility
         multi_read_mode=MULTI_READ_MODE,
+
+        # --- AGC ---
+        agc_enabled=AGC_ENABLED,
+        agc_margin=AGC_MARGIN,
+        agc_max_iters=AGC_MAX_ITERS,
+
+        # --- Two-Amplitude ---
+        two_amp_enabled=TWO_AMP_ENABLED,
+        two_amp_ratio=TWO_AMP_RATIO,
+
+        # --- Reconstruction parameters ---
+        recon_lambda_a=RECON_LAMBDA_A,
+        recon_lambda_b=RECON_LAMBDA_B,
+        recon_use_scalar_stabilizer=RECON_USE_SCALAR_STABILIZER,
+        recon_use_exact_gram=RECON_USE_EXACT_GRAM,
+        recon_exact_gram_every=RECON_EXACT_GRAM_EVERY,
+        recon_ema_beta=RECON_EMA_BETA,
+        recon_lr_scale=RECON_LR_SCALE,
+        recon_use_clip_norm=RECON_USE_CLIP_NORM,
+        recon_clip_norm=RECON_CLIP_NORM,
+
+        # --- Device configuration ---
         unit_cell_devices=[ab_device, ab_device, c_device]
     )
 
@@ -473,27 +626,64 @@ def build_fullanalog_model():
     print("  - conv1: Digital (FloatingPoint)")
     print("  - fc: Digital (FloatingPoint)")
     print(f"  - Total epochs: {N_EPOCHS_STAGE1}")
-    print(f"  - Learning rate: {LEARNING_RATE_STAGE1} (CONSTANT - no decay)")
+    print(f"  - Learning rate: {LEARNING_RATE_STAGE1} ({LR_SCHEDULE_STAGE1})")
+    if LR_SCHEDULE_STAGE1 == "cosine":
+        print(f"  - Warmup ratio: {WARMUP_RATIO_STAGE1}")
+    elif LR_SCHEDULE_STAGE1 == "multistep":
+        print(f"  - Milestones: {LR_MILESTONES_STAGE1}, gamma: {LR_GAMMA_STAGE1}")
     print("="*70 + "\n")
 
     return model
 
 
 def configure_lrtt_controllers(model):
-    """Configure LRTT controller transfer robustness settings.
+    """Configure LRTT controller settings from global variables.
 
-    Sets transfer_micro_steps, transfer_centering, transfer_normalize,
-    transfer_gamma_mode, and transfer_pilot_frac on all LRTT controllers.
+    Sets all LRTT controller attributes including:
+    - Transfer settings: micro_steps, centering, normalize, mode, pilot_frac, sd_quantum
+    - Read noise reduction: read_n_avg
+    - AGC: agc_enabled, agc_margin, agc_max_iters
+    - Two-amplitude: two_amp_enabled, two_amp_ratio
+    - Reconstruction: all recon_* parameters
     """
     configured = 0
     for name, module in model.named_modules():
         if hasattr(module, 'analog_module') and hasattr(module.analog_module, 'controller'):
             ctrl = module.analog_module.controller
+
+            # --- Transfer 캘리브레이션 ---
             ctrl.transfer_micro_steps = TRANSFER_MICRO_STEPS
+            ctrl.transfer_mode = TRANSFER_MODE
+            ctrl.transfer_pilot_frac = TRANSFER_PILOT_FRAC
+            ctrl.sd_quantum = SD_QUANTUM
+
+            # --- Transfer 전처리 ---
             ctrl.transfer_centering = TRANSFER_CENTERING
             ctrl.transfer_normalize = TRANSFER_NORMALIZE
-            ctrl.transfer_gamma_mode = TRANSFER_GAMMA_MODE
-            ctrl.transfer_pilot_frac = TRANSFER_PILOT_FRAC
+
+            # --- Read noise reduction ---
+            ctrl.read_n_avg = READ_N_AVG
+
+            # --- AGC ---
+            ctrl.agc_enabled = AGC_ENABLED
+            ctrl.agc_margin = AGC_MARGIN
+            ctrl.agc_max_iters = AGC_MAX_ITERS
+
+            # --- Two-Amplitude ---
+            ctrl.two_amp_enabled = TWO_AMP_ENABLED
+            ctrl.two_amp_ratio = TWO_AMP_RATIO
+
+            # --- Reconstruction parameters ---
+            ctrl.recon_lambda_a = RECON_LAMBDA_A
+            ctrl.recon_lambda_b = RECON_LAMBDA_B
+            ctrl.recon_use_scalar_stabilizer = RECON_USE_SCALAR_STABILIZER
+            ctrl.recon_use_exact_gram = RECON_USE_EXACT_GRAM
+            ctrl.recon_exact_gram_every = RECON_EXACT_GRAM_EVERY
+            ctrl.recon_ema_beta = RECON_EMA_BETA
+            ctrl.recon_lr_scale = RECON_LR_SCALE
+            ctrl.recon_use_clip_norm = RECON_USE_CLIP_NORM
+            ctrl.recon_clip_norm = RECON_CLIP_NORM
+
             configured += 1
     return configured
 
@@ -520,13 +710,21 @@ def build_lrtt_model():
     print(f"  - Transfer every: {TRANSFER_EVERY} steps")
     print(f"  - LoRA alpha: {LORA_ALPHA}")
     print(f"  - Transfer robustness:")
-    print(f"      micro_steps={TRANSFER_MICRO_STEPS}, centering={TRANSFER_CENTERING}")
-    print(f"      normalize={TRANSFER_NORMALIZE}, gamma_mode='{TRANSFER_GAMMA_MODE}'")
-    print(f"      pilot_frac={TRANSFER_PILOT_FRAC:.4f}")
-    print(f"  - Multi-read: num_reads={NUM_READS}, mode='{MULTI_READ_MODE}'")
+    print(f"      micro_steps={TRANSFER_MICRO_STEPS}, mode='{TRANSFER_MODE}'")
+    print(f"      pilot_frac={TRANSFER_PILOT_FRAC:.4f}, sd_quantum={SD_QUANTUM}")
+    print(f"      centering={TRANSFER_CENTERING}, normalize={TRANSFER_NORMALIZE}")
+    print(f"  - Read noise reduction:")
+    print(f"      num_reads={NUM_READS}, mode='{MULTI_READ_MODE}', read_n_avg={READ_N_AVG}")
+    print(f"  - AGC: enabled={AGC_ENABLED}, margin={AGC_MARGIN}")
+    print(f"  - Two-Amp: enabled={TWO_AMP_ENABLED}, ratio={TWO_AMP_RATIO}")
+    print(f"  - Update/Reinit: mode={UPDATE_MODE}, reinit={REINIT_MODE}")
+    print(f"  - Device: 6T1C_AB={USE_6T1C_AB}, onehot={USE_ONEHOT_TRANSFER}")
     print(f"  - Total epochs: {N_EPOCHS_STAGE2}")
-    print(f"  - Learning rate: {LEARNING_RATE_STAGE2} (COSINE decay)")
-    print(f"  - Warmup ratio: {WARMUP_RATIO_STAGE2}")
+    print(f"  - Learning rate: {LEARNING_RATE_STAGE2} ({LR_SCHEDULE_STAGE2})")
+    if LR_SCHEDULE_STAGE2 == "cosine":
+        print(f"  - Warmup ratio: {WARMUP_RATIO_STAGE2}")
+    elif LR_SCHEDULE_STAGE2 == "multistep":
+        print(f"  - Milestones: {LR_MILESTONES_STAGE2}, gamma: {LR_GAMMA_STAGE2}")
     print(f"  - Configured {num_configured} LRTT controllers")
     print("="*70 + "\n")
 
@@ -734,6 +932,58 @@ def apply_warmup_cosine_lr(optimizer, epoch, total_epochs, base_lr, warmup_ratio
     return lr
 
 
+def apply_multistep_lr(optimizer, epoch, base_lr, milestones, gamma=0.1):
+    """Apply multi-step learning rate decay.
+
+    Args:
+        optimizer: Optimizer to update
+        epoch: Current epoch (1-indexed)
+        base_lr: Initial learning rate
+        milestones: List of epoch indices where LR is decayed
+        gamma: Multiplicative factor for LR decay
+
+    Returns:
+        Current learning rate
+    """
+    lr = base_lr
+    for milestone in milestones:
+        if epoch > milestone:
+            lr *= gamma
+
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr
+
+    return lr
+
+
+def apply_lr_schedule(optimizer, epoch, total_epochs, base_lr, schedule="cosine",
+                      warmup_ratio=0.0, milestones=None, gamma=0.1, min_lr=1e-5):
+    """Apply learning rate schedule based on schedule type.
+
+    Args:
+        optimizer: Optimizer to update
+        epoch: Current epoch (1-indexed)
+        total_epochs: Total number of epochs
+        base_lr: Initial learning rate
+        schedule: Schedule type - "constant", "cosine", or "multistep"
+        warmup_ratio: Warmup ratio for cosine schedule
+        milestones: Milestone epochs for multistep schedule
+        gamma: Decay factor for multistep schedule
+        min_lr: Minimum LR for cosine schedule
+
+    Returns:
+        Current learning rate
+    """
+    if schedule == "constant":
+        return apply_constant_lr(optimizer, base_lr)
+    elif schedule == "cosine":
+        return apply_warmup_cosine_lr(optimizer, epoch, total_epochs, base_lr, warmup_ratio, min_lr)
+    elif schedule == "multistep":
+        return apply_multistep_lr(optimizer, epoch, base_lr, milestones or [], gamma)
+    else:
+        raise ValueError(f"Unknown LR schedule: {schedule}. Must be 'constant', 'cosine', or 'multistep'")
+
+
 # ==============================================================================
 # Main training loop
 # ==============================================================================
@@ -750,22 +1000,58 @@ def train_2stage():
             "stage1_epochs": N_EPOCHS_STAGE1,
             "stage1_lr": LEARNING_RATE_STAGE1,
             "stage1_warmup": WARMUP_RATIO_STAGE1,
+            "stage1_lr_schedule": LR_SCHEDULE_STAGE1,
+            "stage1_lr_milestones": LR_MILESTONES_STAGE1,
+            "stage1_lr_gamma": LR_GAMMA_STAGE1,
             "stage2_epochs": N_EPOCHS_STAGE2,
             "stage2_lr": LEARNING_RATE_STAGE2,
             "stage2_warmup": WARMUP_RATIO_STAGE2,
+            "stage2_lr_schedule": LR_SCHEDULE_STAGE2,
+            "stage2_lr_milestones": LR_MILESTONES_STAGE2,
+            "stage2_lr_gamma": LR_GAMMA_STAGE2,
             "batch_size": BATCH_SIZE,
             "lrtt_rank": LRTT_RANK_CONV,
             "lora_alpha": LORA_ALPHA,
             "transfer_every": TRANSFER_EVERY,
             # Transfer robustness settings
             "transfer_micro_steps": TRANSFER_MICRO_STEPS,
+            "transfer_mode": TRANSFER_MODE,
+            "transfer_pilot_frac": TRANSFER_PILOT_FRAC,
+            "sd_quantum": SD_QUANTUM,
+            # Transfer preprocessing
             "transfer_centering": TRANSFER_CENTERING,
             "transfer_normalize": TRANSFER_NORMALIZE,
-            "transfer_gamma_mode": TRANSFER_GAMMA_MODE,
-            "transfer_pilot_frac": TRANSFER_PILOT_FRAC,
-            # Multi-read settings
+            # Multi-read / oversampling settings
             "num_reads": NUM_READS,
             "multi_read_mode": MULTI_READ_MODE,
+            "read_n_avg": READ_N_AVG,
+            # AGC settings
+            "agc_enabled": AGC_ENABLED,
+            "agc_margin": AGC_MARGIN,
+            "agc_max_iters": AGC_MAX_ITERS,
+            # Two-amplitude settings
+            "two_amp_enabled": TWO_AMP_ENABLED,
+            "two_amp_ratio": TWO_AMP_RATIO,
+            # Update mode
+            "update_mode": UPDATE_MODE,
+            # Reinit settings
+            "reinit_mode": REINIT_MODE,
+            "reinit_decay_factor": REINIT_DECAY_FACTOR,
+            # Reconstruction parameters
+            "recon_lambda_a": RECON_LAMBDA_A,
+            "recon_lambda_b": RECON_LAMBDA_B,
+            "recon_use_scalar_stabilizer": RECON_USE_SCALAR_STABILIZER,
+            "recon_use_exact_gram": RECON_USE_EXACT_GRAM,
+            "recon_exact_gram_every": RECON_EXACT_GRAM_EVERY,
+            "recon_ema_beta": RECON_EMA_BETA,
+            "recon_lr_scale": RECON_LR_SCALE,
+            "recon_use_clip_norm": RECON_USE_CLIP_NORM,
+            "recon_clip_norm": RECON_CLIP_NORM,
+            # Device settings
+            "use_6t1c_ab": USE_6T1C_AB,
+            # Transfer method
+            "use_onehot_transfer": USE_ONEHOT_TRANSFER,
+            "transfer_lr_scale": TRANSFER_LR_SCALE,
         }
     )
 
@@ -792,8 +1078,12 @@ def train_2stage():
         print(f"Initial Val Accuracy (random): {val_acc:.2f}%\n")
     else:
         for epoch in range(N_EPOCHS_STAGE1):
-            # Apply constant LR for Stage 1 (no decay - keep weights "fluid")
-            lr = apply_constant_lr(optimizer_stage1, LEARNING_RATE_STAGE1)
+            # Apply LR schedule for Stage 1
+            lr = apply_lr_schedule(
+                optimizer_stage1, epoch + 1, N_EPOCHS_STAGE1, LEARNING_RATE_STAGE1,
+                schedule=LR_SCHEDULE_STAGE1, warmup_ratio=WARMUP_RATIO_STAGE1,
+                milestones=LR_MILESTONES_STAGE1, gamma=LR_GAMMA_STAGE1
+            )
 
             # Train
             train_loss, train_acc = train_one_epoch(model_stage1, train_loader, optimizer_stage1, criterion)
@@ -803,7 +1093,7 @@ def train_2stage():
 
             print(f"[Stage1 {epoch+1:02d}/{N_EPOCHS_STAGE1}] "
                   f"Loss={train_loss:.4f} TrainAcc={train_acc:.2f}% "
-                  f"ValAcc={val_acc:.2f}% LR={lr:.6f} (constant)")
+                  f"ValAcc={val_acc:.2f}% LR={lr:.6f} ({LR_SCHEDULE_STAGE1})")
 
             wandb.log({
                 "stage": 1,
@@ -893,43 +1183,52 @@ def train_2stage():
     print("STAGE 2: LRTT Training")
     print("="*70 + "\n")
 
-    optimizer_stage2 = AnalogSGD(model_stage2.parameters(), lr=LEARNING_RATE_STAGE2,
-                                 momentum=MOMENTUM, weight_decay=WEIGHT_DECAY, nesterov=NESTEROV)
-    optimizer_stage2.regroup_param_groups(model_stage2)
-
-    for epoch in range(N_EPOCHS_STAGE2):
-        # Apply LR schedule
-        lr = apply_warmup_cosine_lr(optimizer_stage2, epoch + 1, N_EPOCHS_STAGE2,
-                                    LEARNING_RATE_STAGE2, WARMUP_RATIO_STAGE2)
-
-        # Train
-        train_loss, train_acc = train_one_epoch(model_stage2, train_loader, optimizer_stage2, criterion)
-
-        # Validate
+    # Handle N_EPOCHS_STAGE2 = 0 case (skip Stage 2, use transferred weights only)
+    if N_EPOCHS_STAGE2 == 0:
+        print("N_EPOCHS_STAGE2 = 0: Skipping Stage 2 training (transfer only)")
         val_loss, val_acc = evaluate(model_stage2, val_loader, criterion)
+        print(f"Final Val Accuracy (transfer only): {val_acc:.2f}%\n")
+    else:
+        optimizer_stage2 = AnalogSGD(model_stage2.parameters(), lr=LEARNING_RATE_STAGE2,
+                                     momentum=MOMENTUM, weight_decay=WEIGHT_DECAY, nesterov=NESTEROV)
+        optimizer_stage2.regroup_param_groups(model_stage2)
 
-        print(f"[Stage2 {epoch+1:02d}/{N_EPOCHS_STAGE2}] "
-              f"Loss={train_loss:.4f} TrainAcc={train_acc:.2f}% "
-              f"ValAcc={val_acc:.2f}% LR={lr:.6f} (cosine)")
+        for epoch in range(N_EPOCHS_STAGE2):
+            # Apply LR schedule for Stage 2
+            lr = apply_lr_schedule(
+                optimizer_stage2, epoch + 1, N_EPOCHS_STAGE2, LEARNING_RATE_STAGE2,
+                schedule=LR_SCHEDULE_STAGE2, warmup_ratio=WARMUP_RATIO_STAGE2,
+                milestones=LR_MILESTONES_STAGE2, gamma=LR_GAMMA_STAGE2
+            )
 
-        # Log LRTT statistics
-        if epoch % 5 == 0 or epoch == N_EPOCHS_STAGE2 - 1:
-            for name, module in model_stage2.named_modules():
-                if hasattr(module, 'analog_module') and hasattr(module.analog_module, 'controller'):
-                    ctrl = module.analog_module.controller
-                    print(f"  {name}: Transfers={ctrl.num_transfers}, "
-                          f"A_updates={ctrl.num_a_updates}, B_updates={ctrl.num_b_updates}")
+            # Train
+            train_loss, train_acc = train_one_epoch(model_stage2, train_loader, optimizer_stage2, criterion)
 
-        wandb.log({
-            "stage": 2,
-            "epoch": N_EPOCHS_STAGE1 + epoch + 1,
-            "train_loss": train_loss,
-            "train_accuracy": train_acc,
-            "val_accuracy": val_acc,
-            "learning_rate": lr,
-        })
+            # Validate
+            val_loss, val_acc = evaluate(model_stage2, val_loader, criterion)
 
-    print(f"\n✓ Stage 2 Complete: Val Accuracy = {val_acc:.2f}%\n")
+            print(f"[Stage2 {epoch+1:02d}/{N_EPOCHS_STAGE2}] "
+                  f"Loss={train_loss:.4f} TrainAcc={train_acc:.2f}% "
+                  f"ValAcc={val_acc:.2f}% LR={lr:.6f} ({LR_SCHEDULE_STAGE2})")
+
+            # Log LRTT statistics
+            if epoch % 5 == 0 or epoch == N_EPOCHS_STAGE2 - 1:
+                for name, module in model_stage2.named_modules():
+                    if hasattr(module, 'analog_module') and hasattr(module.analog_module, 'controller'):
+                        ctrl = module.analog_module.controller
+                        print(f"  {name}: Transfers={ctrl.num_transfers}, "
+                              f"A_updates={ctrl.num_a_updates}, B_updates={ctrl.num_b_updates}")
+
+            wandb.log({
+                "stage": 2,
+                "epoch": N_EPOCHS_STAGE1 + epoch + 1,
+                "train_loss": train_loss,
+                "train_accuracy": train_acc,
+                "val_accuracy": val_acc,
+                "learning_rate": lr,
+            })
+
+        print(f"\n✓ Stage 2 Complete: Val Accuracy = {val_acc:.2f}%\n")
 
     # Final statistics
     print("\n" + "="*70)
@@ -963,14 +1262,19 @@ def main():
     print("CIFAR-10 ResNet18: 2-Stage LRTT Training with Warm-Start")
     print("="*70)
     print(f"Device: {DEVICE}")
-    print(f"Stage 1: {N_EPOCHS_STAGE1} epochs (FullAnalog)")
-    print(f"Stage 2: {N_EPOCHS_STAGE2} epochs (LRTT)")
+    print(f"Stage 1: {N_EPOCHS_STAGE1} epochs (FullAnalog), LR={LEARNING_RATE_STAGE1} ({LR_SCHEDULE_STAGE1})")
+    print(f"Stage 2: {N_EPOCHS_STAGE2} epochs (LRTT), LR={LEARNING_RATE_STAGE2} ({LR_SCHEDULE_STAGE2})")
     print(f"LRTT Rank: {LRTT_RANK_CONV}")
     print(f"LoRA Alpha: {LORA_ALPHA}")
     print(f"Transfer Every: {TRANSFER_EVERY} steps")
     print(f"Transfer Robustness: micro_steps={TRANSFER_MICRO_STEPS}, "
-          f"gamma_mode='{TRANSFER_GAMMA_MODE}', pilot_frac={TRANSFER_PILOT_FRAC:.4f}")
-    print(f"Multi-read: num_reads={NUM_READS}, mode='{MULTI_READ_MODE}'")
+          f"mode='{TRANSFER_MODE}', pilot_frac={TRANSFER_PILOT_FRAC:.4f}")
+    print(f"Transfer Preprocessing: centering={TRANSFER_CENTERING}, normalize={TRANSFER_NORMALIZE}")
+    print(f"Multi-read: num_reads={NUM_READS}, mode='{MULTI_READ_MODE}', read_n_avg={READ_N_AVG}")
+    print(f"AGC: enabled={AGC_ENABLED}, margin={AGC_MARGIN}, max_iters={AGC_MAX_ITERS}")
+    print(f"Two-Amp: enabled={TWO_AMP_ENABLED}, ratio={TWO_AMP_RATIO}")
+    print(f"Update Mode: {UPDATE_MODE}, Reinit Mode: {REINIT_MODE}")
+    print(f"Device: 6T1C A/B={USE_6T1C_AB}, One-hot Transfer={USE_ONEHOT_TRANSFER}")
     print("="*70 + "\n")
 
     t0 = time()
