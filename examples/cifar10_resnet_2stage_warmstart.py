@@ -55,7 +55,7 @@ RESULTS = os.path.join(os.getcwd(), "results", "RESNET_2STAGE_WARMSTART")
 os.makedirs(RESULTS, exist_ok=True)
 
 # Training - Stage 1 (FullAnalog)
-N_EPOCHS_STAGE1 = 300  # FullAnalog warm-start epochs
+N_EPOCHS_STAGE1 = 0  # FullAnalog warm-start epochs
 LEARNING_RATE_STAGE1 = 0.1
 WARMUP_RATIO_STAGE1 = 0.0
 LR_SCHEDULE_STAGE1 = "cosine"     # LR schedule: "constant", "cosine", "multistep"
@@ -63,7 +63,7 @@ LR_MILESTONES_STAGE1 = [150, 225]   # multistep용: LR 감소 epoch 리스트
 LR_GAMMA_STAGE1 = 0.1               # multistep용: LR 감소 비율 (lr *= gamma)
 
 # Training - Stage 2 (LRTT)
-N_EPOCHS_STAGE2 = 0  # LRTT fine-tuning epochs
+N_EPOCHS_STAGE2 = 300  # LRTT fine-tuning epochs
 LEARNING_RATE_STAGE2 = 0.1  # Lower LR for fine-tuning (BN/conv1/fc already converged)
 WARMUP_RATIO_STAGE2 = 0.0  # No warmup for stage 2
 LR_SCHEDULE_STAGE2 = "cosine"       # LR schedule: "constant", "cosine", "multistep"
@@ -84,9 +84,9 @@ NUM_WORKERS = 4
 # ==============================================================================
 
 # --- 기본 LRTT 파라미터 ---
-LRTT_RANK_CONV = 32             # Conv 레이어 LoRA rank (낮을수록 파라미터 감소, 높을수록 표현력 증가)
-LRTT_RANK_FC = 32               # FC 레이어 LoRA rank
-TRANSFER_EVERY = 100            # A⊗B → C 전송 주기 (mini-batch 단위)
+LRTT_RANK_CONV = 16             # Conv 레이어 LoRA rank (낮을수록 파라미터 감소, 높을수록 표현력 증가)
+LRTT_RANK_FC = 16               # FC 레이어 LoRA rank
+TRANSFER_EVERY = 1000            # A⊗B → C 전송 주기 (mini-batch 단위)
 LORA_ALPHA = 2.0                # LoRA 스케일 팩터 α (y = Cx + α*A(Bx))
 TRANSFER_LR = LORA_ALPHA        # 전송 learning rate (기본적으로 α와 동일)
 
@@ -97,7 +97,7 @@ TRANSFER_LR_SCALE = "none"      # transfer_lr 자동 스케일링 모드
                                 #   "rank": transfer_lr / rank - 더 강한 정규화
 
 # --- Transfer 방식 선택 ---
-USE_ONEHOT_TRANSFER = True      # True: one-hot 전송 (아날로그 현실적)
+USE_ONEHOT_TRANSFER = False      # True: one-hot 전송 (아날로그 현실적)
                                 # False: direct 전송 (get_weights() 직접 접근)
 
 # --- Transfer 캘리브레이션 모드 ---
@@ -114,7 +114,7 @@ TRANSFER_CENTERING = False      # 행/열 평균 제거 (DC offset 보정, 기�
 TRANSFER_NORMALIZE = False      # 랭크별 ℓ2 정규화 (gradient 왜곡 가능성으로 기본 off)
 
 # --- Reinit 모드 ---
-REINIT_MODE = "standard"        # 전송 후 A/B 재초기화 전략
+REINIT_MODE = "orthogonal"        # 전송 후 A/B 재초기화 전략
                                 #   "standard": A=0, B=Kaiming (원래 LRTT)
                                 #   "decay": A*=decay_factor, B*=decay_factor (점진적 감쇠)
                                 #   "hybrid": A=0, B*=decay_factor (하이브리드)
@@ -197,9 +197,14 @@ RECON_CLIP_NORM = 10.0          # 최대 norm (RECON_USE_CLIP_NORM=True 시)
 # ==============================================================================
 
 # A/B tile device type
-USE_6T1C_AB = True              # A/B 타일에 6T1C 디바이스 사용
+USE_6T1C_AB = False              # A/B 타일에 6T1C 디바이스 사용
                                 # True: 6T1C (커패시터 기반, retention decay 있음)
                                 # False: IdealizedPresetDevice (이상적, 노이즈만)
+
+# FloatingPoint (완전 digital) 모드
+USE_FLOATING_POINT = False       # True: 모든 타일을 FloatingPointDevice로 사용 (완전 digital, 노이즈 없음)
+                                # False: 위 설정에 따라 analog 디바이스 사용
+
 
 
 # ==============================================================================
@@ -267,23 +272,26 @@ def create_fullanalog_config(rank=1):
     """Create FullAnalog LRTT configuration (C-only training)."""
 
     # C tile configuration (A/B not used in fullanalog mode)
-    c_device = IdealizedPresetDevice(
-        dw_min=0.0002,       # Optimized for accurate transfer (default: 0.0002)
-        dw_min_dtod=0.3,    # Device-to-device variation (default: 0.3)
-        dw_min_std=0.3,     # Cycle-to-cycle variation (default: 0.3)
-        up_down=0.0,        # Up/down asymmetry (default: 0.0)
-        up_down_dtod=0.0,   # Asymmetry variation (default: 0.0)
-        w_max=1.0,          # Max weight bound (default: 1.0)
-        w_min=-1.0,         # Min weight bound (default: -1.0)
-        w_max_dtod=0.3,     # Max bound variation (default: 0.3)
-        w_min_dtod=0.3,     # Min bound variation (default: 0.3)
-    )
+    if USE_FLOATING_POINT:
+        c_device = FloatingPointDevice()
+    else:
+        c_device = IdealizedPresetDevice(
+            dw_min=0.0002,
+            dw_min_dtod=0.3,
+            dw_min_std=0.3,
+            up_down=0.0,
+            up_down_dtod=0.0,
+            w_max=1.0,
+            w_min=-1.0,
+            w_max_dtod=0.3,
+            w_min_dtod=0.3,
+        )
 
     device_config = PythonLRTTDeviceFullAnalog(
         rank=rank,  # Minimal rank (not used in forward)
         transfer_every=10000000000,  # Very large to avoid transfers
         lora_alpha=1.0,
-        forward_inject=False,  # Use only C matrix in forward pass
+        forward_inject=True,  # Use only C matrix in forward pass
         correct_gradient_magnitudes=False,
         unit_cell_devices=[
             IdealizedPresetDevice(),  # A tile (not used)
@@ -294,7 +302,7 @@ def create_fullanalog_config(rank=1):
 
     # Add mapping configuration (same as rlrtt_scratch)
     mapping = MappingParameter(
-        weight_scaling_omega=0.6,  #0.6
+        weight_scaling_omega=0.0,  #0.6
         learn_out_scaling=False,
         weight_scaling_lr_compensation=False,
         digital_bias=True,
@@ -306,13 +314,13 @@ def create_fullanalog_config(rank=1):
 
     # Add forward/backward IO configuration (same as rlrtt_scratch)
     forward_io = IOParameters(
-        inp_res=0.007937,   #0.007937
+        inp_res=0.00,   #0.007937
         inp_bound=1.0,
         inp_noise=0.0,
         inp_sto_round=False,
-        out_res=0.001961,   #0.001961
+        out_res=0.00,   #0.001961
         out_bound=12.0,
-        out_noise=0.06,     #0.06
+        out_noise=0.0,     #0.06
         w_noise=0.0,
         w_noise_type=WeightNoiseType.NONE,
         bound_management=BoundManagementType.ITERATIVE,
@@ -397,24 +405,39 @@ def create_lrtt_config(rank, is_conv=True):
     All LRTT features can be configured via those variables.
     """
 
-    # Select devices for A/B tiles
-    if USE_6T1C_AB:
-        ab_device = create_6t1c_device()
+    # FloatingPoint mode: 완전 digital (노이즈 없음)
+    if USE_FLOATING_POINT:
+        ab_device = FloatingPointDevice()
+        c_device = FloatingPointDevice()
     else:
-        ab_device = IdealizedPresetDevice()
+        # Select devices for A/B tiles
+        if USE_6T1C_AB:
+            ab_device = create_6t1c_device()
+        else:
+            ab_device = IdealizedPresetDevice(
+                dw_min=0.0002,
+                dw_min_dtod=0.3,
+                dw_min_std=0.3,
+                up_down=0.0,
+                up_down_dtod=0.0,
+                w_max=1.0,
+                w_min=-1.0,
+                w_max_dtod=0.3,
+                w_min_dtod=0.3,
+            )
 
-    # C tile uses IdealizedPresetDevice with optimized dw_min for accurate transfer
-    c_device = IdealizedPresetDevice(
-        dw_min=0.0002,       # Optimized for accurate transfer (default: 0.0002)
-        dw_min_dtod=0.3,    # Device-to-device variation (default: 0.3)
-        dw_min_std=0.3,     # Cycle-to-cycle variation (default: 0.3)
-        up_down=0.0,        # Up/down asymmetry (default: 0.0)
-        up_down_dtod=0.0,   # Asymmetry variation (default: 0.0)
-        w_max=1.0,          # Max weight bound (default: 1.0)
-        w_min=-1.0,         # Min weight bound (default: -1.0)
-        w_max_dtod=0.3,     # Max bound variation (default: 0.3)
-        w_min_dtod=0.3,     # Min bound variation (default: 0.3)
-    )
+        # C tile uses IdealizedPresetDevice
+        c_device = IdealizedPresetDevice(
+            dw_min=0.0002,
+            dw_min_dtod=0.3,
+            dw_min_std=0.3,
+            up_down=0.0,
+            up_down_dtod=0.0,
+            w_max=1.0,
+            w_min=-1.0,
+            w_max_dtod=0.3,
+            w_min_dtod=0.3,
+        )
 
     device_config = PythonLRTTDevice(
         rank=rank,
@@ -474,7 +497,7 @@ def create_lrtt_config(rank, is_conv=True):
 
     # Add mapping configuration (same as rlrtt_scratch)
     mapping = MappingParameter(
-        weight_scaling_omega=0.6,    #0.6
+        weight_scaling_omega=0.0,    #0.6
         learn_out_scaling=False,
         weight_scaling_lr_compensation=False,
         digital_bias=True,
@@ -486,13 +509,13 @@ def create_lrtt_config(rank, is_conv=True):
 
     # Add forward/backward IO configuration (same as rlrtt_scratch)
     forward_io = IOParameters(
-        inp_res=0.007937, #0.007937
+        inp_res=0.00, #0.007937
         inp_bound=1.0,
         inp_noise=0.0,
         inp_sto_round=False,
-        out_res=0.001961,  #0.001961
+        out_res=0.00,  #0.001961
         out_bound=12.0,
-        out_noise=0.06,  #0.06
+        out_noise=0.0,  #0.06
         w_noise=0.0,
         w_noise_type=WeightNoiseType.NONE,
         bound_management=BoundManagementType.ITERATIVE,
@@ -993,9 +1016,82 @@ def train_2stage():
     torch.manual_seed(SEED)
 
     # Initialize wandb
+    # Build detailed run name with all important parameters
+
+    # Get config for IO/mapping parameters (each stage has its own)
+    s1_config = create_fullanalog_config(rank=1)
+    s1_mapping = s1_config.mapping
+    s1_fwd = s1_config.forward
+    s1_inp_res = 1.0/(2**7-2) if s1_fwd.inp_res == -1 else s1_fwd.inp_res
+    s1_out_res = 1.0/(2**9-2) if s1_fwd.out_res == -1 else s1_fwd.out_res
+    # Stage 1 C tile device params
+    s1_c_device = s1_config.device.unit_cell_devices[2]  # C tile is index 2
+
+    s2_config = create_lrtt_config(LRTT_RANK_CONV, is_conv=True)
+    s2_mapping = s2_config.mapping
+    s2_fwd = s2_config.forward
+    s2_inp_res = 1.0/(2**7-2) if s2_fwd.inp_res == -1 else s2_fwd.inp_res
+    s2_out_res = 1.0/(2**9-2) if s2_fwd.out_res == -1 else s2_fwd.out_res
+    # Stage 2 device params: A/B (gradient update) and C (transfer update)
+    s2_ab_device = s2_config.device.unit_cell_devices[0]  # A/B tile
+    s2_c_device = s2_config.device.unit_cell_devices[2]   # C tile
+
+    # ===== Common parameters (truly shared) =====
+    common_name = f"bs{BATCH_SIZE}_wd{WEIGHT_DECAY}"
+
+    # ===== Stage 1 specific parameters =====
+    s1_name = f"S1_e{N_EPOCHS_STAGE1}_lr{LEARNING_RATE_STAGE1}_{LR_SCHEDULE_STAGE1}"
+    if LR_SCHEDULE_STAGE1 == "cosine" and WARMUP_RATIO_STAGE1 > 0:
+        s1_name += f"_wr{WARMUP_RATIO_STAGE1}"
+    elif LR_SCHEDULE_STAGE1 == "multistep":
+        s1_name += f"_ms{LR_MILESTONES_STAGE1}_g{LR_GAMMA_STAGE1}"
+    # Stage 1 IO/mapping/device
+    s1_name += f"_fwdIR{s1_inp_res:.6f}_fwdOR{s1_out_res:.6f}_fwdIN{s1_fwd.inp_noise}_fwdON{s1_fwd.out_noise}_mapW{s1_mapping.weight_scaling_omega}"
+    s1_name += f"_dwmin{s1_c_device.dw_min}_dwdtod{s1_c_device.dw_min_dtod}_dwstd{s1_c_device.dw_min_std}"
+
+    # ===== Stage 2 specific parameters =====
+    s2_name = f"S2_e{N_EPOCHS_STAGE2}_lr{LEARNING_RATE_STAGE2}_{LR_SCHEDULE_STAGE2}"
+    if LR_SCHEDULE_STAGE2 == "cosine" and WARMUP_RATIO_STAGE2 > 0:
+        s2_name += f"_wr{WARMUP_RATIO_STAGE2}"
+    elif LR_SCHEDULE_STAGE2 == "multistep":
+        s2_name += f"_ms{LR_MILESTONES_STAGE2}_g{LR_GAMMA_STAGE2}"
+
+    # LRTT config (Stage 2 only)
+    s2_name += f"_r{LRTT_RANK_CONV}_a{LORA_ALPHA}_te{TRANSFER_EVERY}_fi{int(s2_config.device.forward_inject)}"
+
+    # Transfer settings (Stage 2 only)
+    s2_name += f"_tm{TRANSFER_MODE}_tms{TRANSFER_MICRO_STEPS}"
+    if USE_ONEHOT_TRANSFER:
+        s2_name += "_onehot"
+
+    # Update/Reinit mode (Stage 2 only)
+    s2_name += f"_up{UPDATE_MODE}_ri{REINIT_MODE}"
+    if REINIT_MODE in ["decay", "hybrid"]:
+        s2_name += f"_df{REINIT_DECAY_FACTOR}"
+
+    # Device config (Stage 2 only)
+    s2_name += f"_{'6T1C' if USE_6T1C_AB else 'ideal'}"
+
+    # Read noise reduction (Stage 2 only)
+    s2_name += f"_navg{READ_N_AVG}"
+    if NUM_READS > 1:
+        s2_name += f"_nr{NUM_READS}_{MULTI_READ_MODE}"
+
+    # AGC/Two-Amp (Stage 2 only)
+    s2_name += f"_agc{int(AGC_ENABLED)}_2amp{int(TWO_AMP_ENABLED)}"
+
+    # Stage 2 IO/mapping
+    s2_name += f"_fwdIR{s2_inp_res:.6f}_fwdOR{s2_out_res:.6f}_fwdIN{s2_fwd.inp_noise}_fwdON{s2_fwd.out_noise}_mapW{s2_mapping.weight_scaling_omega}"
+    # Stage 2 device params: AB (gradient) and C (transfer)
+    s2_name += f"_ABdwmin{s2_ab_device.dw_min}_ABdwdtod{s2_ab_device.dw_min_dtod}_ABdwstd{s2_ab_device.dw_min_std}"
+    s2_name += f"_Cdwmin{s2_c_device.dw_min}_Cdwdtod{s2_c_device.dw_min_dtod}_Cdwstd{s2_c_device.dw_min_std}"
+
+    # Combine: Common | Stage1 | Stage2
+    run_name = f"{common_name}__{s1_name}__{s2_name}"
+
     wandb.init(
         project="cifar10-resnet18-2stage-warmstart",
-        name=f"2stage_s1e{N_EPOCHS_STAGE1}_s2e{N_EPOCHS_STAGE2}_r{LRTT_RANK_CONV}_a{LORA_ALPHA}",
+        name=run_name,
         config={
             "stage1_epochs": N_EPOCHS_STAGE1,
             "stage1_lr": LEARNING_RATE_STAGE1,
@@ -1049,9 +1145,19 @@ def train_2stage():
             "recon_clip_norm": RECON_CLIP_NORM,
             # Device settings
             "use_6t1c_ab": USE_6T1C_AB,
+            # A/B device params (read from actual config)
+            "ab_dw_min": s2_ab_device.dw_min,
+            "ab_dw_min_dtod": s2_ab_device.dw_min_dtod,
+            "ab_dw_min_std": s2_ab_device.dw_min_std,
+            # C device params (read from actual config)
+            "c_dw_min": s2_c_device.dw_min,
+            "c_dw_min_dtod": s2_c_device.dw_min_dtod,
+            "c_dw_min_std": s2_c_device.dw_min_std,
             # Transfer method
             "use_onehot_transfer": USE_ONEHOT_TRANSFER,
             "transfer_lr_scale": TRANSFER_LR_SCALE,
+            # Forward inject
+            "forward_inject": s2_config.device.forward_inject,
         }
     )
 

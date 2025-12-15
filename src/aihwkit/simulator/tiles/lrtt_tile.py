@@ -17,7 +17,9 @@ from torch.nn import Module
 
 from aihwkit.simulator.tiles.base import SimulatorTileWrapper, SimulatorTile
 from aihwkit.simulator.tiles.analog import AnalogTile
+from aihwkit.simulator.tiles.floating_point import FloatingPointTile
 from aihwkit.simulator.tiles.lrtt_controller import LRTTController
+from aihwkit.simulator.configs.devices import FloatingPointDevice
 from aihwkit.simulator.parameters.base import RPUConfigGeneric
 from aihwkit.simulator.parameters.enums import RPUDataType
 from aihwkit.simulator.configs.configs import SingleRPUConfig, UnitCellRPUConfig
@@ -101,34 +103,44 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             # Replicate first device if not enough specified
             while len(unit_devices) < 3:
                 unit_devices.append(unit_devices[0])
-                
+
+        # Helper function to select tile class based on device type
+        def get_tile_class(device):
+            if isinstance(device, FloatingPointDevice):
+                return FloatingPointTile
+            else:
+                return AnalogTile
+
         # Tile A: fastA [d_size, rank]
+        tile_class_a = get_tile_class(unit_devices[0])
         rpu_config_a = SingleRPUConfig(
             device=unit_devices[0],
             forward=rpu_config.forward,
             backward=rpu_config.backward,
             update=rpu_config.update,
-            tile_class=AnalogTile
+            tile_class=tile_class_a
         )
         self.tile_a = rpu_config_a.tile_class(d_size, self.rank, rpu_config_a)
-        
+
         # Tile B: fastB [rank, x_size] (only rank rows needed for LoRA)
+        tile_class_b = get_tile_class(unit_devices[1])
         rpu_config_b = SingleRPUConfig(
-            device=unit_devices[1], 
+            device=unit_devices[1],
             forward=rpu_config.forward,
             backward=rpu_config.backward,
             update=rpu_config.update,
-            tile_class=AnalogTile
+            tile_class=tile_class_b
         )
         self.tile_b = rpu_config_b.tile_class(self.rank, x_size, rpu_config_b)
-        
-        # Tile C: visible [d_size, x_size]  
+
+        # Tile C: visible [d_size, x_size]
+        tile_class_c = get_tile_class(unit_devices[2])
         rpu_config_c = SingleRPUConfig(
             device=unit_devices[2],
             forward=rpu_config.forward,
-            backward=rpu_config.backward, 
+            backward=rpu_config.backward,
             update=rpu_config.update,
-            tile_class=AnalogTile
+            tile_class=tile_class_c
         )
         self.tile_c = rpu_config_c.tile_class(d_size, x_size, rpu_config_c)
         
