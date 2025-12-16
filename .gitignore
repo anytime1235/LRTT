@@ -170,3 +170,18 @@ cython_debug/
 wandb/
 examples/wandb/
 examples/results/
+
+# Checkpoint files
+*.ckpt
+*.pt
+ckpt/
+checkpoints/
+
+# Excel and data files
+*.xlsx
+*.xls
+*.csv
+
+# Test outputs and results
+*_RESULTS/
+*.log
