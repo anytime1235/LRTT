@@ -55,6 +55,7 @@ class LRTTController:
         reinit_gain: float = 0.1,
         reinit_mode: str = "standard",
         decay_factor: float = 0.9,
+        a_init_mode: str = "zero",  # "zero" or "kaiming"
         correct_gradient_magnitudes: bool = False,
         rank_chunk: Optional[int] = None,
         ab_bl_mgmt: Optional[Dict[str, Any]] = None,
@@ -131,6 +132,7 @@ class LRTTController:
         self.reinit_gain = reinit_gain
         self.reinit_mode = reinit_mode
         self.decay_factor = decay_factor
+        self.a_init_mode = a_init_mode
         self.correct_gradient_magnitudes = correct_gradient_magnitudes
         self.rank_chunk = rank_chunk or rank
         self.forward_inject_enabled = forward_inject
@@ -390,40 +392,51 @@ class LRTTController:
             )
 
     def reinit(self) -> None:
-        """Reinit A,B matrices based on reinit_mode.
+        """Reinit A,B matrices based on reinit_mode and a_init_mode.
 
-        Four modes:
-        - "standard": A=0, B=Kaiming (original LRTT)
-        - "decay": A*=decay_factor, B*=decay_factor (gradual decay)
+        Reinit modes:
+        - "standard": Always reinitialize A and B
+        - "decay": First time initialize, after transfer apply decay
         - "hybrid": A=0, B*=decay_factor (hybrid approach)
-        - "orthogonal": A=0, B=Random Orthogonal (FROZEN). B @ B.T = I for projection.
+        - "orthogonal": A=0, B=Random Orthogonal (FROZEN)
+
+        A initialization (controlled by a_init_mode):
+        - "zero": A=0 (LoRA-style, ensures ΔW=0 initially)
+        - "kaiming": A=Kaiming Normal (random initialization)
         """
         with torch.no_grad():
             if self.reinit_mode == "standard":
-                # Original LRTT: A=0, B=Kaiming
-                A_zeros = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
-                self.tile_a.set_weights(A_zeros)
+                # A matrix: Use a_init_mode
+                if self.a_init_mode == "kaiming":
+                    A_std = self.reinit_gain * math.sqrt(2.0 / self.rank)
+                    A_init = torch.normal(0, A_std, size=(self.d_size, self.rank), device=self.device, dtype=self.dtype)
+                else:  # "zero"
+                    A_init = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
+                self.tile_a.set_weights(A_init)
 
                 # B matrix: Kaiming Normal initialization
-                std = self.reinit_gain * math.sqrt(2.0 / self.x_size)
-                B_kaiming = torch.normal(0, std, size=(self.rank, self.x_size), device=self.device, dtype=self.dtype)
+                B_std = self.reinit_gain * math.sqrt(2.0 / self.x_size)
+                B_kaiming = torch.normal(0, B_std, size=(self.rank, self.x_size), device=self.device, dtype=self.dtype)
                 self.tile_b.set_weights(B_kaiming)
 
             elif self.reinit_mode == "decay":
-                # First time initialization or decay mode
+                # Decay mode: First time use a_init_mode for A, B=Kaiming
+                # After transfer: apply decay instead of reinit
                 if not self._tiles_initialized:
-                    # First time: Initialize A and B with small random values for decay mode
-                    # A matrix: Small random initialization
-                    A_std = self.reinit_gain * math.sqrt(2.0 / self.rank) * 0.1  # Small init for A
-                    A_init = torch.normal(0, A_std, size=(self.d_size, self.rank), device=self.device, dtype=self.dtype)
+                    # First time: Use a_init_mode for A initialization
+                    if self.a_init_mode == "kaiming":
+                        A_std = self.reinit_gain * math.sqrt(2.0 / self.rank)
+                        A_init = torch.normal(0, A_std, size=(self.d_size, self.rank), device=self.device, dtype=self.dtype)
+                    else:  # "zero"
+                        A_init = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
                     self.tile_a.set_weights(A_init)
 
-                    # B matrix: Standard Kaiming initialization
+                    # B matrix: Kaiming Normal initialization
                     B_std = self.reinit_gain * math.sqrt(2.0 / self.x_size)
-                    B_init = torch.normal(0, B_std, size=(self.rank, self.x_size), device=self.device, dtype=self.dtype)
-                    self.tile_b.set_weights(B_init)
+                    B_kaiming = torch.normal(0, B_std, size=(self.rank, self.x_size), device=self.device, dtype=self.dtype)
+                    self.tile_b.set_weights(B_kaiming)
                 else:
-                    # After transfer: Decay both A and B
+                    # After transfer: Decay both A and B (instead of reinit)
                     A_weights = self.tile_a.get_weights()[0] * self.decay_factor
                     B_weights = self.tile_b.get_weights()[0] * self.decay_factor
                     self.tile_a.set_weights(A_weights)
@@ -870,6 +883,23 @@ class LRTTController:
         # CRITICAL: Reset transfer counter after transfer (matches CUDA)
         self.transfer_counter = 0
 
+        # Clip C weights to [-1, 1] range for analog hardware realism
+        C_weights = self.tile_c.get_weights()[0]
+        C_min_before, C_max_before = C_weights.min().item(), C_weights.max().item()
+        C_clipped = torch.clamp(C_weights, -1.0, 1.0)
+
+        if self.num_transfers <= 5:  # Debug first few transfers
+            print(f"[CLIP-CHECK] Transfer #{self.num_transfers}: C range before: [{C_min_before:.4f}, {C_max_before:.4f}]")
+
+        if not torch.equal(C_weights, C_clipped):
+            self.tile_c.set_weights(C_clipped, None)
+            if self.num_transfers <= 5:
+                C_verify = self.tile_c.get_weights()[0]
+                print(f"[CLIP-APPLIED] Transfer #{self.num_transfers}: C range after:  [{C_verify.min():.4f}, {C_verify.max():.4f}]")
+        else:
+            if self.num_transfers <= 5:
+                print(f"[CLIP-SKIPPED] Transfer #{self.num_transfers}: C already in range, no clipping needed")
+
         # DEBUG: Check A before reinit (first few transfers only)
         if self.num_transfers <= 3:
             A_before_reinit = self.tile_a.get_weights()[0] if hasattr(self.tile_a, 'get_weights') else None
@@ -1170,6 +1200,24 @@ class LRTTController:
 
         self.num_transfers += 1
         self.transfer_counter = 0
+
+        # Clip C weights to [-1, 1] range for analog hardware realism
+        C_weights = self.tile_c.get_weights()[0]
+        C_min_before, C_max_before = C_weights.min().item(), C_weights.max().item()
+        C_clipped = torch.clamp(C_weights, -1.0, 1.0)
+
+        if self.num_transfers <= 5:  # Debug first few transfers
+            print(f"[CLIP-CHECK-ONEHOT] Transfer #{self.num_transfers}: C range before: [{C_min_before:.4f}, {C_max_before:.4f}]")
+
+        if not torch.equal(C_weights, C_clipped):
+            self.tile_c.set_weights(C_clipped, None)
+            if self.num_transfers <= 5:
+                C_verify = self.tile_c.get_weights()[0]
+                print(f"[CLIP-APPLIED-ONEHOT] Transfer #{self.num_transfers}: C range after:  [{C_verify.min():.4f}, {C_verify.max():.4f}]")
+        else:
+            if self.num_transfers <= 5:
+                print(f"[CLIP-SKIPPED-ONEHOT] Transfer #{self.num_transfers}: C already in range, no clipping needed")
+
         self.reinit()
 
     def _ab_weight_transfer_onehot_sigma_delta(self) -> None:

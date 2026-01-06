@@ -52,7 +52,7 @@ RESULTS = os.path.join(os.getcwd(), "results", "RESNET_DIGITAL_LRTT")
 os.makedirs(RESULTS, exist_ok=True)
 
 # Training - Stage 1 (Warmstart with standard ResNet)
-N_EPOCHS_STAGE1 = 30            # Warmstart epochs (set to 0 to skip)
+N_EPOCHS_STAGE1 = 0            # Warmstart epochs (set to 0 to skip)
 LEARNING_RATE_STAGE1 = 0.1
 WARMUP_RATIO_STAGE1 = 0.0
 LR_SCHEDULE_STAGE1 = "constant"
@@ -60,7 +60,7 @@ LR_MILESTONES_STAGE1 = [30, 40]
 LR_GAMMA_STAGE1 = 0.1
 
 # Training - Stage 2 (LRTT)
-N_EPOCHS_STAGE2 = 270           # LRTT training epochs
+N_EPOCHS_STAGE2 = 300           # LRTT training epochs
 LEARNING_RATE_STAGE2 = 0.1
 WARMUP_RATIO_STAGE2 = 0.0
 LR_SCHEDULE_STAGE2 = "cosine"
@@ -69,7 +69,7 @@ LR_GAMMA_STAGE2 = 0.1
 
 # Common
 SEED = 1
-BATCH_SIZE = 128
+BATCH_SIZE = 8
 MOMENTUM = 0.9
 WEIGHT_DECAY = 0.0005
 NESTEROV = True
@@ -125,7 +125,7 @@ LAYER_CONFIG = {
 
 # --- Default LRTT parameters (used when not specified in LAYER_CONFIG) ---
 LRTT_RANK_DEFAULT = 16          # Default LoRA rank
-TRANSFER_EVERY = 10            # A @ B -> C transfer period (iteration units)
+TRANSFER_EVERY = 256            # A @ B -> C transfer period (iteration units)
 LORA_ALPHA = 2.0                # LoRA scale factor
 TRANSFER_LR = LORA_ALPHA        # Transfer learning rate
 

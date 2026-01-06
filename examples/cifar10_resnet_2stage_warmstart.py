@@ -114,7 +114,7 @@ TRANSFER_CENTERING = False      # 행/열 평균 제거 (DC offset 보정, 기�
 TRANSFER_NORMALIZE = False      # 랭크별 ℓ2 정규화 (gradient 왜곡 가능성으로 기본 off)
 
 # --- Reinit 모드 ---
-REINIT_MODE = "orthogonal"        # 전송 후 A/B 재초기화 전략
+REINIT_MODE = "standard"        # 전송 후 A/B 재초기화 전략
                                 #   "standard": A=0, B=Kaiming (원래 LRTT)
                                 #   "decay": A*=decay_factor, B*=decay_factor (점진적 감쇠)
                                 #   "hybrid": A=0, B*=decay_factor (하이브리드)
@@ -202,7 +202,7 @@ USE_6T1C_AB = False              # A/B 타일에 6T1C 디바이스 사용
                                 # False: IdealizedPresetDevice (이상적, 노이즈만)
 
 # FloatingPoint (완전 digital) 모드
-USE_FLOATING_POINT = False       # True: 모든 타일을 FloatingPointDevice로 사용 (완전 digital, 노이즈 없음)
+USE_FLOATING_POINT = True       # True: 모든 타일을 FloatingPointDevice로 사용 (완전 digital, 노이즈 없음)
                                 # False: 위 설정에 따라 analog 디바이스 사용
 
 
@@ -520,7 +520,7 @@ def create_lrtt_config(rank, is_conv=True):
         w_noise_type=WeightNoiseType.NONE,
         bound_management=BoundManagementType.ITERATIVE,
         noise_management=NoiseManagementType.ABS_MAX,
-        is_perfect=False,   #False
+        is_perfect=True,   #False
         max_bm_factor=1000,
     )
 
@@ -1047,7 +1047,10 @@ def train_2stage():
         s1_name += f"_ms{LR_MILESTONES_STAGE1}_g{LR_GAMMA_STAGE1}"
     # Stage 1 IO/mapping/device
     s1_name += f"_fwdIR{s1_inp_res:.6f}_fwdOR{s1_out_res:.6f}_fwdIN{s1_fwd.inp_noise}_fwdON{s1_fwd.out_noise}_mapW{s1_mapping.weight_scaling_omega}"
-    s1_name += f"_dwmin{s1_c_device.dw_min}_dwdtod{s1_c_device.dw_min_dtod}_dwstd{s1_c_device.dw_min_std}"
+    if USE_FLOATING_POINT:
+        s1_name += "_floating"
+    else:
+        s1_name += f"_dwmin{s1_c_device.dw_min}_dwdtod{s1_c_device.dw_min_dtod}_dwstd{s1_c_device.dw_min_std}"
 
     # ===== Stage 2 specific parameters =====
     s2_name = f"S2_e{N_EPOCHS_STAGE2}_lr{LEARNING_RATE_STAGE2}_{LR_SCHEDULE_STAGE2}"
@@ -1070,7 +1073,12 @@ def train_2stage():
         s2_name += f"_df{REINIT_DECAY_FACTOR}"
 
     # Device config (Stage 2 only)
-    s2_name += f"_{'6T1C' if USE_6T1C_AB else 'ideal'}"
+    if USE_FLOATING_POINT:
+        s2_name += "_floating"
+    elif USE_6T1C_AB:
+        s2_name += "_6T1C"
+    else:
+        s2_name += "_ideal"
 
     # Read noise reduction (Stage 2 only)
     s2_name += f"_navg{READ_N_AVG}"
@@ -1083,8 +1091,9 @@ def train_2stage():
     # Stage 2 IO/mapping
     s2_name += f"_fwdIR{s2_inp_res:.6f}_fwdOR{s2_out_res:.6f}_fwdIN{s2_fwd.inp_noise}_fwdON{s2_fwd.out_noise}_mapW{s2_mapping.weight_scaling_omega}"
     # Stage 2 device params: AB (gradient) and C (transfer)
-    s2_name += f"_ABdwmin{s2_ab_device.dw_min}_ABdwdtod{s2_ab_device.dw_min_dtod}_ABdwstd{s2_ab_device.dw_min_std}"
-    s2_name += f"_Cdwmin{s2_c_device.dw_min}_Cdwdtod{s2_c_device.dw_min_dtod}_Cdwstd{s2_c_device.dw_min_std}"
+    if not USE_FLOATING_POINT:
+        s2_name += f"_ABdwmin{s2_ab_device.dw_min}_ABdwdtod{s2_ab_device.dw_min_dtod}_ABdwstd{s2_ab_device.dw_min_std}"
+        s2_name += f"_Cdwmin{s2_c_device.dw_min}_Cdwdtod{s2_c_device.dw_min_dtod}_Cdwstd{s2_c_device.dw_min_std}"
 
     # Combine: Common | Stage1 | Stage2
     run_name = f"{common_name}__{s1_name}__{s2_name}"
@@ -1144,15 +1153,16 @@ def train_2stage():
             "recon_use_clip_norm": RECON_USE_CLIP_NORM,
             "recon_clip_norm": RECON_CLIP_NORM,
             # Device settings
+            "use_floating_point": USE_FLOATING_POINT,
             "use_6t1c_ab": USE_6T1C_AB,
-            # A/B device params (read from actual config)
-            "ab_dw_min": s2_ab_device.dw_min,
-            "ab_dw_min_dtod": s2_ab_device.dw_min_dtod,
-            "ab_dw_min_std": s2_ab_device.dw_min_std,
-            # C device params (read from actual config)
-            "c_dw_min": s2_c_device.dw_min,
-            "c_dw_min_dtod": s2_c_device.dw_min_dtod,
-            "c_dw_min_std": s2_c_device.dw_min_std,
+            # A/B device params (read from actual config) - only for non-floating point
+            "ab_dw_min": getattr(s2_ab_device, 'dw_min', None),
+            "ab_dw_min_dtod": getattr(s2_ab_device, 'dw_min_dtod', None),
+            "ab_dw_min_std": getattr(s2_ab_device, 'dw_min_std', None),
+            # C device params (read from actual config) - only for non-floating point
+            "c_dw_min": getattr(s2_c_device, 'dw_min', None),
+            "c_dw_min_dtod": getattr(s2_c_device, 'dw_min_dtod', None),
+            "c_dw_min_std": getattr(s2_c_device, 'dw_min_std', None),
             # Transfer method
             "use_onehot_transfer": USE_ONEHOT_TRANSFER,
             "transfer_lr_scale": TRANSFER_LR_SCALE,

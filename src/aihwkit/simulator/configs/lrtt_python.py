@@ -61,6 +61,12 @@ class PythonLRTTDevice(_PrintableMixin):
     decay_factor: float = 0.9
     """Decay factor for 'decay' and 'hybrid' reinit modes (0 < decay_factor < 1)."""
 
+    a_init_mode: str = "zero"
+    """A matrix initialization mode for first reinit:
+    - 'zero': A=0 (LoRA-style, ensures ΔW=0 initially)
+    - 'kaiming': A=Kaiming Normal (random initialization)
+    """
+
     # === Transfer Read Settings ===
     num_reads: int = 1
     """Number of reads per rank during one-hot transfer.

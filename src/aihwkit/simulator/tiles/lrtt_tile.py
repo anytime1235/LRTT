@@ -160,6 +160,7 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             reinit_gain=self.reinit_gain,
             reinit_mode=getattr(self.lrtt_config, 'reinit_mode', 'standard'),
             decay_factor=getattr(self.lrtt_config, 'decay_factor', 0.9),
+            a_init_mode=getattr(self.lrtt_config, 'a_init_mode', 'zero'),  # A matrix initialization mode
             correct_gradient_magnitudes=self.correct_gradient_magnitudes,
             rank_chunk=self.rank_chunk,
             forward_inject=getattr(self.lrtt_config, 'forward_inject', True),
