@@ -57,8 +57,8 @@ class ScratchExperimentConfig:
     output_dim = 4
 
     # Dataset sizes
-    D_prime_train_size = 80
-    D_prime_test_size = 20
+    D_prime_train_size = 25
+    D_prime_test_size = 25
 
     # Noise parameters
     noise_std = 0.02
@@ -73,7 +73,7 @@ class ScratchExperimentConfig:
 
     # Training hyperparameters - LRTT scratch training
     lrtt_lr = 0.1  # Very conservative LR
-    lrtt_epochs = 100
+    lrtt_epochs = 1000
     lrtt_batch_size = 1
     lrtt_patience = 10  # Allow a bit more training than fine-tuning
     lrtt_grad_clip = 2.0  # Conservative clipping
@@ -89,14 +89,26 @@ class ScratchExperimentConfig:
 
     # A matrix initialization mode
     # Options: 'zero' (LoRA-style, ΔW=0 initially), 'kaiming' (random Kaiming initialization)
-    a_init_mode = 'zero'  # Change to 'zero' for original LoRA initialization
+    a_init_mode = 'kaiming'  # Change to 'zero' for original LoRA initialization
 
     # Device configuration
     # Use 6T1C device for A/B matrices (capacitor-based with retention decay)
     # False: IdealizedPresetDevice (idealized, noise only)
     USE_6T1C_AB = True
-    dt_batch_sec = 3224  # Assumed time per mini-batch in seconds
-    include_retention = True  # Include retention effects for 6T1C
+
+    # Retention configuration
+    # retention_ratio_at_transfer: fraction of A/B weight remaining at transfer time
+    # Example: 0.9 means 90% of A/B weights remain after transfer_every steps
+    #          0.5 means 50% of A/B weights remain (half decayed)
+    #          1.0 means no decay (perfect retention)
+    retention_ratio_at_transfer = 0.95  # 95% retention at transfer
+    include_retention = True  # Enable/disable retention effects
+
+    # Pulse/Update configuration
+    desired_bl = 7  # Bit length (pulse train length): max number of pulses (default: 31)
+    pulse_type = PulseType.STOCHASTIC_COMPRESSED  # Pulse generation type
+    update_bl_management = True  # Dynamic BL adjustment
+    update_management = True  # Scale A, B based on input/error strengths
 
     # Results directory
     results_dir = "results/lrtt_scratch_decay"
@@ -105,27 +117,33 @@ class ScratchExperimentConfig:
 # Device Configuration
 # ============================================================================
 
-def create_6t1c_device(dt_batch_sec=1.0, include_retention=True):
+def create_6t1c_device(retention_ratio_at_transfer=1.0, transfer_every=10, include_retention=True):
     """Create 6T1C device for A/B tiles.
 
     6T1C Device Characteristics:
         - ~1000 conductance states per direction
         - Capacitor-based weight storage with exponential decay
-        - Time constant τ ≈ 775 min (12.9 hours)
 
     Args:
-        dt_batch_sec: Assumed time per mini-batch in seconds (for retention calculation)
+        retention_ratio_at_transfer: Fraction of weight remaining after transfer_every steps
+                                     (e.g., 0.9 = 90% retention, 0.5 = 50% retention)
+        transfer_every: Number of steps between transfers
         include_retention: Whether to include retention effects
     """
     import math
 
-    # Calculate lifetime from physical τ for 6T1C
-    TAU_SEC = 46505.0  # Physical time constant: 775.1 min = 46505 sec
-    if include_retention and dt_batch_sec > 0:
-        delta = 1 - math.exp(-dt_batch_sec / TAU_SEC)
+    # Calculate lifetime from retention ratio
+    # Weight after N steps: w(N) = w(0) * (1 - delta)^N
+    # At transfer: retention_ratio = (1 - delta)^transfer_every
+    # Solve for delta: delta = 1 - retention_ratio^(1/transfer_every)
+    # lifetime = 1 / delta
+    if include_retention and retention_ratio_at_transfer < 1.0:
+        delta = 1.0 - math.pow(retention_ratio_at_transfer, 1.0 / transfer_every)
         lifetime = 1.0 / delta
+        print(f"  6T1C retention: {retention_ratio_at_transfer*100:.1f}% after {transfer_every} steps → lifetime={lifetime:.1f}")
     else:
         lifetime = 0.0  # No retention
+        print(f"  6T1C retention: DISABLED (perfect retention)")
 
     return LinearStepDevice(
         # Core update parameters (fitted from 6T1C data)
@@ -235,10 +253,10 @@ class LRTTModel(nn.Module):
         # Select devices for A/B tiles
         if config.USE_6T1C_AB:
             ab_device = create_6t1c_device(
-                dt_batch_sec=config.dt_batch_sec,
+                retention_ratio_at_transfer=config.retention_ratio_at_transfer,
+                transfer_every=config.lrtt_transfer_every,
                 include_retention=config.include_retention
             )
-            print(f"Using 6T1C device for A/B matrices (retention={'ON' if config.include_retention else 'OFF'})")
         else:
             ab_device = IdealizedPresetDevice()
             print("Using IdealizedPresetDevice for A/B matrices")
@@ -285,11 +303,20 @@ class LRTTModel(nn.Module):
             weight_scaling_omega=0.0   # Disable weight scaling
         )
 
+        # Update parameters for pulse generation
+        update = UpdateParameters(
+            desired_bl=config.desired_bl,              # Bit length (pulse train length)
+            pulse_type=config.pulse_type,              # Stochastic pulse generation
+            update_bl_management=config.update_bl_management,  # Dynamically adjust BL
+            update_management=config.update_management,        # Scale A, B based on input/error strengths
+        )
+
         rpu_config = PythonLRTTRPUConfig(
             device=device_config,
             mapping=mapping,
             forward=forward_io,
-            backward=backward_io
+            backward=backward_io,
+            update=update
         )
 
         # Create LRTT linear layer
@@ -311,30 +338,21 @@ class LRTTModel(nn.Module):
         # Explicitly reinit A and B after setting C to ensure proper initialization
         analog_tile = self.lrtt_layer.analog_module
         if hasattr(analog_tile, 'controller'):
-            print("Calling explicit reinit for A and B after C initialization...")
             analog_tile.controller.reinit()
 
     def set_C_weights(self, C: torch.Tensor):
         """Set the C matrix directly via tile_c to avoid quantization."""
         analog_tile = self.lrtt_layer.analog_module
-        print(f"Setting C weights to shape {C.shape}")
-        print(f"  Desired C values: min={C.min():.6f}, max={C.max():.6f}, mean={C.mean():.6f}")
-        print(f"  All -1? {torch.allclose(C, torch.ones_like(C) * -1.0)}")
 
         # Access tile_c directly to bypass any LRTT-level processing
         if hasattr(analog_tile, 'tile_c'):
-            print(f"  tile_c device type: {type(analog_tile.tile_c.rpu_config.device).__name__}")
-            print("  Using direct tile_c.set_weights()")
-
             # Try to access the underlying weights tensor directly if possible
             if hasattr(analog_tile.tile_c, 'weight'):
-                print("  tile_c has 'weight' attribute - trying to set directly")
                 with torch.no_grad():
                     analog_tile.tile_c.weight.copy_(C.to(DEVICE))
             else:
                 analog_tile.tile_c.set_weights(C.to(DEVICE), None)
         else:
-            print("  Falling back to analog_tile.set_weights()")
             analog_tile.set_weights(C.to(DEVICE))
 
         # Verify what was actually set
@@ -343,11 +361,7 @@ class LRTTModel(nn.Module):
         else:
             C_actual = analog_tile.get_weights()[0]
 
-        print(f"After set_weights - C actual values:")
-        print(f"  min={C_actual.min():.6f}, max={C_actual.max():.6f}, mean={C_actual.mean():.6f}")
-        print(f"  All -1? {torch.allclose(C_actual, torch.ones_like(C_actual) * -1.0, atol=1e-6)}")
-        print(f"  C_actual full matrix:\n{C_actual}")
-        print(f"  Difference from -1: {(C_actual + 1.0).abs().max():.6f}")
+        print(f"C initialized: min={C_actual.min():.4f}, max={C_actual.max():.4f}, mean={C_actual.mean():.4f}")
 
     def forward(self, x):
         return self.lrtt_layer(x)
@@ -382,18 +396,10 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
     # Create LRTT model without pre-trained C (random initialization)
     model = LRTTModel(config, pretrained_C=None).to(DEVICE)
 
-    # Debug: Check initial A,B,C
+    # Check initial A,B,C
     C_init, A_init, B_init = model.get_lrtt_components()
     if A_init is not None and B_init is not None:
-        print(f"Initial: A norm={A_init.norm():.4f}, B norm={B_init.norm():.4f}, C norm={C_init.norm():.4f}")
-        print(f"A: {A_init.flatten()[:4]}, B: {B_init.flatten()[:4]}")
-        print(f"C shape: {C_init.shape}")
-        print(f"C initial full matrix:\n{C_init}")
-        print(f"C all -1? {torch.allclose(C_init, torch.ones_like(C_init) * -1.0)}")
-        print(f"C max deviation from -1: {(C_init + 1.0).abs().max():.6f}")
-
-        # Save a copy for comparison after first epoch
-        C_init_copy = C_init.clone()
+        print(f"Initial: ‖A‖={A_init.norm():.4f}, ‖B‖={B_init.norm():.4f}, ‖C‖={C_init.norm():.4f}")
 
     # Use AnalogSGD for LRTT tiles (no momentum, simple vanilla SGD)
     optimizer = AnalogSGD(model.parameters(), lr=config.lrtt_lr, momentum=0.0)
@@ -423,32 +429,37 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
         }
         training_history.append(initial_history)
 
-    # Log initial state to wandb (before any training)
+    # Log initial state to wandb (before any training) as step 0
     if use_wandb and A_init_log is not None and B_init_log is not None:
         log_dict = {
-            'scratch/epoch': -1,  # Use -1 to indicate initial state
-            'scratch/train_loss': float('nan'),
-            'scratch/val_loss': float('nan'),
-            'scratch/A_norm': A_init_log.norm().item(),
-            'scratch/B_norm': B_init_log.norm().item(),
-            'scratch/delta_norm': (A_init_log @ B_init_log).norm().item()
+            'scratch/step': 0,
+            'scratch/epoch': -1,
+            'scratch/batch_idx': -1,
+            'scratch/batch_loss': float('nan'),
+            'scratch/is_transfer_step': False,
+            'scratch/A_norm_step': A_init_log.norm().item(),
+            'scratch/B_norm_step': B_init_log.norm().item(),
+            'scratch/C_norm_step': C_init_log.norm().item(),
+            'scratch/delta_norm_step': (A_init_log @ B_init_log).norm().item()
         }
 
         # Log individual A cells (A is [4,1])
         for i in range(4):
-            log_dict[f'scratch/A[{i},0]'] = A_init_log[i, 0].item()
+            log_dict[f'scratch/A[{i},0]_step'] = A_init_log[i, 0].item()
 
         # Log individual B cells (B is [1,4])
         for j in range(4):
-            log_dict[f'scratch/B[0,{j}]'] = B_init_log[0, j].item()
+            log_dict[f'scratch/B[0,{j}]_step'] = B_init_log[0, j].item()
 
         # Log individual C cells (C is [4,4])
         for i in range(4):
             for j in range(4):
-                log_dict[f'scratch/C[{i},{j}]'] = C_init_log[i, j].item()
+                log_dict[f'scratch/C[{i},{j}]_step'] = C_init_log[i, j].item()
 
         wandb.log(log_dict)
-        print(f"[WANDB] Logged initial state (epoch=-1): C range=[{C_init_log.min():.4f}, {C_init_log.max():.4f}]")
+
+    # Global step counter for batch-wise logging (starts at 1)
+    global_step = 1
 
     for epoch in range(config.lrtt_epochs):
         # Training
@@ -461,9 +472,7 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
             Y_pred = model(X_batch)
             loss = F.mse_loss(Y_pred, Y_batch)
 
-            loss.backward()
-
-            # Debug: Check gradients on first batch of first epoch
+            # Debug: Check gradients on first batch of first epoch (BEFORE backward)
             if epoch == 0 and batch_idx == 0:
                 print(f"\n  Debug Gradients (Epoch {epoch}, Batch {batch_idx}):")
                 print(f"    Loss value: {loss.item():.6f}")
@@ -471,6 +480,50 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
 
                 C, A, B = model.get_lrtt_components()
                 print(f"    Before step - A norm: {A.norm():.6f}, B norm: {B.norm():.6f}")
+
+                # Calculate update management parameters (matching C++ code)
+                analog_tile = model.lrtt_layer.analog_module
+                if hasattr(analog_tile, 'tile_a') and hasattr(analog_tile, 'tile_b'):
+                    # Get dw_min from A tile device
+                    dw_min = 0.001981  # 6T1C device default
+
+                    # Calculate x_max, d_max from current batch
+                    x_abs_max = X_batch.abs().max().item()
+
+                    # Get gradient (d) - compute BEFORE loss.backward()
+                    # d = gradient w.r.t. output = dL/dY = 2(Y_pred - Y_batch) / batch_size
+                    d_batch = 2 * (Y_pred - Y_batch) / Y_batch.size(0)
+                    d_abs_max = d_batch.abs().max().item()
+
+                    # Calculate k_val (matching rpu_pulsed_meta_parameter.cpp)
+                    k_val = config.lrtt_lr * x_abs_max * d_abs_max / dw_min
+
+                    # Calculate BL (update_bl_management)
+                    import math
+                    BL_calculated = math.ceil(k_val)
+                    BL_used = min(BL_calculated, config.desired_bl)
+
+                    # Calculate A, B factors (update_management)
+                    import math
+                    scaling_factor = math.sqrt(config.lrtt_lr / (dw_min * BL_used))
+                    A_factor = math.sqrt(d_abs_max / x_abs_max) * scaling_factor
+                    B_factor = math.sqrt(x_abs_max / d_abs_max) * scaling_factor
+
+                    print(f"\n    === Update Management Parameters ===")
+                    print(f"    x_abs_max: {x_abs_max:.6f}")
+                    print(f"    d_abs_max: {d_abs_max:.6f}")
+                    print(f"    dw_min: {dw_min:.6f}")
+                    print(f"    k_val: {k_val:.6f}")
+                    print(f"    BL_calculated: {BL_calculated}")
+                    print(f"    BL_used (min(BL_calc, desired_bl)): {BL_used}")
+                    print(f"    A_factor: {A_factor:.6f}")
+                    print(f"    B_factor: {B_factor:.6f}")
+                    print(f"    A_factor * B_factor: {A_factor * B_factor:.6f}")
+                    print(f"    Expected: sqrt(lr/(dw_min*BL)): {scaling_factor:.6f}")
+                    print(f"    ======================================\n")
+
+            # Backward pass
+            loss.backward()
 
             # Gradient clipping
             torch.nn.utils.clip_grad_norm_(model.parameters(), config.lrtt_grad_clip)
@@ -481,7 +534,65 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
                 C, A, B = model.get_lrtt_components()
                 print(f"    After step - A norm: {A.norm():.6f}, B norm: {B.norm():.6f}")
 
+            # Periodic debug: print update management params every 10 steps
+            if global_step % 10 == 1 and global_step <= 50:
+                x_abs_max = X_batch.abs().max().item()
+                # Approximate d from loss gradient (Y_pred - Y_batch) / batch_size
+                d_approx = (Y_pred - Y_batch) / Y_batch.size(0)
+                d_abs_max = d_approx.abs().max().item()
+                dw_min = 0.001981
+                k_val = config.lrtt_lr * x_abs_max * d_abs_max / dw_min
+                import math
+                BL_calc = math.ceil(k_val)
+                BL_used = min(BL_calc, config.desired_bl)
+                print(f"  [Step {global_step}] x_max={x_abs_max:.4f}, d_max={d_abs_max:.4f}, k_val={k_val:.2f}, BL={BL_used}")
+
             train_loss += loss.item() * X_batch.size(0)
+
+            # Log A, B, C cell values after each batch update
+            if use_wandb:
+                C, A, B = model.get_lrtt_components()
+                if A is not None and B is not None:
+                    # Check if transfer occurred
+                    analog_tile = model.lrtt_layer.analog_module
+                    is_transfer_step = False
+                    if hasattr(analog_tile, 'controller'):
+                        current_counter = analog_tile.controller.transfer_counter
+                        # Transfer just occurred if counter is 0 or 1 (just reset)
+                        if current_counter <= 1 and global_step > 1:
+                            is_transfer_step = True
+
+                    log_dict = {
+                        'scratch/step': global_step,
+                        'scratch/epoch': epoch,
+                        'scratch/batch_idx': batch_idx,
+                        'scratch/batch_loss': loss.item(),
+                        'scratch/is_transfer_step': is_transfer_step,
+                        'scratch/A_norm_step': A.norm().item(),
+                        'scratch/B_norm_step': B.norm().item(),
+                        'scratch/C_norm_step': C.norm().item(),
+                        'scratch/delta_norm_step': (A @ B).norm().item()
+                    }
+
+                    # Log individual A cells (A is [4,1])
+                    for i in range(4):
+                        log_dict[f'scratch/A[{i},0]_step'] = A[i, 0].item()
+
+                    # Log individual B cells (B is [1,4])
+                    for j in range(4):
+                        log_dict[f'scratch/B[0,{j}]_step'] = B[0, j].item()
+
+                    # Log individual C cells (C is [4,4])
+                    for i in range(4):
+                        for j in range(4):
+                            log_dict[f'scratch/C[{i},{j}]_step'] = C[i, j].item()
+
+                    wandb.log(log_dict)
+                else:
+                    if global_step <= 5:
+                        print(f"  [WARNING] Step {global_step}: A or B is None, skipping log")
+
+            global_step += 1
 
         train_loss /= len(train_loader.dataset)
 
@@ -492,15 +603,7 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
             if epoch > 0 and current_transfer_counter % config.lrtt_transfer_every == 0:
                 # Transfer just occurred
                 C, A, B = model.get_lrtt_components()
-                print(f"\n  *** TRANSFER DETECTED at epoch {epoch} ***")
-                print(f"  Transfer counter: {current_transfer_counter}")
-                print(f"  After transfer - A norm: {A.norm():.6f}, B norm: {B.norm():.6f}, C norm: {C.norm():.6f}")
-                print(f"  A values (first 5): {A.flatten()[:5]}")
-                print(f"  B values (first 5): {B.flatten()[:5]}")
-                print(f"  A max: {A.abs().max():.6f}, A min: {A.abs().min():.6f}")
-                print(f"  B max: {B.abs().max():.6f}, B min: {B.abs().min():.6f}")
-                print(f"  Is A all zeros? {torch.allclose(A, torch.zeros_like(A))}")
-                print(f"  Is B all zeros? {torch.allclose(B, torch.zeros_like(B))}")
+                print(f"  [TRANSFER] Epoch {epoch}: A norm={A.norm():.4f}, B norm={B.norm():.4f}, C norm={C.norm():.4f}")
 
         # Validation - Use full LRTT model
         model.eval()
@@ -549,54 +652,30 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
         else:
             patience_counter += 1
 
-        # Wandb logging
+        # Wandb logging (epoch summary - norms and losses only, no cell values)
+        # Use the last step of the epoch for epoch-level metrics
         if use_wandb:
+            epoch_step = global_step - 1  # Last step of this epoch
             log_dict = {
-                'scratch/epoch': epoch,
-                'scratch/train_loss': train_loss,
-                'scratch/val_loss': val_loss
+                'scratch/step': epoch_step,  # Same step as last batch
+                'scratch/train_loss_epoch': train_loss,
+                'scratch/val_loss_epoch': val_loss
             }
 
             # Log component norms if available
             C, A, B = model.get_lrtt_components()
             if A is not None and B is not None:
                 log_dict.update({
-                    'scratch/A_norm': A.norm().item(),
-                    'scratch/B_norm': B.norm().item(),
-                    'scratch/delta_norm': (A @ B).norm().item()
+                    'scratch/A_norm_epoch': A.norm().item(),
+                    'scratch/B_norm_epoch': B.norm().item(),
+                    'scratch/C_norm_epoch': C.norm().item(),
+                    'scratch/delta_norm_epoch': (A @ B).norm().item()
                 })
 
-                # Log individual A cells (A is [4,1])
-                for i in range(4):
-                    log_dict[f'scratch/A[{i},0]'] = A[i, 0].item()
-
-                # Log individual B cells (B is [1,4])
-                for j in range(4):
-                    log_dict[f'scratch/B[0,{j}]'] = B[0, j].item()
-
-                # Log individual C cells (C is [4,4])
-                for i in range(4):
-                    for j in range(4):
-                        log_dict[f'scratch/C[{i},{j}]'] = C[i, j].item()
-
-            wandb.log(log_dict)
+            wandb.log(log_dict, commit=False)  # commit=False to merge with last batch's log
 
         if epoch % 10 == 0:
-            print(f"Epoch {epoch:3d}: Train Loss = {train_loss:.6f}, Val Loss = {val_loss:.6f}")
-            # Debug A,B updates
-            C, A, B = model.get_lrtt_components()
-            if A is not None:
-                print(f"  -> A norm={A.norm():.4f}, B norm={B.norm():.4f}")
-
-        # Special check after first epoch to see C range
-        if epoch == 0:
-            C_after_epoch0, _, _ = model.get_lrtt_components()
-            C_diff = (C_after_epoch0 - C_init_copy).abs().max().item()
-            print(f"\n[EPOCH 0 COMPLETE] C changed by max: {C_diff:.6f}")
-            print(f"C range: [{C_after_epoch0.min():.4f}, {C_after_epoch0.max():.4f}]")
-            if C_after_epoch0.max() > 1.0 or C_after_epoch0.min() < -1.0:
-                print(f"WARNING: C exceeded [-1, 1] range even with clipping!")
-            print()
+            print(f"Epoch {epoch:3d}: Train={train_loss:.6f}, Val={val_loss:.6f}")
 
         if patience_counter >= config.lrtt_patience:
             print(f"Early stopping at epoch {epoch}")
@@ -606,20 +685,12 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
     if best_model_state is not None:
         model.load_state_dict(best_model_state)
 
-    print(f"Best validation loss: {best_val_loss:.6f}")
+    print(f"\nBest val loss: {best_val_loss:.6f}")
 
-    # Print final a,b norms and debug info
+    # Print final norms
     C, A, B = model.get_lrtt_components()
     if A is not None and B is not None:
-        print(f"Final ‖A‖ = {A.norm():.4f}, ‖B‖ = {B.norm():.4f}")
-        AB_product = A @ B
-        print(f"‖ΔW‖_F = ‖A⊗B‖ = {AB_product.norm():.4f}")
-        print(f"A shape: {A.shape}, B shape: {B.shape}, A⊗B shape: {AB_product.shape}")
-        print(f"A values: {A.flatten()[:5]}")
-        print(f"B values: {B.flatten()[:5]}")
-        print(f"A⊗B values: {AB_product.flatten()[:5]}")
-
-    print(f"\nRecorded {len(training_history)} epochs of training history")
+        print(f"Final: ‖A‖={A.norm():.4f}, ‖B‖={B.norm():.4f}, ‖A⊗B‖={(A @ B).norm():.4f}")
 
     return model, training_history
 
@@ -730,7 +801,7 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
                 'optimizer_lr', 'lora_alpha', 'rank', 'correct_gradient_magnitudes',
                 'lr_eff_LoRA', 'transfer_lr_C', 'transfer_every',
                 'input_type', 'complexity_level', 'seed',
-                'use_6t1c_ab', 'dt_batch_sec', 'include_retention',
+                'use_6t1c_ab', 'retention_ratio_at_transfer', 'include_retention',
                 'reinit_mode', 'decay_factor',
                 'train_samples', 'input_dim', 'output_dim',
                 'NOTE_matrix_notation', 'NOTE_code_forward'
@@ -739,7 +810,7 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
                 config.lrtt_lr, config.lora_alpha, config.lrtt_rank, True,
                 lr_eff_ab, transfer_lr_c, config.lrtt_transfer_every,
                 config.input_type, complexity_level, seed,
-                config.USE_6T1C_AB, config.dt_batch_sec if config.USE_6T1C_AB else None,
+                config.USE_6T1C_AB, config.retention_ratio_at_transfer if config.USE_6T1C_AB else None,
                 config.include_retention if config.USE_6T1C_AB else None,
                 config.reinit_mode, config.decay_factor,
                 config.D_prime_train_size, config.input_dim, config.output_dim,
@@ -758,7 +829,7 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
                 'Target complexity level',
                 'Random seed',
                 'Use 6T1C device for A/B (LoRA matrices)',
-                'Time per batch (seconds) for retention',
+                'Fraction of A/B weight remaining at transfer (0.95=95% retention)',
                 'Include retention effects',
                 'Reinit mode after transfer',
                 'Decay factor for reinit',
@@ -921,7 +992,10 @@ def run_scratch_experiment(config: ScratchExperimentConfig, complexity_level: st
     print(f"\n{'='*60}")
     print(f"Running SCRATCH experiment with seed={seed}, complexity_level={complexity_level}")
     print(f"REINIT CONFIG: mode={config.reinit_mode}, decay_factor={config.decay_factor}")
-    print(f"DEVICE CONFIG: 6T1C_AB={config.USE_6T1C_AB}, retention={config.include_retention if config.USE_6T1C_AB else 'N/A'}")
+    if config.USE_6T1C_AB and config.include_retention:
+        print(f"DEVICE CONFIG: 6T1C_AB=True, retention={config.retention_ratio_at_transfer*100:.1f}% at transfer")
+    else:
+        print(f"DEVICE CONFIG: 6T1C_AB={config.USE_6T1C_AB}, retention={'OFF' if not config.include_retention else 'N/A'}")
     print(f"{'='*60}")
 
     # Initialize wandb run for this experiment
@@ -941,6 +1015,7 @@ def run_scratch_experiment(config: ScratchExperimentConfig, complexity_level: st
                 'transfer_every': config.lrtt_transfer_every,
                 'lora_alpha': config.lora_alpha,
                 'use_6t1c_ab': config.USE_6T1C_AB,
+                'retention_ratio_at_transfer': config.retention_ratio_at_transfer if config.USE_6T1C_AB else None,
                 'include_retention': config.include_retention if config.USE_6T1C_AB else None,
             },
             reinit=True
