@@ -1969,7 +1969,8 @@ void BitLineMaker<T>::makeCounts(
   current_m_batch_ = m_batch;
   current_out_trans_ = out_trans;
   current_ublm_ = up.update_bl_management;
-  current_um_ = up.update_management;
+  // Include use_manual_scaling in update_management to ensure proper buffer initialization
+  current_um_ = up.update_management || up.use_manual_scaling;
   current_lr_ = lr; // save for rpu device if needed
   current_d_sparsity_ = up.d_sparsity;
 
@@ -1993,7 +1994,13 @@ void BitLineMaker<T>::makeCounts(
 
   T A = 0;
   T B = 0;
-  up.calculateBlAB(current_BL_, A, B, lr, weight_granularity); // will update current_BL
+  if (up.use_manual_scaling) {
+    // Use performUpdateManagement which handles use_manual_scaling
+    // Pass dummy values for x_abs_max and d_abs_max since they're not used in manual mode
+    up.performUpdateManagement(current_BL_, A, B, up.desired_BL, (T)0.0, (T)0.0, lr, weight_granularity);
+  } else {
+    up.calculateBlAB(current_BL_, A, B, lr, weight_granularity); // will update current_BL
+  }
 
   bool sr = up.sto_round;
   T res = up.res;

@@ -480,7 +480,10 @@ template <typename T> void declare_rpu_devices(py::module &m, std::string type_n
       .def_readwrite("update_management", &RPU::PulsedUpdateMetaParameter<T>::update_management)
       .def_readwrite(
           "update_bl_management", &RPU::PulsedUpdateMetaParameter<T>::update_bl_management)
-      .def_readwrite("x_res_implicit", &RPU::PulsedUpdateMetaParameter<T>::x_res_implicit);
+      .def_readwrite("x_res_implicit", &RPU::PulsedUpdateMetaParameter<T>::x_res_implicit)
+      .def_readwrite("use_manual_scaling", &RPU::PulsedUpdateMetaParameter<T>::use_manual_scaling)
+      .def_readwrite("manual_x_scaling", &RPU::PulsedUpdateMetaParameter<T>::manual_x_scaling)
+      .def_readwrite("manual_d_scaling", &RPU::PulsedUpdateMetaParameter<T>::manual_d_scaling);
 
   py::class_<RPU::IOMetaParameter<T>>(m, NAME("AnalogTileInputOutputParameter"))
       .def(py::init<>())

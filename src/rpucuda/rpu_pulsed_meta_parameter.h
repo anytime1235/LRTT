@@ -255,6 +255,11 @@ template <typename T> struct PulsedUpdateMetaParameter {
   T um_grad_scale = 1.0; // bias gradient for UM (ie 0.5 means more clipping of gradient)
   T um_reg_scale = 1.0;  // scale for regularizer of UM / UBLM (scale=1 means reg = dw_min**2)
   bool sto_round = false;
+
+  // Hardware-realistic manual scaling options
+  bool use_manual_scaling = false;  // When true, use fixed scaling factors
+  T manual_x_scaling = 1.0;         // B factor: scaling for input x
+  T manual_d_scaling = 1.0;         // A factor: scaling for gradient d
   bool d_sparsity = false; // whether compute d sparsity
   T _d_sparsity = 0.0;     // hidden container
 

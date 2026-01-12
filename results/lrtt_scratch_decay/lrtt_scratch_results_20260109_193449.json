@@ -1,0 +1,19 @@
+[
+  {
+    "seed": 42,
+    "complexity_level": "medium",
+    "lrtt_results": {
+      "MSE": 0.03843144699931145,
+      "RMSE": 0.19603940165005465,
+      "R2": 0.8838280378583279
+    },
+    "matrix_comparison": {
+      "frobenius_diff": 0.6972318887710571,
+      "mse_matrix": 0.030383270233869553,
+      "relative_error": 0.3629747795796452,
+      "target_norm": 1.9208824634552002,
+      "learned_norm": 1.7759559154510498
+    },
+    "experiment_type": "scratch"
+  }
+]

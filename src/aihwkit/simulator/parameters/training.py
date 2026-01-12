@@ -125,3 +125,30 @@ class UpdateParameters(_PrintableMixin):
     pulse number times the weight granularity). If 1, both d and x inputs
     are clipped for the same learning rate.
     """
+
+    # Hardware-realistic manual scaling options
+    use_manual_scaling: bool = False
+    """Whether to use manual (fixed) scaling factors instead of dynamic calculation.
+
+    When True, ``manual_x_scaling`` and ``manual_d_scaling`` are used directly
+    as the B and A factors respectively, bypassing the automatic scaling logic.
+    This is useful for hardware-realistic simulations where scaling factors are fixed.
+
+    Note: aihwkit uses A for d (gradient) scaling and B for x (input) scaling.
+    """
+
+    manual_x_scaling: float = 1.0
+    """Manual scaling factor for input x (corresponds to B factor in aihwkit).
+
+    Only used when ``use_manual_scaling=True``.
+    In hardware, this is the fixed scaling applied to input activations
+    before pulse generation.
+    """
+
+    manual_d_scaling: float = 1.0
+    """Manual scaling factor for gradient d (corresponds to A factor in aihwkit).
+
+    Only used when ``use_manual_scaling=True``.
+    In hardware, this is the fixed scaling applied to error/gradient signals
+    before pulse generation.
+    """

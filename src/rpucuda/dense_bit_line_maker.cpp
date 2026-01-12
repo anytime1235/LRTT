@@ -281,7 +281,8 @@ int *DenseBitLineMaker<T>::makeCoincidences(
   T B = 0;
   int BL = 0;
   // negative lr allowed in the below, thus (T)fabsf(lr)
-  if (up.update_bl_management || up.update_management) {
+  // Also check use_manual_scaling to enable hardware-realistic fixed scaling mode
+  if (up.use_manual_scaling || up.update_bl_management || up.update_management) {
 
     T x_abs_max = Find_Absolute_Max<T>(x_in, x_size_, x_inc);
     T d_abs_max = Find_Absolute_Max<T>(d_in, d_size_, d_inc);

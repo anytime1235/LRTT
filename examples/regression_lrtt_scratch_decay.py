@@ -53,8 +53,8 @@ class ScratchExperimentConfig:
     primary_seed = 42
 
     # Data dimensions
-    input_dim = 4
-    output_dim = 4
+    input_dim = 3
+    output_dim = 3
 
     # Dataset sizes
     D_prime_train_size = 25
@@ -65,14 +65,14 @@ class ScratchExperimentConfig:
 
     # Input data type
     # Options: 'continuous', 'ternary' (0, 0.5, 1), 'binary' (0, 1)
-    input_type = 'binary'  # Change this to 'ternary' or 'binary' for discrete inputs
+    input_type = 'ternary'  # Change this to 'ternary' or 'binary' for discrete inputs
 
     # Complexity levels to test
     # Options: 'simple' (0.5), 'medium' (0.8), 'complex' (1.0)
     complexity_levels = ['medium']
 
     # Training hyperparameters - LRTT scratch training
-    lrtt_lr = 0.1  # Very conservative LR
+    # Note: lrtt_lr is computed from hardware parameters below (see lrtt_lr property)
     lrtt_epochs = 1000
     lrtt_batch_size = 1
     lrtt_patience = 10  # Allow a bit more training than fine-tuning
@@ -89,7 +89,7 @@ class ScratchExperimentConfig:
 
     # A matrix initialization mode
     # Options: 'zero' (LoRA-style, ΔW=0 initially), 'kaiming' (random Kaiming initialization)
-    a_init_mode = 'kaiming'  # Change to 'zero' for original LoRA initialization
+    a_init_mode = 'zero'  # Change to 'zero' for original LoRA initialization
 
     # Device configuration
     # Use 6T1C device for A/B matrices (capacitor-based with retention decay)
@@ -104,11 +104,25 @@ class ScratchExperimentConfig:
     retention_ratio_at_transfer = 0.95  # 95% retention at transfer
     include_retention = True  # Enable/disable retention effects
 
-    # Pulse/Update configuration
+    # Pulse/Update configuration (Hardware-realistic settings)
     desired_bl = 7  # Bit length (pulse train length): max number of pulses (default: 31)
     pulse_type = PulseType.STOCHASTIC_COMPRESSED  # Pulse generation type
-    update_bl_management = True  # Dynamic BL adjustment
-    update_management = True  # Scale A, B based on input/error strengths
+
+    # Hardware mode: use fixed manual scaling factors
+    # When use_manual_scaling=True, x_scaling and d_scaling are applied directly
+    # as B (input) and A (gradient) factors, bypassing dynamic calculation
+    use_manual_scaling = True  # Enable hardware-realistic fixed scaling mode
+
+    # Manual scaling factors (hardware-fixed)
+    # x_scaling: applied to input x (B factor in aihwkit)
+    # d_scaling: applied to gradient d (A factor in aihwkit)
+    x_scaling = 1.0  # Input (x) scaling factor
+    d_scaling = 0.31  # Gradient (d) scaling factor
+
+    # Note: dw_min is defined in SoftBoundsReferenceDevice (device characteristic)
+    # Effective learning rate in hardware mode:
+    # Δw = x_scaling * d_scaling * x * d * BL * dw_min (approximately)
+    lrtt_lr = 0.1  # Placeholder for optimizer (actual update is hardware-controlled)
 
     # Results directory
     results_dir = "results/lrtt_scratch_decay"
@@ -147,7 +161,7 @@ def create_6t1c_device(retention_ratio_at_transfer=1.0, transfer_every=10, inclu
 
     return LinearStepDevice(
         # Core update parameters (fitted from 6T1C data)
-        dw_min=0.001981,
+        dw_min=0.02,  #0.001981
         up_down=0.0,
         w_max=1.0,
         w_min=-1.0,
@@ -304,11 +318,16 @@ class LRTTModel(nn.Module):
         )
 
         # Update parameters for pulse generation
+        # When use_manual_scaling=True, A and B are set directly from manual_d_scaling and manual_x_scaling
+        # bypassing the dynamic calculation based on lr, dw_min, and input magnitudes
         update = UpdateParameters(
             desired_bl=config.desired_bl,              # Bit length (pulse train length)
             pulse_type=config.pulse_type,              # Stochastic pulse generation
-            update_bl_management=config.update_bl_management,  # Dynamically adjust BL
-            update_management=config.update_management,        # Scale A, B based on input/error strengths
+            use_manual_scaling=config.use_manual_scaling,  # Enable hardware-realistic fixed scaling
+            manual_x_scaling=config.x_scaling,         # B factor: scaling for input x
+            manual_d_scaling=config.d_scaling,         # A factor: scaling for gradient d
+            update_bl_management=False,                # Disable dynamic BL adjustment
+            update_management=False,                   # Disable dynamic A/B scaling
         )
 
         rpu_config = PythonLRTTRPUConfig(
@@ -384,7 +403,7 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
     """Train LRTT from scratch on D'.
 
     Returns:
-        Tuple of (model, training_history)
+        Tuple of (model, training_history, C_init, A_init, B_init)
     """
 
     print("\n" + "="*60)
@@ -411,13 +430,14 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
     # Training history for cell-wise tracking
     training_history = []
 
-    # Record initial state (epoch=-1, before any training)
+    # Record initial state (step=0, before any training)
     C_init_log, A_init_log, B_init_log = model.get_lrtt_components()
     if A_init_log is not None and B_init_log is not None:
         initial_history = {
-            'epoch': -1,  # -1 indicates initial state
-            'train_loss': float('nan'),
-            'val_loss': float('nan'),
+            'step': 0,  # 0 indicates initial state
+            'epoch': 0,
+            'batch_idx': -1,  # -1 indicates before any batch
+            'batch_loss': float('nan'),
             'is_transfer': False,
             'A_matrix': A_init_log.cpu().detach().numpy().copy(),
             'B_matrix': B_init_log.cpu().detach().numpy().copy(),
@@ -443,17 +463,19 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
             'scratch/delta_norm_step': (A_init_log @ B_init_log).norm().item()
         }
 
-        # Log individual A cells (A is [4,1])
-        for i in range(4):
-            log_dict[f'scratch/A[{i},0]_step'] = A_init_log[i, 0].item()
+        # Log individual A cells (A is [input_dim, rank])
+        for i in range(A_init_log.shape[0]):
+            for r in range(A_init_log.shape[1]):
+                log_dict[f'scratch/A[{i},{r}]_step'] = A_init_log[i, r].item()
 
-        # Log individual B cells (B is [1,4])
-        for j in range(4):
-            log_dict[f'scratch/B[0,{j}]_step'] = B_init_log[0, j].item()
+        # Log individual B cells (B is [rank, input_dim])
+        for r in range(B_init_log.shape[0]):
+            for j in range(B_init_log.shape[1]):
+                log_dict[f'scratch/B[{r},{j}]_step'] = B_init_log[r, j].item()
 
-        # Log individual C cells (C is [4,4])
-        for i in range(4):
-            for j in range(4):
+        # Log individual C cells (C is [input_dim, input_dim])
+        for i in range(C_init_log.shape[0]):
+            for j in range(C_init_log.shape[1]):
                 log_dict[f'scratch/C[{i},{j}]_step'] = C_init_log[i, j].item()
 
         wandb.log(log_dict)
@@ -481,46 +503,46 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
                 C, A, B = model.get_lrtt_components()
                 print(f"    Before step - A norm: {A.norm():.6f}, B norm: {B.norm():.6f}")
 
-                # Calculate update management parameters (matching C++ code)
-                analog_tile = model.lrtt_layer.analog_module
-                if hasattr(analog_tile, 'tile_a') and hasattr(analog_tile, 'tile_b'):
-                    # Get dw_min from A tile device
-                    dw_min = 0.001981  # 6T1C device default
+                # Show hardware pulse parameters (fixed scaling mode)
+                import math
 
-                    # Calculate x_max, d_max from current batch
-                    x_abs_max = X_batch.abs().max().item()
+                # Get actual data values for reference
+                x_abs_max = X_batch.abs().max().item()
+                d_batch = 2 * (Y_pred - Y_batch) / Y_batch.size(0)
+                d_abs_max = d_batch.abs().max().item()
 
-                    # Get gradient (d) - compute BEFORE loss.backward()
-                    # d = gradient w.r.t. output = dL/dY = 2(Y_pred - Y_batch) / batch_size
-                    d_batch = 2 * (Y_pred - Y_batch) / Y_batch.size(0)
-                    d_abs_max = d_batch.abs().max().item()
+                # Hardware-fixed parameters
+                dw_min = 0.02  # From LinearStepDevice definition
+                BL = config.desired_bl
 
-                    # Calculate k_val (matching rpu_pulsed_meta_parameter.cpp)
-                    k_val = config.lrtt_lr * x_abs_max * d_abs_max / dw_min
+                # With use_manual_scaling=True:
+                # B = x_scaling (applied to x/input)
+                # A = d_scaling (applied to d/gradient)
+                B_factor = config.x_scaling  # Applied to x
+                A_factor = config.d_scaling  # Applied to d
 
-                    # Calculate BL (update_bl_management)
-                    import math
-                    BL_calculated = math.ceil(k_val)
-                    BL_used = min(BL_calculated, config.desired_bl)
+                # Effective values after scaling (what goes into pulse generation)
+                # prob(x) = B * x, prob(d) = A * d
+                x_scaled_max = x_abs_max * B_factor
+                d_scaled_max = d_abs_max * A_factor
 
-                    # Calculate A, B factors (update_management)
-                    import math
-                    scaling_factor = math.sqrt(config.lrtt_lr / (dw_min * BL_used))
-                    A_factor = math.sqrt(d_abs_max / x_abs_max) * scaling_factor
-                    B_factor = math.sqrt(x_abs_max / d_abs_max) * scaling_factor
+                # Expected number of pulses for max values
+                # Weight update: Δw ≈ coincidences * dw_min
+                # coincidences ≈ prob(x) * prob(d) * BL = (B*x) * (A*d) * BL
+                expected_pulses = x_scaled_max * d_scaled_max * BL
 
-                    print(f"\n    === Update Management Parameters ===")
-                    print(f"    x_abs_max: {x_abs_max:.6f}")
-                    print(f"    d_abs_max: {d_abs_max:.6f}")
-                    print(f"    dw_min: {dw_min:.6f}")
-                    print(f"    k_val: {k_val:.6f}")
-                    print(f"    BL_calculated: {BL_calculated}")
-                    print(f"    BL_used (min(BL_calc, desired_bl)): {BL_used}")
-                    print(f"    A_factor: {A_factor:.6f}")
-                    print(f"    B_factor: {B_factor:.6f}")
-                    print(f"    A_factor * B_factor: {A_factor * B_factor:.6f}")
-                    print(f"    Expected: sqrt(lr/(dw_min*BL)): {scaling_factor:.6f}")
-                    print(f"    ======================================\n")
+                print(f"\n    === Hardware Pulse Parameters (use_manual_scaling=True) ===")
+                print(f"    dw_min: {dw_min:.6f}")
+                print(f"    BL: {BL}")
+                print(f"    B_factor (x_scaling): {B_factor:.6f}")
+                print(f"    A_factor (d_scaling): {A_factor:.6f}")
+                print(f"    --- Current Batch Data ---")
+                print(f"    x_abs_max: {x_abs_max:.6f}")
+                print(f"    d_abs_max: {d_abs_max:.6f}")
+                print(f"    x_scaled (x * B): {x_scaled_max:.6f}")
+                print(f"    d_scaled (d * A): {d_scaled_max:.6f}")
+                print(f"    expected_pulses (x_s * d_s * BL): {expected_pulses:.2f}")
+                print(f"    ======================================\n")
 
             # Backward pass
             loss.backward()
@@ -534,34 +556,53 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
                 C, A, B = model.get_lrtt_components()
                 print(f"    After step - A norm: {A.norm():.6f}, B norm: {B.norm():.6f}")
 
-            # Periodic debug: print update management params every 10 steps
+            # Periodic debug: print pulse parameters every 10 steps
             if global_step % 10 == 1 and global_step <= 50:
+                import math
                 x_abs_max = X_batch.abs().max().item()
-                # Approximate d from loss gradient (Y_pred - Y_batch) / batch_size
                 d_approx = (Y_pred - Y_batch) / Y_batch.size(0)
                 d_abs_max = d_approx.abs().max().item()
-                dw_min = 0.001981
-                k_val = config.lrtt_lr * x_abs_max * d_abs_max / dw_min
-                import math
-                BL_calc = math.ceil(k_val)
-                BL_used = min(BL_calc, config.desired_bl)
-                print(f"  [Step {global_step}] x_max={x_abs_max:.4f}, d_max={d_abs_max:.4f}, k_val={k_val:.2f}, BL={BL_used}")
+
+                # Hardware-fixed parameters (use_manual_scaling=True)
+                # B = x_scaling applied to x, A = d_scaling applied to d
+                x_scaled = x_abs_max * config.x_scaling  # x * B
+                d_scaled = d_abs_max * config.d_scaling  # d * A
+                expected_pulses = x_scaled * d_scaled * config.desired_bl
+
+                print(f"  [Step {global_step}] x={x_abs_max:.4f}, d={d_abs_max:.4f}, x_s={x_scaled:.4f}, d_s={d_scaled:.4f}, pulses={expected_pulses:.1f}")
 
             train_loss += loss.item() * X_batch.size(0)
 
             # Log A, B, C cell values after each batch update
-            if use_wandb:
-                C, A, B = model.get_lrtt_components()
-                if A is not None and B is not None:
-                    # Check if transfer occurred
-                    analog_tile = model.lrtt_layer.analog_module
-                    is_transfer_step = False
-                    if hasattr(analog_tile, 'controller'):
-                        current_counter = analog_tile.controller.transfer_counter
-                        # Transfer just occurred if counter is 0 or 1 (just reset)
-                        if current_counter <= 1 and global_step > 1:
-                            is_transfer_step = True
+            C, A, B = model.get_lrtt_components()
+            if A is not None and B is not None:
+                # Check if transfer occurred
+                analog_tile = model.lrtt_layer.analog_module
+                is_transfer_step = False
+                if hasattr(analog_tile, 'controller'):
+                    current_counter = analog_tile.controller.transfer_counter
+                    # Transfer just occurred if counter is 0 or 1 (just reset)
+                    if current_counter <= 1 and global_step > 1:
+                        is_transfer_step = True
 
+                # Record step-wise history for Excel export
+                step_history = {
+                    'step': global_step,
+                    'epoch': epoch,
+                    'batch_idx': batch_idx,
+                    'batch_loss': loss.item(),
+                    'is_transfer': is_transfer_step,
+                    'A_matrix': A.cpu().detach().numpy().copy(),
+                    'B_matrix': B.cpu().detach().numpy().copy(),
+                    'C_matrix': C.cpu().detach().numpy().copy(),
+                    'A_norm': A.norm().item(),
+                    'B_norm': B.norm().item(),
+                    'C_norm': C.norm().item(),
+                    'delta_W_norm': (A @ B).norm().item()
+                }
+                training_history.append(step_history)
+
+                if use_wandb:
                     log_dict = {
                         'scratch/step': global_step,
                         'scratch/epoch': epoch,
@@ -574,23 +615,25 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
                         'scratch/delta_norm_step': (A @ B).norm().item()
                     }
 
-                    # Log individual A cells (A is [4,1])
-                    for i in range(4):
-                        log_dict[f'scratch/A[{i},0]_step'] = A[i, 0].item()
+                    # Log individual A cells (A is [input_dim, rank])
+                    for i in range(A.shape[0]):
+                        for r in range(A.shape[1]):
+                            log_dict[f'scratch/A[{i},{r}]_step'] = A[i, r].item()
 
-                    # Log individual B cells (B is [1,4])
-                    for j in range(4):
-                        log_dict[f'scratch/B[0,{j}]_step'] = B[0, j].item()
+                    # Log individual B cells (B is [rank, input_dim])
+                    for r in range(B.shape[0]):
+                        for j in range(B.shape[1]):
+                            log_dict[f'scratch/B[{r},{j}]_step'] = B[r, j].item()
 
-                    # Log individual C cells (C is [4,4])
-                    for i in range(4):
-                        for j in range(4):
+                    # Log individual C cells (C is [input_dim, input_dim])
+                    for i in range(C.shape[0]):
+                        for j in range(C.shape[1]):
                             log_dict[f'scratch/C[{i},{j}]_step'] = C[i, j].item()
 
                     wandb.log(log_dict)
-                else:
-                    if global_step <= 5:
-                        print(f"  [WARNING] Step {global_step}: A or B is None, skipping log")
+            else:
+                if global_step <= 5:
+                    print(f"  [WARNING] Step {global_step}: A or B is None, skipping log")
 
             global_step += 1
 
@@ -617,32 +660,7 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
 
         val_loss /= len(val_loader.dataset)
 
-        # Record training history (every epoch for detailed tracking)
-        C, A, B = model.get_lrtt_components()
-        if A is not None and B is not None:
-            # Check if transfer occurred this epoch
-            analog_tile = model.lrtt_layer.analog_module
-            is_transfer = False
-            if hasattr(analog_tile, 'controller'):
-                current_counter = analog_tile.controller.transfer_counter
-                # Transfer just occurred if counter reset to 0
-                if epoch > 0 and current_counter == 0:
-                    is_transfer = True
-
-            history_entry = {
-                'epoch': epoch,
-                'train_loss': train_loss,
-                'val_loss': val_loss,
-                'is_transfer': is_transfer,
-                'A_matrix': A.cpu().detach().numpy().copy(),
-                'B_matrix': B.cpu().detach().numpy().copy(),
-                'C_matrix': C.cpu().detach().numpy().copy(),
-                'A_norm': A.norm().item(),
-                'B_norm': B.norm().item(),
-                'C_norm': C.norm().item(),
-                'delta_W_norm': (A @ B).norm().item()
-            }
-            training_history.append(history_entry)
+        # Step-wise history is now recorded inside the batch loop above
 
         # Early stopping
         if val_loss < best_val_loss:
@@ -692,7 +710,7 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
     if A is not None and B is not None:
         print(f"Final: ‖A‖={A.norm():.4f}, ‖B‖={B.norm():.4f}, ‖A⊗B‖={(A @ B).norm():.4f}")
 
-    return model, training_history
+    return model, training_history, C_init, A_init, B_init
 
 
 # ============================================================================
@@ -796,49 +814,76 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
         lr_eff_ab = config.lrtt_lr * config.lora_alpha / math.sqrt(config.lrtt_rank)
         transfer_lr_c = config.lora_alpha
 
+        # Build hyperparams list dynamically based on config
+        param_names = [
+            'optimizer_lr', 'lora_alpha', 'rank', 'correct_gradient_magnitudes',
+            'lr_eff_LoRA', 'transfer_lr_C', 'transfer_every',
+            'input_type', 'complexity_level', 'seed',
+            'use_6t1c_ab', 'retention_ratio_at_transfer', 'include_retention',
+            'reinit_mode',
+        ]
+        param_values = [
+            config.lrtt_lr, config.lora_alpha, config.lrtt_rank, True,
+            lr_eff_ab, transfer_lr_c, config.lrtt_transfer_every,
+            config.input_type, complexity_level, seed,
+            config.USE_6T1C_AB, config.retention_ratio_at_transfer if config.USE_6T1C_AB else None,
+            config.include_retention if config.USE_6T1C_AB else None,
+            config.reinit_mode,
+        ]
+        param_descs = [
+            'Base optimizer learning rate',
+            'LoRA alpha scaling factor',
+            'LoRA rank',
+            'Gradient magnitude correction enabled',
+            'Effective LR for LoRA (lr × alpha / sqrt(rank))',
+            'Transfer LR for C (= alpha)',
+            'Transfer frequency (epochs)',
+            'Input data type (continuous/ternary/binary)',
+            'Target complexity level',
+            'Random seed',
+            'Use 6T1C device for A/B (LoRA matrices)',
+            'Fraction of A/B weight remaining at transfer (0.95=95% retention)',
+            'Include retention effects',
+            'Reinit mode after transfer',
+        ]
+
+        # Add decay_factor only when 6T1C is not used
+        if not config.USE_6T1C_AB:
+            param_names.append('decay_factor')
+            param_values.append(config.decay_factor)
+            param_descs.append('Decay factor for reinit')
+
+        # Add hardware pulse parameters
+        param_names.extend(['desired_bl', 'x_scaling', 'd_scaling'])
+        param_values.extend([config.desired_bl, config.x_scaling, config.d_scaling])
+        param_descs.extend([
+            'Bit length (pulse train length)',
+            'Input (x) scaling factor (B factor)',
+            'Gradient (d) scaling factor (A factor)',
+        ])
+
+        # Add remaining parameters
+        param_names.extend([
+            'train_samples', 'input_dim', 'output_dim',
+            'NOTE_matrix_notation', 'NOTE_code_forward'
+        ])
+        param_values.extend([
+            config.D_prime_train_size, config.input_dim, config.output_dim,
+            'See Notation_Guide sheet',
+            'y = C@x + α·(code_A)@(code_B)@x'
+        ])
+        param_descs.extend([
+            'Number of training samples',
+            'Input dimension',
+            'Output dimension',
+            'Excel uses standard notation: B_up, A_down',
+            'Code uses A@B, Excel shows as B@A (standard)'
+        ])
+
         hyperparams = {
-            'Parameter': [
-                'optimizer_lr', 'lora_alpha', 'rank', 'correct_gradient_magnitudes',
-                'lr_eff_LoRA', 'transfer_lr_C', 'transfer_every',
-                'input_type', 'complexity_level', 'seed',
-                'use_6t1c_ab', 'retention_ratio_at_transfer', 'include_retention',
-                'reinit_mode', 'decay_factor',
-                'train_samples', 'input_dim', 'output_dim',
-                'NOTE_matrix_notation', 'NOTE_code_forward'
-            ],
-            'Value': [
-                config.lrtt_lr, config.lora_alpha, config.lrtt_rank, True,
-                lr_eff_ab, transfer_lr_c, config.lrtt_transfer_every,
-                config.input_type, complexity_level, seed,
-                config.USE_6T1C_AB, config.retention_ratio_at_transfer if config.USE_6T1C_AB else None,
-                config.include_retention if config.USE_6T1C_AB else None,
-                config.reinit_mode, config.decay_factor,
-                config.D_prime_train_size, config.input_dim, config.output_dim,
-                'See Notation_Guide sheet',
-                'y = C@x + α·(code_A)@(code_B)@x'
-            ],
-            'Description': [
-                'Base optimizer learning rate',
-                'LoRA alpha scaling factor',
-                'LoRA rank',
-                'Gradient magnitude correction enabled',
-                'Effective LR for LoRA (lr × alpha / sqrt(rank))',
-                'Transfer LR for C (= alpha)',
-                'Transfer frequency (epochs)',
-                'Input data type (continuous/ternary/binary)',
-                'Target complexity level',
-                'Random seed',
-                'Use 6T1C device for A/B (LoRA matrices)',
-                'Fraction of A/B weight remaining at transfer (0.95=95% retention)',
-                'Include retention effects',
-                'Reinit mode after transfer',
-                'Decay factor for reinit',
-                'Number of training samples',
-                'Input dimension',
-                'Output dimension',
-                'Excel uses standard notation: B_up, A_down',
-                'Code uses A@B, Excel shows as B@A (standard)'
-            ]
+            'Parameter': param_names,
+            'Value': param_values,
+            'Description': param_descs
         }
         pd.DataFrame(hyperparams).to_excel(writer, sheet_name='Hyperparameters', index=False)
 
@@ -923,9 +968,10 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
         # 10. Training Summary
         if training_history:
             summary_data = {
+                'step': [h['step'] for h in training_history],
                 'epoch': [h['epoch'] for h in training_history],
-                'train_loss': [h['train_loss'] for h in training_history],
-                'val_loss': [h['val_loss'] for h in training_history],
+                'batch_idx': [h['batch_idx'] for h in training_history],
+                'batch_loss': [h['batch_loss'] for h in training_history],
                 'is_transfer': [h['is_transfer'] for h in training_history],
                 'A_norm': [h['A_norm'] for h in training_history],
                 'B_norm': [h['B_norm'] for h in training_history],
@@ -935,8 +981,8 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
             summary_df = pd.DataFrame(summary_data)
             summary_df.to_excel(writer, sheet_name='Training_Summary', index=False)
 
-            # 11. Cell-wise values for all epochs (flattened format)
-            # A matrix values (each row is one epoch, columns are flattened A values)
+            # 11. Cell-wise values for all steps (flattened format)
+            # A matrix values (each row is one step, columns are flattened A values)
             A_history = []
             B_history = []
             C_history = []
@@ -950,25 +996,28 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
                 B_history.append(B_flat)
                 C_history.append(C_flat)
 
-            # A matrix history
+            # A matrix history (step-wise)
             A_cols = [f'A[{i//A_init.shape[1]},{i%A_init.shape[1]}]' for i in range(A_flat.size)]
             A_history_df = pd.DataFrame(A_history, columns=A_cols)
-            A_history_df.insert(0, 'epoch', [h['epoch'] for h in training_history])
-            A_history_df.insert(1, 'is_transfer', [h['is_transfer'] for h in training_history])
+            A_history_df.insert(0, 'step', [h['step'] for h in training_history])
+            A_history_df.insert(1, 'epoch', [h['epoch'] for h in training_history])
+            A_history_df.insert(2, 'is_transfer', [h['is_transfer'] for h in training_history])
             A_history_df.to_excel(writer, sheet_name='A_down_History', index=False)
 
-            # B matrix history
+            # B matrix history (step-wise)
             B_cols = [f'B[{i//B_init.shape[1]},{i%B_init.shape[1]}]' for i in range(B_flat.size)]
             B_history_df = pd.DataFrame(B_history, columns=B_cols)
-            B_history_df.insert(0, 'epoch', [h['epoch'] for h in training_history])
-            B_history_df.insert(1, 'is_transfer', [h['is_transfer'] for h in training_history])
+            B_history_df.insert(0, 'step', [h['step'] for h in training_history])
+            B_history_df.insert(1, 'epoch', [h['epoch'] for h in training_history])
+            B_history_df.insert(2, 'is_transfer', [h['is_transfer'] for h in training_history])
             B_history_df.to_excel(writer, sheet_name='B_up_History', index=False)
 
-            # C matrix history
+            # C matrix history (step-wise)
             C_cols = [f'C[{i//C_init.shape[1]},{i%C_init.shape[1]}]' for i in range(C_flat.size)]
             C_history_df = pd.DataFrame(C_history, columns=C_cols)
-            C_history_df.insert(0, 'epoch', [h['epoch'] for h in training_history])
-            C_history_df.insert(1, 'is_transfer', [h['is_transfer'] for h in training_history])
+            C_history_df.insert(0, 'step', [h['step'] for h in training_history])
+            C_history_df.insert(1, 'epoch', [h['epoch'] for h in training_history])
+            C_history_df.insert(2, 'is_transfer', [h['is_transfer'] for h in training_history])
             C_history_df.to_excel(writer, sheet_name='C_Core_History', index=False)
 
     print(f"\n✓ Detailed experiment data saved to Excel file:")
@@ -1035,14 +1084,9 @@ def run_scratch_experiment(config: ScratchExperimentConfig, complexity_level: st
     target_train_loader = DataLoader(target_train, batch_size=config.lrtt_batch_size, shuffle=True)
     target_test_loader = DataLoader(target_test, batch_size=config.lrtt_batch_size)
 
-    # Get initial A, B, C before training (for CSV export)
-    temp_model = LRTTModel(config, pretrained_C=None).to(DEVICE)
-    C_init, A_init, B_init = temp_model.get_lrtt_components()
-    del temp_model
-
-    # Train LRTT from scratch on target dataset
-    lrtt_model, training_history = train_lrtt_scratch(config, target_train_loader,
-                                                      target_test_loader, seed, use_wandb)
+    # Train LRTT from scratch on target dataset (also returns initial A, B, C)
+    lrtt_model, training_history, C_init, A_init, B_init = train_lrtt_scratch(
+        config, target_train_loader, target_test_loader, seed, use_wandb)
 
     # Evaluate LRTT on target dataset
     lrtt_results = evaluate_model(lrtt_model, target_test_loader)
