@@ -111,35 +111,96 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             else:
                 return AnalogTile
 
+        # Helper function to create UpdateParameters with separate A/B scaling
+        def create_update_params(base_update, tile_type):
+            """Create UpdateParameters with optional tile-specific scaling.
+
+            Args:
+                base_update: Base UpdateParameters from rpu_config
+                tile_type: 'a', 'b', or 'c'
+
+            Returns:
+                UpdateParameters with tile-specific scaling if configured
+            """
+            from copy import deepcopy
+            from aihwkit.simulator.configs import UpdateParameters
+
+            # Get tile-specific scaling overrides from lrtt_config
+            a_x = getattr(self.lrtt_config, 'a_x_scaling', None)
+            a_d = getattr(self.lrtt_config, 'a_d_scaling', None)
+            b_x = getattr(self.lrtt_config, 'b_x_scaling', None)
+            b_d = getattr(self.lrtt_config, 'b_d_scaling', None)
+            c_bl = getattr(self.lrtt_config, 'c_desired_bl', None)
+
+            # Check if any tile-specific config is set
+            has_tile_specific = any(x is not None for x in [a_x, a_d, b_x, b_d, c_bl])
+
+            if not has_tile_specific:
+                # No tile-specific config, use base update params
+                return base_update
+
+            # Create a copy and apply tile-specific overrides
+            # We need to copy all fields manually
+            update_copy = UpdateParameters(
+                desired_bl=base_update.desired_bl,
+                pulse_type=base_update.pulse_type,
+                use_manual_scaling=base_update.use_manual_scaling,
+                manual_x_scaling=base_update.manual_x_scaling,
+                manual_d_scaling=base_update.manual_d_scaling,
+                update_bl_management=base_update.update_bl_management,
+                update_management=base_update.update_management,
+            )
+
+            # Apply tile-specific overrides
+            if tile_type == 'a':
+                if a_x is not None:
+                    update_copy.manual_x_scaling = a_x
+                if a_d is not None:
+                    update_copy.manual_d_scaling = a_d
+            elif tile_type == 'b':
+                if b_x is not None:
+                    update_copy.manual_x_scaling = b_x
+                if b_d is not None:
+                    update_copy.manual_d_scaling = b_d
+            elif tile_type == 'c':
+                # C tile: apply separate BL for transfer
+                if c_bl is not None:
+                    update_copy.desired_bl = c_bl
+
+            return update_copy
+
         # Tile A: fastA [d_size, rank]
         tile_class_a = get_tile_class(unit_devices[0])
+        update_a = create_update_params(rpu_config.update, 'a')
         rpu_config_a = SingleRPUConfig(
             device=unit_devices[0],
             forward=rpu_config.forward,
             backward=rpu_config.backward,
-            update=rpu_config.update,
+            update=update_a,
             tile_class=tile_class_a
         )
         self.tile_a = rpu_config_a.tile_class(d_size, self.rank, rpu_config_a)
 
         # Tile B: fastB [rank, x_size] (only rank rows needed for LoRA)
         tile_class_b = get_tile_class(unit_devices[1])
+        update_b = create_update_params(rpu_config.update, 'b')
         rpu_config_b = SingleRPUConfig(
             device=unit_devices[1],
             forward=rpu_config.forward,
             backward=rpu_config.backward,
-            update=rpu_config.update,
+            update=update_b,
             tile_class=tile_class_b
         )
         self.tile_b = rpu_config_b.tile_class(self.rank, x_size, rpu_config_b)
 
-        # Tile C: visible [d_size, x_size]
+        # Tile C: visible [d_size, x_size] - uses base update params
         tile_class_c = get_tile_class(unit_devices[2])
+        update_c = create_update_params(rpu_config.update, 'c')
         rpu_config_c = SingleRPUConfig(
             device=unit_devices[2],
             forward=rpu_config.forward,
             backward=rpu_config.backward,
-            update=rpu_config.update,
+            update=update_c,
             tile_class=tile_class_c
         )
         self.tile_c = rpu_config_c.tile_class(d_size, x_size, rpu_config_c)
@@ -159,15 +220,15 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             lora_alpha=self.lora_alpha,
             reinit_gain=self.reinit_gain,
             reinit_mode=getattr(self.lrtt_config, 'reinit_mode', 'standard'),
-            decay_factor=getattr(self.lrtt_config, 'decay_factor', 0.9),
+            decay_factor=getattr(self.lrtt_config, 'decay_factor', 1.0),
             a_init_mode=getattr(self.lrtt_config, 'a_init_mode', 'zero'),  # A matrix initialization mode
             correct_gradient_magnitudes=self.correct_gradient_magnitudes,
             rank_chunk=self.rank_chunk,
-            forward_inject=getattr(self.lrtt_config, 'forward_inject', True),
+            forward_inject=getattr(self.lrtt_config, 'forward_inject', False),
             num_reads=getattr(self.lrtt_config, 'num_reads', 1),
             multi_read_mode=getattr(self.lrtt_config, 'multi_read_mode', 'average'),
             update_mode=getattr(self.lrtt_config, 'update_mode', 'lora'),
-            use_onehot_transfer=getattr(self.lrtt_config, 'use_onehot_transfer', True),
+            transfer_method=getattr(self.lrtt_config, 'transfer_method', 'onehot'),
         )
 
         # Apply post-init settings from config._post_init
@@ -202,7 +263,11 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         self.controller.recon_lr_scale = post_init.get('recon_lr_scale', 1.0)
         self.controller.recon_clip_norm = post_init.get('recon_clip_norm', 10.0)
         self.controller.recon_use_clip_norm = post_init.get('recon_use_clip_norm', False)
-        
+
+        # Debug logging settings
+        self.controller.log_ab_scaling = post_init.get('log_ab_scaling', False)
+        self.controller.log_ab_scaling_every = post_init.get('log_ab_scaling_every', 10)
+
         # Initialize LRTT weights
         self.controller.reinit()
         
@@ -620,14 +685,17 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         """Get LRTT controller state for debugging/monitoring."""
         return self.controller.get_state_dict()
         
-    def manual_transfer(self, use_onehot: Optional[bool] = None) -> None:
+    def manual_transfer(self, method: Optional[str] = None) -> None:
         """Manually trigger A⊗B -> visible transfer (for testing).
 
         Args:
-            use_onehot: If True, use one-hot transfer. If False, use direct transfer.
-                       If None, use controller's use_onehot_transfer setting.
+            method: Transfer method override.
+                   "onehot" - One-hot reading (pulsed update)
+                   "direct" - Direct weight access (pulsed update)
+                   "set" - Exact weight setting (no pulsed update)
+                   If None, use controller's transfer_method setting.
         """
-        self.controller.ab_weight_transfer(use_onehot=use_onehot)
+        self.controller.ab_weight_transfer(method=method)
     
     def _infer_device_from_self(self) -> torch.device:
         """Infer device from submodule parameters/buffers."""

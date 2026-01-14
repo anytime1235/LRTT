@@ -173,11 +173,12 @@ class PythonLRTTDevice(_PrintableMixin):
     """Enable norm clipping for A,B. Disabled by default as orthogonal reinit provides stability."""
 
     # === Transfer Method Settings ===
-    use_onehot_transfer: bool = True
+    transfer_method: str = "onehot"
     """Transfer method:
-    - True: One-hot transfer (rank-by-rank differential read)
-    - False: Direct transfer (matrix multiply A @ B)
-    Default is True (one-hot)."""
+    - "onehot": One-hot transfer (rank-by-rank differential read, pulsed update)
+    - "direct": Direct transfer (matrix multiply A @ B, pulsed update)
+    - "set": Exact transfer (set_weights directly, no pulsed update noise)
+    Default is "onehot"."""
 
     # === Advanced Parameters ===
     units_in_mbatch: bool = False
@@ -206,9 +207,35 @@ class PythonLRTTDevice(_PrintableMixin):
     # === BL Management (Simplified for Python) ===
     ab_bl_mgmt: Optional[Dict[str, Any]] = None
     """BL management settings for A/B updates (optional)."""
-    
-    transfer_bl_mgmt: Optional[Dict[str, Any]] = None  
+
+    transfer_bl_mgmt: Optional[Dict[str, Any]] = None
     """BL management settings for transfers (optional)."""
+
+    # === Separate A/B Scaling Parameters ===
+    # When use_manual_scaling=True in UpdateParameters, these override global scaling
+    a_x_scaling: Optional[float] = None
+    """X (input) scaling factor for A tile. If None, uses global manual_x_scaling."""
+
+    a_d_scaling: Optional[float] = None
+    """D (gradient) scaling factor for A tile. If None, uses global manual_d_scaling."""
+
+    b_x_scaling: Optional[float] = None
+    """X (input) scaling factor for B tile. If None, uses global manual_x_scaling."""
+
+    b_d_scaling: Optional[float] = None
+    """D (gradient) scaling factor for B tile. If None, uses global manual_d_scaling."""
+
+    # === Separate BL (Bit Length) Settings ===
+    c_desired_bl: Optional[int] = None
+    """Desired BL for C tile (transfer). If None, uses global desired_bl from UpdateParameters.
+    Typically set higher (e.g., 31) for more accurate transfer to C tile."""
+
+    # === Debug Logging ===
+    log_ab_scaling: bool = False
+    """Enable logging of x,d max values during A/B updates."""
+
+    log_ab_scaling_every: int = 10
+    """Log x,d max values every N steps (only when log_ab_scaling=True)."""
     
     def __post_init__(self):
         """Validate configuration parameters."""
@@ -357,7 +384,7 @@ class PythonLRTTDevice(_PrintableMixin):
             'num_reads': self.num_reads,
             'multi_read_mode': self.multi_read_mode,
             'update_mode': self.update_mode,
-            'use_onehot_transfer': self.use_onehot_transfer,
+            'transfer_method': self.transfer_method,
         }
         # Post-init settings (set on controller after creation)
         kwargs['_post_init'] = {
@@ -385,6 +412,16 @@ class PythonLRTTDevice(_PrintableMixin):
             'recon_lr_scale': self.recon_lr_scale,
             'recon_clip_norm': self.recon_clip_norm,
             'recon_use_clip_norm': self.recon_use_clip_norm,
+            # Separate A/B scaling
+            'a_x_scaling': self.a_x_scaling,
+            'a_d_scaling': self.a_d_scaling,
+            'b_x_scaling': self.b_x_scaling,
+            'b_d_scaling': self.b_d_scaling,
+            # Debug logging
+            'log_ab_scaling': self.log_ab_scaling,
+            'log_ab_scaling_every': self.log_ab_scaling_every,
+            # Separate BL for C tile
+            'c_desired_bl': self.c_desired_bl,
         }
         return kwargs
     

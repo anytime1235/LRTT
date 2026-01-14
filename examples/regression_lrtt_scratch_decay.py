@@ -80,8 +80,8 @@ class ScratchExperimentConfig:
 
     # LRTT configuration
     lrtt_rank = 1  # Rank-1 for minimal overfitting
-    lrtt_transfer_every = 10  # Medium frequency to observe transfer effects
-    lora_alpha = 2.0  # Conservative scaling
+    lrtt_transfer_every = 9  # Medium frequency to observe transfer effects
+    lora_alpha = 0.0417  # Conservative scaling
 
     # Reinit configuration - DECAY MODE
     reinit_mode = "decay"  # Use decay mode instead of standard
@@ -105,7 +105,8 @@ class ScratchExperimentConfig:
     include_retention = True  # Enable/disable retention effects
 
     # Pulse/Update configuration (Hardware-realistic settings)
-    desired_bl = 7  # Bit length (pulse train length): max number of pulses (default: 31)
+    desired_bl = 7  # Bit length for A/B updates (pulse train length)
+    c_desired_bl = 31  # Bit length for C transfer (higher for accuracy)
     pulse_type = PulseType.STOCHASTIC_COMPRESSED  # Pulse generation type
 
     # Hardware mode: use fixed manual scaling factors
@@ -113,11 +114,23 @@ class ScratchExperimentConfig:
     # as B (input) and A (gradient) factors, bypassing dynamic calculation
     use_manual_scaling = True  # Enable hardware-realistic fixed scaling mode
 
-    # Manual scaling factors (hardware-fixed)
+    # Manual scaling factors (hardware-fixed) - Global defaults
     # x_scaling: applied to input x (B factor in aihwkit)
     # d_scaling: applied to gradient d (A factor in aihwkit)
-    x_scaling = 1.0  # Input (x) scaling factor
-    d_scaling = 0.31  # Gradient (d) scaling factor
+    x_scaling = None  # Input (x) scaling factor (global default)
+    d_scaling = None  # Gradient (d) scaling factor (global default)
+
+    # Separate A/B tile scaling factors (override global if set)
+    # A tile update: x=XB (B projection of input), d=original gradient
+    # B tile update: x=original input, d=DA (A^T projection of gradient)
+    a_x_scaling = 0.2971  # A tile x scaling (None = use global x_scaling)
+    a_d_scaling = 0.5107  # A tile d scaling (None = use global d_scaling)
+    b_x_scaling = 1.0  # B tile x scaling (None = use global x_scaling)
+    b_d_scaling = 0.7596  # B tile d scaling (None = use global d_scaling)
+
+    # Debug logging for A/B scaling
+    log_ab_scaling = True  # Enable x,d max value logging
+    log_ab_scaling_every = 10  # Log every N steps
 
     # Note: dw_min is defined in SoftBoundsReferenceDevice (device characteristic)
     # Effective learning rate in hardware mode:
@@ -163,8 +176,8 @@ def create_6t1c_device(retention_ratio_at_transfer=1.0, transfer_every=10, inclu
         # Core update parameters (fitted from 6T1C data)
         dw_min=0.02,  #0.001981
         up_down=0.0,
-        w_max=1.0,
-        w_min=-1.0,
+        w_max=0.7,
+        w_min=-0.7,
         gamma_up=-0.1678,
         gamma_down=0.1410,
         mult_noise=True,
@@ -283,12 +296,24 @@ class LRTTModel(nn.Module):
             decay_factor=config.decay_factor,
             a_init_mode=config.a_init_mode,  # A initialization mode
             forward_inject=False,
-            correct_gradient_magnitudes=True,
+            correct_gradient_magnitudes=False,
             unit_cell_devices=[
                 ab_device,  # A matrix
                 ab_device,  # B matrix
                 FloatingPointDevice(),  # C matrix (no quantization, perfect precision)
-            ]
+            ],
+            # Separate A/B tile scaling factors
+            a_x_scaling=config.a_x_scaling,
+            a_d_scaling=config.a_d_scaling,
+            b_x_scaling=config.b_x_scaling,
+            b_d_scaling=config.b_d_scaling,
+            # Debug logging
+            log_ab_scaling=config.log_ab_scaling,
+            log_ab_scaling_every=config.log_ab_scaling_every,
+            # Separate BL for C tile transfer
+            c_desired_bl=config.c_desired_bl,
+            # Exact transfer method (no pulsed update noise for C)
+            transfer_method="set",
         )
 
         print(f"A initialization mode: {config.a_init_mode}")
@@ -515,33 +540,32 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
                 dw_min = 0.02  # From LinearStepDevice definition
                 BL = config.desired_bl
 
-                # With use_manual_scaling=True:
-                # B = x_scaling (applied to x/input)
-                # A = d_scaling (applied to d/gradient)
-                B_factor = config.x_scaling  # Applied to x
-                A_factor = config.d_scaling  # Applied to d
+                # Get tile-specific scaling factors
+                # A tile: uses a_x_scaling, a_d_scaling (or global if None)
+                # B tile: uses b_x_scaling, b_d_scaling (or global if None)
+                a_x_factor = config.a_x_scaling if config.a_x_scaling is not None else config.x_scaling
+                a_d_factor = config.a_d_scaling if config.a_d_scaling is not None else config.d_scaling
+                b_x_factor = config.b_x_scaling if config.b_x_scaling is not None else config.x_scaling
+                b_d_factor = config.b_d_scaling if config.b_d_scaling is not None else config.d_scaling
 
-                # Effective values after scaling (what goes into pulse generation)
-                # prob(x) = B * x, prob(d) = A * d
-                x_scaled_max = x_abs_max * B_factor
-                d_scaled_max = d_abs_max * A_factor
-
-                # Expected number of pulses for max values
-                # Weight update: Δw ≈ coincidences * dw_min
-                # coincidences ≈ prob(x) * prob(d) * BL = (B*x) * (A*d) * BL
-                expected_pulses = x_scaled_max * d_scaled_max * BL
+                # Format global scaling (handle None)
+                global_x = f"{config.x_scaling:.4f}" if config.x_scaling is not None else "None"
+                global_d = f"{config.d_scaling:.4f}" if config.d_scaling is not None else "None"
+                a_x_str = f"{a_x_factor:.4f}" if a_x_factor is not None else "None"
+                a_d_str = f"{a_d_factor:.4f}" if a_d_factor is not None else "None"
+                b_x_str = f"{b_x_factor:.4f}" if b_x_factor is not None else "None"
+                b_d_str = f"{b_d_factor:.4f}" if b_d_factor is not None else "None"
 
                 print(f"\n    === Hardware Pulse Parameters (use_manual_scaling=True) ===")
                 print(f"    dw_min: {dw_min:.6f}")
                 print(f"    BL: {BL}")
-                print(f"    B_factor (x_scaling): {B_factor:.6f}")
-                print(f"    A_factor (d_scaling): {A_factor:.6f}")
+                print(f"    Global: x_scaling={global_x}, d_scaling={global_d}")
+                print(f"    --- Tile-Specific Scaling ---")
+                print(f"    A tile (code): x_scaling={a_x_str}, d_scaling={a_d_str}")
+                print(f"    B tile (code): x_scaling={b_x_str}, d_scaling={b_d_str}")
                 print(f"    --- Current Batch Data ---")
                 print(f"    x_abs_max: {x_abs_max:.6f}")
                 print(f"    d_abs_max: {d_abs_max:.6f}")
-                print(f"    x_scaled (x * B): {x_scaled_max:.6f}")
-                print(f"    d_scaled (d * A): {d_scaled_max:.6f}")
-                print(f"    expected_pulses (x_s * d_s * BL): {expected_pulses:.2f}")
                 print(f"    ======================================\n")
 
             # Backward pass
@@ -555,21 +579,6 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
             if epoch == 0 and batch_idx == 0:
                 C, A, B = model.get_lrtt_components()
                 print(f"    After step - A norm: {A.norm():.6f}, B norm: {B.norm():.6f}")
-
-            # Periodic debug: print pulse parameters every 10 steps
-            if global_step % 10 == 1 and global_step <= 50:
-                import math
-                x_abs_max = X_batch.abs().max().item()
-                d_approx = (Y_pred - Y_batch) / Y_batch.size(0)
-                d_abs_max = d_approx.abs().max().item()
-
-                # Hardware-fixed parameters (use_manual_scaling=True)
-                # B = x_scaling applied to x, A = d_scaling applied to d
-                x_scaled = x_abs_max * config.x_scaling  # x * B
-                d_scaled = d_abs_max * config.d_scaling  # d * A
-                expected_pulses = x_scaled * d_scaled * config.desired_bl
-
-                print(f"  [Step {global_step}] x={x_abs_max:.4f}, d={d_abs_max:.4f}, x_s={x_scaled:.4f}, d_s={d_scaled:.4f}, pulses={expected_pulses:.1f}")
 
             train_loss += loss.item() * X_batch.size(0)
 
@@ -794,7 +803,8 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
                                      A_init: torch.Tensor,
                                      B_init: torch.Tensor,
                                      training_history: list,
-                                     timestamp: str) -> None:
+                                     timestamp: str,
+                                     final_r2: float = None) -> None:
     """Save detailed experiment data to a single Excel file with multiple sheets."""
     import math
 
@@ -810,75 +820,73 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
     # Create Excel writer
     with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
 
-        # 1. Hyperparameters
-        lr_eff_ab = config.lrtt_lr * config.lora_alpha / math.sqrt(config.lrtt_rank)
-        transfer_lr_c = config.lora_alpha
-
-        # Build hyperparams list dynamically based on config
+        # 1. Hyperparameters (simplified and reorganized)
+        # Note: Scaling parameters use Excel notation (swapped from code)
+        # Code A tile → Excel B tile (up-projection)
+        # Code B tile → Excel A tile (down-projection)
         param_names = [
-            'optimizer_lr', 'lora_alpha', 'rank', 'correct_gradient_magnitudes',
-            'lr_eff_LoRA', 'transfer_lr_C', 'transfer_every',
-            'input_type', 'complexity_level', 'seed',
-            'use_6t1c_ab', 'retention_ratio_at_transfer', 'include_retention',
-            'reinit_mode',
+            'loss_function',
+            'rank',
+            'transfer_lr',
+            'transfer_every',
+            'input_type',
+            'complexity',
+            'seed',
+            'use_6t1c',
+            'retention',
+            'include_retention',
+            'desired_bl',
+            'dw_min',
+            'a_x_scaling',
+            'a_d_scaling',
+            'b_x_scaling',
+            'b_d_scaling',
+            'train_samples',
+            'input_dim',
+            'output_dim',
         ]
         param_values = [
-            config.lrtt_lr, config.lora_alpha, config.lrtt_rank, True,
-            lr_eff_ab, transfer_lr_c, config.lrtt_transfer_every,
-            config.input_type, complexity_level, seed,
-            config.USE_6T1C_AB, config.retention_ratio_at_transfer if config.USE_6T1C_AB else None,
+            'MSE (Mean Squared Error)',
+            config.lrtt_rank,
+            config.lora_alpha,  # transfer_lr = lora_alpha
+            config.lrtt_transfer_every,
+            config.input_type,
+            complexity_level,
+            seed,
+            config.USE_6T1C_AB,
+            config.retention_ratio_at_transfer if config.USE_6T1C_AB else None,
             config.include_retention if config.USE_6T1C_AB else None,
-            config.reinit_mode,
+            config.desired_bl,
+            0.02,  # dw_min from LinearStepDevice
+            config.b_x_scaling,  # Excel A = Code B (down-projection)
+            config.b_d_scaling,  # Excel A = Code B
+            config.a_x_scaling,  # Excel B = Code A (up-projection)
+            config.a_d_scaling,  # Excel B = Code A
+            config.D_prime_train_size,
+            config.input_dim,
+            config.output_dim,
         ]
         param_descs = [
-            'Base optimizer learning rate',
-            'LoRA alpha scaling factor',
+            '(1/N) * Σ(y_pred - y_target)²',
             'LoRA rank',
-            'Gradient magnitude correction enabled',
-            'Effective LR for LoRA (lr × alpha / sqrt(rank))',
-            'Transfer LR for C (= alpha)',
-            'Transfer frequency (epochs)',
+            'Transfer learning rate (= lora_alpha)',
+            'Transfer frequency (steps)',
             'Input data type (continuous/ternary/binary)',
             'Target complexity level',
             'Random seed',
-            'Use 6T1C device for A/B (LoRA matrices)',
-            'Fraction of A/B weight remaining at transfer (0.95=95% retention)',
+            'Use 6T1C device for A/B matrices',
+            'Retention ratio at transfer (e.g., 0.95 = 95%)',
             'Include retention effects',
-            'Reinit mode after transfer',
-        ]
-
-        # Add decay_factor only when 6T1C is not used
-        if not config.USE_6T1C_AB:
-            param_names.append('decay_factor')
-            param_values.append(config.decay_factor)
-            param_descs.append('Decay factor for reinit')
-
-        # Add hardware pulse parameters
-        param_names.extend(['desired_bl', 'x_scaling', 'd_scaling'])
-        param_values.extend([config.desired_bl, config.x_scaling, config.d_scaling])
-        param_descs.extend([
             'Bit length (pulse train length)',
-            'Input (x) scaling factor (B factor)',
-            'Gradient (d) scaling factor (A factor)',
-        ])
-
-        # Add remaining parameters
-        param_names.extend([
-            'train_samples', 'input_dim', 'output_dim',
-            'NOTE_matrix_notation', 'NOTE_code_forward'
-        ])
-        param_values.extend([
-            config.D_prime_train_size, config.input_dim, config.output_dim,
-            'See Notation_Guide sheet',
-            'y = C@x + α·(code_A)@(code_B)@x'
-        ])
-        param_descs.extend([
+            'Minimum weight update step',
+            'A tile (down-proj) x scaling',
+            'A tile (down-proj) d scaling',
+            'B tile (up-proj) x scaling',
+            'B tile (up-proj) d scaling',
             'Number of training samples',
             'Input dimension',
             'Output dimension',
-            'Excel uses standard notation: B_up, A_down',
-            'Code uses A@B, Excel shows as B@A (standard)'
-        ])
+        ]
 
         hyperparams = {
             'Parameter': param_names,
@@ -967,6 +975,12 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
 
         # 10. Training Summary
         if training_history:
+            # Add final_r2 column (only last row has the value)
+            n_steps = len(training_history)
+            r2_column = [None] * n_steps
+            if final_r2 is not None:
+                r2_column[-1] = final_r2  # Put R² in the last row
+
             summary_data = {
                 'step': [h['step'] for h in training_history],
                 'epoch': [h['epoch'] for h in training_history],
@@ -976,7 +990,8 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
                 'A_norm': [h['A_norm'] for h in training_history],
                 'B_norm': [h['B_norm'] for h in training_history],
                 'C_norm': [h['C_norm'] for h in training_history],
-                'delta_W_norm': [h['delta_W_norm'] for h in training_history]
+                'delta_W_norm': [h['delta_W_norm'] for h in training_history],
+                'final_r2': r2_column
             }
             summary_df = pd.DataFrame(summary_data)
             summary_df.to_excel(writer, sheet_name='Training_Summary', index=False)
@@ -1114,7 +1129,8 @@ def run_scratch_experiment(config: ScratchExperimentConfig, complexity_level: st
         A_init=A_init,
         B_init=B_init,
         training_history=training_history,
-        timestamp=timestamp
+        timestamp=timestamp,
+        final_r2=lrtt_results['R2']
     )
 
     if use_wandb:

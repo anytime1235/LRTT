@@ -54,17 +54,17 @@ class LRTTController:
         lora_alpha: float = 1.0,
         reinit_gain: float = 0.1,
         reinit_mode: str = "standard",
-        decay_factor: float = 0.9,
+        decay_factor: float = 1.0,
         a_init_mode: str = "zero",  # "zero" or "kaiming"
         correct_gradient_magnitudes: bool = False,
         rank_chunk: Optional[int] = None,
         ab_bl_mgmt: Optional[Dict[str, Any]] = None,
         transfer_bl_mgmt: Optional[Dict[str, Any]] = None,
-        forward_inject: bool = True,
+        forward_inject: bool = False,
         num_reads: int = 1,
         multi_read_mode: str = "average",
         update_mode: str = "lora",  # "lora" or "reconstruction"
-        use_onehot_transfer: bool = True,  # True for onehot, False for direct
+        transfer_method: str = "onehot",  # "onehot", "direct", or "set"
         device: Optional[torch.device] = None,  # Explicit device to avoid get_weights()
         dtype: torch.dtype = torch.float32      # Explicit dtype
     ):
@@ -100,7 +100,7 @@ class LRTTController:
             num_reads: Number of reads per rank during one-hot transfer (default 1)
             multi_read_mode: How to handle multiple reads: 'average' or 'per_read'
             update_mode: A/B update mode: 'lora' (chain rule) or 'reconstruction' (TikiTaka-style)
-            use_onehot_transfer: Transfer method: True for onehot, False for direct
+            transfer_method: Transfer method: "onehot", "direct", or "set" (exact weight setting)
             device: Explicit device (if None, safely inferred from tiles using tiny dummy forward)
                    Strongly recommended to pass the tile device explicitly for best performance
             dtype: Explicit dtype for tensors
@@ -139,7 +139,7 @@ class LRTTController:
         self.num_reads = num_reads
         self.multi_read_mode = multi_read_mode
         self.update_mode = update_mode
-        self.use_onehot_transfer = use_onehot_transfer
+        self.transfer_method = transfer_method
 
         # BL management settings
         self.ab_bl_mgmt = ab_bl_mgmt or {}
@@ -214,6 +214,43 @@ class LRTTController:
 
         # Transfer one-hot vectors cache
         self._transfer_vec_a: Optional[Tensor] = None
+
+        # === Debug Logging Settings ===
+        self.log_ab_scaling: bool = False
+        """Enable logging of x,d max values during A/B updates."""
+
+        self.log_ab_scaling_every: int = 10
+        """Log x,d max values every N steps (only when log_ab_scaling=True)."""
+
+        self._ab_update_step: int = 0
+        """Internal counter for A/B update logging."""
+
+        # === Hardware Mode Flag ===
+        self._hardware_mode: Optional[bool] = None
+        """Cache for hardware mode detection (use_manual_scaling=True)."""
+
+    def _is_hardware_mode(self) -> bool:
+        """Check if tiles are in hardware mode (use_manual_scaling=True).
+
+        In hardware mode, learning rate cannot be configured - weight updates
+        are purely determined by pulse coincidences and dw_min.
+
+        Returns:
+            True if use_manual_scaling=True in tile config, False otherwise.
+        """
+        if self._hardware_mode is not None:
+            return self._hardware_mode
+
+        # Check tile_a's rpu_config for use_manual_scaling
+        try:
+            if hasattr(self.tile_a, 'rpu_config') and hasattr(self.tile_a.rpu_config, 'update'):
+                self._hardware_mode = getattr(self.tile_a.rpu_config.update, 'use_manual_scaling', False)
+            else:
+                self._hardware_mode = False
+        except Exception:
+            self._hardware_mode = False
+
+        return self._hardware_mode
 
     def _ensure_sd_state(self) -> None:
         """Ensure ΣΔ state tensors exist on the right device/dtype."""
@@ -549,9 +586,30 @@ class LRTTController:
             DA = self.tile_a.backward(d)    # [batch, rank] = A^T·D
 
         # 2) lr_eff = lr * α * (1/√r, optional)
-        lr_eff = lr * self.lora_alpha
-        if self.correct_gradient_magnitudes:
-            lr_eff /= math.sqrt(self.rank)
+        # Note: When use_manual_scaling=True (hardware mode), lr_eff should be 1.0
+        # because real hardware cannot set learning rate - update is purely
+        # Δw = coincidences × dw_min, controlled by x_scaling and d_scaling only.
+        if self._is_hardware_mode():
+            lr_eff = 1.0  # Hardware mode: lr is not configurable
+        else:
+            lr_eff = lr * self.lora_alpha
+            if self.correct_gradient_magnitudes:
+                lr_eff /= math.sqrt(self.rank)
+
+        # === Debug Logging: x,d max values for A and B tiles ===
+        self._ab_update_step += 1
+        if self.log_ab_scaling and (self._ab_update_step % self.log_ab_scaling_every == 1):
+            # A tile update uses: x=XB (projection), d=d (gradient)
+            a_x_max = XB.abs().max().item()
+            a_d_max = d.abs().max().item()
+            # B tile update uses: x=x (input), d=DA (projection)
+            b_x_max = x.abs().max().item()
+            b_d_max = DA.abs().max().item()
+
+            print(f"  [AB-Scaling Step {self._ab_update_step}] "
+                  f"A: x_max={a_x_max:.4f}, d_max={a_d_max:.4f} | "
+                  f"B: x_max={b_x_max:.4f}, d_max={b_d_max:.4f} | "
+                  f"lr_eff={lr_eff:.4f}")
 
         # 3) ΔA = -lr_eff · D^T · (B·X) → tile_a.update(XB, d)
         lr_a_old = self.tile_a.get_learning_rate()
@@ -787,15 +845,17 @@ class LRTTController:
                 self.tile_b.update(B_read, I_rank_b)
                 self.tile_b.set_learning_rate(lr_old)
 
-    def ab_weight_transfer(self, use_onehot: Optional[bool] = None) -> None:
-        """Memory-optimized pulsed A⊗B -> visible transfer, then reinit.
+    def ab_weight_transfer(self, method: Optional[str] = None) -> None:
+        """Memory-optimized A⊗B -> visible transfer, then reinit.
 
-        Transfer: C += transfer_lr * (A @ B) via pulsed outer product.
+        Transfer: C += transfer_lr * (A @ B)
 
         Args:
-            use_onehot: If True, use one-hot reading (analog-realistic).
-                       If False, use direct weight access.
-                       If None, use self.use_onehot_transfer setting.
+            method: Transfer method override.
+                   "onehot" - One-hot reading (analog-realistic pulsed update)
+                   "direct" - Direct weight access (pulsed update)
+                   "set" - Exact weight setting (no pulsed update, precise)
+                   If None, use self.transfer_method setting.
 
         Direct mode:
         1. Get weights to CPU first to avoid GPU memory spike
@@ -808,17 +868,27 @@ class LRTTController:
         One-hot mode:
         1. Read A columns using forward pass with one-hot vectors
         2. Read B rows using backward pass with one-hot vectors
-        3. Accumulate outer products into C
+        3. Accumulate outer products into C (pulsed)
+        4. Unconditionally call reinit() after transfer
+
+        Set mode:
+        1. Compute delta = transfer_lr * (A @ B)
+        2. C_new = C + delta (exact, no pulsed update)
+        3. set_weights(C_new) directly
         4. Unconditionally call reinit() after transfer
         """
         # Use instance setting if not specified
-        if use_onehot is None:
-            use_onehot = self.use_onehot_transfer
+        if method is None:
+            method = self.transfer_method
 
-        if use_onehot:
+        if method == "onehot":
             self._ab_weight_transfer_onehot()
-        else:
+        elif method == "direct":
             self._ab_weight_transfer_direct()
+        elif method == "set":
+            self._ab_weight_transfer_set()
+        else:
+            raise ValueError(f"Unknown transfer method: {method}. Use 'onehot', 'direct', or 'set'.")
 
     def _ab_weight_transfer_direct(self) -> None:
         """Original transfer implementation using direct weight access."""
@@ -899,6 +969,62 @@ class LRTTController:
         else:
             if self.num_transfers <= 5:
                 print(f"[CLIP-SKIPPED] Transfer #{self.num_transfers}: C already in range, no clipping needed")
+
+        # DEBUG: Check A before reinit (first few transfers only)
+        if self.num_transfers <= 3:
+            A_before_reinit = self.tile_a.get_weights()[0] if hasattr(self.tile_a, 'get_weights') else None
+            if A_before_reinit is not None:
+                print(f"TRANSFER #{self.num_transfers} - Before reinit: A norm={A_before_reinit.norm():.6f}")
+
+        # Unconditional reinit after transfer
+        self.reinit()
+
+        # DEBUG: Check A after reinit (first few transfers only)
+        if self.num_transfers <= 3:
+            A_after_reinit = self.tile_a.get_weights()[0] if hasattr(self.tile_a, 'get_weights') else None
+            if A_after_reinit is not None:
+                print(f"TRANSFER #{self.num_transfers} - After reinit ({self.reinit_mode}): A norm={A_after_reinit.norm():.6f}")
+                if self.reinit_mode == "decay":
+                    expected = A_before_reinit.norm() * self.decay_factor if A_before_reinit is not None else 0
+                    print(f"  Expected A norm (decay): {expected:.6f}")
+                print()
+
+    def _ab_weight_transfer_set(self) -> None:
+        """Exact weight transfer using set_weights (no pulsed update noise).
+
+        This method directly computes C_new = C + transfer_lr * (A @ B)
+        and sets C weights exactly, bypassing pulsed update quantization.
+        """
+        with torch.no_grad():
+            # Get current weights
+            A_weights = self.tile_a.get_weights()[0]  # [d_size, rank]
+            B_weights = self.tile_b.get_weights()[0]  # [rank, x_size]
+            C_weights = self.tile_c.get_weights()[0]  # [d_size, x_size]
+
+            # Use only the LoRA rank portion
+            A_lr = A_weights[:, :self.rank]  # [d_size, rank]
+            B_lr = B_weights[:self.rank, :]  # [rank, x_size]
+
+            # Compute exact delta: transfer_lr * (A @ B)
+            delta = self.transfer_lr * (A_lr @ B_lr)  # [d_size, x_size]
+
+            # Compute new C weights
+            C_new = C_weights + delta
+
+            # Clip to [-1, 1] for analog hardware realism
+            C_min_before, C_max_before = C_new.min().item(), C_new.max().item()
+            C_new = torch.clamp(C_new, -1.0, 1.0)
+
+            # Set weights directly (exact, no pulsed update)
+            self.tile_c.set_weights(C_new, None)
+
+        self.num_transfers += 1
+        self.transfer_counter = 0
+
+        if self.num_transfers <= 5:
+            print(f"[SET-TRANSFER] Transfer #{self.num_transfers}: "
+                  f"delta norm={delta.norm():.6f}, "
+                  f"C range before clip: [{C_min_before:.4f}, {C_max_before:.4f}]")
 
         # DEBUG: Check A before reinit (first few transfers only)
         if self.num_transfers <= 3:
