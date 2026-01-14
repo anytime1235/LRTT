@@ -154,7 +154,7 @@ def create_lrtt_config():
             IdealizedPresetDevice(
                 w_max=1.0,
                 w_min=-1.0,
-                dw_min=0.002,
+                dw_min=0.0002,
                 dw_min_dtod=0.3,
                 dw_min_std=0.3,
                 up_down=0.0,
