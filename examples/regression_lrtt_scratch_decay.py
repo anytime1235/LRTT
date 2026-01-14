@@ -468,6 +468,8 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
             'batch_idx': -1,  # -1 indicates before any batch
             'batch_loss': float('nan'),
             'is_transfer': False,
+            'grad_norm': 0.0,
+            'grad_C_matrix': np.zeros_like(C_init_log.cpu().detach().numpy()),
             'A_matrix': A_init_log.cpu().detach().numpy().copy(),
             'B_matrix': B_init_log.cpu().detach().numpy().copy(),
             'C_matrix': C_init_log.cpu().detach().numpy().copy(),
@@ -578,6 +580,10 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
             grad_d = (2.0 / N) * (Y_pred - Y_batch)
             grad_norm = grad_d.norm().item()
 
+            # Compute gradient matrix for C: ∂L/∂C = grad_d.T @ X_batch / batch_size
+            # Shape: [output_dim, input_dim] - same as C
+            grad_C_matrix = (grad_d.T @ X_batch) / X_batch.size(0)
+
             # Backward pass
             loss.backward()
 
@@ -612,6 +618,7 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
                     'batch_loss': loss.item(),
                     'is_transfer': is_transfer_step,
                     'grad_norm': grad_norm,
+                    'grad_C_matrix': grad_C_matrix.cpu().detach().numpy().copy(),
                     'A_matrix': A.cpu().detach().numpy().copy(),
                     'B_matrix': B.cpu().detach().numpy().copy(),
                     'C_matrix': C.cpu().detach().numpy().copy(),
@@ -821,7 +828,7 @@ def plot_all_training_figures(training_history: list,
     """Plot all training metrics and save as images (similar to wandb scratch tab).
 
     Generates multiple figures:
-    1. training_norms: grad_norm, ||B@A||, ||C||
+    1. training_cell: Single cell [0,0] tracking - grad_C, C, B@A on one graph
     2. all_norms: ||A||, ||B||, ||C||, ||B@A||
     3. loss: val_loss over epochs (with final MSE and R² annotation)
     4. A_cells: individual A matrix cell values (down-projection)
@@ -861,39 +868,37 @@ def plot_all_training_figures(training_history: list,
             ax.axvline(x=ts, color='orange', linestyle='--', alpha=0.5, linewidth=0.8)
 
     # =========================================================================
-    # Figure 1: Main Training Norms (grad_norm, delta_W_norm, C_norm)
+    # Figure 1: Single Cell Tracking (grad_C, C, B@A for cell [0,0])
+    # Plots a single cell to visualize training dynamics similar to memristor papers
     # =========================================================================
-    fig, axes = plt.subplots(3, 1, figsize=(12, 10), sharex=True)
+    cell_row, cell_col = 0, 0  # Cell to track (can be changed)
 
-    grad_norms = [h.get('grad_norm', 0) for h in training_history]
-    delta_W_norms = [h['delta_W_norm'] for h in training_history]
-    C_norms = [h['C_norm'] for h in training_history]
+    # Extract single cell values from each step
+    grad_C_cells = [h['grad_C_matrix'][cell_row, cell_col] if 'grad_C_matrix' in h else 0
+                    for h in training_history]
+    C_cells = [h['C_matrix'][cell_row, cell_col] for h in training_history]
+    # A @ B in code notation = B @ A in standard LoRA notation
+    AB_cells = [np.dot(h['A_matrix'], h['B_matrix'])[cell_row, cell_col]
+                for h in training_history]
 
-    axes[0].plot(steps, grad_norms, 'b-', linewidth=1, label='Gradient norm')
-    axes[0].set_ylabel('Gradient Norm')
-    axes[0].set_title(f'Training Norms (complexity={complexity_level}, seed={seed})')
-    axes[0].legend(loc='upper right')
-    axes[0].grid(True, alpha=0.3)
-    add_transfer_lines(axes[0])
+    fig, ax = plt.subplots(figsize=(12, 6))
 
-    axes[1].plot(steps, delta_W_norms, 'r-', linewidth=1, label='||B@A|| (LoRA update)')
-    axes[1].set_ylabel('||B@A|| Norm')
-    axes[1].legend(loc='upper right')
-    axes[1].grid(True, alpha=0.3)
-    add_transfer_lines(axes[1])
+    ax.plot(steps, grad_C_cells, 'b-', linewidth=1, label=f'∂L/∂C[{cell_row},{cell_col}] (gradient)')
+    ax.plot(steps, C_cells, 'g-', linewidth=1, label=f'C[{cell_row},{cell_col}] (core weight)')
+    ax.plot(steps, AB_cells, 'r-', linewidth=1, label=f'(B@A)[{cell_row},{cell_col}] (LoRA update)')
 
-    axes[2].plot(steps, C_norms, 'g-', linewidth=1, label='||C|| (Core weights)')
-    axes[2].set_ylabel('||C|| Norm')
-    axes[2].set_xlabel('Step')
-    axes[2].legend(loc='upper right')
-    axes[2].grid(True, alpha=0.3)
-    add_transfer_lines(axes[2])
+    ax.set_xlabel('Step')
+    ax.set_ylabel('Value')
+    ax.set_title(f'Single Cell Tracking [{cell_row},{cell_col}] (complexity={complexity_level}, seed={seed})')
+    ax.legend(loc='upper right')
+    ax.grid(True, alpha=0.3)
+    add_transfer_lines(ax)
 
     plt.tight_layout()
-    path = os.path.join(config.results_dir, f"training_norms_{complexity_level}_seed{seed}_{timestamp}.png")
+    path = os.path.join(config.results_dir, f"training_cell_{complexity_level}_seed{seed}_{timestamp}.png")
     plt.savefig(path, dpi=150, bbox_inches='tight')
     plt.close(fig)
-    saved_paths['training_norms'] = path
+    saved_paths['training_cell'] = path
 
     # =========================================================================
     # Figure 2: All Matrix Norms (A, B, C, delta_W)
@@ -905,6 +910,8 @@ def plot_all_training_figures(training_history: list,
     # Code A = up-proj = standard B, Code B = down-proj = standard A
     code_A_norms = [h['A_norm'] for h in training_history]  # up-proj -> B
     code_B_norms = [h['B_norm'] for h in training_history]  # down-proj -> A
+    C_norms = [h['C_norm'] for h in training_history]
+    delta_W_norms = [h['delta_W_norm'] for h in training_history]
 
     axes[0].plot(steps, code_B_norms, 'cyan', linewidth=1, label='||A|| (down-proj)')
     axes[0].set_ylabel('||A|| Norm')
