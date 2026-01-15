@@ -82,7 +82,7 @@ class PythonLRTTDevice(_PrintableMixin):
     Default is 'average'."""
 
     # === Transfer Mode & Calibration ===
-    transfer_mode: str = "pilot"
+    transfer_mode: str = "off"
     """Transfer calibration mode:
     - 'pilot': Pilot-based γ calibration. Sends a small pilot transfer first,
                measures actual vs expected, computes γ correction factor.
@@ -91,7 +91,7 @@ class PythonLRTTDevice(_PrintableMixin):
                      residual for next transfer. Long-term accurate but
                      per-transfer variance higher.
     - 'off': No calibration, direct transfer with transfer_lr.
-    Default is 'pilot'."""
+    Default is 'off'."""
 
     transfer_micro_steps: int = 4
     """M: Number of micro-transfer steps per transfer.
