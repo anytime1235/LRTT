@@ -65,7 +65,7 @@ class ScratchExperimentConfig:
 
     # Input data type
     # Options: 'continuous', 'ternary' (0, 0.5, 1), 'binary' (0, 1)
-    input_type = 'ternary'  # Change this to 'ternary' or 'binary' for discrete inputs
+    input_type = 'binary'  # Change this to 'ternary' or 'binary' for discrete inputs
 
     # Complexity levels to test
     # Options: 'simple' (0.5), 'medium' (0.8), 'complex' (1.0)
@@ -80,11 +80,11 @@ class ScratchExperimentConfig:
 
     # LRTT configuration
     lrtt_rank = 1  # Rank-1 for minimal overfitting
-    lrtt_transfer_every = 5  # Medium frequency to observe transfer effects
-    lora_alpha = 0.0957  # Conservative scaling
+    lrtt_transfer_every = 4  # Medium frequency to observe transfer effects
+    lora_alpha = 0.0306  # Conservative scaling
 
     # Reinit configuration - DECAY MODE
-    reinit_mode = "decay"  # Use decay mode instead of standard
+    reinit_mode = "orthogonal_decay"  # Use decay mode instead of standard
     decay_factor = 1.0  # Decay A,B weights to 50%
 
     # A matrix initialization mode
@@ -133,7 +133,7 @@ class ScratchExperimentConfig:
     log_ab_scaling_every = 10  # Log every N steps
 
     # Output options
-    save_figures = True  # Save training figures as PNG (disable to save time/space)
+    save_figures = False  # Save training figures as PNG (disable to save time/space)
 
     # Note: dw_min is defined in SoftBoundsReferenceDevice (device characteristic)
     # Effective learning rate in hardware mode:
@@ -606,8 +606,8 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
                 is_transfer_step = False
                 if hasattr(analog_tile, 'controller'):
                     current_counter = analog_tile.controller.transfer_counter
-                    # Transfer just occurred if counter is 0 or 1 (just reset)
-                    if current_counter <= 1 and global_step > 1:
+                    # Transfer just occurred if counter is exactly 1 (just reset)
+                    if current_counter == 1 and global_step > 1:
                         is_transfer_step = True
 
                 # Record step-wise history for Excel export
@@ -883,6 +883,8 @@ def plot_all_training_figures(training_history: list,
 
     fig, ax = plt.subplots(figsize=(12, 6))
 
+    # Gradient with filled area to y=0
+    ax.fill_between(steps, grad_C_cells, 0, alpha=0.3, color='blue')
     ax.plot(steps, grad_C_cells, 'b-', linewidth=1, label=f'∂L/∂C[{cell_row},{cell_col}] (gradient)')
     ax.plot(steps, C_cells, 'g-', linewidth=1, label=f'C[{cell_row},{cell_col}] (core weight)')
     ax.plot(steps, AB_cells, 'r-', linewidth=1, label=f'(B@A)[{cell_row},{cell_col}] (LoRA update)')
@@ -892,7 +894,7 @@ def plot_all_training_figures(training_history: list,
     ax.set_title(f'Single Cell Tracking [{cell_row},{cell_col}] (complexity={complexity_level}, seed={seed})')
     ax.legend(loc='upper right')
     ax.grid(True, alpha=0.3)
-    add_transfer_lines(ax)
+    # Transfer lines removed - graph is already busy with 3 lines + gradient fill
 
     plt.tight_layout()
     path = os.path.join(config.results_dir, f"training_cell_{complexity_level}_seed{seed}_{timestamp}.png")

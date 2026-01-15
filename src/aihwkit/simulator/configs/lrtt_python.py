@@ -258,7 +258,7 @@ class PythonLRTTDevice(_PrintableMixin):
             raise ValueError(f"reinit_gain must be non-negative, got {self.reinit_gain}")
 
         # Validate reinit_mode
-        valid_modes = ["standard", "decay", "hybrid", "orthogonal"]
+        valid_modes = ["standard", "decay", "hybrid", "orthogonal_zero", "orthogonal_decay"]
         if self.reinit_mode not in valid_modes:
             raise ValueError(f"reinit_mode must be one of {valid_modes}, got '{self.reinit_mode}'")
 

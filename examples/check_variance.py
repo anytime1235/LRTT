@@ -23,7 +23,7 @@ def run_experiment(config, seed):
     train_loader = DataLoader(train_dataset, batch_size=config.lrtt_batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=config.lrtt_batch_size, shuffle=False)
 
-    model, history, _, _, _ = train_lrtt_scratch(
+    model, history, _, _, _, _ = train_lrtt_scratch(
         config, train_loader, val_loader,
         seed=seed, use_wandb=False
     )
