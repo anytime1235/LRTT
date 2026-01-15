@@ -90,7 +90,8 @@ class LRTTController:
                         "standard" - A=0, B=Kaiming (original LRTT)
                         "decay" - A*=decay_factor, B*=decay_factor (gradual decay)
                         "hybrid" - A=0, B*=decay_factor (hybrid approach)
-                        "orthogonal" - A=0, B=Random Orthogonal (FROZEN)
+                        "orthogonal_zero" - A=0, B=Random Orthogonal (FROZEN)
+                        "orthogonal_decay" - A*=decay_factor, B=Random Orthogonal (FROZEN)
             decay_factor: Decay factor for "decay" and "hybrid" modes (0 < decay_factor < 1)
             correct_gradient_magnitudes: Scale lr by sqrt(rank) for gradient correction
             rank_chunk: Chunk size for transfer (None = full rank)
@@ -175,8 +176,8 @@ class LRTTController:
         self.transfer_normalize: bool = False       # 랭크별 ℓ2 정규화 (기본 off - gradient 왜곡 방지)
 
         # Transfer mode: "pilot" (gamma calibration) or "sigma_delta" (ΣΔ quantization)
-        self.transfer_mode: str = "pilot"           # {"pilot", "sigma_delta", "off"}
-        self.transfer_gamma_mode: str = "pilot"     # Legacy alias for transfer_mode (deprecated)
+        self.transfer_mode: str = "off"             # {"pilot", "sigma_delta", "off"}
+        self.transfer_gamma_mode: str = "off"       # Legacy alias for transfer_mode (deprecated)
         self.transfer_pilot_frac: float = 1.0/16.0  # 파일럿 전송 lr = |transfer_lr| * frac
 
         # Sigma-Delta (ΣΔ) state for "sigma_delta" mode
@@ -435,7 +436,8 @@ class LRTTController:
         - "standard": Always reinitialize A and B
         - "decay": First time initialize, after transfer apply decay
         - "hybrid": A=0, B*=decay_factor (hybrid approach)
-        - "orthogonal": A=0, B=Random Orthogonal (FROZEN)
+        - "orthogonal_zero": A=0, B=Random Orthogonal (FROZEN)
+        - "orthogonal_decay": A*=decay_factor, B=Random Orthogonal (FROZEN)
 
         A initialization (controlled by a_init_mode):
         - "zero": A=0 (LoRA-style, ensures ΔW=0 initially)
@@ -494,8 +496,8 @@ class LRTTController:
                     B_weights = self.tile_b.get_weights()[0] * self.decay_factor
                     self.tile_b.set_weights(B_weights)
 
-            elif self.reinit_mode == "orthogonal":
-                # B = Random Orthogonal (FROZEN), A = 0
+            elif self.reinit_mode == "orthogonal_zero":
+                # B = Random Orthogonal (FROZEN), A = 0 after each transfer
                 # B @ B.T = I, so projection preserves gradient direction
                 A_zeros = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
                 self.tile_a.set_weights(A_zeros)
@@ -513,8 +515,29 @@ class LRTTController:
                     self._b_frozen = True
                 # else: B is frozen, don't change it
 
+            elif self.reinit_mode == "orthogonal_decay":
+                # B = Random Orthogonal (FROZEN), A *= decay_factor after each transfer
+                # B @ B.T = I, so projection preserves gradient direction
+                if not self._tiles_initialized:
+                    # First time: Initialize A=0, B=orthogonal
+                    A_zeros = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
+                    self.tile_a.set_weights(A_zeros)
+
+                    # Initialize B as random orthogonal matrix using QR decomposition
+                    random_matrix = torch.randn(self.rank, self.x_size, device=self.device, dtype=self.dtype)
+                    Q, R = torch.linalg.qr(random_matrix.t())  # [x_size, rank]
+                    B_orthogonal = Q.t()  # [rank, x_size] - rows are orthonormal
+                    B_orthogonal = B_orthogonal * math.sqrt(self.x_size / self.rank)
+                    self.tile_b.set_weights(B_orthogonal)
+                    self._b_frozen = True
+                else:
+                    # After transfer: Decay A, B is frozen
+                    A_weights = self.tile_a.get_weights()[0] * self.decay_factor
+                    self.tile_a.set_weights(A_weights)
+
             else:
-                raise ValueError(f"Unknown reinit_mode: {self.reinit_mode}. Must be 'standard', 'decay', 'hybrid', or 'orthogonal'")
+                raise ValueError(f"Unknown reinit_mode: {self.reinit_mode}. "
+                                 f"Must be 'standard', 'decay', 'hybrid', 'orthogonal_zero', or 'orthogonal_decay'")
 
         # Apply device clipping if available
         if hasattr(self.tile_a, 'clip_weights'):
