@@ -26,6 +26,7 @@ Reference: https://github.com/kentaroy47/vision-transformers-cifar10
 
 import os
 import math
+import json
 
 import torch
 from torch import nn, device, no_grad, manual_seed, save
@@ -568,6 +569,7 @@ def main():
 
     best_accuracy = 0
     best_epoch = 0
+    epoch_history = []  # Track epoch-wise results for plotting
 
     print(f"\n{'='*60}")
     print(f"Starting training: {N_EPOCHS} epochs, batch_size={BATCH_SIZE}")
@@ -633,6 +635,17 @@ def main():
             "learning_rate": current_lr,
         }, step=global_step)
 
+        # Save epoch history for plotting
+        epoch_history.append({
+            "epoch": epoch + 1,
+            "train_loss": train_loss,
+            "train_accuracy": train_acc,
+            "val_loss": val_loss,
+            "val_accuracy": val_accuracy,
+            "val_error": val_error,
+            "learning_rate": current_lr,
+        })
+
         if val_accuracy > best_accuracy:
             best_accuracy = val_accuracy
             best_epoch = epoch
@@ -657,6 +670,17 @@ def main():
     print(f"Best validation error: {100 - best_accuracy:.2f}%")
     print(f"Model weights saved to: {WEIGHT_PATH}")
     print(f"{'='*60}")
+
+    # Save epoch history to JSON for plotting
+    history_path = os.path.join(RESULTS, "epoch_history.json")
+    with open(history_path, 'w') as f:
+        json.dump({
+            "method": "TTv2",
+            "best_accuracy": best_accuracy,
+            "best_epoch": best_epoch + 1,
+            "history": epoch_history
+        }, f, indent=2)
+    print(f"Epoch history saved to: {history_path}")
 
     print(f"\n{'='*60}")
     print("Comparison with paper results:")
