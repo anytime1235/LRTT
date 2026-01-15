@@ -1335,7 +1335,8 @@ class LRTTController:
 
                 # 디버그 로깅 (처음 몇 번만)
                 if self.num_transfers < 3:
-                    print(f"[LRTT onehot] gamma={gamma:.3f} lr_pilot={lr_pilot:.3e} "
+                    pilot_info = f"lr_pilot={lr_pilot:.3e} " if self.transfer_gamma_mode == "pilot" else ""
+                    print(f"[LRTT onehot] gamma={gamma:.3f} {pilot_info}"
                           f"lr_remain={lr_remain:.3e} Znorm2={Z_norm2:.3e}")
 
             finally:
