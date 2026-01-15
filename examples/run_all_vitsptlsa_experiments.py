@@ -2,13 +2,14 @@
 """Run all ViT-SPT-LSA experiments and plot combined results.
 
 This script runs all 4 experiments (FP, TTv1, TTv2, LRTT) sequentially
-and generates a combined plot of the results.
+or in parallel, and generates a combined plot of the results.
 """
 
 import os
 import sys
 import json
 import subprocess
+from concurrent.futures import ProcessPoolExecutor, as_completed
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -46,22 +47,33 @@ EXPERIMENTS = {
 }
 
 
-def run_experiment(name, config):
+def run_experiment(name, config, gpu_id=None):
     """Run a single experiment."""
     script_path = os.path.join(os.path.dirname(__file__), config["script"])
     print(f"\n{'='*60}")
-    print(f"Running {name} experiment: {config['script']}")
+    print(f"Running {name} experiment: {config['script']}" + (f" (GPU {gpu_id})" if gpu_id is not None else ""))
     print(f"{'='*60}\n")
+
+    env = os.environ.copy()
+    if gpu_id is not None:
+        env["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
 
     result = subprocess.run(
         [sys.executable, script_path],
-        cwd=os.path.dirname(script_path)
+        cwd=os.path.dirname(script_path),
+        env=env
     )
 
     if result.returncode != 0:
         print(f"Warning: {name} experiment finished with return code {result.returncode}")
 
-    return result.returncode == 0
+    return name, result.returncode == 0
+
+
+def run_experiment_wrapper(args):
+    """Wrapper for parallel execution."""
+    name, config, gpu_id = args
+    return run_experiment(name, config, gpu_id)
 
 
 def load_history(name, config):
@@ -215,17 +227,47 @@ def main():
                        choices=list(EXPERIMENTS.keys()),
                        default=list(EXPERIMENTS.keys()),
                        help="Which experiments to run")
+    parser.add_argument("--parallel", action="store_true",
+                       help="Run experiments in parallel (requires multiple GPUs)")
+    parser.add_argument("--gpus", nargs="+", type=int, default=None,
+                       help="GPU IDs to use for parallel execution (e.g., --gpus 0 1 2 3)")
     args = parser.parse_args()
 
     os.makedirs(RESULTS_BASE, exist_ok=True)
 
     # Run experiments
     if not args.skip_run:
-        for name in args.experiments:
-            config = EXPERIMENTS[name]
-            success = run_experiment(name, config)
-            if not success:
-                print(f"Warning: {name} experiment may have failed")
+        if args.parallel:
+            # Parallel execution
+            gpu_ids = args.gpus if args.gpus else list(range(len(args.experiments)))
+            tasks = []
+            for i, name in enumerate(args.experiments):
+                config = EXPERIMENTS[name]
+                gpu_id = gpu_ids[i % len(gpu_ids)]
+                tasks.append((name, config, gpu_id))
+
+            print(f"\nRunning {len(tasks)} experiments in parallel...")
+            print(f"GPU assignments: {[(t[0], t[2]) for t in tasks]}\n")
+
+            with ProcessPoolExecutor(max_workers=len(tasks)) as executor:
+                futures = {executor.submit(run_experiment_wrapper, task): task[0] for task in tasks}
+                for future in as_completed(futures):
+                    name = futures[future]
+                    try:
+                        exp_name, success = future.result()
+                        if not success:
+                            print(f"Warning: {exp_name} experiment may have failed")
+                        else:
+                            print(f"Completed: {exp_name}")
+                    except Exception as e:
+                        print(f"Error in {name}: {e}")
+        else:
+            # Sequential execution
+            for name in args.experiments:
+                config = EXPERIMENTS[name]
+                _, success = run_experiment(name, config)
+                if not success:
+                    print(f"Warning: {name} experiment may have failed")
 
     # Load results
     results = {}
