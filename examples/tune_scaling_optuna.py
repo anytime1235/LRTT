@@ -40,7 +40,10 @@ FIXED_DESIRED_BL = 7
 # Remove key to use fixed value above
 # ============================================================================
 DEFAULT_SEARCH_SPACE = {
-    'lora_alpha': (0.0, 1.0),    # lora_alpha range (transfer LR)
+    'a_x': (0.0, 1.0),           # a_x_scaling range
+    'a_d': (0.0, 1.0),           # a_d_scaling range
+    'b_d': (0.0, 1.0),           # b_d_scaling range
+    'lora_alpha': (0.0, 4.0),    # lora_alpha range (transfer LR)
     'transfer_every': (1, 10),   # transfer_every range (int)
     'desired_bl': (1, 10),       # desired_bl range (int, pulse train length)
 }
@@ -141,14 +144,14 @@ def objective(trial: Trial, epochs: int = 50, search_space: dict = None) -> floa
         try:
             # Train model with suppressed output
             with suppress_stdout():
-                model, history, _, _, _ = train_lrtt_scratch(
+                model, history, epoch_history, _, _, _ = train_lrtt_scratch(
                     config, train_loader, val_loader,
                     seed=seed, use_wandb=False
                 )
 
-            # Get final validation loss
-            if history:
-                final_val_loss = history[-1].get('batch_loss', float('inf'))
+            # Get final validation loss from epoch_history
+            if epoch_history:
+                final_val_loss = epoch_history[-1].get('val_loss', float('inf'))
                 losses.append(final_val_loss)
 
         except Exception as e:
