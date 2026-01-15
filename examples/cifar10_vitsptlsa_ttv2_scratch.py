@@ -87,6 +87,8 @@ DW_MIN = 0.0002  # step size for ~10000 states
 AUTO_GRANULARITY = 10000  # Paper: γ0 = 10000
 FAST_LR = 0.075  # Fast tile learning rate (paper: λA = 0.075)
 IN_CHOP_PROB = 0.0  # TTv2: no chopping (c-TTv2 uses 0.01)
+TRANSFER_EVERY = 1.0  # Transfer frequency (ns)
+UNITS_IN_MBATCH = True  # True: mini-batch units, False: mat-vec units
 
 # Layer configuration
 USE_ANALOG_FOR_ALL_LINEAR = True
@@ -130,7 +132,8 @@ def create_ttv2_config():
             update_bl_management=False,
             update_management=False
         ),
-        units_in_mbatch=False,
+        transfer_every=TRANSFER_EVERY,
+        units_in_mbatch=UNITS_IN_MBATCH,
         in_chop_prob=IN_CHOP_PROB,  # 0.0 for TTv2, 0.01 for c-TTv2
         fast_lr=FAST_LR,
         auto_scale=True,
@@ -425,7 +428,9 @@ def create_model():
     print(f"  Device states: {N_STATES} (dw_min={DW_MIN:.4f})")
     print(f"  Auto granularity: {AUTO_GRANULARITY}")
     print(f"  Fast LR: {FAST_LR}")
-    print(f"  Chop prob: {IN_CHOP_PROB} (TTv2)\n")
+    print(f"  Chop prob: {IN_CHOP_PROB} (TTv2)")
+    print(f"  Transfer every: {TRANSFER_EVERY}")
+    print(f"  Units in mbatch: {UNITS_IN_MBATCH}\n")
 
     return model
 
@@ -537,6 +542,8 @@ def main():
             "auto_granularity": AUTO_GRANULARITY,
             "fast_lr": FAST_LR,
             "in_chop_prob": IN_CHOP_PROB,
+            "transfer_every": TRANSFER_EVERY,
+            "units_in_mbatch": UNITS_IN_MBATCH,
             "use_analog_linear": USE_ANALOG_FOR_ALL_LINEAR,
             "augmentation": False,
             "device": str(DEVICE),
