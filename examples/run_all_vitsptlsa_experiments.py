@@ -9,6 +9,7 @@ import os
 import sys
 import json
 import subprocess
+from datetime import datetime
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import matplotlib.pyplot as plt
 import numpy as np
@@ -177,13 +178,14 @@ def plot_results(results):
     plt.suptitle("ViT-SPT-LSA CIFAR-10 Training Comparison", fontsize=16, fontweight='bold')
     plt.tight_layout()
 
-    # Save figure
-    output_path = os.path.join(RESULTS_BASE, "vitsptlsa_comparison.png")
+    # Save figure with timestamp to avoid overwriting
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_path = os.path.join(RESULTS_BASE, f"vitsptlsa_comparison_{timestamp}.png")
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     print(f"\nPlot saved to: {output_path}")
 
     # Also save as PDF
-    pdf_path = os.path.join(RESULTS_BASE, "vitsptlsa_comparison.pdf")
+    pdf_path = os.path.join(RESULTS_BASE, f"vitsptlsa_comparison_{timestamp}.pdf")
     plt.savefig(pdf_path, bbox_inches='tight')
     print(f"PDF saved to: {pdf_path}")
 

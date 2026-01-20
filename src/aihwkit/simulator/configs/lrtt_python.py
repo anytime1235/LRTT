@@ -37,11 +37,11 @@ class PythonLRTTDevice(_PrintableMixin):
     transfer_lr: float = 1.0
     """Transfer learning rate scalar applied during A⊗B -> visible transfer."""
 
-    transfer_lr_scale: str = "none"
-    """Auto-scaling mode for transfer_lr based on rank:
-    - 'none': No scaling, use transfer_lr as-is (default)
-    - 'sqrt_rank': Scale by 1/sqrt(rank), i.e., transfer_lr / sqrt(rank)
-    - 'rank': Scale by 1/rank, i.e., transfer_lr / rank
+    transfer_lr_scale: float = 1.0
+    """Scaling factor for transfer_lr. Effective transfer_lr = transfer_lr * transfer_lr_scale.
+    - 1.0: No scaling (default)
+    - < 1.0: Reduce transfer learning rate
+    - > 1.0: Increase transfer learning rate
     """
 
     lora_alpha: float = 1.0

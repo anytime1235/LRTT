@@ -65,7 +65,7 @@ class ScratchExperimentConfig:
 
     # Input data type
     # Options: 'continuous', 'ternary' (0, 0.5, 1), 'binary' (0, 1)
-    input_type = 'binary'  # Change this to 'ternary' or 'binary' for discrete inputs
+    input_type = 'ternary'  # Change this to 'ternary' or 'binary' for discrete inputs
 
     # Complexity levels to test
     # Options: 'simple' (0.5), 'medium' (0.8), 'complex' (1.0)
@@ -84,7 +84,7 @@ class ScratchExperimentConfig:
     lora_alpha = 0.0306  # Conservative scaling
 
     # Reinit configuration - DECAY MODE
-    reinit_mode = "orthogonal_decay"  # Use decay mode instead of standard
+    reinit_mode = "decay"  # Use decay mode instead of standard
     decay_factor = 1.0  # Decay A,B weights to 50%
 
     # A matrix initialization mode
@@ -462,6 +462,13 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
     # Record initial state (step=0, before any training)
     C_init_log, A_init_log, B_init_log = model.get_lrtt_components()
     if A_init_log is not None and B_init_log is not None:
+        # Create NaN vectors for initial state (no update yet)
+        # A tile (down-proj, code B): x [input_dim], d [rank]
+        # B tile (up-proj, code A): x [rank], d [output_dim]
+        nan_input = np.full(config.input_dim, np.nan)
+        nan_output = np.full(config.output_dim, np.nan)
+        nan_rank = np.full(config.lrtt_rank, np.nan)
+
         initial_history = {
             'step': 0,  # 0 indicates initial state
             'epoch': 0,
@@ -476,7 +483,16 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
             'A_norm': A_init_log.norm().item(),
             'B_norm': B_init_log.norm().item(),
             'C_norm': C_init_log.norm().item(),
-            'delta_W_norm': (A_init_log @ B_init_log).norm().item()
+            'delta_W_norm': (A_init_log @ B_init_log).norm().item(),
+            # Pulse vectors - NaN for initial state (no update yet)
+            'A_x_vec': nan_input.copy(),  # [input_dim]
+            'A_d_vec': nan_rank.copy(),   # [rank]
+            'A_p_x_vec': nan_input.copy(),
+            'A_p_d_vec': nan_rank.copy(),
+            'B_x_vec': nan_rank.copy(),   # [rank]
+            'B_d_vec': nan_output.copy(), # [output_dim]
+            'B_p_x_vec': nan_rank.copy(),
+            'B_p_d_vec': nan_output.copy(),
         }
         training_history.append(initial_history)
 
@@ -584,6 +600,44 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
             # Shape: [output_dim, input_dim] - same as C
             grad_C_matrix = (grad_d.T @ X_batch) / X_batch.size(0)
 
+            # Compute x, d values for A and B tiles (before update)
+            # Get current A, B for computing projected values
+            C_pre, A_pre, B_pre = model.get_lrtt_components()
+            A_pre = A_pre.to(DEVICE)
+            B_pre = B_pre.to(DEVICE)
+
+            # A tile (code) = B tile (standard, up-projection) [output_dim, rank]
+            # x_A = input projected through B: X @ B.T [batch, rank]
+            # d_A = gradient at output: grad_d [batch, output_dim]
+            x_A = X_batch @ B_pre.T  # [batch, rank]
+            d_A = grad_d  # [batch, output_dim]
+
+            # B tile (code) = A tile (standard, down-projection) [rank, input_dim]
+            # x_B = original input: X [batch, input_dim]
+            # d_B = gradient projected through A: grad_d @ A [batch, rank]
+            x_B = X_batch  # [batch, input_dim]
+            d_B = grad_d @ A_pre  # [batch, rank]
+
+            # Compute max absolute values per position (over batch dimension)
+            # For A tile (code, up-proj): x_A [batch, rank], d_A [batch, output_dim]
+            # For B tile (code, down-proj): x_B [batch, input_dim], d_B [batch, rank]
+            x_A_vec = x_A.abs().max(dim=0).values  # [rank]
+            d_A_vec = d_A.abs().max(dim=0).values  # [output_dim]
+            x_B_vec = x_B.abs().max(dim=0).values  # [input_dim]
+            d_B_vec = d_B.abs().max(dim=0).values  # [rank]
+
+            # Compute scaled probabilities (clipped to [0, 1])
+            # Note: In Excel notation, A=down-proj (code B), B=up-proj (code A)
+            a_x_scale = config.a_x_scaling or 1.0
+            a_d_scale = config.a_d_scaling or 1.0
+            b_x_scale = config.b_x_scaling or 1.0
+            b_d_scale = config.b_d_scaling or 1.0
+
+            p_x_A_vec = (a_x_scale * x_A_vec).clamp(max=1.0)  # [rank]
+            p_d_A_vec = (a_d_scale * d_A_vec).clamp(max=1.0)  # [output_dim]
+            p_x_B_vec = (b_x_scale * x_B_vec).clamp(max=1.0)  # [input_dim]
+            p_d_B_vec = (b_d_scale * d_B_vec).clamp(max=1.0)  # [rank]
+
             # Backward pass
             loss.backward()
 
@@ -611,6 +665,8 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
                         is_transfer_step = True
 
                 # Record step-wise history for Excel export
+                # Note: Excel uses standard LoRA notation
+                # Code A tile (up-proj) → Excel B tile, Code B tile (down-proj) → Excel A tile
                 step_history = {
                     'step': global_step,
                     'epoch': epoch,
@@ -625,7 +681,18 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
                     'A_norm': A.norm().item(),
                     'B_norm': B.norm().item(),
                     'C_norm': C.norm().item(),
-                    'delta_W_norm': (A @ B).norm().item()
+                    'delta_W_norm': (A @ B).norm().item(),
+                    # Pulse input vectors - Excel notation (A=down-proj, B=up-proj)
+                    # A tile (down-proj) = code B tile: x [input_dim], d [rank]
+                    'A_x_vec': x_B_vec.cpu().detach().numpy().copy(),  # [input_dim]
+                    'A_d_vec': d_B_vec.cpu().detach().numpy().copy(),  # [rank]
+                    'A_p_x_vec': p_x_B_vec.cpu().detach().numpy().copy(),  # [input_dim]
+                    'A_p_d_vec': p_d_B_vec.cpu().detach().numpy().copy(),  # [rank]
+                    # B tile (up-proj) = code A tile: x [rank], d [output_dim]
+                    'B_x_vec': x_A_vec.cpu().detach().numpy().copy(),  # [rank]
+                    'B_d_vec': d_A_vec.cpu().detach().numpy().copy(),  # [output_dim]
+                    'B_p_x_vec': p_x_A_vec.cpu().detach().numpy().copy(),  # [rank]
+                    'B_p_d_vec': p_d_A_vec.cpu().detach().numpy().copy(),  # [output_dim]
                 }
                 training_history.append(step_history)
 
@@ -1293,6 +1360,9 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
             if final_r2 is not None:
                 r2_column[-1] = final_r2  # Put R² in the last row
 
+            # Note: Excel uses standard LoRA notation
+            # Code A_norm (up-proj) → Excel B_norm
+            # Code B_norm (down-proj) → Excel A_norm
             summary_data = {
                 'step': [h['step'] for h in training_history],
                 'epoch': [h['epoch'] for h in training_history],
@@ -1300,8 +1370,8 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
                 'batch_loss': [h['batch_loss'] for h in training_history],
                 'is_transfer': [h['is_transfer'] for h in training_history],
                 'grad_norm': [h.get('grad_norm', None) for h in training_history],
-                'A_norm': [h['A_norm'] for h in training_history],
-                'B_norm': [h['B_norm'] for h in training_history],
+                'A_norm': [h['B_norm'] for h in training_history],  # code B = standard A (down-proj)
+                'B_norm': [h['A_norm'] for h in training_history],  # code A = standard B (up-proj)
                 'C_norm': [h['C_norm'] for h in training_history],
                 'delta_W_norm': [h['delta_W_norm'] for h in training_history],
                 'final_r2': r2_column
@@ -1324,21 +1394,49 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
                 B_history.append(B_flat)
                 C_history.append(C_flat)
 
-            # A matrix history (step-wise)
-            A_cols = [f'A[{i//A_init.shape[1]},{i%A_init.shape[1]}]' for i in range(A_flat.size)]
-            A_history_df = pd.DataFrame(A_history, columns=A_cols)
-            A_history_df.insert(0, 'step', [h['step'] for h in training_history])
-            A_history_df.insert(1, 'epoch', [h['epoch'] for h in training_history])
-            A_history_df.insert(2, 'is_transfer', [h['is_transfer'] for h in training_history])
-            A_history_df.to_excel(writer, sheet_name='A_down_History', index=False)
+            # B_up matrix history (code A = standard B, up-projection)
+            # B tile: x [rank], d [output_dim]
+            B_up_cols = [f'B[{i//A_init.shape[1]},{i%A_init.shape[1]}]' for i in range(A_flat.size)]
+            B_up_history_df = pd.DataFrame(A_history, columns=B_up_cols)
+            B_up_history_df.insert(0, 'step', [h['step'] for h in training_history])
+            B_up_history_df.insert(1, 'epoch', [h['epoch'] for h in training_history])
+            B_up_history_df.insert(2, 'is_transfer', [h['is_transfer'] for h in training_history])
 
-            # B matrix history (step-wise)
-            B_cols = [f'B[{i//B_init.shape[1]},{i%B_init.shape[1]}]' for i in range(B_flat.size)]
-            B_history_df = pd.DataFrame(B_history, columns=B_cols)
-            B_history_df.insert(0, 'step', [h['step'] for h in training_history])
-            B_history_df.insert(1, 'epoch', [h['epoch'] for h in training_history])
-            B_history_df.insert(2, 'is_transfer', [h['is_transfer'] for h in training_history])
-            B_history_df.to_excel(writer, sheet_name='B_up_History', index=False)
+            # Add pulse vectors for B tile (up-proj)
+            # x values: [rank] - input projected through A_down
+            for r in range(config.lrtt_rank):
+                B_up_history_df[f'x[{r}]'] = [h['B_x_vec'][r] for h in training_history]
+            for r in range(config.lrtt_rank):
+                B_up_history_df[f'p_x[{r}]'] = [h['B_p_x_vec'][r] for h in training_history]
+            # d values: [output_dim] - gradient at output
+            for i in range(config.output_dim):
+                B_up_history_df[f'd[{i}]'] = [h['B_d_vec'][i] for h in training_history]
+            for i in range(config.output_dim):
+                B_up_history_df[f'p_d[{i}]'] = [h['B_p_d_vec'][i] for h in training_history]
+
+            B_up_history_df.to_excel(writer, sheet_name='B_up_History', index=False)
+
+            # A_down matrix history (code B = standard A, down-projection)
+            # A tile: x [input_dim], d [rank]
+            A_down_cols = [f'A[{i//B_init.shape[1]},{i%B_init.shape[1]}]' for i in range(B_flat.size)]
+            A_down_history_df = pd.DataFrame(B_history, columns=A_down_cols)
+            A_down_history_df.insert(0, 'step', [h['step'] for h in training_history])
+            A_down_history_df.insert(1, 'epoch', [h['epoch'] for h in training_history])
+            A_down_history_df.insert(2, 'is_transfer', [h['is_transfer'] for h in training_history])
+
+            # Add pulse vectors for A tile (down-proj)
+            # x values: [input_dim] - original input
+            for j in range(config.input_dim):
+                A_down_history_df[f'x[{j}]'] = [h['A_x_vec'][j] for h in training_history]
+            for j in range(config.input_dim):
+                A_down_history_df[f'p_x[{j}]'] = [h['A_p_x_vec'][j] for h in training_history]
+            # d values: [rank] - gradient projected through B_up
+            for r in range(config.lrtt_rank):
+                A_down_history_df[f'd[{r}]'] = [h['A_d_vec'][r] for h in training_history]
+            for r in range(config.lrtt_rank):
+                A_down_history_df[f'p_d[{r}]'] = [h['A_p_d_vec'][r] for h in training_history]
+
+            A_down_history_df.to_excel(writer, sheet_name='A_down_History', index=False)
 
             # C matrix history (step-wise)
             C_cols = [f'C[{i//C_init.shape[1]},{i%C_init.shape[1]}]' for i in range(C_flat.size)]

@@ -83,6 +83,7 @@ LRTT_RANK = 8
 TRANSFER_EVERY = 1000
 LORA_ALPHA = 2.0
 TRANSFER_LR = LORA_ALPHA
+TRANSFER_LR_SCALE = 1.0  # Scaling factor for transfer_lr (effective = transfer_lr * scale)
 
 # Paper-aligned analog device parameters
 # nstates = 200 -> dw_min = 2.0 / 200 = 0.01 (assuming w_max=1, w_min=-1)
@@ -168,6 +169,7 @@ def create_lrtt_config():
         rank=LRTT_RANK,
         transfer_every=TRANSFER_EVERY,
         lora_alpha=LORA_ALPHA,
+        transfer_lr_scale=TRANSFER_LR_SCALE,
         forward_inject=False,
         unit_cell_devices=unit_devices
     )
@@ -524,7 +526,8 @@ def create_model():
     print(f"  Normalization: Digital (FP)")
     print(f"  LRTT rank: {LRTT_RANK}")
     print(f"  Transfer every: {TRANSFER_EVERY} updates")
-    print(f"  LoRA alpha: {LORA_ALPHA}\n")
+    print(f"  LoRA alpha: {LORA_ALPHA}")
+    print(f"  Transfer LR scale: {TRANSFER_LR_SCALE}\n")
 
     return model
 
@@ -655,6 +658,7 @@ def main():
             "transfer_every": TRANSFER_EVERY,
             "lora_alpha": LORA_ALPHA,
             "transfer_lr": TRANSFER_LR,
+            "transfer_lr_scale": TRANSFER_LR_SCALE,
             # Paper-aligned device parameters
             "n_states": N_STATES,
             "dw_min": DW_MIN,

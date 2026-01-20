@@ -48,7 +48,7 @@ class LRTTController:
         rank: int,
         *,
         transfer_lr: float = 1.0,
-        transfer_lr_scale: str = "none",  # "none", "sqrt_rank", "rank"
+        transfer_lr_scale: float = 1.0,  # Scaling factor for transfer_lr
         transfer_every: int = 32,
         units_in_mbatch: bool = False,
         lora_alpha: float = 1.0,
@@ -78,10 +78,8 @@ class LRTTController:
             x_size: Input dimension
             rank: LoRA rank (must be <= min(d_size, x_size))
             transfer_lr: Transfer learning rate scalar (base value before scaling)
-            transfer_lr_scale: Auto-scaling mode for transfer_lr based on rank:
-                        "none" - No scaling, use transfer_lr as-is (default)
-                        "sqrt_rank" - Scale by 1/sqrt(rank), i.e., transfer_lr / sqrt(rank)
-                        "rank" - Scale by 1/rank, i.e., transfer_lr / rank
+            transfer_lr_scale: Scaling factor for transfer_lr (default 1.0).
+                        Effective transfer_lr = transfer_lr * transfer_lr_scale.
             transfer_every: Transfer frequency (steps or samples)
             units_in_mbatch: Whether transfer_every counts samples vs steps
             lora_alpha: LoRA scaling factor α
@@ -119,12 +117,7 @@ class LRTTController:
 
         # LRTT parameters with transfer_lr scaling
         self.transfer_lr_scale = transfer_lr_scale
-        if transfer_lr_scale == "sqrt_rank":
-            self.transfer_lr = transfer_lr / math.sqrt(rank)
-        elif transfer_lr_scale == "rank":
-            self.transfer_lr = transfer_lr / rank
-        else:  # "none" or default
-            self.transfer_lr = transfer_lr
+        self.transfer_lr = transfer_lr * transfer_lr_scale
         self.transfer_lr_base = transfer_lr  # Store original for reference
 
         self.transfer_every = transfer_every
@@ -429,6 +422,64 @@ class LRTTController:
                 self.d_size, batch_size, device=device, dtype=self.dtype
             )
 
+    def _decay_persistent_weights(self, tile, decay_factor: float) -> None:
+        """Decay persistent weights directly, avoiding write_noise accumulation.
+
+        When write_noise is enabled, get_weights() returns apparent = persistent + noise.
+        If we read apparent and write it back with set_weights(), the noise gets "baked in"
+        to the persistent weights, causing noise accumulation over transfers.
+
+        This method accesses persistent_weights directly through hidden_parameters
+        to apply decay without this accumulation problem.
+
+        Args:
+            tile: The analog tile (tile_a or tile_b)
+            decay_factor: Factor to multiply weights by (typically < 1.0)
+        """
+        if decay_factor == 1.0:
+            # No decay needed
+            return
+
+        try:
+            # Try to access hidden parameters for persistent weight modification
+            if hasattr(tile, 'tile') and hasattr(tile.tile, 'get_hidden_parameter_names'):
+                names = tile.tile.get_hidden_parameter_names()
+
+                if 'persistent_weights' in names:
+                    idx = names.index('persistent_weights')
+                    hidden_params = tile.tile.get_hidden_parameters()
+
+                    # Apply decay to persistent weights
+                    hidden_params[idx] = hidden_params[idx] * decay_factor
+
+                    # Write back
+                    tile.tile.set_hidden_parameters(hidden_params)
+                    return
+        except Exception:
+            pass
+
+        # Fallback: use get_weights/set_weights (may have noise accumulation issue)
+        weights = tile.get_weights()[0] * decay_factor
+        tile.set_weights(weights)
+
+    def apply_step_decay(self) -> None:
+        """Apply decay_factor to A,B weights every step.
+
+        Called by LRTTTile.post_update_step() to apply decay every mini-batch
+        instead of only at transfer time.
+
+        Only applies when reinit_mode is "decay".
+        """
+        if self.reinit_mode != "decay":
+            return
+
+        if self.decay_factor == 1.0:
+            # No decay needed
+            return
+
+        self._decay_persistent_weights(self.tile_a, self.decay_factor)
+        self._decay_persistent_weights(self.tile_b, self.decay_factor)
+
     def reinit(self) -> None:
         """Reinit A,B matrices based on reinit_mode and a_init_mode.
 
@@ -474,12 +525,7 @@ class LRTTController:
                     B_std = self.reinit_gain * math.sqrt(2.0 / self.x_size)
                     B_kaiming = torch.normal(0, B_std, size=(self.rank, self.x_size), device=self.device, dtype=self.dtype)
                     self.tile_b.set_weights(B_kaiming)
-                else:
-                    # After transfer: Decay both A and B (instead of reinit)
-                    A_weights = self.tile_a.get_weights()[0] * self.decay_factor
-                    B_weights = self.tile_b.get_weights()[0] * self.decay_factor
-                    self.tile_a.set_weights(A_weights)
-                    self.tile_b.set_weights(B_weights)
+                # else: decay is applied every step via apply_step_decay(), not at transfer time
 
             elif self.reinit_mode == "hybrid":
                 # A=0, B decayed or initialized

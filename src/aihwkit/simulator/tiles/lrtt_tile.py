@@ -641,8 +641,9 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         Note:
             - C tile (6T1C): Has lifetime parameter for retention decay
             - A/B tiles: May be ideal devices (no decay) or capacitor-based
+            - Controller decay_factor is applied every step (if reinit_mode="decay")
         """
-        # Apply decay to each tile based on its device config
+        # Apply decay to each tile based on its device config (lifetime decay)
         # tile_a
         if hasattr(self.tile_a, 'rpu_config') and self.tile_a.rpu_config.device.requires_decay():
             self.tile_a.decay_weights()
@@ -652,6 +653,9 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         # tile_c (6T1C - typically has decay)
         if hasattr(self.tile_c, 'rpu_config') and self.tile_c.rpu_config.device.requires_decay():
             self.tile_c.decay_weights()
+
+        # Apply controller's decay_factor every step (if reinit_mode="decay")
+        self.controller.apply_step_decay()
 
         # Apply diffusion if needed
         if hasattr(self.tile_a, 'rpu_config') and self.tile_a.rpu_config.device.requires_diffusion():
