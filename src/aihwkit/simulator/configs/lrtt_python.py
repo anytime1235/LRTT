@@ -37,11 +37,11 @@ class PythonLRTTDevice(_PrintableMixin):
     transfer_lr: float = 1.0
     """Transfer learning rate scalar applied during A⊗B -> visible transfer."""
 
-    transfer_lr_scale: str = "sqrt_rank"
-    """Auto-scaling mode for transfer_lr based on rank:
-    - 'none': No scaling, use transfer_lr as-is
-    - 'sqrt_rank': Scale by 1/sqrt(rank), i.e., transfer_lr / sqrt(rank) (default)
-    - 'rank': Scale by 1/rank, i.e., transfer_lr / rank
+    transfer_lr_scale: float = 1.0
+    """Scaling factor for transfer_lr. Effective transfer_lr = transfer_lr * transfer_lr_scale.
+    - 1.0: No scaling (default)
+    - < 1.0: Reduce transfer learning rate
+    - > 1.0: Increase transfer learning rate
     """
 
     lora_alpha: float = 1.0
@@ -50,45 +50,157 @@ class PythonLRTTDevice(_PrintableMixin):
     reinit_gain: float = 0.1
     """Kaiming initialization gain for B matrix after transfer."""
 
-    reinit_mode: str = "orthogonal"
+    reinit_mode: str = "standard"
     """Reinit strategy after transfer:
-    - 'orthogonal': A=0, B=orthogonal matrix via QR (default, best stability)
     - 'standard': A=0, B=Kaiming (original LRTT)
     - 'decay': A*=decay_factor, B*=decay_factor (gradual decay)
     - 'hybrid': A=0, B*=decay_factor (hybrid approach)
+    - 'orthogonal': A=0, B=Random Orthogonal (FROZEN). B @ B.T = I for projection.
     """
 
     decay_factor: float = 0.9
     """Decay factor for 'decay' and 'hybrid' reinit modes (0 < decay_factor < 1)."""
-    
+
+    a_init_mode: str = "zero"
+    """A matrix initialization mode for first reinit:
+    - 'zero': A=0 (LoRA-style, ensures ΔW=0 initially)
+    - 'kaiming': A=Kaiming Normal (random initialization)
+    """
+
+    b_init_mode: str = "kaiming"
+    """B matrix initialization mode for first reinit:
+    - 'kaiming': B=Kaiming Normal (standard LoRA initialization)
+    - 'zero': B=0 (ensures ΔW=0 initially)
+    """
+
+    # === Transfer Read Settings ===
+    num_reads: int = 1
+    """Number of reads per rank during one-hot transfer.
+    Higher values reduce analog read noise but increase transfer time.
+    Default is 1 (single read, original behavior)."""
+
+    multi_read_mode: str = "average"
+    """How to handle multiple reads (only when num_reads > 1):
+    - 'average': Read num_reads times, average, then transfer once.
+                 Reduces read noise (1/sqrt(N)), write noise unchanged.
+    - 'per_read': Transfer after each read with lr/num_reads.
+                  Reduces read noise but write noise may increase (N writes).
+    Default is 'average'."""
+
+    # === Transfer Mode & Calibration ===
+    transfer_mode: str = "off"
+    """Transfer calibration mode:
+    - 'pilot': Pilot-based γ calibration. Sends a small pilot transfer first,
+               measures actual vs expected, computes γ correction factor.
+    - 'sigma_delta': ΣΔ quantization. Accumulates target lr in a residual h_k,
+                     quantizes to integer pulses n_k = round(h_k/g), stores
+                     residual for next transfer. Long-term accurate but
+                     per-transfer variance higher.
+    - 'off': No calibration, direct transfer with transfer_lr.
+    Default is 'off'."""
+
+    transfer_micro_steps: int = 4
+    """M: Number of micro-transfer steps per transfer.
+    Higher values give smoother pulse accumulation but increase transfer time.
+    For 'pilot' mode: lr_remain is split across M_rest = M - 1 steps.
+    For 'sigma_delta' mode: g = |transfer_lr| / M if sd_quantum is not set."""
+
+    transfer_pilot_frac: float = 0.0625  # 1/16
+    """Fraction of |transfer_lr| used for pilot in 'pilot' mode.
+    Smaller values give more accurate γ estimation but less total transfer.
+    Default is 1/16 = 0.0625."""
+
+    sd_quantum: Optional[float] = None
+    """Unit quantum g for ΣΔ mode. If None, derived as |transfer_lr| / micro_steps.
+    Each rank accumulates target lr and quantizes to n_k * g pulses."""
+
+    # === Read Noise Reduction Settings ===
+    read_n_avg: int = 1
+    """Oversampling count for one-hot reads. Each read is averaged N times.
+    - 1: Standard single reading (original behavior)
+    - 4-8: Recommended for noise reduction (√N improvement)
+    Default is 1."""
+
+    # === AGC (Automatic Gain Control) Settings ===
+    agc_enabled: bool = False
+    """Enable AGC for optimal read amplitude selection.
+    Uses binary search to find largest amplitude without ADC clipping."""
+
+    agc_margin: float = 0.85
+    """Target output bound fraction for AGC (avoid clipping).
+    0.85 = 85% of out_bound. Default is 0.85."""
+
+    agc_max_iters: int = 6
+    """Max iterations for AGC binary search. Default is 6."""
+
+    # === Two-Amplitude Differential Read Settings ===
+    two_amp_enabled: bool = False
+    """Enable two-amplitude differential read for odd offset removal.
+    Uses two amplitudes to cancel odd-order distortions."""
+
+    two_amp_ratio: float = 0.5
+    """Ratio α1/α2 for two-amplitude method. Default is 0.5."""
+
+    # === Update Mode Settings ===
+    update_mode: str = "lora"
+    """A/B update mode:
+    - 'lora': LoRA chain rule (original LRTT, requires forward_inject=True)
+    - 'reconstruction': TikiTaka-style gradient reconstruction (for forward_inject=False)
+    Default is 'lora'."""
+
+    # === Reconstruction Update Parameters (for update_mode='reconstruction') ===
+    recon_lambda_a: float = 1e-3
+    """L2 regularization coefficient for A in reconstruction loss."""
+
+    recon_lambda_b: float = 1e-3
+    """L2 regularization coefficient for B in reconstruction loss."""
+
+    recon_use_scalar_stabilizer: bool = False
+    """Use scalar approximation for stabilizer terms (BB^T ≈ sB*I, A^TA ≈ sA*I).
+    Disabled by default as orthogonal reinit + transfer provides natural stability."""
+
+    recon_use_exact_gram: bool = False
+    """Use exact Gram matrix (BB^T, A^TA) for stabilizer terms.
+    Only for debugging - expensive O(rank^2) computation."""
+
+    recon_exact_gram_every: int = 0
+    """Use exact Gram every N steps (0 = disabled). For periodic exact stabilization."""
+
+    recon_ema_beta: float = 0.9
+    """EMA decay for tracking sA, sB norms (0.9~0.99 recommended)."""
+
+    recon_lr_scale: float = 1.0
+    """Additional learning rate scale for reconstruction updates (0.1~1.0)."""
+
+    recon_clip_norm: float = 10.0
+    """Max norm for A,B clipping (safety fallback). Only used if recon_use_clip_norm=True."""
+
+    recon_use_clip_norm: bool = False
+    """Enable norm clipping for A,B. Disabled by default as orthogonal reinit provides stability."""
+
+    # === Transfer Method Settings ===
+    transfer_method: str = "onehot"
+    """Transfer method:
+    - "onehot": One-hot transfer (rank-by-rank differential read, pulsed update)
+    - "direct": Direct transfer (matrix multiply A @ B, pulsed update)
+    - "set": Exact transfer (set_weights directly, no pulsed update noise)
+    Default is "onehot"."""
+
     # === Advanced Parameters ===
     units_in_mbatch: bool = False
     """If True, transfer_every counts samples; if False, counts steps."""
-
+    
     correct_gradient_magnitudes: bool = False
     """If True, scale learning rate by sqrt(rank) for gradient correction."""
-
+    
     forward_inject: bool = False
     """Enable forward injection optimization: W_eff composition."""
-
+    
     rank_chunk: Optional[int] = None
     """Chunk size for transfer (None = use full rank). For memory management."""
-
+    
     columns_mode: bool = True
     """Transfer mode: True=columns (forward), False=rows (backward)."""
-
-    # === Transfer Mode Parameters ===
-    use_onehot: bool = True
-    """Transfer read mode:
-    - True: Use one-hot forward/backward for analog-realistic reading (default)
-    - False: Use direct weight access via get_weights()
-    """
-
-    use_sigma_delta: bool = True
-    """Transfer write mode (only used when use_onehot=True):
-    - True: Use ΣΔ modulation with integer pulses (default)
-    - False: Use simple pulsed update (rank times, 1 update per rank)
-    """
     
     # === Device Configuration ===
     unit_cell_devices: List[PulsedDevice] = field(default_factory=lambda: [
@@ -105,36 +217,31 @@ class PythonLRTTDevice(_PrintableMixin):
     transfer_bl_mgmt: Optional[Dict[str, Any]] = None
     """BL management settings for transfers (optional)."""
 
-    # === Reconstruction Update Parameters (for forward_inject=False) ===
-    # When forward_inject=False, A,B act as "gradient buffers" storing low-rank
-    # approximation of gradient G = D^T @ X. Goal: minimize L_rec = ||AB + G||^2
-    # so that AB ≈ -G, making C += transfer_lr*AB equivalent to SGD descent.
+    # === Separate A/B Scaling Parameters ===
+    # When use_manual_scaling=True in UpdateParameters, these override global scaling
+    a_x_scaling: Optional[float] = None
+    """X (input) scaling factor for A tile. If None, uses global manual_x_scaling."""
 
-    recon_lambda_a: float = 1e-3
-    """L2 regularization coefficient for A in reconstruction loss."""
+    a_d_scaling: Optional[float] = None
+    """D (gradient) scaling factor for A tile. If None, uses global manual_d_scaling."""
 
-    recon_lambda_b: float = 1e-3
-    """L2 regularization coefficient for B in reconstruction loss."""
+    b_x_scaling: Optional[float] = None
+    """X (input) scaling factor for B tile. If None, uses global manual_x_scaling."""
 
-    recon_use_scalar_stabilizer: bool = False
-    """Use scalar approximation for stabilizer terms (BB^T ≈ sB*I, A^TA ≈ sA*I).
-    Disabled by default as orthogonal reinit + transfer provides natural stability."""
+    b_d_scaling: Optional[float] = None
+    """D (gradient) scaling factor for B tile. If None, uses global manual_d_scaling."""
 
-    recon_use_exact_gram: bool = False
-    """Use exact Gram matrix (BB^T, A^TA) for stabilizer terms.
-    Only for debugging - expensive O(rank^2) computation."""
+    # === Separate BL (Bit Length) Settings ===
+    c_desired_bl: Optional[int] = None
+    """Desired BL for C tile (transfer). If None, uses global desired_bl from UpdateParameters.
+    Typically set higher (e.g., 31) for more accurate transfer to C tile."""
 
-    recon_ema_beta: float = 0.9
-    """EMA decay for tracking sA, sB norms (0.9~0.99 recommended)."""
+    # === Debug Logging ===
+    log_ab_scaling: bool = False
+    """Enable logging of x,d max values during A/B updates."""
 
-    recon_lr_scale: float = 1.0
-    """Additional learning rate scale for reconstruction updates (0.1~1.0)."""
-
-    recon_clip_norm: float = 10.0
-    """Max norm for A,B clipping (safety fallback). Only used if recon_use_clip_norm=True."""
-
-    recon_use_clip_norm: bool = False
-    """Enable norm clipping for A,B. Disabled by default as orthogonal reinit provides stability."""
+    log_ab_scaling_every: int = 10
+    """Log x,d max values every N steps (only when log_ab_scaling=True)."""
     
     def __post_init__(self):
         """Validate configuration parameters."""
@@ -157,14 +264,75 @@ class PythonLRTTDevice(_PrintableMixin):
             raise ValueError(f"reinit_gain must be non-negative, got {self.reinit_gain}")
 
         # Validate reinit_mode
-        valid_modes = ["standard", "decay", "hybrid", "orthogonal"]
+        valid_modes = ["standard", "decay", "hybrid", "orthogonal_zero", "orthogonal_decay"]
         if self.reinit_mode not in valid_modes:
             raise ValueError(f"reinit_mode must be one of {valid_modes}, got '{self.reinit_mode}'")
 
         # Validate decay_factor
         if not (0 < self.decay_factor <= 1):
             raise ValueError(f"decay_factor must be in (0, 1], got {self.decay_factor}")
-            
+
+        # Validate num_reads
+        if self.num_reads < 1:
+            raise ValueError(f"num_reads must be >= 1, got {self.num_reads}")
+
+        # Validate multi_read_mode
+        valid_read_modes = ["average", "per_read"]
+        if self.multi_read_mode not in valid_read_modes:
+            raise ValueError(f"multi_read_mode must be one of {valid_read_modes}, got '{self.multi_read_mode}'")
+
+        # Validate transfer_lr_scale (must be a positive float)
+        if self.transfer_lr_scale <= 0:
+            raise ValueError(f"transfer_lr_scale must be > 0, got {self.transfer_lr_scale}")
+
+        # Validate read_n_avg
+        if self.read_n_avg < 1:
+            raise ValueError(f"read_n_avg must be >= 1, got {self.read_n_avg}")
+
+        # Validate AGC settings
+        if not (0 < self.agc_margin <= 1.0):
+            raise ValueError(f"agc_margin must be in (0, 1], got {self.agc_margin}")
+        if self.agc_max_iters < 1:
+            raise ValueError(f"agc_max_iters must be >= 1, got {self.agc_max_iters}")
+
+        # Validate two_amp_ratio
+        if not (0 < self.two_amp_ratio < 1.0):
+            raise ValueError(f"two_amp_ratio must be in (0, 1), got {self.two_amp_ratio}")
+
+        # Validate update_mode
+        valid_update_modes = ["lora", "reconstruction"]
+        if self.update_mode not in valid_update_modes:
+            raise ValueError(f"update_mode must be one of {valid_update_modes}, got '{self.update_mode}'")
+
+        # Validate reconstruction parameters
+        if self.recon_lambda_a < 0:
+            raise ValueError(f"recon_lambda_a must be non-negative, got {self.recon_lambda_a}")
+        if self.recon_lambda_b < 0:
+            raise ValueError(f"recon_lambda_b must be non-negative, got {self.recon_lambda_b}")
+        if not (0 < self.recon_ema_beta < 1):
+            raise ValueError(f"recon_ema_beta must be in (0, 1), got {self.recon_ema_beta}")
+        if self.recon_lr_scale <= 0:
+            raise ValueError(f"recon_lr_scale must be positive, got {self.recon_lr_scale}")
+        if self.recon_clip_norm <= 0:
+            raise ValueError(f"recon_clip_norm must be positive, got {self.recon_clip_norm}")
+
+        # Validate transfer_mode
+        valid_transfer_modes = ["pilot", "sigma_delta", "off"]
+        if self.transfer_mode not in valid_transfer_modes:
+            raise ValueError(f"transfer_mode must be one of {valid_transfer_modes}, got '{self.transfer_mode}'")
+
+        # Validate transfer_micro_steps
+        if self.transfer_micro_steps < 1:
+            raise ValueError(f"transfer_micro_steps must be >= 1, got {self.transfer_micro_steps}")
+
+        # Validate transfer_pilot_frac
+        if not (0.0 < self.transfer_pilot_frac < 1.0):
+            raise ValueError(f"transfer_pilot_frac must be in (0, 1), got {self.transfer_pilot_frac}")
+
+        # Validate sd_quantum
+        if self.sd_quantum is not None and self.sd_quantum <= 0:
+            raise ValueError(f"sd_quantum must be positive or None, got {self.sd_quantum}")
+
         # Validate rank_chunk
         if self.rank_chunk is not None and self.rank_chunk <= 0:
             raise ValueError(f"rank_chunk must be positive or None, got {self.rank_chunk}")
@@ -204,8 +372,9 @@ class PythonLRTTDevice(_PrintableMixin):
         Returns:
             Dictionary of arguments for LRTTController.__init__()
         """
-        return {
+        kwargs = {
             'transfer_lr': self.transfer_lr,
+            'transfer_lr_scale': self.transfer_lr_scale,
             'transfer_every': self.transfer_every,
             'units_in_mbatch': self.units_in_mbatch,
             'lora_alpha': self.lora_alpha,
@@ -217,9 +386,49 @@ class PythonLRTTDevice(_PrintableMixin):
             'ab_bl_mgmt': self.ab_bl_mgmt,
             'transfer_bl_mgmt': self.transfer_bl_mgmt,
             'forward_inject': self.forward_inject,
-            'use_onehot': self.use_onehot,
-            'use_sigma_delta': self.use_sigma_delta,
+            'num_reads': self.num_reads,
+            'multi_read_mode': self.multi_read_mode,
+            'update_mode': self.update_mode,
+            'transfer_method': self.transfer_method,
         }
+        # Post-init settings (set on controller after creation)
+        kwargs['_post_init'] = {
+            # Transfer mode & calibration
+            'transfer_mode': self.transfer_mode,
+            'transfer_micro_steps': self.transfer_micro_steps,
+            'transfer_pilot_frac': self.transfer_pilot_frac,
+            'sd_quantum': self.sd_quantum,
+            # Read noise reduction
+            'read_n_avg': self.read_n_avg,
+            # AGC settings
+            'agc_enabled': self.agc_enabled,
+            'agc_margin': self.agc_margin,
+            'agc_max_iters': self.agc_max_iters,
+            # Two-amplitude settings
+            'two_amp_enabled': self.two_amp_enabled,
+            'two_amp_ratio': self.two_amp_ratio,
+            # Reconstruction parameters
+            'recon_lambda_a': self.recon_lambda_a,
+            'recon_lambda_b': self.recon_lambda_b,
+            'recon_use_scalar_stabilizer': self.recon_use_scalar_stabilizer,
+            'recon_use_exact_gram': self.recon_use_exact_gram,
+            'recon_exact_gram_every': self.recon_exact_gram_every,
+            'recon_ema_beta': self.recon_ema_beta,
+            'recon_lr_scale': self.recon_lr_scale,
+            'recon_clip_norm': self.recon_clip_norm,
+            'recon_use_clip_norm': self.recon_use_clip_norm,
+            # Separate A/B scaling
+            'a_x_scaling': self.a_x_scaling,
+            'a_d_scaling': self.a_d_scaling,
+            'b_x_scaling': self.b_x_scaling,
+            'b_d_scaling': self.b_d_scaling,
+            # Debug logging
+            'log_ab_scaling': self.log_ab_scaling,
+            'log_ab_scaling_every': self.log_ab_scaling_every,
+            # Separate BL for C tile
+            'c_desired_bl': self.c_desired_bl,
+        }
+        return kwargs
     
     @classmethod
     def from_legacy_lrtt_compound(cls, legacy_compound) -> 'PythonLRTTDevice':
@@ -270,7 +479,7 @@ class PythonLRTTPreset(_PrintableMixin):
             transfer_every=transfer_every,
             lora_alpha=lora_alpha,
             reinit_gain=0.1,
-            forward_inject=False,
+            forward_inject=True,
             unit_cell_devices=[ideal_device, ideal_device, ideal_device]
         )
     
@@ -299,7 +508,7 @@ class PythonLRTTPreset(_PrintableMixin):
             transfer_every=transfer_every,
             lora_alpha=1.0,
             reinit_gain=0.1,
-            forward_inject=False,
+            forward_inject=True,
             unit_cell_devices=[device, device, device]
         )
     
@@ -324,7 +533,7 @@ class PythonLRTTPreset(_PrintableMixin):
             transfer_every=transfer_every,
             lora_alpha=lora_alpha,
             reinit_gain=0.05,  # Smaller reinit for frequent transfers
-            forward_inject=False,
+            forward_inject=True,
             correct_gradient_magnitudes=True,  # Better scaling for higher ranks
             unit_cell_devices=[IdealizedPresetDevice(), IdealizedPresetDevice(), IdealizedPresetDevice()]
         )
@@ -351,7 +560,7 @@ class PythonLRTTPreset(_PrintableMixin):
             transfer_every=transfer_every,
             lora_alpha=1.0,
             reinit_gain=0.1,
-            forward_inject=False,
+            forward_inject=True,
             unit_cell_devices=[low_precision, low_precision, high_precision]
         )
     
@@ -373,7 +582,7 @@ class PythonLRTTPreset(_PrintableMixin):
             transfer_every=1,  # Transfer immediately
             lora_alpha=lora_alpha,
             reinit_gain=0.0,  # No reinit needed for inference
-            forward_inject=False,
+            forward_inject=True,  # Essential for inference
             columns_mode=True,  # Optimized mode
             unit_cell_devices=[IdealizedPresetDevice(), IdealizedPresetDevice(), IdealizedPresetDevice()]
         )
@@ -386,8 +595,8 @@ class PythonLRTTPreset(_PrintableMixin):
         dt_batch_sec: float = 1.0,
         include_retention: bool = True,
         c_device: Optional[PulsedDevice] = None,
-        reinit_mode: str = "orthogonal",
-        decay_factor: float = 0.9
+        reinit_mode: str = "decay",
+        decay_factor: float = 1.0
     ) -> 'PythonLRTTDevice':
         """LRTT with 6T1C devices for A/B tiles and configurable C tile.
 
@@ -413,9 +622,10 @@ class PythonLRTTPreset(_PrintableMixin):
             include_retention: Whether to include retention effects for 6T1C
             c_device: Device for C tile (visible). If None, uses IdealizedPresetDevice.
                       Can be any PulsedDevice: IdealizedPresetDevice, PCM, RRAM, etc.
-            reinit_mode: Reinit strategy after transfer ('orthogonal', 'standard', 'decay', 'hybrid').
-                         Default 'orthogonal' for best stability via QR decomposition.
-            decay_factor: Decay factor for 'decay'/'hybrid' modes (default 0.9).
+            reinit_mode: Reinit strategy after transfer ('standard', 'decay', 'hybrid').
+                         Default 'decay' for 6T1C to allow natural retention decay.
+            decay_factor: Decay factor for reinit (default 1.0 = no artificial reinit,
+                          only natural 6T1C retention decay affects A/B weights).
 
         Returns:
             PythonLRTTDevice configuration with 6T1C A/B and custom C device
@@ -488,7 +698,7 @@ class PythonLRTTPreset(_PrintableMixin):
             reinit_gain=0.1,
             reinit_mode=reinit_mode,
             decay_factor=decay_factor,
-            forward_inject=False,
+            forward_inject=True,
             unit_cell_devices=[sixt1c_device, sixt1c_device, c_device]
         )
 
@@ -634,7 +844,7 @@ class PythonLRTTPreset(_PrintableMixin):
             transfer_every=transfer_every,
             lora_alpha=lora_alpha,
             reinit_gain=0.1,
-            forward_inject=False,
+            forward_inject=True,
             unit_cell_devices=[sixt1c_device, sixt1c_device, sixt1c_device]
         )
 

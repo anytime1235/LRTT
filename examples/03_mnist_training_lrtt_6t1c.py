@@ -32,9 +32,9 @@ from torchvision import datasets, transforms
 # Imports from aihwkit.
 from aihwkit.nn import AnalogLinear, AnalogSequential
 from aihwkit.optim import AnalogSGD
+from aihwkit.simulator.configs import FloatingPointRPUConfig
 from aihwkit.simulator.configs.lrtt_config import PythonLRTTRPUConfig
 from aihwkit.simulator.configs.lrtt_python import PythonLRTTPreset
-from aihwkit.simulator.presets.configs import IdealizedPreset
 from aihwkit.simulator.rpu_base import cuda
 
 
@@ -49,7 +49,7 @@ PATH_DATASET = os.path.join("data", "DATASET")
 
 # Network definition.
 INPUT_SIZE = 784
-HIDDEN_SIZES = [256, 128]
+HIDDEN_SIZE = 256
 OUTPUT_SIZE = 10
 
 # Training parameters.
@@ -57,13 +57,14 @@ EPOCHS = 30
 BATCH_SIZE = 64
 
 # LRTT parameters
-LRTT_RANK = 8  # Rank for all LRTT layers
+LRTT_RANK = 32  # Rank for all LRTT layers
 TRANSFER_EVERY = 100  # Transfer A*B to C every N updates
-LORA_ALPHA = 4.0  # LoRA scaling factor
+LORA_ALPHA = 1.0  # LoRA scaling factor
+REINIT_GAIN = 0.1  # Will be set from command line or sweep
 
 # 6T1C retention parameters
 DT_BATCH_SEC = 1.0  # Assumed time per mini-batch (seconds)
-INCLUDE_RETENTION = True  # Whether to include 6T1C retention effects
+INCLUDE_RETENTION = False  # Whether to include 6T1C retention effects
 
 
 def load_images():
@@ -100,14 +101,19 @@ def create_6t1c_lrtt_config(rank):
     )
 
     # Stability improvements
-    device_config.reinit_gain = 0.5
+    device_config.reinit_gain = REINIT_GAIN
     device_config.correct_gradient_magnitudes = True
-    device_config.transfer_lr = LORA_ALPHA
+    device_config.transfer_lr = 0.1  # Lower transfer_lr for stability
+    device_config.forward_inject = False  # C-only forward
+
+    # Standard mode (lora + standard reinit)
+    device_config.update_mode = "lora"
+    device_config.reinit_mode = "standard"
 
     return PythonLRTTRPUConfig(device=device_config)
 
 
-def create_analog_network(input_size, hidden_sizes, output_size):
+def create_analog_network(input_size, hidden_size, output_size):
     """Create the neural network using LRTT with 6T1C A/B tiles.
 
     LRTT layers use:
@@ -115,15 +121,15 @@ def create_analog_network(input_size, hidden_sizes, output_size):
     - B tile: 6T1C device
     - C tile: IdealizedPresetDevice
 
-    Final output layer uses IdealizedPresetDevice (same type as C tile).
+    Final output layer uses floating point (nn.Linear).
 
     Args:
         input_size (int): size of the Tensor at the input.
-        hidden_sizes (list): list of sizes of the hidden layers.
+        hidden_size (int): size of the hidden layer.
         output_size (int): size of the Tensor at the output.
 
     Returns:
-        nn.Module: created analog model
+        nn.Module: created model
     """
     print("=" * 60)
     print("Creating LRTT Network with 6T1C A/B + Idealized C")
@@ -135,34 +141,25 @@ def create_analog_network(input_size, hidden_sizes, output_size):
     print(f"  6T1C retention: {'Enabled' if INCLUDE_RETENTION else 'Disabled'}")
     print("-" * 60)
     print("  Layer structure:")
-    print(f"    Layer 1: {input_size} -> {hidden_sizes[0]} (LRTT: 6T1C A/B + Ideal C)")
-    print(f"    Layer 2: {hidden_sizes[0]} -> {hidden_sizes[1]} (LRTT: 6T1C A/B + Ideal C)")
-    print(f"    Layer 3: {hidden_sizes[1]} -> {output_size} (IdealizedPreset - same as C tile)")
+    print(f"    Layer 1: {input_size} -> {hidden_size} (LRTT: 6T1C A/B + Ideal C)")
+    print(f"    Layer 2: {hidden_size} -> {output_size} (FloatingPointRPUConfig)")
     print("=" * 60)
 
     model = AnalogSequential(
         # Layer 1: 784 -> 256 with LRTT (6T1C A/B + Idealized C)
         AnalogLinear(
             input_size,
-            hidden_sizes[0],
+            hidden_size,
             bias=False,  # LRTT doesn't support bias
             rpu_config=create_6t1c_lrtt_config(LRTT_RANK),
         ),
         nn.ReLU(),
-        # Layer 2: 256 -> 128 with LRTT (6T1C A/B + Idealized C)
+        # Layer 2: 256 -> 10 with FloatingPointRPUConfig
         AnalogLinear(
-            hidden_sizes[0],
-            hidden_sizes[1],
-            bias=False,
-            rpu_config=create_6t1c_lrtt_config(LRTT_RANK),
-        ),
-        nn.ReLU(),
-        # Layer 3: 128 -> 10 with IdealizedPreset (same type as C tile)
-        AnalogLinear(
-            hidden_sizes[1],
+            hidden_size,
             output_size,
-            bias=False,
-            rpu_config=IdealizedPreset(),
+            bias=True,
+            rpu_config=FloatingPointRPUConfig(),
         ),
         nn.LogSoftmax(dim=1),
     )
@@ -181,7 +178,7 @@ def create_sgd_optimizer(model):
     Returns:
         nn.Module: optimizer
     """
-    optimizer = AnalogSGD(model.parameters(), lr=0.01)
+    optimizer = AnalogSGD(model.parameters(), lr=0.1)
     optimizer.regroup_param_groups(model)
 
     return optimizer
@@ -303,7 +300,7 @@ def validate_c_only(model, val_set):
                 elif isinstance(layer, nn.LogSoftmax):
                     x = torch.log_softmax(x, dim=1)
                 elif hasattr(layer, 'analog_module'):
-                    # Non-LRTT analog layer (final layer)
+                    # Non-LRTT analog layer (e.g., FloatingPointRPUConfig)
                     x = layer(x)
 
             _, predicted = torch.max(x.data, 1)
@@ -400,7 +397,7 @@ def main():
     print(f"\nDataset loaded: {len(train_data.dataset)} train, {len(validation_data.dataset)} test")
 
     # Prepare the model
-    model = create_analog_network(INPUT_SIZE, HIDDEN_SIZES, OUTPUT_SIZE)
+    model = create_analog_network(INPUT_SIZE, HIDDEN_SIZE, OUTPUT_SIZE)
 
     # Train the model
     train(model, train_data, validation_data)

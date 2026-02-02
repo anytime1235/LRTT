@@ -62,7 +62,7 @@ LEARNING_RATE = 0.1
 MOMENTUM = 0.9  # SGD momentum
 WEIGHT_DECAY = 0.0005  # L2 regularization
 NESTEROV = True  # Nesterov momentum
-WARMUP_RATIO = 0.04  # No warmup
+WARMUP_RATIO = 0.0  # No warmup
 N_CLASSES = 10
 NUM_WORKERS = 4  # For faster data loading
 

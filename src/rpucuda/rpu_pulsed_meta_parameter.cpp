@@ -189,6 +189,19 @@ void PulsedUpdateMetaParameter<T>::performUpdateManagement(
     const T lr,
     const T weight_granularity) const {
 
+  // Hardware-realistic mode: use fixed manual scaling factors
+  if (use_manual_scaling) {
+    BL = desired_BL;
+    if (BL > max_BL) {
+      BL = max_BL;
+    }
+    // A is applied to d (gradient), B is applied to x (input)
+    A = manual_d_scaling;
+    B = manual_x_scaling;
+    return;
+  }
+
+  // Original dynamic scaling logic
   this->calculateBlAB(BL, A, B, lr, weight_granularity);
   if (lr > (T)0.0) {
 

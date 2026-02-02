@@ -44,6 +44,10 @@ IS_PERFECT = False
 TRANSFER_LR = 2.0
 LORA_ALPHA = 2.0
 
+# Multi-read settings for one-hot transfer
+NUM_READS = 1  # Number of reads per rank (1 = original behavior)
+MULTI_READ_MODE = "average"  # "average" or "per_read"
+
 
 # ==============================================================================
 # Helper functions
@@ -72,7 +76,9 @@ def create_lrtt_config(
         transfer_lr=TRANSFER_LR,
         forward_inject=False,
         correct_gradient_magnitudes=False,
-        unit_cell_devices=unit_devices
+        unit_cell_devices=unit_devices,
+        num_reads=NUM_READS,
+        multi_read_mode=MULTI_READ_MODE
     )
 
     mapping = MappingParameter(
@@ -379,6 +385,7 @@ if __name__ == "__main__":
     print("=" * 80)
     print(f"Tile: {D_SIZE} x {X_SIZE}, Rank: {RANK}")
     print(f"Transfer LR: {TRANSFER_LR}, LoRA Alpha: {LORA_ALPHA}")
+    print(f"One-hot settings: num_reads={NUM_READS}, multi_read_mode='{MULTI_READ_MODE}'")
 
     df = run_experiments()
     analyze_results(df)
