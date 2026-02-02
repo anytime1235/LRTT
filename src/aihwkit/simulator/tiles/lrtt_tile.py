@@ -166,6 +166,13 @@ class LRTTSimulatorTile(SimulatorTile, Module):
                 # C tile: apply separate BL for transfer
                 if c_bl is not None:
                     update_copy.desired_bl = c_bl
+                # C tile uses set_weights (not pulse update), but needs valid scaling
+                # values for PulsedDevice config validation
+                update_copy.use_manual_scaling = False
+                if update_copy.manual_x_scaling is None:
+                    update_copy.manual_x_scaling = 1.0
+                if update_copy.manual_d_scaling is None:
+                    update_copy.manual_d_scaling = 1.0
 
             return update_copy
 
@@ -222,6 +229,7 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             reinit_mode=getattr(self.lrtt_config, 'reinit_mode', 'standard'),
             decay_factor=getattr(self.lrtt_config, 'decay_factor', 1.0),
             a_init_mode=getattr(self.lrtt_config, 'a_init_mode', 'zero'),  # A matrix initialization mode
+            b_init_mode=getattr(self.lrtt_config, 'b_init_mode', 'kaiming'),  # B matrix initialization mode
             correct_gradient_magnitudes=self.correct_gradient_magnitudes,
             rank_chunk=self.rank_chunk,
             forward_inject=getattr(self.lrtt_config, 'forward_inject', False),

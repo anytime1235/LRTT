@@ -2,13 +2,27 @@
 """Optuna hyperparameter sweep for ViT-SPT-LSA with LRTT on CIFAR-10.
 
 Usage:
-    # Single process
+    # Run trials (results are automatically saved and can be resumed)
     python optuna_vitsptlsa_lrtt.py --n-trials 50
 
-    # Parallel execution (run in multiple terminals)
-    python optuna_vitsptlsa_lrtt.py --study-name my_sweep --n-trials 20 &
-    python optuna_vitsptlsa_lrtt.py --study-name my_sweep --n-trials 20 &
-    python optuna_vitsptlsa_lrtt.py --study-name my_sweep --n-trials 20 &
+    # Resume existing study and add more trials
+    python optuna_vitsptlsa_lrtt.py --n-trials 30  # continues from saved results
+
+    # Parallel execution (run in multiple terminals, same study name)
+    python optuna_vitsptlsa_lrtt.py --n-trials 20 &
+    python optuna_vitsptlsa_lrtt.py --n-trials 20 &
+    python optuna_vitsptlsa_lrtt.py --n-trials 20 &
+
+    # Visualize results without running new trials
+    python optuna_vitsptlsa_lrtt.py --visualize
+
+    # Real-time dashboard (install: pip install optuna-dashboard)
+    optuna-dashboard sqlite:///results/optuna_vitsptlsa_lrtt/optuna_vitsptlsa_main.db
+
+Results are stored in:
+    - SQLite DB: results/optuna_vitsptlsa_lrtt/optuna_vitsptlsa_main.db
+    - JSON summary: results/optuna_vitsptlsa_lrtt/best_params_*.json
+    - Visualization: results/optuna_vitsptlsa_lrtt/visualization_*.png
 """
 
 import os
@@ -28,6 +42,10 @@ from tqdm import tqdm
 
 import optuna
 from optuna.trial import TrialState
+import matplotlib.pyplot as plt
+
+# Default study name for persistence
+DEFAULT_STUDY_NAME = "vitsptlsa_main"
 
 from aihwkit.optim import AnalogSGD
 from aihwkit.nn import AnalogLinear
@@ -49,7 +67,7 @@ os.makedirs(RESULTS, exist_ok=True)
 N_CLASSES = 10
 IMAGE_SIZE = 32
 PATCH_SIZE = 4
-NUM_WORKERS = 4
+NUM_WORKERS = 0  # WSL에서는 0이 가장 빠름
 SEED = 42
 
 # Fixed model architecture (from paper)
@@ -305,15 +323,19 @@ def objective(trial):
     """Optuna objective function."""
     global _current_config
 
+    # Clear GPU cache at the start of each trial
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
     # Hyperparameters to tune
     rank_exp = trial.suggest_int('rank_exp', 0, 7)  # 2^0 ~ 2^7
     rank = 2 ** rank_exp  # 1, 2, 4, 8, 16, 32, 64, 128
-    transfer_every = trial.suggest_int('transfer_every', 1, 50000, log=True)
-    lora_alpha = trial.suggest_float('lora_alpha', 0., 10.0, log=True)
+    transfer_every = trial.suggest_int('transfer_every', 1, 10000, log=True)
+    lora_alpha = trial.suggest_float('lora_alpha', 0.001, 10.0, log=True)
     transfer_lr_scale = trial.suggest_float('transfer_lr_scale', 0.1, 10.0, log=True)
-    learning_rate = trial.suggest_float('learning_rate', 1e-5, 1e0, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 1e-5, 2e-1, log=True)
     batch_size = 8  # Fixed
-    weight_decay = trial.suggest_float('weight_decay', 1e-7, 1e-2, log=True)
+    weight_decay = trial.suggest_float('weight_decay', 1e-6, 1e-2, log=True)
 
     # Early stopping settings (no max epoch limit)
     max_epochs = 200  # Safety limit
@@ -329,134 +351,345 @@ def objective(trial):
 
     manual_seed(SEED)
 
+    # Log trial start
+    print(f"\n{'='*70}")
+    print(f"Trial {trial.number} Starting")
+    print(f"{'='*70}")
+    print(f"  rank={rank}, transfer_every={transfer_every}, lora_alpha={lora_alpha:.4f}")
+    print(f"  transfer_lr_scale={transfer_lr_scale:.4f}, lr={learning_rate:.2e}, wd={weight_decay:.2e}")
+    print(f"{'='*70}")
+
     # Load data
     train_loader, val_loader = load_data(batch_size)
 
-    # Create model
-    model = ViT_SPT_LSA(
-        image_size=IMAGE_SIZE,
-        patch_size=PATCH_SIZE,
-        num_classes=N_CLASSES,
-        embed_dim=EMBED_DIM,
-        depth=DEPTH,
-        num_heads=NUM_HEADS,
-        mlp_ratio=MLP_RATIO,
-        dropout=DROPOUT,
-    ).to(DEVICE)
+    model = None
+    try:
+        # Create model
+        model = ViT_SPT_LSA(
+            image_size=IMAGE_SIZE,
+            patch_size=PATCH_SIZE,
+            num_classes=N_CLASSES,
+            embed_dim=EMBED_DIM,
+            depth=DEPTH,
+            num_heads=NUM_HEADS,
+            mlp_ratio=MLP_RATIO,
+            dropout=DROPOUT,
+        ).to(DEVICE)
 
-    # Optimizer and scheduler
-    optimizer = AnalogSGD(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=weight_decay, nesterov=True)
-    optimizer.regroup_param_groups(model)
-    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
-    criterion = nn.CrossEntropyLoss()
+        # Optimizer and scheduler
+        optimizer = AnalogSGD(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=weight_decay, nesterov=True)
+        optimizer.regroup_param_groups(model)
+        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
+        criterion = nn.CrossEntropyLoss()
 
-    best_accuracy = 0
-    epochs_without_improvement = 0
+        best_accuracy = 0
+        epochs_without_improvement = 0
 
-    for epoch in range(max_epochs):
-        model.train()
-        for images, labels in train_loader:
-            images, labels = images.to(DEVICE), labels.to(DEVICE)
-            optimizer.zero_grad()
-            outputs = model(images)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
+        for epoch in range(max_epochs):
+            model.train()
+            for images, labels in train_loader:
+                images, labels = images.to(DEVICE), labels.to(DEVICE)
+                optimizer.zero_grad()
+                outputs = model(images)
+                loss = criterion(outputs, labels)
+                loss.backward()
+                optimizer.step()
 
-        val_loss, val_accuracy = evaluate(model, val_loader, criterion)
-        scheduler.step(val_loss)
+            val_loss, val_accuracy = evaluate(model, val_loader, criterion)
+            scheduler.step(val_loss)
 
-        # Check improvement
-        if val_accuracy > best_accuracy:
-            best_accuracy = val_accuracy
-            epochs_without_improvement = 0
-        else:
-            epochs_without_improvement += 1
+            # Check improvement
+            improved = ""
+            if val_accuracy > best_accuracy:
+                best_accuracy = val_accuracy
+                epochs_without_improvement = 0
+                improved = " ★"
+            else:
+                epochs_without_improvement += 1
 
-        # Report intermediate value
-        trial.report(val_accuracy, epoch)
+            # Log progress
+            current_lr = optimizer.param_groups[0]['lr']
+            print(f"[Trial {trial.number}] Epoch {epoch+1:3d} | "
+                  f"Val Acc: {val_accuracy:6.2f}% | Best: {best_accuracy:6.2f}% | "
+                  f"Loss: {val_loss:.4f} | LR: {current_lr:.2e} | "
+                  f"No imp: {epochs_without_improvement}/{early_stop_patience}{improved}")
 
-        # Early stopping if no improvement
-        if epochs_without_improvement >= early_stop_patience:
-            break
+            # Report intermediate value
+            trial.report(val_accuracy, epoch)
 
-        # Prune if not promising (Optuna's pruning)
-        if trial.should_prune():
-            raise optuna.exceptions.TrialPruned()
+            # Early stopping if no improvement
+            if epochs_without_improvement >= early_stop_patience:
+                break
 
-    return best_accuracy
+            # Prune if not promising (Optuna's pruning)
+            if trial.should_prune():
+                print(f"[Trial {trial.number}] Pruned at epoch {epoch+1}")
+                raise optuna.exceptions.TrialPruned()
+
+        # Log trial end
+        print(f"\n[Trial {trial.number}] Finished - Best Accuracy: {best_accuracy:.2f}% (Epoch {epoch+1})")
+        print(f"{'='*70}\n")
+
+        return best_accuracy
+
+    finally:
+        # Cleanup GPU memory after each trial (success or failure)
+        if model is not None:
+            del model
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        print(f"[Trial {trial.number}] GPU cache cleared")
+
+
+def visualize_study(study, save_dir):
+    """Generate visualization plots for the study."""
+    complete_trials = [t for t in study.trials if t.state == TrialState.COMPLETE]
+    if len(complete_trials) == 0:
+        print("No completed trials to visualize.")
+        return
+
+    # 1. Optimization history
+    fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+
+    # Plot 1: Accuracy over trials
+    ax = axes[0, 0]
+    trial_numbers = [t.number for t in complete_trials]
+    accuracies = [t.value for t in complete_trials]
+    ax.scatter(trial_numbers, accuracies, alpha=0.6)
+    ax.plot(trial_numbers, [max(accuracies[:i+1]) for i in range(len(accuracies))],
+            'r-', linewidth=2, label='Best so far')
+    ax.set_xlabel('Trial')
+    ax.set_ylabel('Accuracy (%)')
+    ax.set_title('Optimization History')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    # Plot 2: Parameter importance (using fANOVA, same as dashboard)
+    ax = axes[0, 1]
+    try:
+        importances = optuna.importance.get_param_importances(study)
+        param_names = list(importances.keys())
+        values = list(importances.values())
+        ax.barh(param_names[::-1], values[::-1])
+        ax.set_xlabel('Importance (fANOVA)')
+        ax.set_title('Parameter Importance')
+    except Exception as e:
+        ax.text(0.5, 0.5, f'Not enough trials\n({e})', ha='center', va='center', transform=ax.transAxes)
+        ax.set_title('Parameter Importance (unavailable)')
+
+    # Plot 3: Rank distribution
+    ax = axes[0, 2]
+    ranks = [2 ** t.params.get('rank_exp', 3) for t in complete_trials]
+    rank_accs = {}
+    for r, a in zip(ranks, accuracies):
+        if r not in rank_accs:
+            rank_accs[r] = []
+        rank_accs[r].append(a)
+
+    sorted_ranks = sorted(rank_accs.keys())
+    ax.boxplot([rank_accs[r] for r in sorted_ranks], labels=sorted_ranks)
+    ax.set_xlabel('Rank')
+    ax.set_ylabel('Accuracy (%)')
+    ax.set_title('Accuracy by Rank')
+    ax.grid(True, alpha=0.3)
+
+    # Plot 4: Learning rate vs accuracy
+    ax = axes[1, 0]
+    lrs = [t.params.get('learning_rate', 1e-4) for t in complete_trials]
+    ax.scatter(lrs, accuracies, alpha=0.6)
+    ax.set_xscale('log')
+    ax.set_xlabel('Learning Rate')
+    ax.set_ylabel('Accuracy (%)')
+    ax.set_title('Learning Rate vs Accuracy')
+    ax.grid(True, alpha=0.3)
+
+    # Plot 5: Transfer every vs accuracy
+    ax = axes[1, 1]
+    transfer_every = [t.params.get('transfer_every', 1) for t in complete_trials]
+    ax.scatter(transfer_every, accuracies, alpha=0.6)
+    ax.set_xscale('log')
+    ax.set_xlabel('Transfer Every')
+    ax.set_ylabel('Accuracy (%)')
+    ax.set_title('Transfer Every vs Accuracy')
+    ax.grid(True, alpha=0.3)
+
+    # Plot 6: lora_alpha vs accuracy
+    ax = axes[1, 2]
+    lora_alphas = [t.params.get('lora_alpha', 1.0) for t in complete_trials]
+    ax.scatter(lora_alphas, accuracies, alpha=0.6)
+    ax.set_xscale('log')
+    ax.set_xlabel('LoRA Alpha')
+    ax.set_ylabel('Accuracy (%)')
+    ax.set_title('LoRA Alpha vs Accuracy')
+    ax.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    fig_path = os.path.join(save_dir, "visualization.png")
+    plt.savefig(fig_path, dpi=150, bbox_inches='tight')
+    print(f"Visualization saved to: {fig_path}")
+    plt.close()
+
+    # Save detailed trial history to JSON
+    all_trials_data = []
+    for t in study.trials:
+        trial_data = {
+            "number": t.number,
+            "state": t.state.name,
+            "value": t.value,
+            "params": t.params,
+            "datetime_start": t.datetime_start.isoformat() if t.datetime_start else None,
+            "datetime_complete": t.datetime_complete.isoformat() if t.datetime_complete else None,
+            "duration_seconds": (t.datetime_complete - t.datetime_start).total_seconds()
+                               if t.datetime_complete and t.datetime_start else None,
+        }
+        all_trials_data.append(trial_data)
+
+    history_path = os.path.join(save_dir, "all_trials.json")
+    with open(history_path, 'w') as f:
+        json.dump({
+            "study_name": study.study_name,
+            "n_trials": len(study.trials),
+            "best_trial": study.best_trial.number if study.best_trial else None,
+            "best_value": study.best_value if study.best_trial else None,
+            "best_params": study.best_params if study.best_trial else None,
+            "trials": all_trials_data,
+        }, f, indent=2)
+    print(f"Trial history saved to: {history_path}")
+
+
+def print_study_summary(study):
+    """Print summary of the study."""
+    print("\n" + "=" * 60)
+    print("STUDY SUMMARY")
+    print("=" * 60)
+
+    pruned_trials = [t for t in study.trials if t.state == TrialState.PRUNED]
+    complete_trials = [t for t in study.trials if t.state == TrialState.COMPLETE]
+    running_trials = [t for t in study.trials if t.state == TrialState.RUNNING]
+
+    print(f"Study name: {study.study_name}")
+    print(f"Total trials: {len(study.trials)}")
+    print(f"  - Complete: {len(complete_trials)}")
+    print(f"  - Pruned: {len(pruned_trials)}")
+    print(f"  - Running: {len(running_trials)}")
+
+    if complete_trials:
+        accuracies = [t.value for t in complete_trials]
+        print(f"\nAccuracy statistics:")
+        print(f"  - Best: {max(accuracies):.2f}%")
+        print(f"  - Mean: {sum(accuracies)/len(accuracies):.2f}%")
+        print(f"  - Min: {min(accuracies):.2f}%")
+
+        print(f"\nBest trial (#{study.best_trial.number}):")
+        print(f"  Accuracy: {study.best_value:.2f}%")
+        print("  Params:")
+        for key, value in study.best_params.items():
+            if key == 'rank_exp':
+                print(f"    rank: {2**value} (2^{value})")
+            else:
+                print(f"    {key}: {value}")
 
 
 def main():
     """Run Optuna hyperparameter sweep."""
     parser = argparse.ArgumentParser(description="Optuna sweep for ViT-SPT-LSA LRTT")
-    parser.add_argument('--study-name', type=str, default=None,
-                        help='Study name (same name = shared study for parallel execution)')
+    parser.add_argument('--study-name', type=str, default=DEFAULT_STUDY_NAME,
+                        help=f'Study name (default: {DEFAULT_STUDY_NAME})')
     parser.add_argument('--n-trials', type=int, default=50,
                         help='Number of trials to run (default: 50)')
     parser.add_argument('--timeout', type=int, default=None,
                         help='Timeout in seconds (default: None)')
     parser.add_argument('--storage', type=str, default=None,
                         help='Database path (default: auto-generated)')
+    parser.add_argument('--visualize', action='store_true',
+                        help='Visualize existing results without running new trials')
+    parser.add_argument('--new-study', action='store_true',
+                        help='Start a new study (ignore existing results)')
     args = parser.parse_args()
 
-    # Generate or use provided study name
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    if args.study_name:
-        study_name = args.study_name
-        # Use fixed storage for shared study
-        storage = args.storage or f"sqlite:///{RESULTS}/optuna_{study_name}.db"
-    else:
-        study_name = f"vitsptlsa_lrtt_{timestamp}"
-        storage = args.storage or f"sqlite:///{RESULTS}/optuna_{timestamp}.db"
+    os.makedirs(RESULTS, exist_ok=True)
 
-    # load_if_exists=True allows multiple workers to share the same study
+    # Setup study name and storage
+    study_name = args.study_name
+    storage = args.storage or f"sqlite:///{RESULTS}/optuna_{study_name}.db"
+
+    # Check if we're only visualizing
+    if args.visualize:
+        try:
+            study = optuna.load_study(study_name=study_name, storage=storage)
+            print_study_summary(study)
+            visualize_study(study, RESULTS)
+            print(f"\nTo run dashboard: optuna-dashboard {storage}")
+        except Exception as e:
+            print(f"Error loading study: {e}")
+            print(f"No existing study found with name '{study_name}'")
+        return
+
+    # Create or load study
+    if args.new_study:
+        # Delete existing study if any
+        try:
+            optuna.delete_study(study_name=study_name, storage=storage)
+            print(f"Deleted existing study: {study_name}")
+        except:
+            pass
+
     study = optuna.create_study(
         study_name=study_name,
         storage=storage,
         direction="maximize",
-        pruner=optuna.pruners.MedianPruner(n_startup_trials=3, n_warmup_steps=5),
-        load_if_exists=True,  # Enable parallel execution
+        pruner=optuna.pruners.NopPruner(),  # Pruning disabled
+        load_if_exists=True,  # Enable resume and parallel execution
     )
 
-    print(f"Starting Optuna study: {study_name}")
+    existing_trials = len(study.trials)
+    completed_trials = [t for t in study.trials if t.state == TrialState.COMPLETE]
+    if existing_trials > 0:
+        print(f"\nResuming study '{study_name}' with {existing_trials} existing trials ({len(completed_trials)} completed)")
+        if completed_trials:
+            print(f"Current best: {study.best_value:.2f}%")
+        else:
+            print("No completed trials yet")
+
+    print(f"\n{'='*60}")
+    print(f"Study: {study_name}")
     print(f"Database: {storage}")
     print(f"Device: {DEVICE}")
-    print(f"Trials: {args.n_trials}")
-    print(f"(Run multiple instances with same --study-name for parallel execution)")
+    print(f"New trials: {args.n_trials}")
+    print(f"{'='*60}")
+    print(f"(Run multiple instances for parallel execution)")
+    print(f"(Use --visualize to see results)")
+    print(f"(Use optuna-dashboard {storage} for real-time monitoring)\n")
 
-    study.optimize(objective, n_trials=args.n_trials, timeout=args.timeout, show_progress_bar=True)
+    # Callback to delete failed trials (GPU errors shouldn't affect hyperparameter analysis)
+    def delete_failed_trial_callback(study, trial):
+        if trial.state == TrialState.FAIL:
+            print(f"[Trial {trial.number}] Failed - removing from database")
+            try:
+                study._storage.delete_trial(trial._trial_id)
+            except Exception as e:
+                print(f"[Trial {trial.number}] Could not delete: {e}")
 
-    # Print results
-    print("\n" + "=" * 60)
-    print("OPTUNA STUDY COMPLETED")
-    print("=" * 60)
+    study.optimize(objective, n_trials=args.n_trials, timeout=args.timeout,
+                   catch=(Exception,), show_progress_bar=True,
+                   callbacks=[delete_failed_trial_callback])
 
-    pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
-    complete_trials = study.get_trials(deepcopy=False, states=[TrialState.COMPLETE])
+    # Print and save results
+    print_study_summary(study)
+    visualize_study(study, RESULTS)
 
-    print(f"Number of finished trials: {len(study.trials)}")
-    print(f"  Pruned: {len(pruned_trials)}")
-    print(f"  Complete: {len(complete_trials)}")
-
-    print("\nBest trial:")
-    trial = study.best_trial
-    print(f"  Value (accuracy): {trial.value:.2f}%")
-    print("  Params:")
-    for key, value in trial.params.items():
-        print(f"    {key}: {value}")
-
-    # Save results
-    results_path = os.path.join(RESULTS, f"best_params_{study_name}.json")
-    with open(results_path, 'w') as f:
-        json.dump({
-            "best_accuracy": trial.value,
-            "best_params": trial.params,
-            "n_trials": len(study.trials),
-            "n_pruned": len(pruned_trials),
-            "n_complete": len(complete_trials),
-        }, f, indent=2)
-    print(f"\nResults saved to: {results_path}")
+    # Save best params
+    if study.best_trial:
+        results_path = os.path.join(RESULTS, f"best_params_{study_name}.json")
+        with open(results_path, 'w') as f:
+            json.dump({
+                "study_name": study_name,
+                "best_accuracy": study.best_value,
+                "best_params": study.best_params,
+                "best_trial_number": study.best_trial.number,
+                "n_trials": len(study.trials),
+            }, f, indent=2)
+        print(f"\nBest params saved to: {results_path}")
 
 
 if __name__ == "__main__":

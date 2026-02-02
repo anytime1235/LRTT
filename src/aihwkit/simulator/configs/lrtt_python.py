@@ -67,6 +67,12 @@ class PythonLRTTDevice(_PrintableMixin):
     - 'kaiming': A=Kaiming Normal (random initialization)
     """
 
+    b_init_mode: str = "kaiming"
+    """B matrix initialization mode for first reinit:
+    - 'kaiming': B=Kaiming Normal (standard LoRA initialization)
+    - 'zero': B=0 (ensures ΔW=0 initially)
+    """
+
     # === Transfer Read Settings ===
     num_reads: int = 1
     """Number of reads per rank during one-hot transfer.
@@ -275,10 +281,9 @@ class PythonLRTTDevice(_PrintableMixin):
         if self.multi_read_mode not in valid_read_modes:
             raise ValueError(f"multi_read_mode must be one of {valid_read_modes}, got '{self.multi_read_mode}'")
 
-        # Validate transfer_lr_scale
-        valid_lr_scales = ["none", "sqrt_rank", "rank"]
-        if self.transfer_lr_scale not in valid_lr_scales:
-            raise ValueError(f"transfer_lr_scale must be one of {valid_lr_scales}, got '{self.transfer_lr_scale}'")
+        # Validate transfer_lr_scale (must be a positive float)
+        if self.transfer_lr_scale <= 0:
+            raise ValueError(f"transfer_lr_scale must be > 0, got {self.transfer_lr_scale}")
 
         # Validate read_n_avg
         if self.read_n_avg < 1:

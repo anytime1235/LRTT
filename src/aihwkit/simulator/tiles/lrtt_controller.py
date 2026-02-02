@@ -56,6 +56,7 @@ class LRTTController:
         reinit_mode: str = "standard",
         decay_factor: float = 1.0,
         a_init_mode: str = "zero",  # "zero" or "kaiming"
+        b_init_mode: str = "kaiming",  # "kaiming" or "zero"
         correct_gradient_magnitudes: bool = False,
         rank_chunk: Optional[int] = None,
         ab_bl_mgmt: Optional[Dict[str, Any]] = None,
@@ -127,6 +128,7 @@ class LRTTController:
         self.reinit_mode = reinit_mode
         self.decay_factor = decay_factor
         self.a_init_mode = a_init_mode
+        self.b_init_mode = b_init_mode
         self.correct_gradient_magnitudes = correct_gradient_magnitudes
         self.rank_chunk = rank_chunk or rank
         self.forward_inject_enabled = forward_inject
@@ -481,7 +483,7 @@ class LRTTController:
         self._decay_persistent_weights(self.tile_b, self.decay_factor)
 
     def reinit(self) -> None:
-        """Reinit A,B matrices based on reinit_mode and a_init_mode.
+        """Reinit A,B matrices based on reinit_mode, a_init_mode, and b_init_mode.
 
         Reinit modes:
         - "standard": Always reinitialize A and B
@@ -493,6 +495,10 @@ class LRTTController:
         A initialization (controlled by a_init_mode):
         - "zero": A=0 (LoRA-style, ensures ΔW=0 initially)
         - "kaiming": A=Kaiming Normal (random initialization)
+
+        B initialization (controlled by b_init_mode):
+        - "kaiming": B=Kaiming Normal (standard LoRA initialization)
+        - "zero": B=0 (ensures ΔW=0 initially)
         """
         with torch.no_grad():
             if self.reinit_mode == "standard":
@@ -504,10 +510,13 @@ class LRTTController:
                     A_init = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
                 self.tile_a.set_weights(A_init)
 
-                # B matrix: Kaiming Normal initialization
-                B_std = self.reinit_gain * math.sqrt(2.0 / self.x_size)
-                B_kaiming = torch.normal(0, B_std, size=(self.rank, self.x_size), device=self.device, dtype=self.dtype)
-                self.tile_b.set_weights(B_kaiming)
+                # B matrix: Use b_init_mode
+                if self.b_init_mode == "zero":
+                    B_init = torch.zeros(self.rank, self.x_size, device=self.device, dtype=self.dtype)
+                else:  # "kaiming"
+                    B_std = self.reinit_gain * math.sqrt(2.0 / self.x_size)
+                    B_init = torch.normal(0, B_std, size=(self.rank, self.x_size), device=self.device, dtype=self.dtype)
+                self.tile_b.set_weights(B_init)
 
             elif self.reinit_mode == "decay":
                 # Decay mode: First time use a_init_mode for A, B=Kaiming
@@ -521,10 +530,13 @@ class LRTTController:
                         A_init = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
                     self.tile_a.set_weights(A_init)
 
-                    # B matrix: Kaiming Normal initialization
-                    B_std = self.reinit_gain * math.sqrt(2.0 / self.x_size)
-                    B_kaiming = torch.normal(0, B_std, size=(self.rank, self.x_size), device=self.device, dtype=self.dtype)
-                    self.tile_b.set_weights(B_kaiming)
+                    # B matrix: Use b_init_mode
+                    if self.b_init_mode == "zero":
+                        B_init = torch.zeros(self.rank, self.x_size, device=self.device, dtype=self.dtype)
+                    else:  # "kaiming"
+                        B_std = self.reinit_gain * math.sqrt(2.0 / self.x_size)
+                        B_init = torch.normal(0, B_std, size=(self.rank, self.x_size), device=self.device, dtype=self.dtype)
+                    self.tile_b.set_weights(B_init)
                 # else: decay is applied every step via apply_step_decay(), not at transfer time
 
             elif self.reinit_mode == "hybrid":
@@ -533,9 +545,12 @@ class LRTTController:
                 self.tile_a.set_weights(A_zeros)
 
                 if not self._tiles_initialized:
-                    # First time: Initialize B with Kaiming
-                    B_std = self.reinit_gain * math.sqrt(2.0 / self.x_size)
-                    B_init = torch.normal(0, B_std, size=(self.rank, self.x_size), device=self.device, dtype=self.dtype)
+                    # First time: Use b_init_mode
+                    if self.b_init_mode == "zero":
+                        B_init = torch.zeros(self.rank, self.x_size, device=self.device, dtype=self.dtype)
+                    else:  # "kaiming"
+                        B_std = self.reinit_gain * math.sqrt(2.0 / self.x_size)
+                        B_init = torch.normal(0, B_std, size=(self.rank, self.x_size), device=self.device, dtype=self.dtype)
                     self.tile_b.set_weights(B_init)
                 else:
                     # After transfer: Decay B
@@ -1027,20 +1042,20 @@ class LRTTController:
         C_min_before, C_max_before = C_weights.min().item(), C_weights.max().item()
         C_clipped = torch.clamp(C_weights, -1.0, 1.0)
 
-        if self.num_transfers <= 5:  # Debug first few transfers
+        if self.num_transfers < 1:  # Debug first transfer only (거의 출력 안 함)
             print(f"[CLIP-CHECK] Transfer #{self.num_transfers}: C range before: [{C_min_before:.4f}, {C_max_before:.4f}]")
 
         if not torch.equal(C_weights, C_clipped):
             self.tile_c.set_weights(C_clipped, None)
-            if self.num_transfers <= 5:
+            if self.num_transfers < 1:
                 C_verify = self.tile_c.get_weights()[0]
                 print(f"[CLIP-APPLIED] Transfer #{self.num_transfers}: C range after:  [{C_verify.min():.4f}, {C_verify.max():.4f}]")
         else:
-            if self.num_transfers <= 5:
+            if self.num_transfers < 1:
                 print(f"[CLIP-SKIPPED] Transfer #{self.num_transfers}: C already in range, no clipping needed")
 
         # DEBUG: Check A before reinit (first few transfers only)
-        if self.num_transfers <= 3:
+        if self.num_transfers < 1:
             A_before_reinit = self.tile_a.get_weights()[0] if hasattr(self.tile_a, 'get_weights') else None
             if A_before_reinit is not None:
                 print(f"TRANSFER #{self.num_transfers} - Before reinit: A norm={A_before_reinit.norm():.6f}")
@@ -1049,7 +1064,7 @@ class LRTTController:
         self.reinit()
 
         # DEBUG: Check A after reinit (first few transfers only)
-        if self.num_transfers <= 3:
+        if self.num_transfers < 1:  # 거의 출력 안 함
             A_after_reinit = self.tile_a.get_weights()[0] if hasattr(self.tile_a, 'get_weights') else None
             if A_after_reinit is not None:
                 print(f"TRANSFER #{self.num_transfers} - After reinit ({self.reinit_mode}): A norm={A_after_reinit.norm():.6f}")
@@ -1090,13 +1105,13 @@ class LRTTController:
         self.num_transfers += 1
         self.transfer_counter = 0
 
-        if self.num_transfers <= 5:
+        if self.num_transfers < 1:  # 거의 출력 안 함
             print(f"[SET-TRANSFER] Transfer #{self.num_transfers}: "
                   f"delta norm={delta.norm():.6f}, "
                   f"C range before clip: [{C_min_before:.4f}, {C_max_before:.4f}]")
 
         # DEBUG: Check A before reinit (first few transfers only)
-        if self.num_transfers <= 3:
+        if self.num_transfers < 1:  # 거의 출력 안 함
             A_before_reinit = self.tile_a.get_weights()[0] if hasattr(self.tile_a, 'get_weights') else None
             if A_before_reinit is not None:
                 print(f"TRANSFER #{self.num_transfers} - Before reinit: A norm={A_before_reinit.norm():.6f}")
@@ -1105,7 +1120,7 @@ class LRTTController:
         self.reinit()
 
         # DEBUG: Check A after reinit (first few transfers only)
-        if self.num_transfers <= 3:
+        if self.num_transfers < 1:  # 거의 출력 안 함
             A_after_reinit = self.tile_a.get_weights()[0] if hasattr(self.tile_a, 'get_weights') else None
             if A_after_reinit is not None:
                 print(f"TRANSFER #{self.num_transfers} - After reinit ({self.reinit_mode}): A norm={A_after_reinit.norm():.6f}")
@@ -1380,7 +1395,7 @@ class LRTTController:
                                 self.tile_c.update(X_k.unsqueeze(0), D_k.unsqueeze(0))
 
                 # 디버그 로깅 (처음 몇 번만)
-                if self.num_transfers < 3:
+                if self.num_transfers < 1:  # 거의 출력 안 함
                     pilot_info = f"lr_pilot={lr_pilot:.3e} " if self.transfer_gamma_mode == "pilot" else ""
                     print(f"[LRTT onehot] gamma={gamma:.3f} {pilot_info}"
                           f"lr_remain={lr_remain:.3e} Znorm2={Z_norm2:.3e}")
@@ -1402,16 +1417,16 @@ class LRTTController:
         C_min_before, C_max_before = C_weights.min().item(), C_weights.max().item()
         C_clipped = torch.clamp(C_weights, -1.0, 1.0)
 
-        if self.num_transfers <= 5:  # Debug first few transfers
+        if self.num_transfers < 1:  # Debug first transfer only (거의 출력 안 함)
             print(f"[CLIP-CHECK-ONEHOT] Transfer #{self.num_transfers}: C range before: [{C_min_before:.4f}, {C_max_before:.4f}]")
 
         if not torch.equal(C_weights, C_clipped):
             self.tile_c.set_weights(C_clipped, None)
-            if self.num_transfers <= 5:
+            if self.num_transfers < 1:
                 C_verify = self.tile_c.get_weights()[0]
                 print(f"[CLIP-APPLIED-ONEHOT] Transfer #{self.num_transfers}: C range after:  [{C_verify.min():.4f}, {C_verify.max():.4f}]")
         else:
-            if self.num_transfers <= 5:
+            if self.num_transfers < 1:
                 print(f"[CLIP-SKIPPED-ONEHOT] Transfer #{self.num_transfers}: C already in range, no clipping needed")
 
         self.reinit()
@@ -1497,7 +1512,7 @@ class LRTTController:
                             self.tile_c.update(b_k, a_k)
 
                 # 디버그 (초기 몇 회만)
-                if self.num_transfers < 3:
+                if self.num_transfers < 1:  # 거의 출력 안 함
                     res_max = float(self.sd_acc.abs().max().item())
                     print(f"[ΣΔ transfer] g={g:.3e}, nonzero_ranks={nonzero}, max_reps={max_rep}, "
                           f"residual_max<=g/2? {res_max <= 0.5*g + 1e-12} (res_max={res_max:.3e})")

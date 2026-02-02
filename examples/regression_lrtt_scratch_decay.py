@@ -34,7 +34,7 @@ from aihwkit.simulator.configs import FloatingPointRPUConfig
 from aihwkit.simulator.configs.lrtt_config import PythonLRTTRPUConfig
 from aihwkit.simulator.configs.lrtt_python import PythonLRTTDevice
 from aihwkit.simulator.presets.devices import IdealizedPresetDevice
-from aihwkit.simulator.configs.devices import FloatingPointDevice, ConstantStepDevice, LinearStepDevice
+from aihwkit.simulator.configs.devices import FloatingPointDevice, ConstantStepDevice, LinearStepDevice, SoftBoundsReferenceDevice
 from aihwkit.simulator.configs import MappingParameter, SingleRPUConfig, UpdateParameters
 from aihwkit.simulator.parameters import PulseType
 
@@ -53,19 +53,24 @@ class ScratchExperimentConfig:
     primary_seed = 42
 
     # Data dimensions
-    input_dim = 3
-    output_dim = 3
+    input_dim = 9
+    output_dim = 9
 
     # Dataset sizes
-    D_prime_train_size = 25
-    D_prime_test_size = 25
+    D_prime_train_size = 200
+    D_prime_test_size = 200
 
     # Noise parameters
     noise_std = 0.02
 
     # Input data type
     # Options: 'continuous', 'ternary' (0, 0.5, 1), 'binary' (0, 1)
-    input_type = 'ternary'  # Change this to 'ternary' or 'binary' for discrete inputs
+    input_type = 'continuous'  # Change this to 'ternary' or 'binary' for discrete inputs
+
+    # Custom input file (CSV format: x1,x2,x3,... per line)
+    # If specified, loads inputs from this file instead of generating randomly
+    # input_dim will be set automatically based on file columns
+    custom_input_file = None  # e.g., 'custom_input.txt'
 
     # Complexity levels to test
     # Options: 'simple' (0.5), 'medium' (0.8), 'complex' (1.0)
@@ -73,40 +78,83 @@ class ScratchExperimentConfig:
 
     # Training hyperparameters - LRTT scratch training
     # Note: lrtt_lr is computed from hardware parameters below (see lrtt_lr property)
-    lrtt_epochs = 1000
+    lrtt_epochs = 2000
     lrtt_batch_size = 1
-    lrtt_patience = 10  # Allow a bit more training than fine-tuning
+    lrtt_patience = 7  # Allow a bit more training than fine-tuning
     lrtt_grad_clip = 2.0  # Conservative clipping
 
     # LRTT configuration
     lrtt_rank = 1  # Rank-1 for minimal overfitting
-    lrtt_transfer_every = 4  # Medium frequency to observe transfer effects
-    lora_alpha = 0.0306  # Conservative scaling
-
+    lrtt_transfer_every = 10  # Medium frequency to observe transfer effects
+    lora_alpha = 0.04  # Conservative scaling
+ 
     # Reinit configuration - DECAY MODE
-    reinit_mode = "decay"  # Use decay mode instead of standard
-    decay_factor = 1.0  # Decay A,B weights to 50%
+    # Options:
+    #   "standard"        - A=0 (or Kaiming), B=Kaiming (original LRTT)
+    #   "decay"           - A *= decay_factor, B *= decay_factor (gradual decay)
+    #   "hybrid"          - A=0, B *= decay_factor (A reset, B decayed)
+    #   "orthogonal_zero" - A=0, B=Random Orthogonal (frozen)
+    #   "orthogonal_decay"- A *= decay_factor, B=Random Orthogonal (frozen)
+    reinit_mode = "decay"
+    decay_factor = 1.0  # 0.5~0.9 for actual decay, 1.0 = no decay
 
     # A matrix initialization mode
     # Options: 'zero' (LoRA-style, ΔW=0 initially), 'kaiming' (random Kaiming initialization)
     a_init_mode = 'zero'  # Change to 'zero' for original LoRA initialization
+
+    # B matrix initialization mode
+    # Options: 'kaiming' (standard LoRA initialization), 'zero' (ΔW=0 initially)
+    b_init_mode = 'kaiming'  # Change to 'zero' for zero initialization
+
+    # C matrix initialization value
+    # All elements of C are initialized to this value (must be within [-1, 1] for analog tile)
+    c_init_value = 0
 
     # Device configuration
     # Use 6T1C device for A/B matrices (capacitor-based with retention decay)
     # False: IdealizedPresetDevice (idealized, noise only)
     USE_6T1C_AB = True
 
+    # C matrix device configuration
+    # 'idealized': IdealizedPresetDevice (idealized, noise only)
+    # 'floating_point': FloatingPointDevice (idealized, no quantization)
+    # 'softbounds': SoftBoundsReferenceDevice (realistic analog with bounds)
+    c_device_type = 'idealized'
+
+    # Transfer method for C update
+    # 'set': Exact weight setting (no pulsed update, precise)
+    # 'onehot': One-hot transfer (analog-realistic pulsed update)
+    # 'direct': Direct transfer (matrix multiply, pulsed update)
+    transfer_method = 'onehot'
+
+    # C device parameters (for pulsed transfer methods: onehot, direct)
+    # Default dw_min by device type:
+    #   - idealized (IdealizedPresetDevice): 0.0002
+    #   - softbounds (SoftBoundsReferenceDevice): 0.001
+    #   - floating_point (FloatingPointDevice): N/A (exact, no pulse)
+    c_w_max = 1.0  # Maximum weight value
+    c_w_min = -1.0  # Minimum weight value
+    c_dw_min = 0.0002  # Minimum weight update step (idealized: 0.0002, softbounds: 0.001)
+    c_desired_bl = 10  # Bit length for C transfer (higher for accuracy)
+
+    # SoftBoundsReferenceDevice additional parameters (only used when c_device_type='softbounds')
+    # Asymmetry
+    c_up_down = 0.0  # up/down asymmetry (0 = symmetric)
+    c_up_down_dtod = 0.01  # up/down asymmetry dtod variation
+
     # Retention configuration
-    # retention_ratio_at_transfer: fraction of A/B weight remaining at transfer time
-    # Example: 0.9 means 90% of A/B weights remain after transfer_every steps
-    #          0.5 means 50% of A/B weights remain (half decayed)
-    #          1.0 means no decay (perfect retention)
-    retention_ratio_at_transfer = 0.95  # 95% retention at transfer
+    # Option 1: retention_ratio_at_transfer (lifetime varies with transfer_every)
+    #   - fraction of A/B weight remaining at transfer time
+    #   - Example: 0.9 means 90% of A/B weights remain after transfer_every steps
+    # Option 2: fixed_lifetime (lifetime stays constant regardless of transfer_every)
+    #   - Set fixed_lifetime to a value > 0 to use fixed lifetime mode
+    #   - When set, retention_ratio_at_transfer is ignored
+    retention_ratio_at_transfer = None  # Used when fixed_lifetime is None
+    fixed_lifetime = 112.6  # Set to e.g. 10.0 to fix lifetime regardless of transfer_every
     include_retention = True  # Enable/disable retention effects
 
     # Pulse/Update configuration (Hardware-realistic settings)
-    desired_bl = 10  # Bit length for A/B updates (pulse train length)
-    c_desired_bl = 31  # Bit length for C transfer (higher for accuracy)
+    desired_bl = 8  # Bit length for A/B updates (pulse train length)
     pulse_type = PulseType.STOCHASTIC_COMPRESSED  # Pulse generation type
 
     # Hardware mode: use fixed manual scaling factors
@@ -123,14 +171,21 @@ class ScratchExperimentConfig:
     # Separate A/B tile scaling factors (override global if set)
     # A tile update: x=XB (B projection of input), d=original gradient
     # B tile update: x=original input, d=DA (A^T projection of gradient)
-    a_x_scaling = 0.2651  # A tile x scaling (None = use global x_scaling)
-    a_d_scaling = 0.5359  # A tile d scaling (None = use global d_scaling)
-    b_x_scaling = 1.0  # B tile x scaling (None = use global x_scaling)
-    b_d_scaling = 0.7103  # B tile d scaling (None = use global d_scaling)
+    a_x_scaling = 0.088  # A tile x scaling (None = use global x_scaling)
+    a_d_scaling = 0.592  # A tile d scaling (None = use global d_scaling)
+    b_x_scaling = 1.0   # B tile x scaling (None = use global x_scaling)
+    b_d_scaling = 0.903  # B tile d scaling (None = use global d_scaling)
 
     # Debug logging for A/B scaling
     log_ab_scaling = True  # Enable x,d max value logging
     log_ab_scaling_every = 10  # Log every N steps
+
+    # Quantization configuration (for hardware simulation)
+    # Quantize x (input) and d (gradient) to simulate limited precision
+    quantize_x = False  # Enable input quantization
+    quantize_d = False  # Enable gradient quantization
+    x_resolution = 0.1  # Input quantization resolution (e.g., 0.1 = 소수점 첫째 자리)
+    d_resolution = 0.1  # Gradient quantization resolution (e.g., 0.1 = 소수점 첫째 자리)
 
     # Output options
     save_figures = False  # Save training figures as PNG (disable to save time/space)
@@ -147,7 +202,7 @@ class ScratchExperimentConfig:
 # Device Configuration
 # ============================================================================
 
-def create_6t1c_device(retention_ratio_at_transfer=1.0, transfer_every=10, include_retention=True):
+def create_6t1c_device(retention_ratio_at_transfer=1.0, transfer_every=10, include_retention=True, fixed_lifetime=None, desired_bl=10):
     """Create 6T1C device for A/B tiles.
 
     6T1C Device Characteristics:
@@ -157,22 +212,43 @@ def create_6t1c_device(retention_ratio_at_transfer=1.0, transfer_every=10, inclu
     Args:
         retention_ratio_at_transfer: Fraction of weight remaining after transfer_every steps
                                      (e.g., 0.9 = 90% retention, 0.5 = 50% retention)
-        transfer_every: Number of steps between transfers
+                                     Ignored if fixed_lifetime is set.
+        transfer_every: Number of steps (samples) between transfers
         include_retention: Whether to include retention effects
+        fixed_lifetime: If set, use this lifetime directly (in pulse units)
+        desired_bl: Bit length (number of pulses per sample update)
+
+    Note:
+        Lifetime is in pulse units. Total pulses between transfers = transfer_every * desired_bl.
+        Retention decay happens per pulse, not per sample.
     """
     import math
 
-    # Calculate lifetime from retention ratio
-    # Weight after N steps: w(N) = w(0) * (1 - delta)^N
-    # At transfer: retention_ratio = (1 - delta)^transfer_every
-    # Solve for delta: delta = 1 - retention_ratio^(1/transfer_every)
-    # lifetime = 1 / delta
-    if include_retention and retention_ratio_at_transfer < 1.0:
-        delta = 1.0 - math.pow(retention_ratio_at_transfer, 1.0 / transfer_every)
+    # Total pulses between transfers
+    total_pulses = transfer_every * desired_bl
+
+    # Calculate lifetime (in pulse units)
+    if not include_retention:
+        lifetime = 0.0
+        print(f"  6T1C retention: DISABLED (perfect retention)")
+    elif fixed_lifetime is not None and fixed_lifetime > 0:
+        # Use fixed lifetime directly (in pulse units)
+        lifetime = fixed_lifetime
+        # Back-calculate retention ratio for display
+        delta = 1.0 / lifetime
+        retention_at_transfer = math.pow(1.0 - delta, total_pulses)
+        print(f"  6T1C retention: lifetime={lifetime:.1f} pulses (fixed) → {retention_at_transfer*100:.1f}% after {transfer_every} steps ({total_pulses} pulses)")
+    elif retention_ratio_at_transfer is not None and retention_ratio_at_transfer < 1.0:
+        # Calculate lifetime from retention ratio
+        # Weight after N pulses: w(N) = w(0) * (1 - delta)^N
+        # At transfer: retention_ratio = (1 - delta)^total_pulses
+        # Solve for delta: delta = 1 - retention_ratio^(1/total_pulses)
+        # lifetime = 1 / delta (in pulse units)
+        delta = 1.0 - math.pow(retention_ratio_at_transfer, 1.0 / total_pulses)
         lifetime = 1.0 / delta
-        print(f"  6T1C retention: {retention_ratio_at_transfer*100:.1f}% after {transfer_every} steps → lifetime={lifetime:.1f}")
+        print(f"  6T1C retention: {retention_ratio_at_transfer*100:.1f}% after {transfer_every} steps ({total_pulses} pulses) → lifetime={lifetime:.1f} pulses")
     else:
-        lifetime = 0.0  # No retention
+        lifetime = 0.0
         print(f"  6T1C retention: DISABLED (perfect retention)")
 
     return LinearStepDevice(
@@ -233,18 +309,46 @@ def generate_target_dataset(complexity_level: str, config: ScratchExperimentConf
     """
     # Set seed for reproducibility
     torch.manual_seed(seed + 1000 if train else seed + 2000)
-    size = config.D_prime_train_size if train else config.D_prime_test_size
 
-    # Generate inputs based on input_type configuration
-    if config.input_type == 'ternary':
-        # Generate inputs from {0, 0.5, 1}
-        X = torch.randint(0, 3, (size, config.input_dim)).float() * 0.5
-    elif config.input_type == 'binary':
-        # Generate inputs from {0, 1}
-        X = torch.randint(0, 2, (size, config.input_dim)).float()
-    else:  # continuous (default)
-        # Generate inputs from uniform distribution
-        X = torch.rand(size, config.input_dim) * 2 - 1  # U([-1, 1]^4)
+    # Check if custom input file is specified
+    if config.custom_input_file is not None:
+        # Load inputs from custom file
+        import numpy as np
+        custom_path = config.custom_input_file
+        if not os.path.isabs(custom_path):
+            # Make relative path relative to this script's directory
+            custom_path = os.path.join(os.path.dirname(__file__), custom_path)
+
+        # Load CSV data
+        data = np.loadtxt(custom_path, delimiter=',')
+        X_all = torch.tensor(data, dtype=torch.float32)
+
+        # Update input_dim based on file (only on first call)
+        actual_input_dim = X_all.shape[1]
+        if config.input_dim != actual_input_dim:
+            print(f"[Custom Input] Adjusting input_dim: {config.input_dim} -> {actual_input_dim}")
+            config.input_dim = actual_input_dim
+            config.output_dim = actual_input_dim  # Keep square matrix
+
+        # Custom input: use all data for training only (no test split, no shuffle)
+        X = X_all  # Keep original order
+
+        # For custom input, return None for test dataset
+        if not train:
+            return None
+    else:
+        # Generate inputs based on input_type configuration
+        size = config.D_prime_train_size if train else config.D_prime_test_size
+
+        if config.input_type == 'ternary':
+            # Generate inputs from {0, 0.5, 1}
+            X = torch.randint(0, 3, (size, config.input_dim)).float() * 0.5
+        elif config.input_type == 'binary':
+            # Generate inputs from {0, 1}
+            X = torch.randint(0, 2, (size, config.input_dim)).float()
+        else:  # continuous (default)
+            # Generate inputs from uniform distribution
+            X = torch.rand(size, config.input_dim) * 2 - 1  # U([-1, 1]^4)
 
     # Generate target matrix T' directly based on complexity level
     T_prime = generate_target_matrix(complexity_level, config, seed)
@@ -256,13 +360,17 @@ def generate_target_dataset(complexity_level: str, config: ScratchExperimentConf
     # Print target statistics for first call only
     if train and seed == 42:
         print(f"[Target T'] Complexity level: {complexity_level}, ‖T'‖: {T_prime.norm():.3f}")
-        print(f"[Input Data] Type: {config.input_type}, Shape: {X.shape}")
-        if config.input_type == 'ternary':
-            print(f"[Input Data] Values: {0, 0.5, 1}, Sample: {X[0].tolist()[:4]}")
-        elif config.input_type == 'binary':
-            print(f"[Input Data] Values: {0, 1}, Sample: {X[0].tolist()[:4]}")
+        if config.custom_input_file:
+            print(f"[Input Data] Custom file: {config.custom_input_file}, Shape: {X.shape}")
+            print(f"[Input Data] Sample: {X[0].tolist()}")
         else:
-            print(f"[Input Data] Range: [-1, 1], Sample: {X[0].tolist()[:4]}")
+            print(f"[Input Data] Type: {config.input_type}, Shape: {X.shape}")
+            if config.input_type == 'ternary':
+                print(f"[Input Data] Values: {0, 0.5, 1}, Sample: {X[0].tolist()[:4]}")
+            elif config.input_type == 'binary':
+                print(f"[Input Data] Values: {0, 1}, Sample: {X[0].tolist()[:4]}")
+            else:
+                print(f"[Input Data] Range: [-1, 1], Sample: {X[0].tolist()[:4]}")
 
     return TensorDataset(X, Y)
 
@@ -273,7 +381,7 @@ def generate_target_dataset(complexity_level: str, config: ScratchExperimentConf
 class LRTTModel(nn.Module):
     """LRTT model for scratch training."""
 
-    def __init__(self, config: ScratchExperimentConfig, pretrained_C: torch.Tensor = None):
+    def __init__(self, config: ScratchExperimentConfig, pretrained_C: torch.Tensor = None, seed: int = 42):
         super().__init__()
 
         # Create LRTT configuration
@@ -285,11 +393,48 @@ class LRTTModel(nn.Module):
             ab_device = create_6t1c_device(
                 retention_ratio_at_transfer=config.retention_ratio_at_transfer,
                 transfer_every=config.lrtt_transfer_every,
-                include_retention=config.include_retention
+                include_retention=config.include_retention,
+                fixed_lifetime=config.fixed_lifetime,
+                desired_bl=config.desired_bl
             )
         else:
             ab_device = IdealizedPresetDevice()
             print("Using IdealizedPresetDevice for A/B matrices")
+
+        # Create C device based on configuration
+        if config.c_device_type == 'softbounds':
+            c_device = SoftBoundsReferenceDevice(
+                # Weight bounds (configurable)
+                w_max=config.c_w_max,
+                w_min=config.c_w_min,
+                dw_min=config.c_dw_min,
+                # Asymmetry (configurable)
+                up_down=config.c_up_down,
+                up_down_dtod=config.c_up_down_dtod,
+                # Device-to-device variations (hardcoded)
+                w_max_dtod=0.3,
+                w_min_dtod=0.3,
+                dw_min_dtod=0.3,
+                dw_min_std=0.3,
+                # Noise (hardcoded)
+                write_noise_std=0.0,
+                diffusion=0.0,
+                # Lifetime (hardcoded)
+                lifetime=0.0,
+                lifetime_dtod=0.0,
+                # Slope variations (hardcoded)
+                slope_up_dtod=0.0,
+                slope_down_dtod=0.0,
+            )
+            print(f"Using SoftBoundsReferenceDevice for C matrix:")
+            print(f"  Bounds: w_min={config.c_w_min}, w_max={config.c_w_max}, dw_min={config.c_dw_min}")
+            print(f"  Asymmetry: up_down={config.c_up_down}, up_down_dtod={config.c_up_down_dtod}")
+        elif config.c_device_type == 'floating_point':
+            c_device = FloatingPointDevice()
+            print("Using FloatingPointDevice for C matrix (idealized, no quantization)")
+        else:  # 'idealized' (default)
+            c_device = IdealizedPresetDevice(dw_min=config.c_dw_min)
+            print(f"Using IdealizedPresetDevice for C matrix (dw_min={config.c_dw_min})")
 
         device_config = PythonLRTTDevice(
             rank=config.lrtt_rank,
@@ -298,12 +443,13 @@ class LRTTModel(nn.Module):
             reinit_mode=config.reinit_mode,
             decay_factor=config.decay_factor,
             a_init_mode=config.a_init_mode,  # A initialization mode
+            b_init_mode=config.b_init_mode,  # B initialization mode
             forward_inject=False,
             correct_gradient_magnitudes=False,
             unit_cell_devices=[
                 ab_device,  # A matrix
                 ab_device,  # B matrix
-                FloatingPointDevice(),  # C matrix (no quantization, perfect precision)
+                c_device,   # C matrix
             ],
             # Separate A/B tile scaling factors
             a_x_scaling=config.a_x_scaling,
@@ -315,11 +461,12 @@ class LRTTModel(nn.Module):
             log_ab_scaling_every=config.log_ab_scaling_every,
             # Separate BL for C tile transfer
             c_desired_bl=config.c_desired_bl,
-            # Exact transfer method (no pulsed update noise for C)
-            transfer_method="set",
+            # Transfer method for C update (set, onehot, or direct)
+            transfer_method=config.transfer_method,
         )
 
         print(f"A initialization mode: {config.a_init_mode}")
+        print(f"B initialization mode: {config.b_init_mode}")
 
         device_config.transfer_lr = device_config.lora_alpha
 
@@ -366,6 +513,14 @@ class LRTTModel(nn.Module):
             update=update
         )
 
+        # Reset random state right before tile creation for reproducibility
+        # This ensures consistent device-to-device variation across different configs
+        torch.manual_seed(seed)
+        np.random.seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed(seed)
+            torch.cuda.manual_seed_all(seed)
+
         # Create LRTT linear layer
         self.lrtt_layer = AnalogLinear(
             config.input_dim,
@@ -374,13 +529,27 @@ class LRTTModel(nn.Module):
             rpu_config=rpu_config
         )
 
-        # Initialize C with pretrained weights if provided, otherwise all -1
+        # Reset seed again before C initialization to ensure consistency
+        torch.manual_seed(seed)
+        np.random.seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed(seed)
+            torch.cuda.manual_seed_all(seed)
+
+        # Initialize C with pretrained weights if provided, otherwise use c_init_value
         if pretrained_C is not None:
             self.set_C_weights(pretrained_C)
         else:
-            # Set C matrix to -1 (within analog tile bounds [-1,1])
-            C_init = torch.ones(config.output_dim, config.input_dim) * -1.0
+            # Set C matrix to c_init_value (must be within analog tile bounds [-1,1])
+            C_init = torch.ones(config.output_dim, config.input_dim) * config.c_init_value
             self.set_C_weights(C_init)
+
+        # Reset seed again before A/B reinit for consistent initialization
+        torch.manual_seed(seed)
+        np.random.seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed(seed)
+            torch.cuda.manual_seed_all(seed)
 
         # Explicitly reinit A and B after setting C to ensure proper initialization
         analog_tile = self.lrtt_layer.analog_module
@@ -438,10 +607,15 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
     print("SCRATCH TRAINING: LRTT directly on D'")
     print("="*60)
 
+    # Set all random states for reproducibility
     torch.manual_seed(seed)
+    np.random.seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
 
     # Create LRTT model without pre-trained C (random initialization)
-    model = LRTTModel(config, pretrained_C=None).to(DEVICE)
+    model = LRTTModel(config, pretrained_C=None, seed=seed).to(DEVICE)
 
     # Check initial A,B,C
     C_init, A_init, B_init = model.get_lrtt_components()
@@ -454,6 +628,7 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
     best_val_loss = float('inf')
     patience_counter = 0
     best_model_state = None
+    last_transfer_count = 0  # Track transfers for transfer-based early stopping
 
     # Training history for cell-wise tracking
     training_history = []
@@ -596,6 +771,10 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
             grad_d = (2.0 / N) * (Y_pred - Y_batch)
             grad_norm = grad_d.norm().item()
 
+            # Apply quantization to gradient if enabled
+            if config.quantize_d:
+                grad_d = torch.round(grad_d / config.d_resolution) * config.d_resolution
+
             # Compute gradient matrix for C: ∂L/∂C = grad_d.T @ X_batch / batch_size
             # Shape: [output_dim, input_dim] - same as C
             grad_C_matrix = (grad_d.T @ X_batch) / X_batch.size(0)
@@ -606,16 +785,21 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
             A_pre = A_pre.to(DEVICE)
             B_pre = B_pre.to(DEVICE)
 
+            # Apply quantization to input if enabled
+            X_quantized = X_batch
+            if config.quantize_x:
+                X_quantized = torch.round(X_batch / config.x_resolution) * config.x_resolution
+
             # A tile (code) = B tile (standard, up-projection) [output_dim, rank]
             # x_A = input projected through B: X @ B.T [batch, rank]
             # d_A = gradient at output: grad_d [batch, output_dim]
-            x_A = X_batch @ B_pre.T  # [batch, rank]
+            x_A = X_quantized @ B_pre.T  # [batch, rank]
             d_A = grad_d  # [batch, output_dim]
 
             # B tile (code) = A tile (standard, down-projection) [rank, input_dim]
             # x_B = original input: X [batch, input_dim]
             # d_B = gradient projected through A: grad_d @ A [batch, rank]
-            x_B = X_batch  # [batch, input_dim]
+            x_B = X_quantized  # [batch, input_dim]
             d_B = grad_d @ A_pre  # [batch, rank]
 
             # Compute max absolute values per position (over batch dimension)
@@ -642,6 +826,12 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
             loss.backward()
 
             # Gradient clipping
+            # Track num_transfers before step to detect transfer
+            analog_tile = model.lrtt_layer.analog_module
+            num_transfers_before = 0
+            if hasattr(analog_tile, 'controller'):
+                num_transfers_before = analog_tile.controller.num_transfers
+
             torch.nn.utils.clip_grad_norm_(model.parameters(), config.lrtt_grad_clip)
             optimizer.step()
 
@@ -655,13 +845,11 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
             # Log A, B, C cell values after each batch update
             C, A, B = model.get_lrtt_components()
             if A is not None and B is not None:
-                # Check if transfer occurred
-                analog_tile = model.lrtt_layer.analog_module
+                # Check if transfer occurred by comparing num_transfers
                 is_transfer_step = False
                 if hasattr(analog_tile, 'controller'):
-                    current_counter = analog_tile.controller.transfer_counter
-                    # Transfer just occurred if counter is exactly 1 (just reset)
-                    if current_counter == 1 and global_step > 1:
+                    num_transfers_after = analog_tile.controller.num_transfers
+                    if num_transfers_after > num_transfers_before:
                         is_transfer_step = True
 
                 # Record step-wise history for Excel export
@@ -733,26 +921,37 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
 
         train_loss /= len(train_loader.dataset)
 
-        # Check for transfer event
+        # Check for transfer event (compare with last_transfer_count)
+        # NOTE: Use num_transfers (cumulative), not transfer_counter (resets after each transfer)
+        transfer_occurred = False
+        current_transfer_count = 0
         analog_tile = model.lrtt_layer.analog_module
         if hasattr(analog_tile, 'controller'):
-            current_transfer_counter = analog_tile.controller.transfer_counter
-            if epoch > 0 and current_transfer_counter % config.lrtt_transfer_every == 0:
-                # Transfer just occurred
+            current_transfer_count = analog_tile.controller.num_transfers
+            if current_transfer_count > last_transfer_count:
+                # Transfer(s) occurred during this epoch
+                transfer_occurred = True
                 C, A, B = model.get_lrtt_components()
-                print(f"  [TRANSFER] Epoch {epoch}: A norm={A.norm():.4f}, B norm={B.norm():.4f}, C norm={C.norm():.4f}")
+                transfers_this_epoch = current_transfer_count - last_transfer_count
+                print(f"  [TRANSFER] Epoch {epoch}: {transfers_this_epoch} transfer(s), A norm={A.norm():.4f}, B norm={B.norm():.4f}, C norm={C.norm():.4f}")
 
-        # Validation - Use full LRTT model
-        model.eval()
-        val_loss = 0.0
-        with torch.no_grad():
-            for X_batch, Y_batch in val_loader:
-                X_batch, Y_batch = X_batch.to(DEVICE), Y_batch.to(DEVICE)
-                Y_pred = model(X_batch)
-                loss = F.mse_loss(Y_pred, Y_batch)
-                val_loss += loss.item() * X_batch.size(0)
+        # Validation - Use full LRTT model (skip if no val_loader)
+        if val_loader is not None:
+            model.eval()
+            val_loss = 0.0
+            with torch.no_grad():
+                for X_batch, Y_batch in val_loader:
+                    X_batch, Y_batch = X_batch.to(DEVICE), Y_batch.to(DEVICE)
+                    Y_pred = model(X_batch)
+                    loss = F.mse_loss(Y_pred, Y_batch)
+                    val_loss += loss.item() * X_batch.size(0)
 
-        val_loss /= len(val_loader.dataset)
+            val_loss /= len(val_loader.dataset)
+            loss_for_stopping = val_loss
+        else:
+            # No validation set - use train_loss for early stopping
+            val_loss = None
+            loss_for_stopping = train_loss
 
         # Record epoch-level history
         epoch_history.append({
@@ -761,13 +960,18 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
             'val_loss': val_loss
         })
 
-        # Early stopping
-        if val_loss < best_val_loss:
-            best_val_loss = val_loss
-            best_model_state = model.state_dict()
-            patience_counter = 0
-        else:
-            patience_counter += 1
+        # Early stopping - check only at transfer events (not every epoch)
+        # This makes patience count transfers, not epochs
+        # Always save best state on first epoch or when transfer occurs
+        if epoch == 0 or transfer_occurred:
+            if loss_for_stopping < best_val_loss:
+                best_val_loss = loss_for_stopping
+                best_model_state = model.state_dict()
+                patience_counter = 0
+            elif transfer_occurred:  # Only increment patience on transfer (not first epoch)
+                patience_counter += 1
+            # Update transfer count tracker
+            last_transfer_count = current_transfer_count
 
         # Wandb logging (epoch summary - norms and losses only, no cell values)
         # Use the last step of the epoch for epoch-level metrics
@@ -776,8 +980,9 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
             log_dict = {
                 'scratch/step': epoch_step,  # Same step as last batch
                 'scratch/train_loss_epoch': train_loss,
-                'scratch/val_loss_epoch': val_loss
             }
+            if val_loss is not None:
+                log_dict['scratch/val_loss_epoch'] = val_loss
 
             # Log component norms if available
             C, A, B = model.get_lrtt_components()
@@ -792,17 +997,23 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
             wandb.log(log_dict, commit=False)  # commit=False to merge with last batch's log
 
         if epoch % 10 == 0:
-            print(f"Epoch {epoch:3d}: Train={train_loss:.6f}, Val={val_loss:.6f}")
+            if val_loss is not None:
+                print(f"Epoch {epoch:3d}: Train={train_loss:.6f}, Val={val_loss:.6f}")
+            else:
+                print(f"Epoch {epoch:3d}: Train={train_loss:.6f}")
 
-        if patience_counter >= config.lrtt_patience:
-            print(f"Early stopping at epoch {epoch}")
+        if transfer_occurred and patience_counter >= config.lrtt_patience:
+            print(f"Early stopping at epoch {epoch} (no improvement for {patience_counter} transfers)")
             break
 
     # Load best model
     if best_model_state is not None:
         model.load_state_dict(best_model_state)
 
-    print(f"\nBest val loss: {best_val_loss:.6f}")
+    if val_loader is not None:
+        print(f"\nBest val loss: {best_val_loss:.6f}")
+    else:
+        print(f"\nBest train loss: {best_val_loss:.6f}")
 
     # Print final norms
     C, A, B = model.get_lrtt_components()
@@ -891,7 +1102,8 @@ def plot_all_training_figures(training_history: list,
                                seed: int,
                                timestamp: str,
                                final_mse: float = None,
-                               final_r2: float = None) -> dict:
+                               final_r2: float = None,
+                               target_matrix: torch.Tensor = None) -> dict:
     """Plot all training metrics and save as images (similar to wandb scratch tab).
 
     Generates multiple figures:
@@ -913,6 +1125,7 @@ def plot_all_training_figures(training_history: list,
         timestamp: Timestamp string for filename
         final_mse: Final MSE loss on test set
         final_r2: Final R² score on test set
+        target_matrix: Target matrix T' for displaying target values on C cell plots
 
     Returns:
         Dictionary of saved figure paths
@@ -1144,12 +1357,17 @@ def plot_all_training_figures(training_history: list,
         for i in range(n_rows):
             for j in range(n_cols):
                 values = [h['C_matrix'][i, j] for h in training_history]
-                axes[i, j].plot(steps, values, 'g-', linewidth=1)
+                axes[i, j].plot(steps, values, 'g-', linewidth=1, label='C (learned)')
+                # Add target value as horizontal dashed line
+                if target_matrix is not None:
+                    target_val = target_matrix[i, j].item() if torch.is_tensor(target_matrix) else target_matrix[i, j]
+                    axes[i, j].axhline(y=target_val, color='r', linestyle='--', linewidth=1.5, alpha=0.8, label=f'Target={target_val:.3f}')
                 axes[i, j].set_title(f'C[{i},{j}]', fontsize=10)
                 axes[i, j].grid(True, alpha=0.3)
+                axes[i, j].legend(fontsize=7, loc='best')
                 add_transfer_lines(axes[i, j])
 
-        fig.suptitle(f'C Matrix Cells (Core) (complexity={complexity_level}, seed={seed})', fontsize=12)
+        fig.suptitle(f'C Matrix Cells (Core) vs Target (complexity={complexity_level}, seed={seed})', fontsize=12)
         axes[-1, n_cols // 2].set_xlabel('Step')
 
         plt.tight_layout()
@@ -1164,6 +1382,925 @@ def plot_all_training_figures(training_history: list,
         print(f"  - {os.path.basename(path)}")
 
     return saved_paths
+
+
+def plot_combined_training_figures(all_results: dict,
+                                    config: ScratchExperimentConfig,
+                                    complexity_level: str,
+                                    seed: int,
+                                    timestamp: str) -> dict:
+    """Plot combined training metrics for multiple parameter configurations.
+
+    Args:
+        all_results: Dict of {label: {'training_history': [...], 'epoch_history': [...],
+                                      'final_mse': float, 'final_r2': float}}
+        config: Experiment configuration
+        complexity_level: Complexity level string
+        seed: Random seed
+        timestamp: Timestamp string for filename
+
+    Returns:
+        Dictionary of saved figure paths
+    """
+    import matplotlib.cm as cm
+
+    os.makedirs(config.results_dir, exist_ok=True)
+    saved_paths = {}
+
+    labels = list(all_results.keys())
+    n_configs = len(labels)
+    colors = cm.tab10(np.linspace(0, 1, max(n_configs, 10)))[:n_configs]
+
+    # =========================================================================
+    # Figure 1: Combined Loss Plot
+    # =========================================================================
+    fig, ax = plt.subplots(figsize=(14, 6))
+
+    for idx, (label, data) in enumerate(all_results.items()):
+        epoch_history = data.get('epoch_history', [])
+        if epoch_history:
+            epochs = [h['epoch'] for h in epoch_history]
+            val_losses = [h['val_loss'] for h in epoch_history]
+            final_r2 = data.get('final_r2', None)
+            label_str = f"{label}" + (f" (R²={final_r2:.3f})" if final_r2 else "")
+            ax.plot(epochs, val_losses, color=colors[idx], linewidth=1.5, label=label_str)
+
+    ax.set_xlabel('Epoch')
+    ax.set_ylabel('Validation Loss (MSE)')
+    ax.set_title(f'Combined Training Loss (complexity={complexity_level}, seed={seed})')
+    ax.legend(loc='upper right', fontsize=8)
+    ax.grid(True, alpha=0.3)
+    ax.set_yscale('log')
+
+    plt.tight_layout()
+    path = os.path.join(config.results_dir, f"combined_loss_{complexity_level}_seed{seed}_{timestamp}.png")
+    plt.savefig(path, dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    saved_paths['combined_loss'] = path
+
+    # =========================================================================
+    # Figure 2: Combined Norm Plots (||A||, ||B||, ||C||, ||B@A||)
+    # =========================================================================
+    fig, axes = plt.subplots(2, 2, figsize=(16, 10))
+
+    for idx, (label, data) in enumerate(all_results.items()):
+        training_history = data.get('training_history', [])
+        if not training_history:
+            continue
+
+        steps = [h['step'] for h in training_history]
+        # Code A = up-proj = standard B, Code B = down-proj = standard A
+        code_A_norms = [h['A_norm'] for h in training_history]
+        code_B_norms = [h['B_norm'] for h in training_history]
+        C_norms = [h['C_norm'] for h in training_history]
+        delta_W_norms = [h['delta_W_norm'] for h in training_history]
+
+        axes[0, 0].plot(steps, code_B_norms, color=colors[idx], linewidth=1, label=label, alpha=0.8)
+        axes[0, 1].plot(steps, code_A_norms, color=colors[idx], linewidth=1, label=label, alpha=0.8)
+        axes[1, 0].plot(steps, C_norms, color=colors[idx], linewidth=1, label=label, alpha=0.8)
+        axes[1, 1].plot(steps, delta_W_norms, color=colors[idx], linewidth=1, label=label, alpha=0.8)
+
+    axes[0, 0].set_ylabel('||A|| (down-proj)')
+    axes[0, 0].set_title('A Matrix Norm')
+    axes[0, 0].legend(loc='upper right', fontsize=7)
+    axes[0, 0].grid(True, alpha=0.3)
+
+    axes[0, 1].set_ylabel('||B|| (up-proj)')
+    axes[0, 1].set_title('B Matrix Norm')
+    axes[0, 1].legend(loc='upper right', fontsize=7)
+    axes[0, 1].grid(True, alpha=0.3)
+
+    axes[1, 0].set_ylabel('||C|| (core)')
+    axes[1, 0].set_title('C Matrix Norm')
+    axes[1, 0].set_xlabel('Step')
+    axes[1, 0].legend(loc='upper right', fontsize=7)
+    axes[1, 0].grid(True, alpha=0.3)
+
+    axes[1, 1].set_ylabel('||B@A|| (LoRA update)')
+    axes[1, 1].set_title('LoRA Update Norm')
+    axes[1, 1].set_xlabel('Step')
+    axes[1, 1].legend(loc='upper right', fontsize=7)
+    axes[1, 1].grid(True, alpha=0.3)
+
+    fig.suptitle(f'Combined Matrix Norms (complexity={complexity_level}, seed={seed})', fontsize=12)
+    plt.tight_layout()
+    path = os.path.join(config.results_dir, f"combined_norms_{complexity_level}_seed{seed}_{timestamp}.png")
+    plt.savefig(path, dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    saved_paths['combined_norms'] = path
+
+    # =========================================================================
+    # Figure 3: Final R² Bar Chart
+    # =========================================================================
+    fig, ax = plt.subplots(figsize=(12, 6))
+
+    r2_values = [data.get('final_r2', 0) for data in all_results.values()]
+    x_pos = np.arange(len(labels))
+
+    bars = ax.bar(x_pos, r2_values, color=colors)
+    ax.set_xticks(x_pos)
+    ax.set_xticklabels(labels, rotation=45, ha='right', fontsize=9)
+    ax.set_ylabel('R² Score')
+    ax.set_title(f'Final R² Comparison (complexity={complexity_level}, seed={seed})')
+    ax.set_ylim(0, 1)
+    ax.grid(True, alpha=0.3, axis='y')
+
+    # Add value labels on bars
+    for bar, val in zip(bars, r2_values):
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.02,
+                f'{val:.3f}', ha='center', va='bottom', fontsize=8)
+
+    plt.tight_layout()
+    path = os.path.join(config.results_dir, f"combined_r2_{complexity_level}_seed{seed}_{timestamp}.png")
+    plt.savefig(path, dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    saved_paths['combined_r2'] = path
+
+    print(f"\nCombined figures saved to {config.results_dir}/:")
+    for name, path in saved_paths.items():
+        print(f"  - {os.path.basename(path)}")
+
+    return saved_paths
+
+
+def run_multi_param_experiments(param_configs: list,
+                                 complexity_level: str = 'medium',
+                                 seed: int = 42,
+                                 use_wandb: bool = False) -> dict:
+    """Run experiments with multiple parameter configurations and generate combined plots.
+
+    Args:
+        param_configs: List of dicts with parameter overrides and 'label' key
+        complexity_level: Complexity level for target matrix
+        seed: Random seed
+        use_wandb: Whether to use wandb logging
+
+    Returns:
+        Dictionary of all results
+    """
+    from torch.utils.data import DataLoader
+
+    all_results = {}
+    trajectories = {}
+    base_config = ScratchExperimentConfig()
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    # Generate target matrix (same for all experiments)
+    target_matrix = generate_target_matrix(complexity_level, base_config, seed)
+    train_dataset = generate_target_dataset(complexity_level, base_config, train=True, seed=seed)
+
+    for param_config in param_configs:
+        label = param_config.get('label', str(param_config))
+
+        # Create config with overrides
+        config = ScratchExperimentConfig()
+        for key, value in param_config.items():
+            if key != 'label' and hasattr(config, key):
+                setattr(config, key, value)
+
+        # Disable verbose output
+        config.log_ab_scaling = False
+        config.save_figures = False  # Individual figures disabled
+
+        # Generate dataset for this config
+        train_ds = generate_target_dataset(complexity_level, config, train=True, seed=seed)
+        val_ds = generate_target_dataset(complexity_level, config, train=False, seed=seed)
+
+        train_loader = DataLoader(train_ds, batch_size=config.lrtt_batch_size, shuffle=True)
+        val_loader = DataLoader(val_ds, batch_size=config.lrtt_batch_size, shuffle=False)
+
+        print(f"\n{'='*60}")
+        print(f"Running experiment: {label}")
+        print(f"{'='*60}")
+
+        # Reset random state
+        torch.manual_seed(seed)
+        np.random.seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed(seed)
+
+        # Train
+        model, training_history, epoch_history, _, _, _ = train_lrtt_scratch(
+            config, train_loader, val_loader, seed=seed, use_wandb=use_wandb
+        )
+
+        # Evaluate
+        test_ds = generate_target_dataset(complexity_level, config, train=False, seed=seed+1000)
+        test_loader = DataLoader(test_ds, batch_size=len(test_ds), shuffle=False)
+        X_test, Y_test = next(iter(test_loader))
+        X_test, Y_test = X_test.to(DEVICE), Y_test.to(DEVICE)
+
+        model.eval()
+        with torch.no_grad():
+            Y_pred = model(X_test)
+            mse = torch.nn.functional.mse_loss(Y_pred, Y_test).item()
+            ss_res = ((Y_test - Y_pred) ** 2).sum().item()
+            ss_tot = ((Y_test - Y_test.mean()) ** 2).sum().item()
+            r2 = 1 - ss_res / ss_tot if ss_tot > 0 else 0
+
+        all_results[label] = {
+            'training_history': training_history,
+            'epoch_history': epoch_history,
+            'final_mse': mse,
+            'final_r2': r2,
+            'config': {k: v for k, v in param_config.items() if k != 'label'}
+        }
+        trajectories[label] = training_history
+
+        print(f"  Final MSE: {mse:.6f}, R²: {r2:.4f}")
+
+    # Generate combined plots
+    print(f"\n{'='*60}")
+    print("Generating combined plots...")
+    print(f"{'='*60}")
+
+    plot_combined_training_figures(
+        all_results=all_results,
+        config=base_config,
+        complexity_level=complexity_level,
+        seed=seed,
+        timestamp=timestamp
+    )
+
+    # Generate trajectory comparison plots
+    plot_learning_trajectories_pca(
+        trajectories=trajectories,
+        target_matrix=target_matrix,
+        config=base_config,
+        train_dataset=train_dataset,
+        grid_resolution=80
+    )
+
+    plot_learning_trajectories_pca_3d(
+        trajectories=trajectories,
+        target_matrix=target_matrix,
+        config=base_config,
+        train_dataset=train_dataset,
+        grid_resolution=50
+    )
+
+    # Print summary
+    print(f"\n{'='*60}")
+    print("MULTI-PARAM EXPERIMENT SUMMARY")
+    print(f"{'='*60}")
+    print(f"{'Label':<30} {'MSE':<12} {'R²':<10}")
+    print("-" * 52)
+    for label, data in all_results.items():
+        print(f"{label:<30} {data['final_mse']:<12.6f} {data['final_r2']:<10.4f}")
+
+    return all_results
+
+
+def plot_loss_surface_with_trajectory(training_history: list,
+                                       target_matrix: torch.Tensor,
+                                       train_dataset: TensorDataset,
+                                       config: ScratchExperimentConfig,
+                                       complexity_level: str,
+                                       seed: int,
+                                       timestamp: str,
+                                       cell1: tuple = (0, 0),
+                                       cell2: tuple = (1, 1),
+                                       grid_resolution: int = 50,
+                                       margin: float = 0.5) -> str:
+    """Plot 2D loss surface with learning trajectory overlaid.
+
+    Args:
+        training_history: List of step-wise training history
+        target_matrix: Target matrix T'
+        train_dataset: Training dataset
+        config: Experiment configuration
+        complexity_level: Complexity level string
+        seed: Random seed
+        timestamp: Timestamp for filename
+        cell1: First C matrix cell to vary (row, col)
+        cell2: Second C matrix cell to vary (row, col)
+        grid_resolution: Number of points along each axis
+        margin: Extra margin around trajectory for grid
+
+    Returns:
+        Path to saved figure
+    """
+    import numpy as np
+    from torch.utils.data import DataLoader
+
+    os.makedirs(config.results_dir, exist_ok=True)
+
+    # Extract C matrix trajectory
+    C_trajectory = [h['C_matrix'] for h in training_history]
+    cell1_values = [C[cell1[0], cell1[1]] for C in C_trajectory]
+    cell2_values = [C[cell2[0], cell2[1]] for C in C_trajectory]
+
+    # Target values
+    target1 = target_matrix[cell1[0], cell1[1]].item()
+    target2 = target_matrix[cell2[0], cell2[1]].item()
+
+    # Grid range
+    all_vals1 = cell1_values + [target1]
+    all_vals2 = cell2_values + [target2]
+    min1, max1 = min(all_vals1), max(all_vals1)
+    min2, max2 = min(all_vals2), max(all_vals2)
+    range1 = max(max1 - min1, 0.1)
+    range2 = max(max2 - min2, 0.1)
+
+    grid_min1, grid_max1 = min1 - margin * range1, max1 + margin * range1
+    grid_min2, grid_max2 = min2 - margin * range2, max2 + margin * range2
+
+    x = np.linspace(grid_min1, grid_max1, grid_resolution)
+    y = np.linspace(grid_min2, grid_max2, grid_resolution)
+    X, Y = np.meshgrid(x, y)
+
+    # Get training data
+    train_loader = DataLoader(train_dataset, batch_size=len(train_dataset), shuffle=False)
+    X_train, Y_train = next(iter(train_loader))
+    X_train, Y_train = X_train.to(DEVICE), Y_train.to(DEVICE)
+
+    # Use final C as base (fix other cells)
+    base_C = torch.tensor(C_trajectory[-1], dtype=torch.float32)
+
+    # Compute loss surface
+    Z = np.zeros_like(X)
+    print(f"Computing loss surface ({grid_resolution}x{grid_resolution})...")
+
+    for i in range(grid_resolution):
+        for j in range(grid_resolution):
+            C_test = base_C.clone()
+            C_test[cell1[0], cell1[1]] = X[i, j]
+            C_test[cell2[0], cell2[1]] = Y[i, j]
+            Y_pred = X_train @ C_test.T.to(DEVICE)
+            Z[i, j] = F.mse_loss(Y_pred, Y_train).item()
+
+    # Create figure
+    fig, ax = plt.subplots(figsize=(10, 8))
+
+    # Contour plot (log scale for better visualization)
+    Z_safe = np.clip(Z, 1e-8, None)
+    levels = np.logspace(np.log10(Z_safe.min()), np.log10(Z_safe.max()), 30)
+    contour = ax.contourf(X, Y, Z_safe, levels=levels, cmap='viridis',
+                          norm=plt.matplotlib.colors.LogNorm())
+    plt.colorbar(contour, ax=ax, label='MSE Loss (log scale)')
+    ax.contour(X, Y, Z_safe, levels=levels, colors='white', alpha=0.3, linewidths=0.5)
+
+    # Learning trajectory
+    ax.plot(cell1_values, cell2_values, 'r-', linewidth=2, alpha=0.9, label='Learning path')
+    ax.scatter(cell1_values[0], cell2_values[0], c='lime', s=150, marker='o',
+               edgecolors='white', linewidths=2, zorder=5, label='Start')
+    ax.scatter(cell1_values[-1], cell2_values[-1], c='red', s=200, marker='*',
+               edgecolors='white', linewidths=2, zorder=5, label='End')
+
+    # Target
+    ax.scatter(target1, target2, c='yellow', s=250, marker='X',
+               edgecolors='black', linewidths=3, zorder=6,
+               label=f'Target ({target1:.2f}, {target2:.2f})')
+
+    # Transfer markers
+    transfers = [i for i, h in enumerate(training_history) if h.get('is_transfer', False)]
+    if transfers and len(transfers) < 50:
+        t_c1 = [cell1_values[i] for i in transfers]
+        t_c2 = [cell2_values[i] for i in transfers]
+        ax.scatter(t_c1, t_c2, c='orange', s=30, marker='o', alpha=0.6, label='Transfer')
+
+    ax.set_xlabel(f'C[{cell1[0]},{cell1[1]}]', fontsize=12)
+    ax.set_ylabel(f'C[{cell2[0]},{cell2[1]}]', fontsize=12)
+    ax.set_title(f'Loss Surface with Learning Trajectory\n(complexity={complexity_level}, seed={seed})', fontsize=14)
+    ax.legend(loc='upper right')
+
+    plt.tight_layout()
+    path = os.path.join(config.results_dir, f"loss_surface_{complexity_level}_seed{seed}_{timestamp}.png")
+    plt.savefig(path, dpi=150, bbox_inches='tight')
+    plt.close(fig)
+
+    print(f"Loss surface saved to: {path}")
+    return path
+
+
+def plot_learning_trajectories_pca(trajectories: dict,
+                                    target_matrix: torch.Tensor,
+                                    config: ScratchExperimentConfig,
+                                    train_dataset: TensorDataset,
+                                    save_path: str = None,
+                                    grid_resolution: int = 80,
+                                    margin: float = 0.3) -> str:
+    """Plot loss surface in PCA space with multiple learning trajectories.
+
+    Args:
+        trajectories: Dict of {label: training_history} for each experiment
+        target_matrix: Target matrix T' (same for all experiments)
+        config: Experiment configuration
+        train_dataset: Training dataset for computing loss
+        save_path: Path to save figure (auto-generated if None)
+        grid_resolution: Resolution of the loss surface grid
+        margin: Extra margin around trajectories
+
+    Returns:
+        Path to saved figure
+    """
+    from sklearn.decomposition import PCA
+    from torch.utils.data import DataLoader
+    import numpy as np
+
+    os.makedirs(config.results_dir, exist_ok=True)
+
+    # Collect all C matrices from all trajectories
+    all_C_flat = []
+    all_is_transfer = []  # Track transfer points
+    trajectory_indices = {}  # {label: (start_idx, end_idx)}
+
+    idx = 0
+    for label, history in trajectories.items():
+        start_idx = idx
+        for h in history:
+            C = h['C_matrix'].flatten()
+            all_C_flat.append(C)
+            all_is_transfer.append(h.get('is_transfer', False))
+            idx += 1
+        trajectory_indices[label] = (start_idx, idx)
+
+    # Add target to the data
+    target_flat = target_matrix.cpu().numpy().flatten()
+    all_C_flat.append(target_flat)
+    target_idx = idx
+
+    # Stack and fit PCA on trajectory data
+    all_C_array = np.array(all_C_flat)
+    all_is_transfer = np.array(all_is_transfer)
+
+    # Debug: Check if C_matrix values are within [-1, 1]
+    c_min, c_max = all_C_array.min(), all_C_array.max()
+    print(f"[DEBUG] C_matrix range: [{c_min:.4f}, {c_max:.4f}]")
+    if c_min < -1.0 or c_max > 1.0:
+        print(f"[WARNING] C_matrix values outside [-1, 1] range!")
+
+    pca = PCA(n_components=2)
+    all_C_2d = pca.fit_transform(all_C_array)
+
+    # Extract target position in 2D
+    target_2d = all_C_2d[target_idx]
+
+    # Compute valid region FIRST (zonotope projection of [-1,1]^n hypercube)
+    n_dims = pca.components_.shape[1]  # 100 for 10x10 matrix
+
+    # Generators: projection of each axis onto 2D PCA space
+    # g_i = how much moving +1 in dimension i changes the 2D projection
+    generators = pca.components_.T  # Shape: (n_dims, 2)
+
+    # Center of the zonotope in PCA space (projection of origin)
+    hypercube_center = np.zeros((1, n_dims))
+    center = pca.transform(hypercube_center)[0]
+
+    # Compute zonotope boundary by finding extreme points in many directions
+    # For each direction θ, the extreme point is: center + Σ sign(g_i · direction) * g_i
+    n_angles = 360
+    angles = np.linspace(0, 2 * np.pi, n_angles, endpoint=False)
+    vertices = []
+
+    for theta in angles:
+        direction = np.array([np.cos(theta), np.sin(theta)])
+        # For each generator, choose sign to maximize projection onto direction
+        # λ_i = sign(g_i · direction)
+        signs = np.sign(generators @ direction)
+        # Handle zero case (shouldn't happen often)
+        signs[signs == 0] = 1
+        # Extreme point: center + Σ λ_i * g_i
+        extreme_point = center + (signs[:, np.newaxis] * generators).sum(axis=0)
+        vertices.append(extreme_point)
+
+    vertices = np.array(vertices)
+
+    # Remove duplicate vertices (convex hull will handle this, but good for efficiency)
+    from scipy.spatial import ConvexHull
+    try:
+        hull = ConvexHull(vertices)
+        vertices = vertices[hull.vertices]
+    except:
+        pass  # If convex hull fails, use all vertices
+
+    # Use zonotope bounds for grid (to cover entire valid region)
+    x_min, x_max = vertices[:, 0].min(), vertices[:, 0].max()
+    y_min, y_max = vertices[:, 1].min(), vertices[:, 1].max()
+
+    # Create 2D grid in PCA space (covering the entire valid region)
+    x_grid = np.linspace(x_min, x_max, grid_resolution)
+    y_grid = np.linspace(y_min, y_max, grid_resolution)
+    X_grid, Y_grid = np.meshgrid(x_grid, y_grid)
+
+    # Get training data
+    train_loader = DataLoader(train_dataset, batch_size=len(train_dataset), shuffle=False)
+    X_train, Y_train = next(iter(train_loader))
+    X_train, Y_train = X_train.to(DEVICE), Y_train.to(DEVICE)
+
+    # Compute loss surface: for each 2D point, reconstruct C matrix and compute loss
+    print(f"Computing loss surface in PCA space ({grid_resolution}x{grid_resolution})...")
+    Z = np.zeros_like(X_grid)
+
+    for i in range(grid_resolution):
+        for j in range(grid_resolution):
+            # Point in 2D PCA space
+            point_2d = np.array([[X_grid[i, j], Y_grid[i, j]]])
+
+            # Inverse transform to get C matrix (approximate)
+            C_flat = pca.inverse_transform(point_2d)[0]
+            C_matrix = torch.tensor(C_flat.reshape(config.output_dim, config.input_dim),
+                                   dtype=torch.float32)
+
+            # Compute loss
+            Y_pred = X_train @ C_matrix.T.to(DEVICE)
+            Z[i, j] = F.mse_loss(Y_pred, Y_train).item()
+
+    # Create figure (publication-quality settings)
+    fig, ax = plt.subplots(figsize=(10, 8))
+    plt.rcParams.update({'font.size': 11, 'axes.labelsize': 13, 'axes.titlesize': 14})
+
+    # Plot loss surface as contour
+    Z_safe = np.clip(Z, 1e-8, None)
+    levels = np.logspace(np.log10(Z_safe.min()), np.log10(Z_safe.max()), 40)
+    contour = ax.contourf(X_grid, Y_grid, Z_safe, levels=levels, cmap='viridis',
+                          norm=plt.matplotlib.colors.LogNorm())
+
+    # Clip contour to valid region using Path
+    from matplotlib.path import Path
+    from matplotlib.patches import PathPatch, Polygon
+    from matplotlib.ticker import FormatStrFormatter, LogLocator
+
+    zonotope_path = Path(vertices)
+    clip_patch = PathPatch(zonotope_path, transform=ax.transData)
+
+    # Apply clip path to contour (matplotlib 3.8+ API)
+    contour.set_clip_path(clip_patch)
+
+    # Colorbar with log10 values (matching 3D style)
+    cbar = plt.colorbar(contour, ax=ax)
+    cbar.set_label('log₁₀(MSE)', fontsize=12)
+    # Set ticks at powers of 10 and format as log10 values
+    cbar.ax.yaxis.set_major_locator(LogLocator(base=10, numticks=8))
+    cbar.ax.yaxis.set_major_formatter(lambda x, pos: f'{np.log10(x):.0f}' if x > 0 else '')
+
+    # Also clip the contour lines
+    contour_lines = ax.contour(X_grid, Y_grid, Z_safe, levels=levels[::4], colors='white', alpha=0.3, linewidths=0.5)
+    contour_lines.set_clip_path(clip_patch)
+
+    # Draw valid region boundary
+    zonotope_patch = Polygon(vertices, fill=False, edgecolor='red', linewidth=2.5,
+                             linestyle='--', label='Valid region (C∈[-1,1])')
+    ax.add_patch(zonotope_patch)
+
+    # Set axis limits to fit the zonotope with small margin
+    x_min, x_max = vertices[:, 0].min(), vertices[:, 0].max()
+    y_min, y_max = vertices[:, 1].min(), vertices[:, 1].max()
+    margin_x = (x_max - x_min) * 0.05
+    margin_y = (y_max - y_min) * 0.05
+    ax.set_xlim(x_min - margin_x, x_max + margin_x)
+    ax.set_ylim(y_min - margin_y, y_max + margin_y)
+
+    # Generate distinct colors for each trajectory using colormap
+    n_trajectories = len(trajectory_indices)
+    cmap = plt.cm.get_cmap('tab20', n_trajectories)
+    colors = [cmap(i) for i in range(n_trajectories)]
+
+    for i, (label, (start, end)) in enumerate(trajectory_indices.items()):
+        color = colors[i]
+        traj_2d = all_C_2d[start:end]
+        traj_transfers = all_is_transfer[start:end]
+
+        # Plot trajectory line (thinner)
+        ax.plot(traj_2d[:, 0], traj_2d[:, 1], '-', color=color, linewidth=0.6, alpha=0.7, label=label)
+
+        # Mark transfer points with dots (on top of line)
+        transfer_mask = traj_transfers.astype(bool)
+        if transfer_mask.any():
+            ax.scatter(traj_2d[transfer_mask, 0], traj_2d[transfer_mask, 1],
+                      color=color, s=12, marker='o', edgecolors='white', linewidths=0.2, alpha=1.0, zorder=7)
+
+        # Mark start point (circle)
+        ax.scatter(traj_2d[0, 0], traj_2d[0, 1], color=color, s=40, marker='o',
+                   edgecolors='black', linewidths=0.6, zorder=5)
+        # Mark end point (star)
+        ax.scatter(traj_2d[-1, 0], traj_2d[-1, 1], color=color, s=80, marker='*',
+                   edgecolors='black', linewidths=0.6, zorder=6)
+
+    # Plot target (smaller marker)
+    ax.scatter(target_2d[0], target_2d[1], c='yellow', s=80, marker='X',
+               edgecolors='black', linewidths=1.5, zorder=10, label='Target')
+
+    ax.set_xlabel(f'PC1 ({pca.explained_variance_ratio_[0]*100:.1f}%)', fontsize=13)
+    ax.set_ylabel(f'PC2 ({pca.explained_variance_ratio_[1]*100:.1f}%)', fontsize=13)
+    ax.set_title('Loss Surface with Learning Trajectories (PCA)', fontsize=14, fontweight='bold')
+    leg = ax.legend(loc='upper right', fontsize=9, framealpha=0.9)
+    # Make legend lines thicker
+    for line in leg.get_lines():
+        line.set_linewidth(3.0)
+
+    plt.tight_layout()
+
+    if save_path is None:
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        save_path = os.path.join(config.results_dir, f"loss_surface_pca_{timestamp}.svg")
+
+    plt.savefig(save_path, bbox_inches='tight')
+    plt.close(fig)
+
+    print(f"Loss surface with trajectories saved to: {save_path}")
+    return save_path
+
+
+def plot_learning_trajectories_pca_3d(trajectories: dict,
+                                       target_matrix: torch.Tensor,
+                                       config: ScratchExperimentConfig,
+                                       train_dataset: TensorDataset,
+                                       save_path: str = None,
+                                       grid_resolution: int = 50) -> str:
+    """Plot 3D learning trajectories in PCA space.
+
+    Args:
+        trajectories: Dict of {label: training_history} for each experiment
+        target_matrix: Target matrix T' (same for all experiments)
+        config: Experiment configuration
+        train_dataset: Training dataset for computing loss
+        save_path: Path to save figure (auto-generated if None)
+        grid_resolution: Resolution of the loss surface grid
+
+    Returns:
+        Path to saved figure
+    """
+    from mpl_toolkits.mplot3d import Axes3D
+    from sklearn.decomposition import PCA
+
+    os.makedirs(config.results_dir, exist_ok=True)
+
+    # Collect all C matrices from all trajectories
+    all_C_flat = []
+    all_is_transfer = []  # Track transfer points
+    trajectory_indices = {}  # {label: (start_idx, end_idx)}
+
+    idx = 0
+    for label, history in trajectories.items():
+        start_idx = idx
+        for h in history:
+            C = h['C_matrix'].flatten()
+            all_C_flat.append(C)
+            all_is_transfer.append(h.get('is_transfer', False))
+            idx += 1
+        trajectory_indices[label] = (start_idx, idx)
+
+    # Add target to the data
+    target_flat = target_matrix.cpu().numpy().flatten()
+    all_C_flat.append(target_flat)
+    target_idx = idx
+
+    # Stack and fit PCA with 3 components
+    all_C_array = np.array(all_C_flat)
+    all_is_transfer = np.array(all_is_transfer)
+
+    # Debug: Check if C_matrix values are within [-1, 1]
+    c_min, c_max = all_C_array.min(), all_C_array.max()
+    print(f"[DEBUG 3D] C_matrix range: [{c_min:.4f}, {c_max:.4f}]")
+    if c_min < -1.0 or c_max > 1.0:
+        print(f"[WARNING 3D] C_matrix values outside [-1, 1] range!")
+
+    pca = PCA(n_components=3)
+    all_C_3d = pca.fit_transform(all_C_array)
+
+    # Separate target from trajectories
+    target_3d = all_C_3d[target_idx]
+    all_C_3d = all_C_3d[:target_idx]
+
+    # Compute valid region (zonotope projection of [-1,1]^n hypercube)
+    # Use same algorithm as 2D: find extreme points in many directions on the sphere
+    from scipy.spatial import ConvexHull, Delaunay
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+    n_dims = pca.components_.shape[1]  # 100 for 10x10 matrix
+
+    # Generators: projection of each axis onto 3D PCA space
+    generators = pca.components_.T  # Shape: (n_dims, 3)
+
+    # Center of the zonotope in PCA space (projection of origin)
+    hypercube_center = np.zeros((1, n_dims))
+    center = pca.transform(hypercube_center)[0]
+
+    # Sample directions on unit sphere using Fibonacci lattice for uniform distribution
+    n_directions = 1000
+    indices = np.arange(n_directions, dtype=float)
+    phi = np.pi * (3.0 - np.sqrt(5.0))  # golden angle
+    y = 1 - (indices / (n_directions - 1)) * 2  # y goes from 1 to -1
+    radius = np.sqrt(1 - y * y)
+    theta = phi * indices
+    directions = np.column_stack([radius * np.cos(theta), radius * np.sin(theta), y])
+
+    # For each direction, compute extreme point of zonotope
+    vertices = []
+    for direction in directions:
+        # λ_i = sign(g_i · direction)
+        signs = np.sign(generators @ direction)
+        signs[signs == 0] = 1
+        # Extreme point: center + Σ λ_i * g_i
+        extreme_point = center + (signs[:, np.newaxis] * generators).sum(axis=0)
+        vertices.append(extreme_point)
+
+    corners_3d = np.array(vertices)
+
+    # Compute convex hull for valid region check
+    hull = ConvexHull(corners_3d)
+    delaunay = Delaunay(corners_3d[hull.vertices])
+
+    # Get training data
+    X_train = train_dataset.tensors[0].to(DEVICE)
+    Y_train = train_dataset.tensors[1].to(DEVICE)
+
+    # Compute 3D loss grid inside valid region
+    # Use bounds from the convex hull
+    pc1_min, pc1_max = corners_3d[:, 0].min(), corners_3d[:, 0].max()
+    pc2_min, pc2_max = corners_3d[:, 1].min(), corners_3d[:, 1].max()
+    pc3_min, pc3_max = corners_3d[:, 2].min(), corners_3d[:, 2].max()
+
+    # Create 3D grid (lower resolution for 3D)
+    res_3d = min(grid_resolution, 25)
+    x = np.linspace(pc1_min, pc1_max, res_3d)
+    y = np.linspace(pc2_min, pc2_max, res_3d)
+    z = np.linspace(pc3_min, pc3_max, res_3d)
+
+    # Collect points inside valid region and compute their loss
+    points_inside = []
+    loss_values = []
+
+    print(f"Computing 3D loss values ({res_3d}^3 grid)...")
+    for xi in x:
+        for yi in y:
+            for zi in z:
+                point = np.array([xi, yi, zi])
+                # Check if point is inside convex hull
+                if delaunay.find_simplex(point) >= 0:
+                    # Compute loss at this point
+                    pc_point = point.reshape(1, -1)
+                    C_flat = pca.inverse_transform(pc_point)
+                    C_matrix = torch.tensor(C_flat.reshape(config.output_dim, config.input_dim),
+                                            dtype=torch.float32)
+                    Y_pred = X_train @ C_matrix.T.to(DEVICE)
+                    loss = F.mse_loss(Y_pred, Y_train).item()
+                    points_inside.append(point)
+                    loss_values.append(loss)
+
+    points_inside = np.array(points_inside)
+    loss_values = np.array(loss_values)
+
+    # Create figure (publication-quality settings)
+    fig = plt.figure(figsize=(12, 9))
+    plt.rcParams.update({'font.size': 11, 'axes.labelsize': 12, 'axes.titlesize': 13})
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Plot loss as scatter with color (inside valid region only)
+    if len(points_inside) > 0:
+        # Use log scale for loss colors
+        loss_log = np.log10(np.clip(loss_values, 1e-8, None))
+        scatter = ax.scatter(points_inside[:, 0], points_inside[:, 1], points_inside[:, 2],
+                            c=loss_log, cmap='viridis', alpha=0.3, s=15,
+                            vmin=loss_log.min(), vmax=loss_log.max())
+        cbar = plt.colorbar(scatter, ax=ax, shrink=0.5, aspect=10, pad=0.1)
+        cbar.set_label('log₁₀(MSE)', fontsize=11)
+        # Format colorbar ticks with fewer decimals
+        from matplotlib.ticker import FormatStrFormatter
+        cbar.ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+
+    # Generate distinct colors for each trajectory using colormap
+    n_trajectories = len(trajectory_indices)
+    cmap = plt.cm.get_cmap('tab20', n_trajectories)
+    colors = [cmap(i) for i in range(n_trajectories)]
+
+    for i, (label, (start, end)) in enumerate(trajectory_indices.items()):
+        color = colors[i]
+        traj_3d = all_C_3d[start:end]
+        traj_transfers = all_is_transfer[start:end]
+
+        # Plot trajectory line (thinner)
+        ax.plot(traj_3d[:, 0], traj_3d[:, 1], traj_3d[:, 2],
+                '-', color=color, linewidth=0.6, alpha=0.7, label=label)
+
+        # Mark transfer points with dots (on top of line)
+        transfer_mask = traj_transfers.astype(bool)
+        if transfer_mask.any():
+            ax.scatter(traj_3d[transfer_mask, 0], traj_3d[transfer_mask, 1], traj_3d[transfer_mask, 2],
+                      color=color, s=10, marker='o', edgecolors='white', linewidths=0.15, alpha=1.0, zorder=7)
+
+        # Mark start point (circle)
+        ax.scatter(traj_3d[0, 0], traj_3d[0, 1], traj_3d[0, 2],
+                   color=color, s=30, marker='o', edgecolors='black', linewidths=0.4)
+        # Mark end point (star)
+        ax.scatter(traj_3d[-1, 0], traj_3d[-1, 1], traj_3d[-1, 2],
+                   color=color, s=60, marker='*', edgecolors='black', linewidths=0.4)
+
+    # Plot target (smaller marker)
+    ax.scatter(target_3d[0], target_3d[1], target_3d[2],
+               c='yellow', s=70, marker='X', edgecolors='black', linewidths=1.5, label='Target')
+
+    ax.set_xlabel(f'PC1 ({pca.explained_variance_ratio_[0]*100:.1f}%)', fontsize=12)
+    ax.set_ylabel(f'PC2 ({pca.explained_variance_ratio_[1]*100:.1f}%)', fontsize=12)
+    ax.set_zlabel(f'PC3 ({pca.explained_variance_ratio_[2]*100:.1f}%)', fontsize=12)
+    ax.set_title('Learning Trajectories in PCA Space', fontsize=13, fontweight='bold')
+    leg = ax.legend(loc='upper left', fontsize=8, framealpha=0.9)
+    # Make legend lines thicker
+    for line in leg.get_lines():
+        line.set_linewidth(3.0)
+
+    plt.tight_layout()
+
+    if save_path is None:
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        save_path = os.path.join(config.results_dir, f"loss_surface_pca_3d_{timestamp}.svg")
+
+    plt.savefig(save_path, bbox_inches='tight')
+    plt.close(fig)
+
+    print(f"3D Loss surface with trajectories saved to: {save_path}")
+    return save_path
+
+
+def run_trajectory_comparison(param_configs: list,
+                               complexity_level: str = 'medium',
+                               seed: int = 42,
+                               grid_resolution: int = 80) -> str:
+    """Run multiple experiments with different parameters and compare trajectories.
+
+    Creates a single figure with loss surface in PCA space and all learning
+    trajectories overlaid.
+
+    Args:
+        param_configs: List of dicts with parameter overrides and 'label' key
+                      e.g., [{'label': 't=1', 'lrtt_transfer_every': 1},
+                             {'label': 't=10', 'lrtt_transfer_every': 10}]
+        complexity_level: Complexity level for target matrix
+        seed: Random seed
+        grid_resolution: Resolution for loss surface grid
+
+    Returns:
+        Path to saved figure
+    """
+    from torch.utils.data import DataLoader
+
+    trajectories = {}
+    base_config = ScratchExperimentConfig()
+
+    # Generate target matrix and dataset (same for all experiments)
+    target_matrix = generate_target_matrix(complexity_level, base_config, seed)
+    train_dataset = generate_target_dataset(complexity_level, base_config, train=True, seed=seed)
+
+    for param_config in param_configs:
+        label = param_config.pop('label', str(param_config))
+
+        # Create config with overrides
+        config = ScratchExperimentConfig()
+        for key, value in param_config.items():
+            if hasattr(config, key):
+                setattr(config, key, value)
+
+        # Disable verbose output
+        config.log_ab_scaling = False
+
+        # Generate dataset for this config
+        train_ds = generate_target_dataset(complexity_level, config, train=True, seed=seed)
+        val_ds = generate_target_dataset(complexity_level, config, train=False, seed=seed)
+
+        train_loader = DataLoader(train_ds, batch_size=config.lrtt_batch_size, shuffle=True)
+        val_loader = DataLoader(val_ds, batch_size=config.lrtt_batch_size, shuffle=False) if val_ds else None
+
+        print(f"\n{'='*60}")
+        print(f"Running experiment: {label}")
+        print(f"{'='*60}")
+
+        # Reset random state before each experiment to ensure consistent initialization
+        torch.manual_seed(seed)
+        np.random.seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed(seed)
+            torch.cuda.manual_seed_all(seed)
+
+        # Train
+        model, training_history, epoch_history, _, _, _ = train_lrtt_scratch(
+            config, train_loader, val_loader, seed=seed, use_wandb=False
+        )
+
+        trajectories[label] = training_history
+
+        # Restore label for next iteration
+        param_config['label'] = label
+
+    # Plot 2D figure with loss surface + all trajectories
+    save_path_2d = plot_learning_trajectories_pca(
+        trajectories=trajectories,
+        target_matrix=target_matrix,
+        config=base_config,
+        train_dataset=train_dataset,
+        grid_resolution=grid_resolution
+    )
+
+    # Plot 3D figure with trajectories
+    save_path_3d = plot_learning_trajectories_pca_3d(
+        trajectories=trajectories,
+        target_matrix=target_matrix,
+        config=base_config,
+        train_dataset=train_dataset,
+        grid_resolution=min(grid_resolution, 50)  # Lower resolution for 3D (faster)
+    )
+
+    return save_path_2d, save_path_3d
 
 
 def save_experiment_details_to_excel(config: ScratchExperimentConfig,
@@ -1204,8 +2341,12 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
             'input_type',
             'complexity',
             'seed',
+            'c_init_value',
+            'a_init_mode',
+            'b_init_mode',
             'use_6t1c',
-            'retention',
+            'retention_ratio',
+            'fixed_lifetime',
             'include_retention',
             'desired_bl',
             'dw_min',
@@ -1213,6 +2354,10 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
             'a_d_scaling',
             'b_x_scaling',
             'b_d_scaling',
+            'quantize_x',
+            'quantize_d',
+            'x_resolution',
+            'd_resolution',
             'train_samples',
             'input_dim',
             'output_dim',
@@ -1230,8 +2375,12 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
             config.input_type,
             complexity_level,
             seed,
+            config.c_init_value,
+            config.b_init_mode,  # Excel A = Code B (down-projection)
+            config.a_init_mode,  # Excel B = Code A (up-projection)
             config.USE_6T1C_AB,
             config.retention_ratio_at_transfer if config.USE_6T1C_AB else None,
+            config.fixed_lifetime if config.USE_6T1C_AB else None,
             config.include_retention if config.USE_6T1C_AB else None,
             config.desired_bl,
             0.02,  # dw_min from LinearStepDevice
@@ -1239,6 +2388,10 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
             config.b_d_scaling,  # Excel A = Code B
             config.a_x_scaling,  # Excel B = Code A (up-projection)
             config.a_d_scaling,  # Excel B = Code A
+            config.quantize_x,
+            config.quantize_d,
+            config.x_resolution if config.quantize_x else None,
+            config.d_resolution if config.quantize_d else None,
             config.D_prime_train_size,
             config.input_dim,
             config.output_dim,
@@ -1252,8 +2405,12 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
             'Input data type (continuous/ternary/binary)',
             'Target complexity level',
             'Random seed',
+            'C matrix initial value (all elements)',
+            'A (down-proj) init mode (zero/kaiming)',
+            'B (up-proj) init mode (zero/kaiming)',
             'Use 6T1C device for A/B matrices',
             'Retention ratio at transfer (e.g., 0.95 = 95%)',
+            'Fixed lifetime in pulses (overrides retention_ratio)',
             'Include retention effects',
             'Bit length (pulse train length)',
             'Minimum weight update step',
@@ -1261,6 +2418,10 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
             'A tile (down-proj) d scaling',
             'B tile (up-proj) x scaling',
             'B tile (up-proj) d scaling',
+            'Enable input (x) quantization',
+            'Enable gradient (d) quantization',
+            'Input quantization resolution',
+            'Gradient quantization resolution',
             'Number of training samples',
             'Input dimension',
             'Output dimension',
@@ -1468,9 +2629,14 @@ def run_scratch_experiment(config: ScratchExperimentConfig, complexity_level: st
     print(f"Running SCRATCH experiment with seed={seed}, complexity_level={complexity_level}")
     print(f"REINIT CONFIG: mode={config.reinit_mode}, decay_factor={config.decay_factor}")
     if config.USE_6T1C_AB and config.include_retention:
-        print(f"DEVICE CONFIG: 6T1C_AB=True, retention={config.retention_ratio_at_transfer*100:.1f}% at transfer")
+        if config.fixed_lifetime is not None:
+            print(f"DEVICE CONFIG: 6T1C_AB=True, fixed_lifetime={config.fixed_lifetime} pulses")
+        else:
+            print(f"DEVICE CONFIG: 6T1C_AB=True, retention={config.retention_ratio_at_transfer*100:.1f}% at transfer")
     else:
         print(f"DEVICE CONFIG: 6T1C_AB={config.USE_6T1C_AB}, retention={'OFF' if not config.include_retention else 'N/A'}")
+    if config.quantize_x or config.quantize_d:
+        print(f"QUANTIZATION: x={config.quantize_x} (res={config.x_resolution}), d={config.quantize_d} (res={config.d_resolution})")
     print(f"{'='*60}")
 
     # Initialize wandb run for this experiment
@@ -1478,7 +2644,7 @@ def run_scratch_experiment(config: ScratchExperimentConfig, complexity_level: st
         run_name = f"lrtt_scratch_{complexity_level}_r{config.lrtt_rank}_t{config.lrtt_transfer_every}_alpha{config.lora_alpha}_LR{config.lrtt_lr}"
 
         wandb.init(
-            project="aihwkit-lrtt-scratch",
+            project="regression-lrtt-scratch",
             name=run_name,
             config={
                 'experiment_type': 'LRTT-scratch',
@@ -1491,7 +2657,12 @@ def run_scratch_experiment(config: ScratchExperimentConfig, complexity_level: st
                 'lora_alpha': config.lora_alpha,
                 'use_6t1c_ab': config.USE_6T1C_AB,
                 'retention_ratio_at_transfer': config.retention_ratio_at_transfer if config.USE_6T1C_AB else None,
+                'fixed_lifetime': config.fixed_lifetime if config.USE_6T1C_AB else None,
                 'include_retention': config.include_retention if config.USE_6T1C_AB else None,
+                'quantize_x': config.quantize_x,
+                'quantize_d': config.quantize_d,
+                'x_resolution': config.x_resolution if config.quantize_x else None,
+                'd_resolution': config.d_resolution if config.quantize_d else None,
             },
             reinit=True
         )
@@ -1501,21 +2672,32 @@ def run_scratch_experiment(config: ScratchExperimentConfig, complexity_level: st
     target_train = generate_target_dataset(complexity_level, config, train=True, seed=seed)
     target_test = generate_target_dataset(complexity_level, config, train=False, seed=seed)
 
+    # Custom input: train only 1 epoch (each sample seen once)
+    if config.custom_input_file is not None:
+        config.lrtt_epochs = 1
+        config.lrtt_patience = 1  # No early stopping needed for 1 epoch
+        print(f"[Custom Input] Training for 1 epoch ({len(target_train)} samples)")
+
     if use_wandb:
         wandb.log({
             'data/complexity_level': complexity_level,
         })
 
-    # Create data loaders
-    target_train_loader = DataLoader(target_train, batch_size=config.lrtt_batch_size, shuffle=True)
-    target_test_loader = DataLoader(target_test, batch_size=config.lrtt_batch_size)
+    # Create data loaders (no shuffle for custom input to preserve order)
+    shuffle_train = config.custom_input_file is None
+    target_train_loader = DataLoader(target_train, batch_size=config.lrtt_batch_size, shuffle=shuffle_train)
+    target_test_loader = DataLoader(target_test, batch_size=config.lrtt_batch_size) if target_test is not None else None
 
     # Train LRTT from scratch on target dataset (also returns initial A, B, C)
     lrtt_model, training_history, epoch_history, C_init, A_init, B_init = train_lrtt_scratch(
         config, target_train_loader, target_test_loader, seed, use_wandb)
 
-    # Evaluate LRTT on target dataset
-    lrtt_results = evaluate_model(lrtt_model, target_test_loader)
+    # Evaluate LRTT on target dataset (skip if no test set)
+    if target_test_loader is not None:
+        lrtt_results = evaluate_model(lrtt_model, target_test_loader)
+    else:
+        # Use train set for evaluation when no test set
+        lrtt_results = evaluate_model(lrtt_model, target_train_loader)
 
     # Compare learned matrix with target matrix
     matrix_comparison = compare_matrices(lrtt_model, target_matrix)
@@ -1554,7 +2736,8 @@ def run_scratch_experiment(config: ScratchExperimentConfig, complexity_level: st
             seed=seed,
             timestamp=timestamp,
             final_mse=lrtt_results['MSE'],
-            final_r2=lrtt_results['R2']
+            final_r2=lrtt_results['R2'],
+            target_matrix=target_matrix
         )
 
     if use_wandb:
@@ -1651,4 +2834,37 @@ if __name__ == "__main__":
     parser.add_argument('--no-wandb', action='store_true', help='Disable wandb logging')
     args = parser.parse_args()
 
-    main(use_wandb=not args.no_wandb)
+    config = ScratchExperimentConfig()
+
+    if config.save_figures:
+        # Multi-param experiments with combined plots
+        # Define parameter configurations to compare (modify here!)
+        param_configs = [
+            {'label': 't=1 (set)', 'lrtt_transfer_every': 1, 'transfer_method': 'set',
+             'a_x_scaling': 0.255, 'a_d_scaling': 0.574, 'b_d_scaling': 0.331,
+             'lora_alpha': 0.10, 'desired_bl': 4},
+            {'label': 't=1 (bl10dw0.001)', 'lrtt_transfer_every': 1, 'transfer_method': 'onehot',
+             'c_desired_bl': 10, 'c_dw_min': 0.001,
+             'a_x_scaling': 0.255, 'a_d_scaling': 0.574, 'b_d_scaling': 0.331,
+             'lora_alpha': 0.10, 'desired_bl': 4},
+            {'label': 't=1 (bl10dw0.01)', 'lrtt_transfer_every': 1, 'transfer_method': 'onehot',
+             'c_desired_bl': 10, 'c_dw_min': 0.01,
+             'a_x_scaling': 0.255, 'a_d_scaling': 0.574, 'b_d_scaling': 0.331,
+             'lora_alpha': 0.10, 'desired_bl': 4},
+            {'label': 't=1 (bl10dw0.1)', 'lrtt_transfer_every': 1, 'transfer_method': 'onehot',
+             'c_desired_bl': 10, 'c_dw_min': 0.1,
+             'a_x_scaling': 0.255, 'a_d_scaling': 0.574, 'b_d_scaling': 0.331,
+             'lora_alpha': 0.10, 'desired_bl': 4},
+            # Add more configurations as needed:
+            #{'label': 't=10', 'lrtt_transfer_every': 10, ...},
+            #{'label': 't=100', 'lrtt_transfer_every': 100, ...},
+        ]
+        run_multi_param_experiments(
+            param_configs=param_configs,
+            complexity_level='medium',
+            seed=config.primary_seed,
+            use_wandb=not args.no_wandb
+        )
+    else:
+        # Single experiment with config defaults
+        main(use_wandb=not args.no_wandb)

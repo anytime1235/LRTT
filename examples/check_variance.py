@@ -35,7 +35,7 @@ def run_experiment(config, seed):
 
 def main():
     config = ScratchExperimentConfig()
-    config.lrtt_epochs = 50  # Same as tuning
+    # Use default lrtt_epochs (2000) with early stopping (patience=7)
     config.log_ab_scaling = False
 
     n_runs = 50  # Run 50 times to measure variance

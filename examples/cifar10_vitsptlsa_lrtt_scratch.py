@@ -66,7 +66,7 @@ LR_REDUCTION_FACTOR = 0.1  # Paper: reduce LR by 0.1 on plateau
 LR_PATIENCE = 5  # Patience for ReduceLROnPlateau
 WEIGHT_DECAY = 5e-5
 N_CLASSES = 10
-NUM_WORKERS = 4
+NUM_WORKERS = 0  # WSL에서는 0이 가장 빠름
 IMAGE_SIZE = 32  # CIFAR-10 native size (no resize for this model)
 
 # ViT model configuration (SPT+LSA from paper)
