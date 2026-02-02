@@ -221,7 +221,11 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             update=update_c,
             tile_class=tile_class_c,
         )
-        self.tile_c = rpu_config_c.tile_class(d_size, x_size, rpu_config_c)
+        # Pass bias to tile_c for digital_bias support
+        # When bias=True, tile_c will have digital_bias=True and create self.bias Parameter
+        self.tile_c = rpu_config_c.tile_class(
+            d_size, x_size, rpu_config_c, bias=self.bias
+        )
 
         # Create LRTT controller with all parameters
         self.controller = LRTTController(
@@ -563,20 +567,25 @@ class LRTTSimulatorTile(SimulatorTile, Module):
 
         return W_eff, None
 
-    def set_weights(self, weight: Tensor, bias: Optional[Tensor] = None) -> None:
-        """Set visible weights (source of truth), A/B remain unchanged.
+    def set_weights(
+        self, weight: Tensor, bias: Optional[Tensor] = None, **kwargs
+    ) -> None:
+        """Set visible weights (and bias) on tile_c.
 
-        This matches CUDA where visible weights are the primary storage.
+        When tile_c is created with bias=True, it supports digital_bias:
+        - bias is stored as a PyTorch Parameter in tile_c.bias
+        - forward() automatically adds bias to output
+        - update() and transfer only affect weights, not bias
 
         Args:
             weight: Weight tensor [d_size, x_size]
-            bias: Bias tensor (not supported)
+            bias: Bias tensor [d_size] (stored in tile_c.bias if digital_bias=True)
+            **kwargs: Additional arguments (passed to tile_c.set_weights)
         """
-        if bias is not None:
-            raise TileError("LRTT does not support bias")
-
-        # Set visible weights only, preserve A/B state
-        self.tile_c.set_weights(weight, None)
+        # Pass bias to tile_c - it will handle digital_bias internally
+        # If tile_c.digital_bias=True, bias is stored in tile_c.bias Parameter
+        # If tile_c.digital_bias=False, bias is ignored
+        self.tile_c.set_weights(weight, bias, **kwargs)
 
     def get_lrtt_component_weights(self) -> Tuple[Tensor, Tensor, Tensor]:
         """Get individual LRTT component weights.
