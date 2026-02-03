@@ -187,6 +187,43 @@ def lrtt_inference_config(rank: int = 2, lora_alpha: float = 0.5) -> PythonLRTTR
 
 
 # =============================================================================
+# Floating Point AB Configurations
+# =============================================================================
+
+def lrtt_floating_ab_softbound_c_config(
+    rank: int = 4,
+    transfer_every: int = 32,
+    lora_alpha: float = 1.0,
+    dw_min: float = 0.001,
+    lifetime: float = 0.0,
+) -> PythonLRTTRPUConfig:
+    """Create LRTT config with FloatingPoint A/B and SoftBounds C.
+
+    - A, B tiles: FloatingPointDevice (exact arithmetic, no noise)
+    - C tile: SoftBoundsReferenceDevice (noise=0, w_max=1, w_min=-1)
+
+    Args:
+        rank: LoRA rank dimension
+        transfer_every: Transfer frequency (steps)
+        lora_alpha: LoRA scaling factor
+        dw_min: Minimum weight update step for C tile
+        lifetime: Retention lifetime for C tile (0 = no decay)
+
+    Returns:
+        Configured PythonLRTTRPUConfig with FloatingPoint A/B and SoftBounds C
+    """
+    from .lrtt_python import PythonLRTTPreset
+    device = PythonLRTTPreset.floating_ab_softbound_c(
+        rank=rank,
+        transfer_every=transfer_every,
+        lora_alpha=lora_alpha,
+        dw_min=dw_min,
+        lifetime=lifetime,
+    )
+    return PythonLRTTRPUConfig(device=device)
+
+
+# =============================================================================
 # 6T1C Device Configurations
 # =============================================================================
 
