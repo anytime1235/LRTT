@@ -193,7 +193,7 @@ def create_lrtt_config_conv():
             rank=LRTT_RANK_CONV,
             transfer_every=TRANSFER_EVERY,
             lora_alpha=LORA_ALPHA,
-            forward_inject=True,  # Enable forward_inject for conv layers
+            forward_inject=False,  # Disable forward_inject for conv layers
             correct_gradient_magnitudes=False,
             unit_cell_devices=[
                 IdealizedPresetDevice(),  # A 행렬: idealized device
@@ -208,7 +208,7 @@ def create_lrtt_config_conv():
             rank=LRTT_RANK_CONV,
             transfer_every=TRANSFER_EVERY,
             lora_alpha=LORA_ALPHA,
-            forward_inject=True,  # Enable forward_inject for conv layers
+            forward_inject=False,  # Disable forward_inject for conv layers
             correct_gradient_magnitudes=False,
             unit_cell_devices=[
                 IdealizedPresetDevice(),  # A 행렬: idealized device

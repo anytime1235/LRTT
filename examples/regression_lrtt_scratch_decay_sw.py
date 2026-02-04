@@ -53,19 +53,19 @@ class ScratchExperimentConfig:
     primary_seed = 42
 
     # Data dimensions
-    input_dim = 5
-    output_dim = 5
+    input_dim = 9
+    output_dim = 9
 
     # Dataset sizes
-    D_prime_train_size = 40
-    D_prime_test_size = 40
+    D_prime_train_size = 200
+    D_prime_test_size = 200
 
     # Noise parameters
     noise_std = 0.02
 
     # Input data type
     # Options: 'continuous', 'ternary' (0, 0.5, 1), 'binary' (0, 1)
-    input_type = 'ternary'  # Change this to 'ternary' or 'binary' for discrete inputs
+    input_type = 'continuous'  # Change this to 'ternary' or 'binary' for discrete inputs
 
     # Custom input file (CSV format: x1,x2,x3,... per line)
     # If specified, loads inputs from this file instead of generating randomly
@@ -84,9 +84,9 @@ class ScratchExperimentConfig:
     lrtt_grad_clip = 2.0  # Conservative clipping
 
     # LRTT configuration
-    lrtt_rank = 2  # Rank-1 for minimal overfitting
+    lrtt_rank = 1  # Rank-1 for minimal overfitting
     lrtt_transfer_every = 10  # Medium frequency to observe transfer effects
-    lora_alpha = 2.26  # Conservative scaling
+    lora_alpha = 0.04  # Conservative scaling
  
     # Reinit configuration - DECAY MODE
     # Options:
@@ -95,7 +95,7 @@ class ScratchExperimentConfig:
     #   "hybrid"          - A=0, B *= decay_factor (A reset, B decayed)
     #   "orthogonal_zero" - A=0, B=Random Orthogonal (frozen)
     #   "orthogonal_decay"- A *= decay_factor, B=Random Orthogonal (frozen)
-    reinit_mode = "orthogonal_decay"
+    reinit_mode = "decay"
     decay_factor = 1.0  # 0.5~0.9 for actual decay, 1.0 = no decay
 
     # A matrix initialization mode
@@ -104,11 +104,11 @@ class ScratchExperimentConfig:
 
     # B matrix initialization mode
     # Options: 'kaiming' (standard LoRA initialization), 'zero' (ΔW=0 initially)
-    b_init_mode = 'zero'  # Change to 'zero' for zero initialization
+    b_init_mode = 'kaiming'  # Change to 'zero' for zero initialization
 
     # C matrix initialization value
     # All elements of C are initialized to this value (must be within [-1, 1] for analog tile)
-    c_init_value = -1
+    c_init_value = 0
 
     # Device configuration
     # Use 6T1C device for A/B matrices (capacitor-based with retention decay)
@@ -119,13 +119,13 @@ class ScratchExperimentConfig:
     # 'idealized': IdealizedPresetDevice (idealized, noise only)
     # 'floating_point': FloatingPointDevice (idealized, no quantization)
     # 'softbounds': SoftBoundsReferenceDevice (realistic analog with bounds)
-    c_device_type = 'floating_point'
+    c_device_type = 'floting_point'
 
     # Transfer method for C update
     # 'set': Exact weight setting (no pulsed update, precise)
     # 'onehot': One-hot transfer (analog-realistic pulsed update)
     # 'direct': Direct transfer (matrix multiply, pulsed update)
-    transfer_method = 'set'
+    transfer_method = 'onehot'
 
     # C device parameters (for pulsed transfer methods: onehot, direct)
     # Default dw_min by device type:
@@ -154,7 +154,7 @@ class ScratchExperimentConfig:
     include_retention = True  # Enable/disable retention effects
 
     # Pulse/Update configuration (Hardware-realistic settings)
-    desired_bl = 9  # Bit length for A/B updates (pulse train length)
+    desired_bl = 8  # Bit length for A/B updates (pulse train length)
     pulse_type = PulseType.STOCHASTIC_COMPRESSED  # Pulse generation type
 
     # Hardware mode: use fixed manual scaling factors
@@ -171,10 +171,10 @@ class ScratchExperimentConfig:
     # Separate A/B tile scaling factors (override global if set)
     # A tile update: x=XB (B projection of input), d=original gradient
     # B tile update: x=original input, d=DA (A^T projection of gradient)
-    a_x_scaling = 0.88  # A tile x scaling (None = use global x_scaling)
-    a_d_scaling = 0.55  # A tile d scaling (None = use global d_scaling)
+    a_x_scaling = 0.088  # A tile x scaling (None = use global x_scaling)
+    a_d_scaling = 0.592  # A tile d scaling (None = use global d_scaling)
     b_x_scaling = 1.0   # B tile x scaling (None = use global x_scaling)
-    b_d_scaling = 0.64  # B tile d scaling (None = use global d_scaling)
+    b_d_scaling = 0.903  # B tile d scaling (None = use global d_scaling)
 
     # Debug logging for A/B scaling
     log_ab_scaling = True  # Enable x,d max value logging

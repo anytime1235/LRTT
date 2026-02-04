@@ -300,7 +300,10 @@ class LRTTController:
             Optimal amplitude for the tile read operation
         """
         # Get IO parameters from tile config
-        io = tile.rpu_config.forward if mode == "fwd" else tile.rpu_config.backward
+        # FloatingPointTile doesn't have forward/backward IO parameters
+        io = getattr(tile.rpu_config, 'forward' if mode == "fwd" else 'backward', None)
+        if io is None:
+            return 1.0  # FloatingPointTile: 기본 amplitude 1.0 반환
         out_bound = float(getattr(io, "out_bound", 0.0) or 0.0)
         inp_bound = float(getattr(io, "inp_bound", 1.0) or 1.0)
 
@@ -1275,15 +1278,19 @@ class LRTTController:
             old_lr_c = self.tile_c.get_learning_rate()
 
             # A/B/C 읽기·계측 동안 out_noise=0으로 (out_res 등은 유지)
-            old_out_a = self.tile_a.rpu_config.forward.out_noise
-            old_out_b_f = self.tile_b.rpu_config.forward.out_noise
-            old_out_b_b = self.tile_b.rpu_config.backward.out_noise
-            old_out_c = getattr(self.tile_c.rpu_config.forward, "out_noise", 0.0)
+            # A, B 타일이 FloatingPointTile일 경우 forward/backward 속성이 없음
+            old_out_a = getattr(getattr(self.tile_a.rpu_config, 'forward', None), 'out_noise', None)
+            old_out_b_f = getattr(getattr(self.tile_b.rpu_config, 'forward', None), 'out_noise', None)
+            old_out_b_b = getattr(getattr(self.tile_b.rpu_config, 'backward', None), 'out_noise', None)
+            old_out_c = getattr(getattr(self.tile_c.rpu_config, 'forward', None), 'out_noise', None)
 
-            self.tile_a.rpu_config.forward.out_noise = 0.0
-            self.tile_b.rpu_config.forward.out_noise = 0.0
-            self.tile_b.rpu_config.backward.out_noise = 0.0
-            if hasattr(self.tile_c.rpu_config.forward, "out_noise"):
+            if old_out_a is not None:
+                self.tile_a.rpu_config.forward.out_noise = 0.0
+            if old_out_b_f is not None:
+                self.tile_b.rpu_config.forward.out_noise = 0.0
+            if old_out_b_b is not None:
+                self.tile_b.rpu_config.backward.out_noise = 0.0
+            if old_out_c is not None:
                 self.tile_c.rpu_config.forward.out_noise = 0.0
 
             try:
@@ -1394,8 +1401,9 @@ class LRTTController:
                             else:
                                 self.tile_c.update(X_k.unsqueeze(0), D_k.unsqueeze(0))
 
-                # 디버그 로깅 (처음 몇 번만)
-                if self.num_transfers < 1:  # 거의 출력 안 함
+                # 디버그 로깅 (LRTT_SILENT가 설정되지 않은 경우에만)
+                import os
+                if self.num_transfers < 1 and not os.environ.get("LRTT_SILENT"):
                     pilot_info = f"lr_pilot={lr_pilot:.3e} " if self.transfer_gamma_mode == "pilot" else ""
                     print(f"[LRTT onehot] gamma={gamma:.3f} {pilot_info}"
                           f"lr_remain={lr_remain:.3e} Znorm2={Z_norm2:.3e}")
@@ -1403,10 +1411,13 @@ class LRTTController:
             finally:
                 # 5) 복구 + 후처리
                 self.tile_c.set_learning_rate(old_lr_c)
-                self.tile_a.rpu_config.forward.out_noise = old_out_a
-                self.tile_b.rpu_config.forward.out_noise = old_out_b_f
-                self.tile_b.rpu_config.backward.out_noise = old_out_b_b
-                if hasattr(self.tile_c.rpu_config.forward, "out_noise"):
+                if old_out_a is not None:
+                    self.tile_a.rpu_config.forward.out_noise = old_out_a
+                if old_out_b_f is not None:
+                    self.tile_b.rpu_config.forward.out_noise = old_out_b_f
+                if old_out_b_b is not None:
+                    self.tile_b.rpu_config.backward.out_noise = old_out_b_b
+                if old_out_c is not None:
                     self.tile_c.rpu_config.forward.out_noise = old_out_c
 
         self.num_transfers += 1
@@ -1448,15 +1459,19 @@ class LRTTController:
             old_lr_c = self.tile_c.get_learning_rate()
 
             # A/B/C 읽기 동안 out_noise=0
-            old_out_a = self.tile_a.rpu_config.forward.out_noise
-            old_out_b_f = self.tile_b.rpu_config.forward.out_noise
-            old_out_b_b = self.tile_b.rpu_config.backward.out_noise
-            old_out_c = getattr(self.tile_c.rpu_config.forward, "out_noise", 0.0)
+            # A, B 타일이 FloatingPointTile일 경우 forward/backward 속성이 없음
+            old_out_a = getattr(getattr(self.tile_a.rpu_config, 'forward', None), 'out_noise', None)
+            old_out_b_f = getattr(getattr(self.tile_b.rpu_config, 'forward', None), 'out_noise', None)
+            old_out_b_b = getattr(getattr(self.tile_b.rpu_config, 'backward', None), 'out_noise', None)
+            old_out_c = getattr(getattr(self.tile_c.rpu_config, 'forward', None), 'out_noise', None)
 
-            self.tile_a.rpu_config.forward.out_noise = 0.0
-            self.tile_b.rpu_config.forward.out_noise = 0.0
-            self.tile_b.rpu_config.backward.out_noise = 0.0
-            if hasattr(self.tile_c.rpu_config.forward, "out_noise"):
+            if old_out_a is not None:
+                self.tile_a.rpu_config.forward.out_noise = 0.0
+            if old_out_b_f is not None:
+                self.tile_b.rpu_config.forward.out_noise = 0.0
+            if old_out_b_b is not None:
+                self.tile_b.rpu_config.backward.out_noise = 0.0
+            if old_out_c is not None:
                 self.tile_c.rpu_config.forward.out_noise = 0.0
 
             try:
@@ -1520,10 +1535,13 @@ class LRTTController:
             finally:
                 # 복구
                 self.tile_c.set_learning_rate(old_lr_c)
-                self.tile_a.rpu_config.forward.out_noise = old_out_a
-                self.tile_b.rpu_config.forward.out_noise = old_out_b_f
-                self.tile_b.rpu_config.backward.out_noise = old_out_b_b
-                if hasattr(self.tile_c.rpu_config.forward, "out_noise"):
+                if old_out_a is not None:
+                    self.tile_a.rpu_config.forward.out_noise = old_out_a
+                if old_out_b_f is not None:
+                    self.tile_b.rpu_config.forward.out_noise = old_out_b_f
+                if old_out_b_b is not None:
+                    self.tile_b.rpu_config.backward.out_noise = old_out_b_b
+                if old_out_c is not None:
                     self.tile_c.rpu_config.forward.out_noise = old_out_c
 
         self.num_transfers += 1

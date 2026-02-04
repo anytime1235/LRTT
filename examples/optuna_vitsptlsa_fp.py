@@ -1,34 +1,39 @@
 # -*- coding: utf-8 -*-
-"""Optuna hyperparameter sweep for ViT-SPT-LSA with LRTT on CIFAR-10.
+"""Optuna hyperparameter sweep for ViT-SPT-LSA with Digital FP on CIFAR-10.
 
 Usage:
     # Run trials (results are automatically saved and can be resumed)
-    python optuna_vitsptlsa_lrtt.py --n-trials 50
+    python optuna_vitsptlsa_fp.py --n-trials 50
 
     # Resume existing study and add more trials
-    python optuna_vitsptlsa_lrtt.py --n-trials 30  # continues from saved results
+    python optuna_vitsptlsa_fp.py --n-trials 30  # continues from saved results
 
     # Parallel execution (run in multiple terminals, same study name)
-    python optuna_vitsptlsa_lrtt.py --n-trials 20 &
-    python optuna_vitsptlsa_lrtt.py --n-trials 20 &
-    python optuna_vitsptlsa_lrtt.py --n-trials 20 &
+    python optuna_vitsptlsa_fp.py --n-trials 20 &
+    python optuna_vitsptlsa_fp.py --n-trials 20 &
+    python optuna_vitsptlsa_fp.py --n-trials 20 &
 
     # Visualize results without running new trials
-    python optuna_vitsptlsa_lrtt.py --visualize
+    python optuna_vitsptlsa_fp.py --visualize
 
     # Use a different study name (for separate experiments)
-    python optuna_vitsptlsa_lrtt.py --n-trials 50 --study-name vitsptlsa_main
+    python optuna_vitsptlsa_fp.py --n-trials 50 --study-name vitsptlsa_fp_main
 
     # Real-time dashboard (install: pip install optuna-dashboard)
-    optuna-dashboard sqlite:///results/optuna_vitsptlsa_lrtt/optuna_vitsptlsa_main.db
+    optuna-dashboard sqlite:///results/optuna_vitsptlsa_fp/optuna_vitsptlsa_fp_main.db
+
+    # Remote dashboard access (with localtunnel):
+    # 1. Start dashboard: optuna-dashboard sqlite:///results/optuna_vitsptlsa_fp/optuna_vitsptlsa_fp_main.db --host 0.0.0.0 --port 8081
+    # 2. Start tunnel: npx localtunnel --port 8081
+    # 3. Tunnel password: run `curl -s ifconfig.me` to get server's public IP
 
     # Reset study (delete DB to start fresh)
-    rm results/optuna_vitsptlsa_lrtt/optuna_vitsptlsa_main.db
+    rm results/optuna_vitsptlsa_fp/optuna_vitsptlsa_fp_main.db
 
 Results are stored in:
-    - SQLite DB: results/optuna_vitsptlsa_lrtt/optuna_vitsptlsa_main.db
-    - JSON summary: results/optuna_vitsptlsa_lrtt/best_params_*.json
-    - Visualization: results/optuna_vitsptlsa_lrtt/visualization_*.png
+    - SQLite DB: results/optuna_vitsptlsa_fp/optuna_vitsptlsa_fp_main.db
+    - JSON summary: results/optuna_vitsptlsa_fp/best_params_*.json
+    - Visualization: results/optuna_vitsptlsa_fp/visualization_*.png
 """
 
 import os
@@ -51,16 +56,7 @@ from optuna.trial import TrialState
 import matplotlib.pyplot as plt
 
 # Default study name for persistence
-DEFAULT_STUDY_NAME = "vitsptlsa_main"
-
-from aihwkit.optim import AnalogSGD, AnalogAdam
-from aihwkit.nn import AnalogLinear
-from aihwkit.simulator.configs.lrtt_config import PythonLRTTRPUConfig
-from aihwkit.simulator.configs.lrtt_python import PythonLRTTDevice
-from aihwkit.simulator.configs import MappingParameter, IOParameters
-from aihwkit.simulator.parameters import WeightNoiseType, BoundManagementType, NoiseManagementType
-from aihwkit.simulator.presets.devices import IdealizedPresetDevice, PCMPresetDevice, ReRamESPresetDevice
-from aihwkit.simulator.configs.devices import SoftBoundsDevice, ConstantStepDevice, LinearStepDevice, FloatingPointDevice
+DEFAULT_STUDY_NAME = "vitsptlsa_fp_main"
 
 # Device
 USE_CUDA = torch.cuda.is_available()
@@ -68,7 +64,7 @@ DEVICE = device("cuda" if USE_CUDA else "cpu")
 
 # Fixed parameters
 PATH_DATASET = os.path.join(os.getcwd(), "data", "DATASET")
-RESULTS = os.path.join(os.getcwd(), "results", "optuna_vitsptlsa_lrtt")
+RESULTS = os.path.join(os.getcwd(), "results", "optuna_vitsptlsa_fp")
 os.makedirs(RESULTS, exist_ok=True)
 
 N_CLASSES = 10
@@ -84,172 +80,7 @@ NUM_HEADS = 8
 MLP_RATIO = 4.0
 DROPOUT = 0.0
 
-# Device configuration for LRTT tiles
-# AB_DEVICE: Device for A, B tiles - "6t1c", "idealized", "constantstep", "floating_point"
-# C_DEVICE: Device for C tile - "softbounds", "idealized", "pcm", "rram", "floating_point"
-AB_DEVICE = "6t1c"
-C_DEVICE = "softbounds"
 
-
-def _create_6t1c_device(tau_sec=46505.0):
-    """Create 6T1C LinearStepDevice with explicit parameters.
-
-    Args:
-        tau_sec: Physical time constant in seconds (default: 46505 = 775.1 min)
-    """
-    import math
-
-    # 6T1C retention parameters
-    DT_BATCH_SEC = 1.0
-    delta = 1 - math.exp(-DT_BATCH_SEC / tau_sec)
-    lifetime = 1.0 / delta
-
-    return LinearStepDevice(
-        dw_min=0.001981,
-        up_down=0.0,
-        w_max=1.0,
-        w_min=-1.0,
-        gamma_up=-0.1678,
-        gamma_down=0.1410,
-        mult_noise=True,
-        dw_min_dtod=0.1,
-        up_down_dtod=0.01,
-        w_max_dtod=0.05,
-        w_min_dtod=0.05,
-        gamma_up_dtod=0.05,
-        gamma_down_dtod=0.05,
-        dw_min_std=0.3,
-        write_noise_std=0,  # default: 0.0182
-        mean_bound_reference=True,
-        lifetime=lifetime,
-        lifetime_dtod=0.1,
-        reset=0.0,
-        reset_dtod=0.0,
-    )
-
-
-def _create_ab_device(dw_min=0.0002, dw_min_dtod=0.3, dw_min_std=0.3, tau_sec=46505.0):
-    """Create device for A/B tiles based on AB_DEVICE setting."""
-    if AB_DEVICE == "6t1c":
-        return _create_6t1c_device(tau_sec=tau_sec)
-    elif AB_DEVICE == "constantstep":
-        return ConstantStepDevice(
-            w_max=1.0, w_min=-1.0,
-            dw_min=0.01,
-            dw_min_std=0.0, dw_min_dtod=0.0,
-            up_down=0.0,
-        )
-    elif AB_DEVICE == "floating_point":
-        return FloatingPointDevice()
-    else:  # idealized
-        return IdealizedPresetDevice(
-            w_max=1.0, w_min=-1.0,
-            dw_min=dw_min,
-            dw_min_dtod=dw_min_dtod,
-            dw_min_std=dw_min_std,
-            up_down=0.0, up_down_dtod=0.0,
-        )
-
-
-def _create_c_device(dw_min=0.0002, dw_min_dtod=0.3, dw_min_std=0.3):
-    """Create device for C tile based on C_DEVICE setting."""
-    if C_DEVICE == "softbounds":
-        # SoftBoundsDevice with NO NOISE (matches sweep_softbounds_lifetime.py)
-        # Comments show aihwkit default values
-        return SoftBoundsDevice(
-            w_max=1.0, w_min=-1.0,       # default: 0.6, -0.6
-            w_max_dtod=0.0, w_min_dtod=0.0,  # default: 0.3, 0.3
-            dw_min=0.001,                # default: 0.001
-            dw_min_dtod=0.0,             # default: 0.3
-            dw_min_std=0.0,              # default: 0.3
-            up_down=0.0, up_down_dtod=0.0,   # default: 0.0, 0.01
-            mult_noise=True,             # default: True
-            write_noise_std=0.0,         # default: 0.0
-        )
-    elif C_DEVICE == "pcm":
-        return PCMPresetDevice()
-    elif C_DEVICE == "rram":
-        return ReRamESPresetDevice()
-    elif C_DEVICE == "floating_point":
-        return FloatingPointDevice()
-    else:  # idealized
-        return IdealizedPresetDevice(
-            w_max=1.0, w_min=-1.0,
-            dw_min=dw_min,
-            dw_min_dtod=dw_min_dtod,
-            dw_min_std=dw_min_std,
-            up_down=0.0, up_down_dtod=0.0,
-        )
-
-
-def create_lrtt_config(rank, transfer_every, lora_alpha, transfer_lr_scale=1.0, dw_min=0.0002, dw_min_dtod=0.3, dw_min_std=0.3, tau_sec=46505.0, reinit_mode="standard"):
-    """Create LRTT configuration with given hyperparameters."""
-
-    ab_device = _create_ab_device(dw_min, dw_min_dtod, dw_min_std, tau_sec=tau_sec)
-    c_device = _create_c_device(dw_min, dw_min_dtod, dw_min_std)
-    unit_devices = [ab_device, ab_device, c_device]
-
-    device_config = PythonLRTTDevice(
-        rank=rank,
-        transfer_every=transfer_every,
-        lora_alpha=lora_alpha,
-        transfer_lr_scale=transfer_lr_scale,
-        forward_inject=False,
-        reinit_mode=reinit_mode,
-        unit_cell_devices=unit_devices
-    )
-    device_config.transfer_lr = lora_alpha
-
-    mapping = MappingParameter(
-        weight_scaling_omega=1.0,
-        learn_out_scaling=False,
-        weight_scaling_lr_compensation=True,
-        digital_bias=True,
-        weight_scaling_columnwise=False,
-        out_scaling_columnwise=True,
-        max_input_size=1024,
-        max_output_size=1024
-    )
-
-    forward_io = IOParameters(
-        inp_res=0.007937,
-        inp_bound=1.0,
-        inp_noise=0.0,
-        inp_sto_round=False,
-        out_res=0.001961,
-        out_bound=12.0,
-        out_noise=0.06,
-        w_noise=0.0,
-        w_noise_type=WeightNoiseType.NONE,
-        bound_management=BoundManagementType.ITERATIVE,
-        noise_management=NoiseManagementType.ABS_MAX,
-        is_perfect=False,
-        max_bm_factor=1000,
-    )
-
-    return PythonLRTTRPUConfig(device=device_config, mapping=mapping, forward=forward_io, backward=forward_io)
-
-
-# Global config holder for model creation
-_current_config = {}
-
-
-def get_current_lrtt_config():
-    """Get current LRTT config from global holder."""
-    return create_lrtt_config(
-        rank=_current_config['rank'],
-        transfer_every=_current_config['transfer_every'],
-        lora_alpha=_current_config['lora_alpha'],
-        transfer_lr_scale=_current_config.get('transfer_lr_scale', 1.0),
-        dw_min=_current_config.get('dw_min', 0.0002),
-        dw_min_dtod=_current_config.get('dw_min_dtod', 0.3),
-        dw_min_std=_current_config.get('dw_min_std', 0.3),
-        tau_sec=_current_config.get('tau_sec', 46505.0),
-        reinit_mode=_current_config.get('reinit_mode', 'standard'),
-    )
-
-
-# Import model components (simplified inline versions)
 import torch.nn.functional as F
 
 
@@ -284,8 +115,8 @@ class LocalitySelfAttention(nn.Module):
         self.num_heads = num_heads
         self.head_dim = embed_dim // num_heads
         self.temperature = nn.Parameter(torch.ones(num_heads, 1, 1) * math.sqrt(self.head_dim))
-        self.qkv = AnalogLinear(embed_dim, embed_dim * 3, bias=True, rpu_config=get_current_lrtt_config())
-        self.proj = AnalogLinear(embed_dim, embed_dim, bias=True, rpu_config=get_current_lrtt_config())
+        self.qkv = nn.Linear(embed_dim, embed_dim * 3)
+        self.proj = nn.Linear(embed_dim, embed_dim)
         self.attn_dropout = nn.Dropout(dropout)
         self.proj_dropout = nn.Dropout(dropout)
         self.register_buffer('mask', None)
@@ -311,8 +142,8 @@ class LocalitySelfAttention(nn.Module):
 class MLP(nn.Module):
     def __init__(self, in_features, hidden_features, out_features, dropout=0.0):
         super().__init__()
-        self.fc1 = AnalogLinear(in_features, hidden_features, bias=True, rpu_config=get_current_lrtt_config())
-        self.fc2 = AnalogLinear(hidden_features, out_features, bias=True, rpu_config=get_current_lrtt_config())
+        self.fc1 = nn.Linear(in_features, hidden_features)
+        self.fc2 = nn.Linear(hidden_features, out_features)
         self.act = nn.GELU()
         self.dropout = nn.Dropout(dropout)
 
@@ -409,56 +240,31 @@ def evaluate(model, val_loader, criterion):
 
 def objective(trial):
     """Optuna objective function."""
-    global _current_config
 
-    # Clear GPU cache at the start of each trial
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 
-    # Hyperparameters to tune
-    rank_exp = trial.suggest_int('rank_exp', 0, 7)  # 2^0 ~ 2^7
-    rank = 2 ** rank_exp  # 1, 2, 4, 8, 16, 32, 64, 128
-    transfer_every = trial.suggest_int('transfer_every', 1, 800000, log=True)
-    lora_alpha = trial.suggest_float('lora_alpha', 0.0001, 30.0, log=True)
-    transfer_lr_scale = trial.suggest_float('transfer_lr_scale', 0.1, 10.0, log=True)
-    learning_rate = trial.suggest_float('learning_rate', 1e-5, 1e0, log=True)
-    batch_size = trial.suggest_int('batch_size', 8, 8)
-    weight_decay = trial.suggest_float('weight_decay', 1e-6, 1e-1, log=True)
-    tau_sec = trial.suggest_float('tau_sec', 1.0, 100000000.0, log=True)  # 6T1C retention time constant
-    reinit_mode = trial.suggest_categorical('reinit_mode', ['standard', 'decay', 'hybrid'])
-    optimizer_name = trial.suggest_categorical('optimizer', ['AnalogAdam', 'AnalogSGD'])
+    # Hyperparameters to tune (narrowed based on top 10 results)
+    learning_rate = trial.suggest_float('learning_rate', 5e-5, 5e-4, log=True)  # top10: 7.5e-5 ~ 4.7e-4
+    batch_size = trial.suggest_categorical('batch_size', [32, 64, 128])  # top10: 32, 128
+    weight_decay = trial.suggest_float('weight_decay', 1e-6, 1e-3, log=True)  # top10: 4e-6 ~ 8e-4
+    optimizer_name = 'Adam'  # Fixed to Adam
 
-    # Early stopping settings (no max epoch limit)
-    max_epochs = 2000  # Safety limit
-    early_stop_patience = 7  # Stop if no improvement for N epochs
-
-    # Set current config
-    _current_config = {
-        'rank': rank,
-        'transfer_every': transfer_every,
-        'lora_alpha': lora_alpha,
-        'transfer_lr_scale': transfer_lr_scale,
-        'tau_sec': tau_sec,
-        'reinit_mode': reinit_mode,
-    }
+    max_epochs = 2000
+    early_stop_patience = 7
 
     manual_seed(SEED)
 
-    # Log trial start
     print(f"\n{'='*70}")
     print(f"Trial {trial.number} Starting")
     print(f"{'='*70}")
-    print(f"  rank={rank}, transfer_every={transfer_every}, lora_alpha={lora_alpha:.4f}")
-    print(f"  transfer_lr_scale={transfer_lr_scale:.4f}, lr={learning_rate:.2e}, wd={weight_decay:.2e}")
-    print(f"  tau_sec={tau_sec:.1f}, reinit_mode={reinit_mode}, optimizer={optimizer_name}")
+    print(f"  lr={learning_rate:.2e}, batch_size={batch_size}, wd={weight_decay:.2e}, optimizer={optimizer_name}")
     print(f"{'='*70}")
 
-    # Load data
     train_loader, val_loader = load_data(batch_size)
 
     model = None
     try:
-        # Create model
         model = ViT_SPT_LSA(
             image_size=IMAGE_SIZE,
             patch_size=PATCH_SIZE,
@@ -470,12 +276,10 @@ def objective(trial):
             dropout=DROPOUT,
         ).to(DEVICE)
 
-        # Optimizer and scheduler
-        if optimizer_name == "AnalogAdam":
-            optimizer = AnalogAdam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-        else:  # AnalogSGD
-            optimizer = AnalogSGD(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=weight_decay, nesterov=True)
-        optimizer.regroup_param_groups(model)
+        if optimizer_name == "Adam":
+            optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+        else:
+            optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=weight_decay, nesterov=True)
         scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
         criterion = nn.CrossEntropyLoss()
 
@@ -495,7 +299,6 @@ def objective(trial):
             val_loss, val_accuracy = evaluate(model, val_loader, criterion)
             scheduler.step(val_loss)
 
-            # Check improvement
             improved = ""
             if val_accuracy > best_accuracy:
                 best_accuracy = val_accuracy
@@ -504,33 +307,27 @@ def objective(trial):
             else:
                 epochs_without_improvement += 1
 
-            # Log progress
             current_lr = optimizer.param_groups[0]['lr']
             print(f"[Trial {trial.number}] Epoch {epoch+1:3d} | "
                   f"Val Acc: {val_accuracy:6.2f}% | Best: {best_accuracy:6.2f}% | "
                   f"Loss: {val_loss:.4f} | LR: {current_lr:.2e} | "
                   f"No imp: {epochs_without_improvement}/{early_stop_patience}{improved}")
 
-            # Report intermediate value
             trial.report(val_accuracy, epoch)
 
-            # Early stopping if no improvement
             if epochs_without_improvement >= early_stop_patience:
                 break
 
-            # Prune if not promising (Optuna's pruning)
             if trial.should_prune():
                 print(f"[Trial {trial.number}] Pruned at epoch {epoch+1}")
                 raise optuna.exceptions.TrialPruned()
 
-        # Log trial end
         print(f"\n[Trial {trial.number}] Finished - Best Accuracy: {best_accuracy:.2f}% (Epoch {epoch+1})")
         print(f"{'='*70}\n")
 
         return best_accuracy
 
     finally:
-        # Cleanup GPU memory after each trial (success or failure)
         if model is not None:
             del model
         if torch.cuda.is_available():
@@ -545,11 +342,9 @@ def visualize_study(study, save_dir):
         print("No completed trials to visualize.")
         return
 
-    # 1. Optimization history
-    fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
 
-    # Plot 1: Accuracy over trials
-    ax = axes[0, 0]
+    ax = axes[0]
     trial_numbers = [t.number for t in complete_trials]
     accuracies = [t.value for t in complete_trials]
     ax.scatter(trial_numbers, accuracies, alpha=0.6)
@@ -561,8 +356,7 @@ def visualize_study(study, save_dir):
     ax.legend()
     ax.grid(True, alpha=0.3)
 
-    # Plot 2: Parameter importance (using fANOVA, same as dashboard)
-    ax = axes[0, 1]
+    ax = axes[1]
     try:
         importances = optuna.importance.get_param_importances(study)
         param_names = list(importances.keys())
@@ -574,24 +368,7 @@ def visualize_study(study, save_dir):
         ax.text(0.5, 0.5, f'Not enough trials\n({e})', ha='center', va='center', transform=ax.transAxes)
         ax.set_title('Parameter Importance (unavailable)')
 
-    # Plot 3: Rank distribution
-    ax = axes[0, 2]
-    ranks = [2 ** t.params.get('rank_exp', 3) for t in complete_trials]
-    rank_accs = {}
-    for r, a in zip(ranks, accuracies):
-        if r not in rank_accs:
-            rank_accs[r] = []
-        rank_accs[r].append(a)
-
-    sorted_ranks = sorted(rank_accs.keys())
-    ax.boxplot([rank_accs[r] for r in sorted_ranks], labels=sorted_ranks)
-    ax.set_xlabel('Rank')
-    ax.set_ylabel('Accuracy (%)')
-    ax.set_title('Accuracy by Rank')
-    ax.grid(True, alpha=0.3)
-
-    # Plot 4: Learning rate vs accuracy
-    ax = axes[1, 0]
+    ax = axes[2]
     lrs = [t.params.get('learning_rate', 1e-4) for t in complete_trials]
     ax.scatter(lrs, accuracies, alpha=0.6)
     ax.set_xscale('log')
@@ -600,33 +377,12 @@ def visualize_study(study, save_dir):
     ax.set_title('Learning Rate vs Accuracy')
     ax.grid(True, alpha=0.3)
 
-    # Plot 5: Transfer every vs accuracy
-    ax = axes[1, 1]
-    transfer_every = [t.params.get('transfer_every', 1) for t in complete_trials]
-    ax.scatter(transfer_every, accuracies, alpha=0.6)
-    ax.set_xscale('log')
-    ax.set_xlabel('Transfer Every')
-    ax.set_ylabel('Accuracy (%)')
-    ax.set_title('Transfer Every vs Accuracy')
-    ax.grid(True, alpha=0.3)
-
-    # Plot 6: lora_alpha vs accuracy
-    ax = axes[1, 2]
-    lora_alphas = [t.params.get('lora_alpha', 1.0) for t in complete_trials]
-    ax.scatter(lora_alphas, accuracies, alpha=0.6)
-    ax.set_xscale('log')
-    ax.set_xlabel('LoRA Alpha')
-    ax.set_ylabel('Accuracy (%)')
-    ax.set_title('LoRA Alpha vs Accuracy')
-    ax.grid(True, alpha=0.3)
-
     plt.tight_layout()
     fig_path = os.path.join(save_dir, "visualization.png")
     plt.savefig(fig_path, dpi=150, bbox_inches='tight')
     print(f"Visualization saved to: {fig_path}")
     plt.close()
 
-    # Save detailed trial history to JSON
     all_trials_data = []
     for t in study.trials:
         trial_data = {
@@ -681,15 +437,12 @@ def print_study_summary(study):
         print(f"  Accuracy: {study.best_value:.2f}%")
         print("  Params:")
         for key, value in study.best_params.items():
-            if key == 'rank_exp':
-                print(f"    rank: {2**value} (2^{value})")
-            else:
-                print(f"    {key}: {value}")
+            print(f"    {key}: {value}")
 
 
 def main():
     """Run Optuna hyperparameter sweep."""
-    parser = argparse.ArgumentParser(description="Optuna sweep for ViT-SPT-LSA LRTT")
+    parser = argparse.ArgumentParser(description="Optuna sweep for ViT-SPT-LSA FP")
     parser.add_argument('--study-name', type=str, default=DEFAULT_STUDY_NAME,
                         help=f'Study name (default: {DEFAULT_STUDY_NAME})')
     parser.add_argument('--n-trials', type=int, default=50,
@@ -706,11 +459,9 @@ def main():
 
     os.makedirs(RESULTS, exist_ok=True)
 
-    # Setup study name and storage
     study_name = args.study_name
     storage = args.storage or f"sqlite:///{RESULTS}/optuna_{study_name}.db"
 
-    # Check if we're only visualizing
     if args.visualize:
         try:
             study = optuna.load_study(study_name=study_name, storage=storage)
@@ -722,9 +473,7 @@ def main():
             print(f"No existing study found with name '{study_name}'")
         return
 
-    # Create or load study
     if args.new_study:
-        # Delete existing study if any
         try:
             optuna.delete_study(study_name=study_name, storage=storage)
             print(f"Deleted existing study: {study_name}")
@@ -735,8 +484,8 @@ def main():
         study_name=study_name,
         storage=storage,
         direction="maximize",
-        pruner=optuna.pruners.NopPruner(),  # Pruning disabled
-        load_if_exists=True,  # Enable resume and parallel execution
+        pruner=optuna.pruners.NopPruner(),
+        load_if_exists=True,
     )
 
     existing_trials = len(study.trials)
@@ -758,7 +507,6 @@ def main():
     print(f"(Use --visualize to see results)")
     print(f"(Use optuna-dashboard {storage} for real-time monitoring)\n")
 
-    # Callback to delete failed trials (GPU errors shouldn't affect hyperparameter analysis)
     def delete_failed_trial_callback(study, trial):
         if trial.state == TrialState.FAIL:
             print(f"[Trial {trial.number}] Failed - removing from database")
@@ -771,11 +519,9 @@ def main():
                    catch=(Exception,), show_progress_bar=True,
                    callbacks=[delete_failed_trial_callback])
 
-    # Print and save results
     print_study_summary(study)
     visualize_study(study, RESULTS)
 
-    # Save best params
     if study.best_trial:
         results_path = os.path.join(RESULTS, f"best_params_{study_name}.json")
         with open(results_path, 'w') as f:

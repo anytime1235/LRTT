@@ -86,7 +86,7 @@ def main():
         transfer_lr=0.5,
         lora_alpha=1.5,
         reinit_gain=0.05,
-        forward_inject=True,
+        forward_inject=False,
         correct_gradient_magnitudes=True
     )
     config_custom = PythonLRTTRPUConfig(device=custom_device)

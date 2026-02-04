@@ -34,15 +34,15 @@ from torchvision import datasets, transforms
 from tqdm import tqdm
 import wandb
 
-from aihwkit.optim import AnalogSGD
+from aihwkit.optim import AnalogSGD, AnalogAdam
 from aihwkit.nn import AnalogLinear, AnalogConv2d
 from aihwkit.simulator.configs.lrtt_config import PythonLRTTRPUConfig
 from aihwkit.simulator.configs.lrtt_python import PythonLRTTDevice
 from aihwkit.simulator.configs import MappingParameter, IOParameters
 from aihwkit.simulator.parameters import BoundManagementType, NoiseManagementType, WeightNoiseType
 from aihwkit.simulator.configs import FloatingPointRPUConfig
-from aihwkit.simulator.presets.devices import IdealizedPresetDevice
-from aihwkit.simulator.configs.devices import ConstantStepDevice
+from aihwkit.simulator.presets.devices import IdealizedPresetDevice, PCMPresetDevice, ReRamESPresetDevice
+from aihwkit.simulator.configs.devices import ConstantStepDevice, SoftBoundsDevice, LinearStepDevice, FloatingPointDevice
 
 
 # Device to use
@@ -65,8 +65,9 @@ LEARNING_RATE = 1e-4  # Initial LR (will be reduced on plateau)
 LR_REDUCTION_FACTOR = 0.1  # Paper: reduce LR by 0.1 on plateau
 LR_PATIENCE = 5  # Patience for ReduceLROnPlateau
 WEIGHT_DECAY = 5e-5
+OPTIMIZER = "AnalogAdam"  # "AnalogSGD", "AnalogAdam"
 N_CLASSES = 10
-NUM_WORKERS = 0  # WSL에서는 0이 가장 빠름
+NUM_WORKERS = 4  # WSL에서는 0이 가장 빠름
 IMAGE_SIZE = 32  # CIFAR-10 native size (no resize for this model)
 
 # ViT model configuration (SPT+LSA from paper)
@@ -84,6 +85,8 @@ TRANSFER_EVERY = 1000
 LORA_ALPHA = 2.0
 TRANSFER_LR = LORA_ALPHA
 TRANSFER_LR_SCALE = 1.0  # Scaling factor for transfer_lr (effective = transfer_lr * scale)
+REINIT_MODE = "decay"  # "standard", "decay", "hybrid", "orthogonal_zero", "orthogonal_decay"
+DECAY_FACTOR = 1.0  # Decay factor for reinit (0 < decay_factor <= 1, used with "decay" and "hybrid" modes)
 
 # Paper-aligned analog device parameters
 # nstates = 200 -> dw_min = 2.0 / 200 = 0.01 (assuming w_max=1, w_min=-1)
@@ -92,85 +95,158 @@ N_STATES = 200  # Paper: number of device conductance states
 DW_MIN = 2.0 / N_STATES  # Step size for ConstantStepDevice (= 0.01)
 USE_REALISTIC_DEVICE = False  # Set True to use ConstantStepDevice (200 states)
 
+# Device configuration for LRTT tiles
+# AB_DEVICE: Device for A, B tiles - "6t1c", "idealized", "constantstep", "floating_point"
+# C_DEVICE: Device for C tile - "softbounds", "idealized", "pcm", "rram", "floating_point"
+AB_DEVICE = "6t1c"  # "6t1c", "idealized", "constantstep"
+C_DEVICE = "softbounds"   # "softbounds", "idealized", "pcm", "rram"
+
+# 6T1C Retention (capacitor leakage) parameters
+SIXT1C_TAU_SEC = 46505.0       # Physical time constant: 775.1 min = 46505 sec
+SIXT1C_DT_BATCH_SEC = 1.0      # Assumed time per mini-batch in seconds
+SIXT1C_INCLUDE_RETENTION = True  # Whether to include retention effects
+
 # Layer configuration
 # Paper: All linear and conv layers are analog, normalization layers are FP
 USE_ANALOG_FOR_ALL_LINEAR = True
 USE_ANALOG_FOR_ALL_CONV = True
 
 
+def _create_6t1c_device():
+    """Create 6T1C LinearStepDevice.
+
+    6T1C (6 Transistors, 1 Capacitor) is a volatile analog memory device.
+    Parameters are fitted from experimental 6T1C device data.
+    """
+    import math
+
+    # Calculate lifetime from physical τ for 6T1C retention
+    if SIXT1C_INCLUDE_RETENTION and SIXT1C_DT_BATCH_SEC > 0:
+        delta = 1 - math.exp(-SIXT1C_DT_BATCH_SEC / SIXT1C_TAU_SEC)
+        lifetime = 1.0 / delta
+    else:
+        lifetime = 0.0
+
+    return LinearStepDevice(
+        # Core update parameters (fitted from 6T1C data)
+        dw_min=0.001981,
+        up_down=0.0,
+        w_max=1.0,
+        w_min=-1.0,
+        gamma_up=-0.1678,
+        gamma_down=0.1410,
+        mult_noise=True,
+        # Device-to-device variation
+        dw_min_dtod=0.1,
+        up_down_dtod=0.01,
+        w_max_dtod=0.05,
+        w_min_dtod=0.05,
+        gamma_up_dtod=0.05,
+        gamma_down_dtod=0.05,
+        # Cycle-to-cycle variation
+        dw_min_std=0.3,
+        write_noise_std=0, #0.0182
+        # LinearStepDevice specific
+        mean_bound_reference=True,
+        # Retention (capacitor leakage)
+        lifetime=lifetime,
+        lifetime_dtod=0.1 if SIXT1C_INCLUDE_RETENTION else 0.0,
+        reset=0.0,
+        reset_dtod=0.0,
+    )
+
+
+def _create_ab_device():
+    """Create device for A/B tiles based on AB_DEVICE setting."""
+    if AB_DEVICE == "6t1c":
+        return _create_6t1c_device()
+    elif AB_DEVICE == "constantstep":
+        return ConstantStepDevice(
+            w_max=1.0,
+            w_min=-1.0,
+            dw_min=DW_MIN,
+            dw_min_std=0.0,
+            dw_min_dtod=0.0,
+            up_down=0.0,
+        )
+    elif AB_DEVICE == "floating_point":
+        return FloatingPointDevice()
+    else:  # idealized
+        return IdealizedPresetDevice(
+            w_max=1.0,
+            w_min=-1.0,
+            dw_min=0.0002,
+            dw_min_dtod=0.3,
+            dw_min_std=0.3,
+            up_down=0.0,
+            up_down_dtod=0.0,
+        )
+
+
+def _create_c_device():
+    """Create device for C tile based on C_DEVICE setting."""
+    if C_DEVICE == "softbounds":
+        # SoftBoundsDevice with NO NOISE (matches sweep_softbounds_lifetime.py)
+        # Comments show aihwkit default values
+        return SoftBoundsDevice(
+            # Weight bounds
+            w_max=1.0,               # default: 0.6
+            w_min=-1.0,              # default: -0.6
+            w_max_dtod=0.0,          # default: 0.3
+            w_min_dtod=0.0,          # default: 0.3
+            # Update step size
+            dw_min=0.001,            # default: 0.001
+            dw_min_dtod=0.0,         # default: 0.3
+            dw_min_std=0.0,          # default: 0.3
+            # Up/down asymmetry
+            up_down=0.0,             # default: 0.0
+            up_down_dtod=0.0,        # default: 0.01
+            # Noise
+            mult_noise=True,         # default: True
+            write_noise_std=0.0,     # default: 0.0
+        )
+    elif C_DEVICE == "pcm":
+        return PCMPresetDevice()
+    elif C_DEVICE == "rram":
+        return ReRamESPresetDevice()
+    elif C_DEVICE == "floating_point":
+        return FloatingPointDevice()
+    else:  # idealized
+        return IdealizedPresetDevice(
+            w_max=1.0,
+            w_min=-1.0,
+            dw_min=0.0002,
+            dw_min_dtod=0.3,
+            dw_min_std=0.3,
+            up_down=0.0,
+            up_down_dtod=0.0,
+        )
+
+
 def create_lrtt_config():
     """Create LRTT configuration for linear/conv layers."""
 
-    # Choose device type based on configuration
-    if USE_REALISTIC_DEVICE:
-        # Paper: nstates = 200 -> use ConstantStepDevice with finite precision
-        # ConstantStepDevice simulates PCM/RRAM with discrete conductance levels
-        unit_devices = [
-            ConstantStepDevice(
-                w_max=1.0,
-                w_min=-1.0,
-                dw_min=DW_MIN,  # 0.01 for 200 states
-                dw_min_std=0.0,  # No variation in step size
-                dw_min_dtod=0.0,  # No device-to-device variation
-                up_down=0.0,  # Symmetric up/down
-            ),
-            ConstantStepDevice(
-                w_max=1.0,
-                w_min=-1.0,
-                dw_min=DW_MIN,
-                dw_min_std=0.0,
-                dw_min_dtod=0.0,
-                up_down=0.0,
-            ),
-            ConstantStepDevice(
-                w_max=1.0,
-                w_min=-1.0,
-                dw_min=DW_MIN,
-                dw_min_std=0.0,
-                dw_min_dtod=0.0,
-                up_down=0.0,
-            ),
-        ]
-        print(f"Using ConstantStepDevice with {N_STATES} states (dw_min={DW_MIN:.4f})")
-    else:
-        # Idealized device with ~infinite precision (10000 states)
-        unit_devices = [
-            IdealizedPresetDevice(
-                w_max=1.0,             # weight range max
-                w_min=-1.0,            # weight range min
-                dw_min=0.0002,         # step size → ~10000 states
-                dw_min_dtod=0.3,       # 30% device-to-device variation
-                dw_min_std=0.3,        # 30% cycle-to-cycle variation
-                up_down=0.0,           # perfectly symmetric update
-                up_down_dtod=0.0,      # no asymmetry variation
-            ),
-            IdealizedPresetDevice(
-                w_max=1.0,
-                w_min=-1.0,
-                dw_min=0.0002,
-                dw_min_dtod=0.3,
-                dw_min_std=0.3,
-                up_down=0.0,
-                up_down_dtod=0.0,
-            ),
-            IdealizedPresetDevice(
-                w_max=1.0,
-                w_min=-1.0,
-                dw_min=0.0002,
-                dw_min_dtod=0.3,
-                dw_min_std=0.3,
-                up_down=0.0,
-                up_down_dtod=0.0,
-            ),
-        ]
-        print("Using IdealizedPresetDevice (dw_min=0.0002, ~10000 states)")
+    print(f"Device config: AB={AB_DEVICE}, C={C_DEVICE}")
+    print(f"  LRTT: rank={LRTT_RANK}, transfer_every={TRANSFER_EVERY}, lora_alpha={LORA_ALPHA}")
+    print(f"  Reinit: mode={REINIT_MODE}, decay_factor={DECAY_FACTOR}")
+    if AB_DEVICE == "6t1c":
+        print(f"  6T1C: retention={SIXT1C_INCLUDE_RETENTION}, tau={SIXT1C_TAU_SEC}s")
 
+    # Create A/B and C devices
+    ab_device = _create_ab_device()
+    c_device = _create_c_device()
+    unit_devices = [ab_device, ab_device, c_device]
+
+    # Configure PythonLRTTDevice with explicit parameters
     device_config = PythonLRTTDevice(
         rank=LRTT_RANK,
         transfer_every=TRANSFER_EVERY,
         lora_alpha=LORA_ALPHA,
         transfer_lr_scale=TRANSFER_LR_SCALE,
         forward_inject=False,
+        reinit_mode=REINIT_MODE,
+        reinit_gain=0.1,  # Default reinit gain
+        decay_factor=DECAY_FACTOR,  # Decay factor for "decay" and "hybrid" reinit modes
         unit_cell_devices=unit_devices
     )
 
@@ -524,10 +600,14 @@ def create_model():
     print(f"  Trainable parameters: {num_params:,} (target: ~4,337,642)")
     print(f"  Linear/Conv layers: {num_linear} (18 total: 16 LRTT + 2 digital [SPT, head])")
     print(f"  Normalization: Digital (FP)")
+    print(f"  Device A/B: {AB_DEVICE}")
+    print(f"  Device C: {C_DEVICE}")
     print(f"  LRTT rank: {LRTT_RANK}")
     print(f"  Transfer every: {TRANSFER_EVERY} updates")
     print(f"  LoRA alpha: {LORA_ALPHA}")
-    print(f"  Transfer LR scale: {TRANSFER_LR_SCALE}\n")
+    print(f"  Transfer LR scale: {TRANSFER_LR_SCALE}")
+    print(f"  Reinit mode: {REINIT_MODE}")
+    print(f"  Decay factor: {DECAY_FACTOR}\n")
 
     return model
 
@@ -561,13 +641,22 @@ def load_images():
 
 def create_optimizer(model, learning_rate, weight_decay):
     """Create analog-aware optimizer."""
-    optimizer = AnalogSGD(
-        model.parameters(),
-        lr=learning_rate,
-        momentum=0.9,
-        weight_decay=weight_decay,
-        nesterov=True
-    )
+    if OPTIMIZER == "AnalogSGD":
+        optimizer = AnalogSGD(
+            model.parameters(),
+            lr=learning_rate,
+            momentum=0.9,
+            weight_decay=weight_decay,
+            nesterov=True
+        )
+    elif OPTIMIZER == "AnalogAdam":
+        optimizer = AnalogAdam(
+            model.parameters(),
+            lr=learning_rate,
+            weight_decay=weight_decay
+        )
+    else:
+        raise ValueError(f"Unknown optimizer: {OPTIMIZER}. Choose from: AnalogSGD, AnalogAdam")
     optimizer.regroup_param_groups(model)
     return optimizer
 
@@ -653,16 +742,25 @@ def main():
             "lr_reduction_factor": LR_REDUCTION_FACTOR,
             "lr_patience": LR_PATIENCE,
             "weight_decay": WEIGHT_DECAY,
+            "optimizer": OPTIMIZER,
             "seed": SEED,
             "lrtt_rank": LRTT_RANK,
             "transfer_every": TRANSFER_EVERY,
             "lora_alpha": LORA_ALPHA,
             "transfer_lr": TRANSFER_LR,
             "transfer_lr_scale": TRANSFER_LR_SCALE,
+            "reinit_mode": REINIT_MODE,
+            "decay_factor": DECAY_FACTOR,
             # Paper-aligned device parameters
             "n_states": N_STATES,
             "dw_min": DW_MIN,
             "use_realistic_device": USE_REALISTIC_DEVICE,
+            "ab_device": AB_DEVICE,
+            "c_device": C_DEVICE,
+            # 6T1C retention parameters (when AB_DEVICE="6t1c")
+            "sixt1c_include_retention": SIXT1C_INCLUDE_RETENTION,
+            "sixt1c_tau_sec": SIXT1C_TAU_SEC,
+            "sixt1c_dt_batch_sec": SIXT1C_DT_BATCH_SEC,
             "use_analog_linear": USE_ANALOG_FOR_ALL_LINEAR,
             "use_analog_conv": USE_ANALOG_FOR_ALL_CONV,
             "augmentation": False,  # No augmentation as per paper

@@ -80,7 +80,7 @@ def create_lrtt_config(preset='idealized', rank=4, transfer_every=100):
             transfer_lr=1.0,
             lora_alpha=1.0,
             reinit_gain=0.1,
-            forward_inject=True,
+            forward_inject=False,
             correct_gradient_magnitudes=False,
             unit_cell_devices=[
                 ConstantStepDevice(dw_min=0.001, w_min=-1.0, w_max=1.0),  # A

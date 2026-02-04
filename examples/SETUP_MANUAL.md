@@ -76,6 +76,7 @@ rm -rf _skbuild build   # 기존 캐시 삭제 (중요!)
 
 # 개발 모드 설치 (권장: 소스 수정 시 재설치 불필요)
 pip install -e .
+python setup.py build_ext --inplace  # C++ 확장 빌드 (필수)
 
 # 또는 일반 설치
 pip install .
@@ -150,6 +151,7 @@ rm -rf _skbuild build
 
 # 개발 모드 설치 (권장: 소스 수정 시 재설치 불필요)
 USE_CUDA=0 pip install -e .
+USE_CUDA=0 python setup.py build_ext --inplace  # C++ 확장 빌드 (필수)
 
 # 또는 일반 설치
 USE_CUDA=0 pip install .
@@ -280,6 +282,104 @@ wandb login
 sudo apt install python3.12-venv
 ```
 
+### 11. `libcublas.so.12: cannot open shared object file`
+CUDA 라이브러리 런타임 경로 문제.
+
+**해결 방법 (venv activate 스크립트에 추가 - 권장):**
+```bash
+# venv activate 스크립트에 추가 (한 번만 실행)
+echo 'export LD_LIBRARY_PATH=/data/venvs/lrttvenv/lib/python3.11/site-packages/nvidia/cublas/lib:$LD_LIBRARY_PATH' >> /data/venvs/lrttvenv/bin/activate
+
+# venv 재활성화
+deactivate
+source /data/venvs/lrttvenv/bin/activate
+
+# 확인
+echo $LD_LIBRARY_PATH
+```
+
+위 방법으로 해결되지 않으면 aihwkit 재빌드:
+```bash
+cd /path/to/LRTT
+rm -rf _skbuild build
+export OpenBLAS_HOME=/opt/conda
+export CMAKE_PREFIX_PATH=/opt/conda
+export USE_CUDA=1
+python setup.py build_ext --inplace
+```
+
+### 12. `OpenBLAS not found` (Conda 환경)
+Conda 환경에서 OpenBLAS 경로를 명시적으로 설정:
+```bash
+export OpenBLAS_HOME=/opt/conda
+export CMAKE_PREFIX_PATH=/opt/conda
+rm -rf _skbuild build && pip install -e .
+```
+
+### 13. `stubgen not found` 빌드 오류
+mypy 패키지 설치 필요:
+```bash
+pip install mypy
+```
+
+### 14. CUDA 지원이 빌드되지 않음
+개발 모드에서 CUDA를 명시적으로 활성화:
+```bash
+export USE_CUDA=1
+rm -rf _skbuild build && pip install -e .
+
+# 또는 inplace 빌드 (editable 모드)
+python setup.py build_ext --inplace
+```
+
+### 15. `cannot import name 'rpu_base'` (editable 모드)
+C++ 확장이 빌드되지 않음. 명시적으로 빌드:
+```bash
+rm -rf _skbuild build
+export USE_CUDA=1
+python setup.py build_ext --inplace
+```
+
+---
+
+## Optuna 하이퍼파라미터 튜닝
+
+### 실행 방법
+```bash
+cd examples
+
+# 기본 실행
+python optuna_vitsptlsa_lrtt.py --n-trials 50
+
+# Study 이름 지정 (결과 구분용)
+python optuna_vitsptlsa_lrtt.py --n-trials 50 --study-name my_lrtt_study
+python optuna_vitsptlsa_ttv1.py --n-trials 50 --study-name my_ttv1_study
+python optuna_vitsptlsa_ttv2.py --n-trials 50 --study-name my_ttv2_study
+python optuna_vitsptlsa_fp.py --n-trials 50 --study-name my_fp_study
+```
+
+### Optuna Dashboard로 결과 확인
+```bash
+# 웹 대시보드 실행 (기본 포트 8080)
+optuna-dashboard sqlite:///results/optuna_vitsptlsa_lrtt/optuna_vitsptlsa_main.db
+optuna-dashboard sqlite:///results/optuna_vitsptlsa_ttv1/optuna_vitsptlsa_ttv1_main.db
+optuna-dashboard sqlite:///results/optuna_vitsptlsa_ttv2/optuna_vitsptlsa_ttv2_main.db
+optuna-dashboard sqlite:///results/optuna_vitsptlsa_fp/optuna_vitsptlsa_fp_main.db
+
+# 포트 지정
+optuna-dashboard sqlite:///results/optuna_vitsptlsa_lrtt/optuna_vitsptlsa_main.db --port 8888
+```
+브라우저에서 `http://localhost:8080` 접속하여 튜닝 진행 상황 및 결과 확인
+
+### Study 초기화 (DB 삭제)
+```bash
+# 실패한 trial이 많거나 처음부터 다시 시작할 때
+rm results/optuna_vitsptlsa_lrtt/optuna_vitsptlsa_main.db
+rm results/optuna_vitsptlsa_ttv1/optuna_vitsptlsa_ttv1_main.db
+rm results/optuna_vitsptlsa_ttv2/optuna_vitsptlsa_ttv2_main.db
+rm results/optuna_vitsptlsa_fp/optuna_vitsptlsa_fp_main.db
+```
+
 ---
 
 ## 전체 의존성 목록
@@ -293,6 +393,8 @@ pip install cmake>=3.18 scikit-build>=0.11.1 pybind11>=2.6.2 ninja
 # 런타임 의존성
 pip install scipy numpy>=1.22,<2 protobuf>=4.21.6 tqdm requests>=2.25,<3
 pip install wandb scikit-learn  # 선택사항
+pip install optuna optuna-dashboard  # Optuna 하이퍼파라미터 튜닝
+pip install openpyxl  # Excel 파일 저장
 ```
 
 ---
@@ -302,3 +404,5 @@ pip install wandb scikit-learn  # 선택사항
 - [PyTorch 설치](https://pytorch.org/get-started/locally/)
 - [NVIDIA CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit)
 - [wandb](https://docs.wandb.ai/)
+- [Optuna](https://optuna.readthedocs.io/)
+- [Optuna Dashboard](https://optuna-dashboard.readthedocs.io/)

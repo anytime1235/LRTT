@@ -448,7 +448,7 @@ class PythonLRTTDevice(_PrintableMixin):
             reinit_gain=getattr(legacy_compound, 'reinit_gain', 0.1),
             units_in_mbatch=getattr(legacy_compound, 'units_in_mbatch', False),
             correct_gradient_magnitudes=getattr(legacy_compound, 'correct_gradient_magnitudes', False),
-            forward_inject=getattr(legacy_compound, 'forward_inject', True),
+            forward_inject=getattr(legacy_compound, 'forward_inject', False),
             rank_chunk=getattr(legacy_compound, 'rank_chunk', None),
             unit_cell_devices=getattr(legacy_compound, 'unit_cell_devices', [ConstantStepDevice()] * 3)
         )
@@ -479,7 +479,7 @@ class PythonLRTTPreset(_PrintableMixin):
             transfer_every=transfer_every,
             lora_alpha=lora_alpha,
             reinit_gain=0.1,
-            forward_inject=True,
+            forward_inject=False,
             unit_cell_devices=[ideal_device, ideal_device, ideal_device]
         )
     
@@ -508,7 +508,7 @@ class PythonLRTTPreset(_PrintableMixin):
             transfer_every=transfer_every,
             lora_alpha=1.0,
             reinit_gain=0.1,
-            forward_inject=True,
+            forward_inject=False,
             unit_cell_devices=[device, device, device]
         )
     
@@ -533,7 +533,7 @@ class PythonLRTTPreset(_PrintableMixin):
             transfer_every=transfer_every,
             lora_alpha=lora_alpha,
             reinit_gain=0.05,  # Smaller reinit for frequent transfers
-            forward_inject=True,
+            forward_inject=False,
             correct_gradient_magnitudes=True,  # Better scaling for higher ranks
             unit_cell_devices=[IdealizedPresetDevice(), IdealizedPresetDevice(), IdealizedPresetDevice()]
         )
@@ -560,7 +560,7 @@ class PythonLRTTPreset(_PrintableMixin):
             transfer_every=transfer_every,
             lora_alpha=1.0,
             reinit_gain=0.1,
-            forward_inject=True,
+            forward_inject=False,
             unit_cell_devices=[low_precision, low_precision, high_precision]
         )
     
@@ -582,9 +582,78 @@ class PythonLRTTPreset(_PrintableMixin):
             transfer_every=1,  # Transfer immediately
             lora_alpha=lora_alpha,
             reinit_gain=0.0,  # No reinit needed for inference
-            forward_inject=True,  # Essential for inference
+            forward_inject=False,  # Essential for inference
             columns_mode=True,  # Optimized mode
             unit_cell_devices=[IdealizedPresetDevice(), IdealizedPresetDevice(), IdealizedPresetDevice()]
+        )
+
+    @staticmethod
+    def floating_ab_softbound_c(
+        rank: int = 4,
+        transfer_every: int = 32,
+        lora_alpha: float = 1.0,
+        dw_min: float = 0.001,
+        lifetime: float = 0.0,
+    ) -> 'PythonLRTTDevice':
+        """LRTT with FloatingPoint A/B tiles and SoftBounds C tile.
+
+        - A, B tiles: FloatingPointDevice (exact arithmetic, no noise)
+        - C tile: SoftBoundsReferenceDevice (noise=0, w_max=1, w_min=-1)
+
+        Args:
+            rank: LoRA rank dimension
+            transfer_every: Transfer frequency (steps)
+            lora_alpha: LoRA scaling factor
+            dw_min: Minimum weight update step for C tile
+            lifetime: Retention lifetime for C tile (0 = no decay)
+
+        Returns:
+            PythonLRTTDevice configuration with FloatingPoint A/B and SoftBounds C
+        """
+        from aihwkit.simulator.configs.devices import (
+            FloatingPointDevice,
+            SoftBoundsReferenceDevice,
+        )
+
+        # SoftBounds C tile with COMPLETE noise removal
+        c_device = SoftBoundsReferenceDevice(
+            # Weight bounds
+            w_max=1.0,
+            w_min=-1.0,
+            dw_min=dw_min,
+
+            # ===== ALL NOISE = 0 (completely removed) =====
+            dw_min_std=0.0,         # cycle-to-cycle noise
+            write_noise_std=0.0,    # write noise
+            diffusion=0.0,          # diffusion noise
+
+            # Device-to-device variation = 0
+            dw_min_dtod=0.0,
+            w_max_dtod=0.0,
+            w_min_dtod=0.0,
+            up_down=0.0,
+            up_down_dtod=0.0,
+
+            # Lifetime (configurable)
+            lifetime=lifetime,
+            lifetime_dtod=0.0,
+
+            # Slope variations = 0
+            slope_up_dtod=0.0,
+            slope_down_dtod=0.0,
+        )
+
+        return PythonLRTTDevice(
+            rank=rank,
+            transfer_every=transfer_every,
+            lora_alpha=lora_alpha,
+            reinit_gain=0.1,
+            forward_inject=False,
+            unit_cell_devices=[
+                FloatingPointDevice(),  # A: exact arithmetic
+                FloatingPointDevice(),  # B: exact arithmetic
+                c_device,               # C: SoftBounds (noise=0)
+            ]
         )
 
     @staticmethod
@@ -698,7 +767,7 @@ class PythonLRTTPreset(_PrintableMixin):
             reinit_gain=0.1,
             reinit_mode=reinit_mode,
             decay_factor=decay_factor,
-            forward_inject=True,
+            forward_inject=False,
             unit_cell_devices=[sixt1c_device, sixt1c_device, c_device]
         )
 
@@ -844,7 +913,7 @@ class PythonLRTTPreset(_PrintableMixin):
             transfer_every=transfer_every,
             lora_alpha=lora_alpha,
             reinit_gain=0.1,
-            forward_inject=True,
+            forward_inject=False,
             unit_cell_devices=[sixt1c_device, sixt1c_device, sixt1c_device]
         )
 

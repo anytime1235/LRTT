@@ -105,7 +105,7 @@ def create_lrtt_config_fc():
         rank=LRTT_RANK_FC,
         transfer_every=TRANSFER_EVERY,
         lora_alpha=LORA_ALPHA,
-        forward_inject=True,
+        forward_inject=False,
         correct_gradient_magnitudes=True
     )
     device_config.transfer_lr = device_config.lora_alpha

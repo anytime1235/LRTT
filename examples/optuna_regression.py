@@ -11,6 +11,11 @@ Usage:
 Dashboard:
     pip install optuna-dashboard
     optuna-dashboard sqlite:///results/optuna_tuning/<study_name>.db
+
+    # Remote dashboard access (with localtunnel):
+    # 1. Start dashboard: optuna-dashboard sqlite:///results/optuna_tuning/<study_name>.db --host 0.0.0.0 --port 8081
+    # 2. Start tunnel: npx localtunnel --port 8081
+    # 3. Tunnel password: run `curl -s ifconfig.me` to get server's public IP
 """
 
 import argparse
@@ -53,14 +58,14 @@ FIXED_C_DESIRED_BL = 10
 # Remove key to use fixed value above
 # ============================================================================
 DEFAULT_SEARCH_SPACE = {
-    'a_x': (0.0, 1.0),           # a_x_scaling range
-    'a_d': (0.2, 1.0),           # a_d_scaling range
-    'b_d': (0.2, 0.6),           # b_d_scaling range
-    'lora_alpha': (0.0, 30.0),    # lora_alpha range (transfer LR)
-    'transfer_every': (1, 1000),   # transfer_every range (int)
-    #'desired_bl': (1, 10),       # desired_bl range (int, pulse train length)
-    'lrtt_rank': (1, 4),        # lrtt_rank range (int, log scale)
-    'c_dw_min': (0.0002, 0.04),  # c_dw_min range (float, log scale)
+    'a_x': (0.8, 1.0),           # a_x_scaling range
+    'a_d': (0.4, 0.9),           # a_d_scaling range
+    'b_d': (0.4, 0.85),          # b_d_scaling range
+    'lora_alpha': (0.5, 18.0),   # lora_alpha range (transfer LR)
+    'transfer_every': (1, 10),   # transfer_every range (int)
+    'desired_bl': (1, 10),       # desired_bl range (int, pulse train length)
+    #'lrtt_rank': (1, 4),        # lrtt_rank range (int, log scale)
+    #'c_dw_min': (0.0002, 0.04),  # c_dw_min range (float, log scale)
     #'c_desired_bl': (1, 20),     # c_desired_bl range (int, pulse train length for C transfer)
 }
 
@@ -229,7 +234,7 @@ def _objective_inner(trial: Trial, search_space: dict = None) -> float:
     return -float('inf')
 
 
-def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True, search_space: dict = None, max_concurrent: int = 10, n_jobs: int = -1):
+def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True, search_space: dict = None, max_concurrent: int = 25, n_jobs: int = 1):
     """Run Optuna hyperparameter tuning.
 
     Parallelization:
@@ -238,7 +243,7 @@ def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True,
         - Set n_jobs=-1 to run all trials in parallel (limited by semaphore)
 
     Example:
-        python optuna_regression.py --n-trials 50 --max-concurrent 10
+        python optuna_regression.py --n-trials 50 --max-concurrent 25
         → 50 trials start, but only 10 GPU ops run at any time
 
     Args:
@@ -247,7 +252,7 @@ def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True,
         save_results: Whether to save results
         search_space: Parameter search space
         max_concurrent: Maximum concurrent GPU operations (semaphore limit)
-        n_jobs: Number of parallel trials (-1 = all)
+        n_jobs: Number of parallel trials (1 = all)
     """
     global GPU_SEMAPHORE
     GPU_SEMAPHORE = threading.Semaphore(max_concurrent)
@@ -372,6 +377,11 @@ def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True,
         callbacks=[print_callback]
     )
 
+    # Restore stdout if closed (can happen with tqdm/multiprocessing)
+    import sys
+    if sys.stdout.closed:
+        sys.stdout = open('/dev/tty', 'w')
+
     # Print results
     print(f"\n{'='*60}")
     print("TUNING RESULTS")
@@ -468,7 +478,7 @@ def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True,
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Optuna tuning for LRTT hyperparameters")
     parser.add_argument("--n-trials", type=int, default=50, help="Number of trials (default: 50)")
-    parser.add_argument("--max-concurrent", type=int, default=10, help="Max concurrent GPU operations (default: 10)")
+    parser.add_argument("--max-concurrent", type=int, default=25, help="Max concurrent GPU operations (default: 25)")
     parser.add_argument("--n-jobs", type=int, default=1, help="Parallel trials (default: 1 = sequential for TPE)")
     parser.add_argument("--study-name", type=str, default=None, help="Study name")
     parser.add_argument("--no-save", action="store_true", help="Don't save results")

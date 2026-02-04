@@ -187,48 +187,45 @@ def lrtt_inference_config(rank: int = 2, lora_alpha: float = 0.5) -> PythonLRTTR
 
 
 # =============================================================================
-# 6T1C Device Configurations
+# Floating Point AB Configurations
 # =============================================================================
 
-def lrtt_sixt1c_ab_config(
+def lrtt_floating_ab_softbound_c_config(
     rank: int = 4,
     transfer_every: int = 32,
     lora_alpha: float = 1.0,
-    dt_batch_sec: float = 1.0,
-    include_retention: bool = True,
-    c_device=None
+    dw_min: float = 0.001,
+    lifetime: float = 0.0,
 ) -> PythonLRTTRPUConfig:
-    """Create LRTT configuration with 6T1C A/B tiles and configurable C tile.
+    """Create LRTT config with FloatingPoint A/B and SoftBounds C.
 
-    A/B tiles use 6T1C devices. C tile (visible) can use any device.
+    - A, B tiles: FloatingPointDevice (exact arithmetic, no noise)
+    - C tile: SoftBoundsReferenceDevice (noise=0, w_max=1, w_min=-1)
 
     Args:
         rank: LoRA rank dimension
         transfer_every: Transfer frequency (steps)
         lora_alpha: LoRA scaling factor
-        dt_batch_sec: Assumed time per mini-batch in seconds (for 6T1C retention)
-        include_retention: Whether to include retention effects for 6T1C
-        c_device: Device for C tile. If None, uses IdealizedPresetDevice.
-                  Can be: PCMPresetDevice, ReRamESPresetDevice, etc.
+        dw_min: Minimum weight update step for C tile
+        lifetime: Retention lifetime for C tile (0 = no decay)
 
     Returns:
-        Configured PythonLRTTRPUConfig with 6T1C A/B and custom C
-
-    Example:
-        >>> from aihwkit.simulator.presets.devices import PCMPresetDevice
-        >>> config = lrtt_sixt1c_ab_config(c_device=PCMPresetDevice())
+        Configured PythonLRTTRPUConfig with FloatingPoint A/B and SoftBounds C
     """
     from .lrtt_python import PythonLRTTPreset
-    device = PythonLRTTPreset.sixt1c_ab(
+    device = PythonLRTTPreset.floating_ab_softbound_c(
         rank=rank,
         transfer_every=transfer_every,
         lora_alpha=lora_alpha,
-        dt_batch_sec=dt_batch_sec,
-        include_retention=include_retention,
-        c_device=c_device
+        dw_min=dw_min,
+        lifetime=lifetime,
     )
     return PythonLRTTRPUConfig(device=device)
 
+
+# =============================================================================
+# 6T1C Device Configurations
+# =============================================================================
 
 def lrtt_sixt1c_ab_pcm_config(
     rank: int = 4,

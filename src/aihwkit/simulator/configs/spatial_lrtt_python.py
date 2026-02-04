@@ -86,7 +86,7 @@ class SpatialPythonLRTTPreset:
             reinit_mode=reinit_mode,
             decay_factor=decay_factor,
             correct_gradient_magnitudes=False,
-            forward_inject=True
+            forward_inject=False
         )
         
     @staticmethod
@@ -130,5 +130,5 @@ class SpatialPythonLRTTPreset:
             reinit_mode=reinit_mode,
             decay_factor=decay_factor,
             correct_gradient_magnitudes=False,
-            forward_inject=True
+            forward_inject=False
         )

@@ -58,6 +58,7 @@ LEARNING_RATE = 1e-2  # Initial LR (will be reduced on plateau)
 LR_REDUCTION_FACTOR = 0.1  # Paper: reduce LR by 0.1 on plateau
 LR_PATIENCE = 5  # Patience for ReduceLROnPlateau
 WEIGHT_DECAY = 5e-5
+OPTIMIZER = "Adam"  # "SGD", "Adam"
 N_CLASSES = 10
 NUM_WORKERS = 4
 IMAGE_SIZE = 32  # CIFAR-10 native size (no resize for this model)
@@ -311,14 +312,23 @@ def load_images():
 
 
 def create_optimizer(model, learning_rate, weight_decay):
-    """Create standard SGD optimizer."""
-    optimizer = torch.optim.SGD(
-        model.parameters(),
-        lr=learning_rate,
-        momentum=0.9,
-        weight_decay=weight_decay,
-        nesterov=True
-    )
+    """Create optimizer."""
+    if OPTIMIZER == "SGD":
+        optimizer = torch.optim.SGD(
+            model.parameters(),
+            lr=learning_rate,
+            momentum=0.9,
+            weight_decay=weight_decay,
+            nesterov=True
+        )
+    elif OPTIMIZER == "Adam":
+        optimizer = torch.optim.Adam(
+            model.parameters(),
+            lr=learning_rate,
+            weight_decay=weight_decay
+        )
+    else:
+        raise ValueError(f"Unknown optimizer: {OPTIMIZER}. Choose from: SGD, Adam")
     return optimizer
 
 
@@ -385,6 +395,7 @@ def main():
             "lr_reduction_factor": LR_REDUCTION_FACTOR,
             "lr_patience": LR_PATIENCE,
             "weight_decay": WEIGHT_DECAY,
+            "optimizer": OPTIMIZER,
             "seed": SEED,
             "augmentation": False,
             "device": str(DEVICE),

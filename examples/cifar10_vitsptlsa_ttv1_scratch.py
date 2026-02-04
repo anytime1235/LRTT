@@ -34,14 +34,15 @@ from torchvision import datasets, transforms
 from tqdm import tqdm
 import wandb
 
-from aihwkit.optim import AnalogSGD
+from aihwkit.optim import AnalogSGD, AnalogAdam
 from aihwkit.nn import AnalogLinear, AnalogConv2d
 from aihwkit.simulator.presets.configs import TikiTakaIdealizedPreset
 from aihwkit.simulator.configs import MappingParameter, IOParameters
 from aihwkit.simulator.parameters import BoundManagementType, NoiseManagementType, WeightNoiseType
 from aihwkit.simulator.configs import FloatingPointRPUConfig
-from aihwkit.simulator.presets.devices import IdealizedPresetDevice
+from aihwkit.simulator.presets.devices import IdealizedPresetDevice, PCMPresetDevice, ReRamESPresetDevice
 from aihwkit.simulator.configs.compounds import TransferCompound
+from aihwkit.simulator.configs.devices import SoftBoundsDevice, ConstantStepDevice, LinearStepDevice, FloatingPointDevice
 from aihwkit.simulator.presets.utils import PresetIOParameters, PresetUpdateParameters
 
 
@@ -65,6 +66,7 @@ LEARNING_RATE = 1e-2  # Initial LR (will be reduced on plateau)
 LR_REDUCTION_FACTOR = 0.1  # Paper: reduce LR by 0.1 on plateau
 LR_PATIENCE = 5  # Patience for ReduceLROnPlateau
 WEIGHT_DECAY = 5e-5
+OPTIMIZER = "AnalogAdam"  # "AnalogSGD", "AnalogAdam"
 N_CLASSES = 10
 NUM_WORKERS = 4
 IMAGE_SIZE = 32  # CIFAR-10 native size (no resize for this model)
@@ -82,37 +84,96 @@ DROPOUT = 0.0  # Dropout rate
 TRANSFER_EVERY = 1.0  # Transfer frequency (every mini-batch)
 UNITS_IN_MBATCH = True  # Whether to use mini-batch units
 
+# Device configuration for TTv1 tiles
+# A: Auxiliary array, C: Core array (visible)
+# Options: "6t1c", "idealized", "softbounds", "pcm", "rram", "constantstep", "floating_point"
+DEVICE_A = "6t1c"  # Auxiliary array
+DEVICE_C = "softbounds"  # Core array (visible)
+
 # Layer configuration
 # Paper: All linear and conv layers are analog, normalization layers are FP
 USE_ANALOG_FOR_ALL_LINEAR = True
 USE_ANALOG_FOR_ALL_CONV = True
 
 
+def _create_device(device_type):
+    """Create device based on type string."""
+    if device_type == "6t1c":
+        return LinearStepDevice(
+            dw_min=0.001981,
+            up_down=0.0,
+            w_max=1.0,
+            w_min=-1.0,
+            gamma_up=-0.1678,
+            gamma_down=0.1410,
+            mult_noise=True,
+            dw_min_dtod=0.1,
+            up_down_dtod=0.01,
+            w_max_dtod=0.05,
+            w_min_dtod=0.05,
+            gamma_up_dtod=0.05,
+            gamma_down_dtod=0.05,
+            dw_min_std=0.3,
+            write_noise_std=0, #0.0182
+            mean_bound_reference=True,
+        )
+    elif device_type == "softbounds":
+        # SoftBoundsDevice with NO NOISE (matches sweep_softbounds_lifetime.py)
+        # Comments show aihwkit default values
+        return SoftBoundsDevice(
+            # Weight bounds
+            w_max=1.0,               # default: 0.6
+            w_min=-1.0,              # default: -0.6
+            w_max_dtod=0.0,          # default: 0.3
+            w_min_dtod=0.0,          # default: 0.3
+            # Update step size
+            dw_min=0.001,            # default: 0.001
+            dw_min_dtod=0.0,         # default: 0.3
+            dw_min_std=0.0,          # default: 0.3
+            # Up/down asymmetry
+            up_down=0.0,             # default: 0.0
+            up_down_dtod=0.0,        # default: 0.01
+            # Noise
+            mult_noise=True,         # default: True
+            write_noise_std=0.0,     # default: 0.0
+        )
+    elif device_type == "pcm":
+        return PCMPresetDevice()
+    elif device_type == "rram":
+        return ReRamESPresetDevice()
+    elif device_type == "constantstep":
+        return ConstantStepDevice(
+            w_max=1.0,
+            w_min=-1.0,
+            dw_min=0.01,
+            dw_min_std=0.0,
+            dw_min_dtod=0.0,
+            up_down=0.0,
+        )
+    elif device_type == "floating_point":
+        return FloatingPointDevice()
+    else:  # idealized
+        return IdealizedPresetDevice(
+            w_max=1.0,
+            w_min=-1.0,
+            dw_min=0.0002,
+            dw_min_dtod=0.3,
+            dw_min_std=0.3,
+            up_down=0.0,
+            up_down_dtod=0.0,
+        )
+
+
 def create_ttv1_config():
     """Create TikiTaka TTv1 configuration for linear/conv layers."""
 
-    # Use IdealizedPresetDevice for both devices in the transfer compound
+    print(f"Device config: A(aux)={DEVICE_A}, C(core)={DEVICE_C}")
+
+    # A: Auxiliary array, C: Core array (visible)
     unit_devices = [
-        IdealizedPresetDevice(
-            w_max=1.0,
-            w_min=-1.0,
-            dw_min=0.0002,
-            dw_min_dtod=0.3,
-            dw_min_std=0.3,
-            up_down=0.0,
-            up_down_dtod=0.0,
-        ),
-        IdealizedPresetDevice(
-            w_max=1.0,
-            w_min=-1.0,
-            dw_min=0.0002,
-            dw_min_dtod=0.3,
-            dw_min_std=0.3,
-            up_down=0.0,
-            up_down_dtod=0.0,
-        ),
+        _create_device(DEVICE_A),  # Auxiliary
+        _create_device(DEVICE_C),  # Core (visible)
     ]
-    print("Using TikiTaka TTv1 with IdealizedPresetDevice (dw_min=0.0002)")
 
     # Create TransferCompound for TikiTaka
     device_config = TransferCompound(
@@ -481,6 +542,8 @@ def create_model():
     print(f"  Trainable parameters: {num_params:,} (target: ~4,337,642)")
     print(f"  Linear/Conv layers: {num_linear} (18 total: 16 TTv1 + 2 digital [SPT, head])")
     print(f"  Normalization: Digital (FP)")
+    print(f"  Device A (aux): {DEVICE_A}")
+    print(f"  Device C (core): {DEVICE_C}")
     print(f"  Transfer every: {TRANSFER_EVERY}")
     print(f"  Units in mbatch: {UNITS_IN_MBATCH}\n")
 
@@ -516,13 +579,22 @@ def load_images():
 
 def create_optimizer(model, learning_rate, weight_decay):
     """Create analog-aware optimizer."""
-    optimizer = AnalogSGD(
-        model.parameters(),
-        lr=learning_rate,
-        momentum=0.9,
-        weight_decay=weight_decay,
-        nesterov=True
-    )
+    if OPTIMIZER == "AnalogSGD":
+        optimizer = AnalogSGD(
+            model.parameters(),
+            lr=learning_rate,
+            momentum=0.9,
+            weight_decay=weight_decay,
+            nesterov=True
+        )
+    elif OPTIMIZER == "AnalogAdam":
+        optimizer = AnalogAdam(
+            model.parameters(),
+            lr=learning_rate,
+            weight_decay=weight_decay
+        )
+    else:
+        raise ValueError(f"Unknown optimizer: {OPTIMIZER}. Choose from: AnalogSGD, AnalogAdam")
     optimizer.regroup_param_groups(model)
     return optimizer
 
@@ -588,9 +660,12 @@ def main():
             "lr_reduction_factor": LR_REDUCTION_FACTOR,
             "lr_patience": LR_PATIENCE,
             "weight_decay": WEIGHT_DECAY,
+            "optimizer": OPTIMIZER,
             "seed": SEED,
             "transfer_every": TRANSFER_EVERY,
             "units_in_mbatch": UNITS_IN_MBATCH,
+            "device_a": DEVICE_A,
+            "device_c": DEVICE_C,
             "use_analog_linear": USE_ANALOG_FOR_ALL_LINEAR,
             "use_analog_conv": USE_ANALOG_FOR_ALL_CONV,
             "augmentation": False,  # No augmentation as per paper

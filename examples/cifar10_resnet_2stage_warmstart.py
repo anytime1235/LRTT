@@ -291,7 +291,7 @@ def create_fullanalog_config(rank=1):
         rank=rank,  # Minimal rank (not used in forward)
         transfer_every=10000000000,  # Very large to avoid transfers
         lora_alpha=1.0,
-        forward_inject=True,  # Use only C matrix in forward pass
+        forward_inject=False,  # Use only C matrix in forward pass
         correct_gradient_magnitudes=False,
         unit_cell_devices=[
             IdealizedPresetDevice(),  # A tile (not used)
