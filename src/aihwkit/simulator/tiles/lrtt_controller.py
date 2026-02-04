@@ -1083,10 +1083,18 @@ class LRTTController:
             C_new = C_weights + delta
 
             # Clip to per-element device bounds (respects d2d variation)
-            hidden_params = self.tile_c.tile.get_hidden_parameters()
-            max_bound = hidden_params[0]  # [d_size, x_size]
-            min_bound = hidden_params[1]  # [d_size, x_size]
-            C_new = torch.clamp(C_new, min_bound, max_bound)
+            # FloatingPointDevice doesn't have hidden_parameters, so we need to handle that
+            try:
+                hidden_params = self.tile_c.tile.get_hidden_parameters()
+                if hidden_params is not None and len(hidden_params) >= 2:
+                    max_bound = hidden_params[0]  # [d_size, x_size]
+                    min_bound = hidden_params[1]  # [d_size, x_size]
+                    C_new = torch.clamp(C_new, min_bound, max_bound)
+                # else: FloatingPointDevice - no clipping needed (infinite precision)
+            except (AttributeError, IndexError, RuntimeError):
+                # FloatingPointDevice or other device without hidden_parameters
+                # No clipping needed for floating point
+                pass
 
             # Set weights directly (exact, no pulsed update)
             self.tile_c.set_weights(C_new, None)
