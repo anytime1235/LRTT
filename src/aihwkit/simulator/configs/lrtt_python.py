@@ -99,8 +99,10 @@ class PythonLRTTDevice(_PrintableMixin):
     - 'off': No calibration, direct transfer with transfer_lr.
     Default is 'off'."""
 
-    transfer_micro_steps: int = 4
+    transfer_micro_steps: int = 1
     """M: Number of micro-transfer steps per transfer.
+    - 1: Fast, single update per rank (default, recommended for speed)
+    - 4+: Slower but more realistic analog simulation with noise averaging
     Higher values give smoother pulse accumulation but increase transfer time.
     For 'pilot' mode: lr_remain is split across M_rest = M - 1 steps.
     For 'sigma_delta' mode: g = |transfer_lr| / M if sd_quantum is not set."""
@@ -120,6 +122,12 @@ class PythonLRTTDevice(_PrintableMixin):
     - 1: Standard single reading (original behavior)
     - 4-8: Recommended for noise reduction (√N improvement)
     Default is 1."""
+
+    differential_read: bool = False
+    """Use differential read (+e, -e) for DC offset cancellation.
+    - True: Read with +e and -e, use 0.5*(f(+e) - f(-e)). More accurate but 2x slower.
+    - False: Read with +e only. Faster but includes DC offset.
+    Default is False (faster)."""
 
     # === AGC (Automatic Gain Control) Settings ===
     agc_enabled: bool = False
@@ -400,6 +408,7 @@ class PythonLRTTDevice(_PrintableMixin):
             'sd_quantum': self.sd_quantum,
             # Read noise reduction
             'read_n_avg': self.read_n_avg,
+            'differential_read': self.differential_read,
             # AGC settings
             'agc_enabled': self.agc_enabled,
             'agc_margin': self.agc_margin,

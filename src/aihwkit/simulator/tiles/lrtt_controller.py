@@ -181,6 +181,7 @@ class LRTTController:
 
         # --- Read noise reduction (oversampling) ---
         self.read_n_avg: int = 1                    # Oversampling count (1=disabled, 4/8=recommended)
+        self.differential_read: bool = False        # Use +e/-e differential (True) or +e only (False)
 
         # --- AGC (Automatic Gain Control) settings ---
         self.agc_enabled: bool = False              # Enable AGC for read amplitude optimization
@@ -1040,23 +1041,6 @@ class LRTTController:
         # CRITICAL: Reset transfer counter after transfer (matches CUDA)
         self.transfer_counter = 0
 
-        # Clip C weights to [-1, 1] range for analog hardware realism
-        C_weights = self.tile_c.get_weights()[0]
-        C_min_before, C_max_before = C_weights.min().item(), C_weights.max().item()
-        C_clipped = torch.clamp(C_weights, -1.0, 1.0)
-
-        if self.num_transfers < 1:  # Debug first transfer only (거의 출력 안 함)
-            print(f"[CLIP-CHECK] Transfer #{self.num_transfers}: C range before: [{C_min_before:.4f}, {C_max_before:.4f}]")
-
-        if not torch.equal(C_weights, C_clipped):
-            self.tile_c.set_weights(C_clipped, None)
-            if self.num_transfers < 1:
-                C_verify = self.tile_c.get_weights()[0]
-                print(f"[CLIP-APPLIED] Transfer #{self.num_transfers}: C range after:  [{C_verify.min():.4f}, {C_verify.max():.4f}]")
-        else:
-            if self.num_transfers < 1:
-                print(f"[CLIP-SKIPPED] Transfer #{self.num_transfers}: C already in range, no clipping needed")
-
         # DEBUG: Check A before reinit (first few transfers only)
         if self.num_transfers < 1:
             A_before_reinit = self.tile_a.get_weights()[0] if hasattr(self.tile_a, 'get_weights') else None
@@ -1098,20 +1082,17 @@ class LRTTController:
             # Compute new C weights
             C_new = C_weights + delta
 
-            # Clip to [-1, 1] for analog hardware realism
-            C_min_before, C_max_before = C_new.min().item(), C_new.max().item()
-            C_new = torch.clamp(C_new, -1.0, 1.0)
+            # Clip to per-element device bounds (respects d2d variation)
+            hidden_params = self.tile_c.tile.get_hidden_parameters()
+            max_bound = hidden_params[0]  # [d_size, x_size]
+            min_bound = hidden_params[1]  # [d_size, x_size]
+            C_new = torch.clamp(C_new, min_bound, max_bound)
 
             # Set weights directly (exact, no pulsed update)
             self.tile_c.set_weights(C_new, None)
 
         self.num_transfers += 1
         self.transfer_counter = 0
-
-        if self.num_transfers < 1:  # 거의 출력 안 함
-            print(f"[SET-TRANSFER] Transfer #{self.num_transfers}: "
-                  f"delta norm={delta.norm():.6f}, "
-                  f"C range before clip: [{C_min_before:.4f}, {C_max_before:.4f}]")
 
         # DEBUG: Check A before reinit (first few transfers only)
         if self.num_transfers < 1:  # 거의 출력 안 함
@@ -1156,11 +1137,29 @@ class LRTTController:
             )
 
         I = self._transfer_vec_a
-        A_cols = []
-        B_rows = []
 
         # Determine read count (new read_n_avg takes precedence over legacy num_reads)
         read_count = self.read_n_avg if self.read_n_avg > 1 else self.num_reads
+
+        # Fast path: batch processing (no AGC, no two_amp, single read)
+        if read_count == 1 and not self.agc_enabled and not self.two_amp_enabled:
+            if self.differential_read:
+                # Batch differential read: 4 GPU calls instead of 4*rank
+                A_p = self.tile_a.forward(I)    # [rank, d_size]
+                A_m = self.tile_a.forward(-I)   # [rank, d_size]
+                B_p = self.tile_b.backward(I)   # [rank, x_size]
+                B_m = self.tile_b.backward(-I)  # [rank, x_size]
+                A_cols = (0.5 * (A_p - A_m)).T  # [d_size, rank]
+                B_rows = 0.5 * (B_p - B_m)      # [rank, x_size]
+            else:
+                # Batch simple read: 2 GPU calls instead of 2*rank
+                A_cols = self.tile_a.forward(I).T   # [d_size, rank]
+                B_rows = self.tile_b.backward(I)    # [rank, x_size]
+            return A_cols, B_rows
+
+        # Slow path: per-rank processing (for AGC, two_amp, or multi-read)
+        A_cols = []
+        B_rows = []
 
         for k in range(self.rank):
             e = I[k].unsqueeze(0)  # [1, rank], +one-hot
@@ -1185,15 +1184,18 @@ class LRTTController:
                 a_k = self._diff_read(self.tile_a, e, amp=amp_a, mode="fwd", read_n_avg=read_count).squeeze(0)
                 b_k = self._diff_read(self.tile_b, e, amp=amp_b, mode="bwd", read_n_avg=read_count).squeeze(0)
             elif read_count == 1:
-                # Single read (original behavior)
-                a_p = self.tile_a.forward(e).squeeze(0)   # [d_size]
-                a_m = self.tile_a.forward(-e).squeeze(0)  # [d_size]
-                b_p = self.tile_b.backward(e).squeeze(0)  # [x_size]
-                b_m = self.tile_b.backward(-e).squeeze(0) # [x_size]
-
-                # Differential: cancels DC offset and even-order distortions
-                a_k = 0.5 * (a_p - a_m)
-                b_k = 0.5 * (b_p - b_m)
+                if self.differential_read:
+                    # Differential read: cancels DC offset (2x tile ops)
+                    a_p = self.tile_a.forward(e).squeeze(0)   # [d_size]
+                    a_m = self.tile_a.forward(-e).squeeze(0)  # [d_size]
+                    b_p = self.tile_b.backward(e).squeeze(0)  # [x_size]
+                    b_m = self.tile_b.backward(-e).squeeze(0) # [x_size]
+                    a_k = 0.5 * (a_p - a_m)
+                    b_k = 0.5 * (b_p - b_m)
+                else:
+                    # Simple read: faster but includes DC offset (1x tile ops)
+                    a_k = self.tile_a.forward(e).squeeze(0)   # [d_size]
+                    b_k = self.tile_b.backward(e).squeeze(0)  # [x_size]
             else:
                 # Multi-read averaging with amplitude=1.0
                 a_k = self._diff_read(self.tile_a, e, amp=1.0, mode="fwd", read_n_avg=read_count).squeeze(0)
@@ -1245,20 +1247,22 @@ class LRTTController:
         return (G_A * G_B).sum().item()
 
     def _ab_weight_transfer_onehot(self) -> None:
-        """One-hot 기반 전송 (모드에 따라 pilot 또는 sigma_delta 방식 선택).
+        """One-hot 기반 전송 (모드에 따라 off, pilot, sigma_delta 방식 선택).
 
         Transfer modes:
+        - "off": No calibration, simple direct transfer (default)
         - "pilot": Pilot-based γ calibration for scale correction
         - "sigma_delta": ΣΔ quantization with residual accumulation
-        - "off": No calibration, direct transfer
         """
         # 모드 결정 (transfer_mode 우선, 없으면 transfer_gamma_mode 사용)
         mode = getattr(self, 'transfer_mode', None) or self.transfer_gamma_mode
 
         if mode == "sigma_delta":
             self._ab_weight_transfer_onehot_sigma_delta()
-        else:
+        elif mode == "pilot":
             self._ab_weight_transfer_onehot_pilot()
+        else:  # "off" (default)
+            self._ab_weight_transfer_onehot_off()
 
     def _ab_weight_transfer_onehot_pilot(self) -> None:
         """One-hot 기반 전송 (± 차분, 파일럿 γ 보정, micro-transfer 포함).
@@ -1423,22 +1427,73 @@ class LRTTController:
         self.num_transfers += 1
         self.transfer_counter = 0
 
-        # Clip C weights to [-1, 1] range for analog hardware realism
-        C_weights = self.tile_c.get_weights()[0]
-        C_min_before, C_max_before = C_weights.min().item(), C_weights.max().item()
-        C_clipped = torch.clamp(C_weights, -1.0, 1.0)
+        self.reinit()
 
-        if self.num_transfers < 1:  # Debug first transfer only (거의 출력 안 함)
-            print(f"[CLIP-CHECK-ONEHOT] Transfer #{self.num_transfers}: C range before: [{C_min_before:.4f}, {C_max_before:.4f}]")
+    def _ab_weight_transfer_onehot_off(self) -> None:
+        """One-hot 기반 전송 (off 모드: calibration 없이 직접 전송).
 
-        if not torch.equal(C_weights, C_clipped):
-            self.tile_c.set_weights(C_clipped, None)
-            if self.num_transfers < 1:
-                C_verify = self.tile_c.get_weights()[0]
-                print(f"[CLIP-APPLIED-ONEHOT] Transfer #{self.num_transfers}: C range after:  [{C_verify.min():.4f}, {C_verify.max():.4f}]")
-        else:
-            if self.num_transfers < 1:
-                print(f"[CLIP-SKIPPED-ONEHOT] Transfer #{self.num_transfers}: C already in range, no clipping needed")
+        Simple transfer without pilot calibration or sigma-delta:
+        - gamma = 1.0 (fixed)
+        - Uses full transfer_lr
+        - No calibration overhead
+        """
+        with torch.no_grad():
+            # 1) 준비: one-hot 캐시, LR/노이즈 백업
+            if self._transfer_vec_a is None:
+                self._transfer_vec_a = torch.eye(
+                    self.rank, dtype=self.dtype, device=self.device
+                )
+
+            old_lr_c = self.tile_c.get_learning_rate()
+
+            # A/B 읽기 동안 out_noise=0
+            old_out_a = getattr(getattr(self.tile_a.rpu_config, 'forward', None), 'out_noise', None)
+            old_out_b_f = getattr(getattr(self.tile_b.rpu_config, 'forward', None), 'out_noise', None)
+            old_out_b_b = getattr(getattr(self.tile_b.rpu_config, 'backward', None), 'out_noise', None)
+
+            if old_out_a is not None:
+                self.tile_a.rpu_config.forward.out_noise = 0.0
+            if old_out_b_f is not None:
+                self.tile_b.rpu_config.forward.out_noise = 0.0
+            if old_out_b_b is not None:
+                self.tile_b.rpu_config.backward.out_noise = 0.0
+
+            try:
+                # 2) ± one-hot 차분 읽기
+                A_cols, B_rows = self._read_ab_onehot_symmetric()
+                A_cols, B_rows = self._center_and_normalize(A_cols, B_rows)
+
+                # 3) off 모드: gamma=1.0, 전체 lr 사용
+                lr_abs = abs(self.transfer_lr)
+                M_total = max(1, int(self.transfer_micro_steps))
+                lr_step = lr_abs / M_total
+                self.tile_c.set_learning_rate(lr_step if lr_step > 0 else 1e-12)
+
+                # 4) micro-transfer
+                for k in range(self.rank):
+                    a_k = A_cols[:, k]
+                    b_k = B_rows[k, :]
+                    D_k = -a_k if self.transfer_lr > 0 else a_k
+                    X_k = b_k
+
+                    for _ in range(M_total):
+                        if hasattr(self.tile_c, '_orig_update'):
+                            self.tile_c._orig_update(X_k.unsqueeze(0), D_k.unsqueeze(0))
+                        else:
+                            self.tile_c.update(X_k.unsqueeze(0), D_k.unsqueeze(0))
+
+            finally:
+                # 5) 복구
+                self.tile_c.set_learning_rate(old_lr_c)
+                if old_out_a is not None:
+                    self.tile_a.rpu_config.forward.out_noise = old_out_a
+                if old_out_b_f is not None:
+                    self.tile_b.rpu_config.forward.out_noise = old_out_b_f
+                if old_out_b_b is not None:
+                    self.tile_b.rpu_config.backward.out_noise = old_out_b_b
+
+        self.num_transfers += 1
+        self.transfer_counter = 0
 
         self.reinit()
 

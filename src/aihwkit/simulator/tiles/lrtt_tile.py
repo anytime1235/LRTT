@@ -272,6 +272,7 @@ class LRTTSimulatorTile(SimulatorTile, Module):
 
         # Read noise reduction
         self.controller.read_n_avg = post_init.get("read_n_avg", 1)
+        self.controller.differential_read = post_init.get("differential_read", False)
 
         # AGC settings
         self.controller.agc_enabled = post_init.get("agc_enabled", False)
