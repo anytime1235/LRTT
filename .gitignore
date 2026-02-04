@@ -169,7 +169,9 @@ cython_debug/
 *.pth
 wandb/
 examples/wandb/
-examples/results/
+examples/results/*
+!examples/results/*/
+!examples/results/**/*.db
 
 # Checkpoint files
 *.ckpt
