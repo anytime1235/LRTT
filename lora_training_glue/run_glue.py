@@ -665,12 +665,15 @@ def main():
         print("Sixt1c_lora Analog model (base_layer=PCM, lora_A/B=Sixt1c)")
         print(model)
 
-        # Freeze all analog layers (inference-only mode)
-        for module in model.modules():
+        # Freeze only base_layer (PCM), keep lora_A/lora_B trainable
+        for name, module in model.named_modules():
             if isinstance(module, AnalogLinear):
-                for param in module.parameters():
-                    param.requires_grad = False
-        print("Froze all AnalogLinear layers (inference-only mode)")
+                if 'base_layer' in name:
+                    # Freeze base_layer (PCM)
+                    for param in module.parameters():
+                        param.requires_grad = False
+                # lora_A/lora_B remain trainable (Sixt1c)
+        print("Froze base_layer (PCM), lora_A/lora_B remain trainable (Sixt1c)")
 
         if general_args.analog_optimizer == "AnalogSGD":
             optimizer = AnalogSGD(model.parameters(), lr=general_args.analog_lr, momentum=0.9)
