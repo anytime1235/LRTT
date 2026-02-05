@@ -17,16 +17,16 @@ Usage:
     python optuna_vitsptlsa_lrtt.py --visualize
 
     # Use a different study name (for separate experiments)
-    python optuna_vitsptlsa_lrtt.py --n-trials 50 --study-name vitsptlsa_main
+    python optuna_vitsptlsa_lrtt.py --n-trials 50 --study-name vitsptlsa_lrtt_main
 
     # Real-time dashboard (install: pip install optuna-dashboard)
-    optuna-dashboard sqlite:///results/optuna_vitsptlsa_lrtt/optuna_vitsptlsa_main.db
+    optuna-dashboard sqlite:///results/optuna_vitsptlsa_lrtt/optuna_vitsptlsa_lrtt_main.db
 
     # Reset study (delete DB to start fresh)
-    rm results/optuna_vitsptlsa_lrtt/optuna_vitsptlsa_main.db
+    rm results/optuna_vitsptlsa_lrtt/optuna_vitsptlsa_lrtt_main.db
 
 Results are stored in:
-    - SQLite DB: results/optuna_vitsptlsa_lrtt/optuna_vitsptlsa_main.db
+    - SQLite DB: results/optuna_vitsptlsa_lrtt/optuna_vitsptlsa_lrtt_main.db
     - JSON summary: results/optuna_vitsptlsa_lrtt/best_params_*.json
     - Visualization: results/optuna_vitsptlsa_lrtt/visualization_*.png
 """
@@ -51,7 +51,7 @@ from optuna.trial import TrialState
 import matplotlib.pyplot as plt
 
 # Default study name for persistence
-DEFAULT_STUDY_NAME = "vitsptlsa_main"
+DEFAULT_STUDY_NAME = "vitsptlsa_lrtt_main"
 
 from aihwkit.optim import AnalogSGD, AnalogAdam
 from aihwkit.nn import AnalogLinear
