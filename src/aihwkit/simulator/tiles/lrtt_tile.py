@@ -412,9 +412,6 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         # Actual bias is handled by tile_c's digital_bias (set at __init__)
         # tile_c.forward() automatically adds bias when digital_bias=True
 
-        # Store input for potential local A,B update when forward_inject=False
-        self._last_x_input = x_input.detach().clone()
-
         # Single source of truth: Use controller's forward_inject_enabled flag only
         # This avoids confusion from multiple forward_inject flags
         if self.controller.forward_inject_enabled:
@@ -458,17 +455,10 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             xg_ab = self.tile_b.backward(da)  # [batch, x_size]
             x_grad = xg_c + self.lora_alpha * xg_ab
         else:
-            # forward_inject=False: Upstream gets C-only gradient
-            # But store gradients for local A,B update (unless skipped by child class)
-            da = self.tile_a.backward(d_bf)  # [batch, rank] - for local update
-            xg_ab = self.tile_b.backward(da)  # [batch, x_size] - for local update
-
-            # Store for local A,B update during update() call (unless child class handles it)
-            if not hasattr(self, "_skip_gradient_storage"):
-                self._stored_d_input = d_input.detach().clone()
-                self._stored_x_input = getattr(self, "_last_x_input", None)
-
-            # Return only C gradient for upstream propagation
+            # forward_inject=False: Upstream gets C-only gradient.
+            # A,B updates are handled entirely by ab_weight_update() which does
+            # its own tile_a.backward() and tile_b.forward() projections.
+            # update() receives x_input/d_input directly — no need to store here.
             x_grad = xg_c
 
         # 3) Output transpose
@@ -504,32 +494,11 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         # Get current learning rate (assuming all tiles have same LR)
         lr = self.get_learning_rate()
 
-        # For forward_inject=False, use stored gradients for local A,B update
-        if (
-            not self.controller.forward_inject_enabled
-            and hasattr(self, "_stored_d_input")
-            and hasattr(self, "_stored_x_input")
-        ):
-            if self._stored_x_input is not None and self._stored_d_input is not None:
-                # Use stored inputs/gradients for A,B local update
-                update_x = self._stored_x_input
-                update_d = self._stored_d_input
-
-                # Clear stored gradients after use
-                delattr(self, "_stored_d_input")
-                delattr(self, "_stored_x_input")
-            else:
-                # Fallback to current inputs if stored inputs are not available
-                update_x = x_input
-                update_d = d_input
-        else:
-            # Normal case: use current inputs
-            update_x = x_input
-            update_d = d_input
-
         # Perform A/B LoRA-style updates with projections
+        # ab_weight_update does its own tile_b.forward() and tile_a.backward()
+        # internally, so x_input and d_input are used directly.
         self.controller.ab_weight_update(
-            x=update_x, d=update_d, lr=lr, in_trans=in_trans, out_trans=out_trans
+            x=x_input, d=d_input, lr=lr, in_trans=in_trans, out_trans=out_trans
         )
 
         # Check for transfer

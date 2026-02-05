@@ -1030,10 +1030,7 @@ class LRTTController:
                 else:
                     self.tile_c.update(X_chunk_d, D_chunk_t_d)
 
-                # OPTIMIZATION: Immediately free GPU memory
                 del X_chunk_d, D_chunk_t_d
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
 
             self.tile_c.set_learning_rate(old_lr)
         self.num_transfers += 1
