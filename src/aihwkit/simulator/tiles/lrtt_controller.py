@@ -181,6 +181,7 @@ class LRTTController:
 
         # --- Read noise reduction (oversampling) ---
         self.read_n_avg: int = 1                    # Oversampling count (1=disabled, 4/8=recommended)
+        self.differential_read: bool = False        # Use +e/-e differential (True) or +e only (False)
 
         # --- AGC (Automatic Gain Control) settings ---
         self.agc_enabled: bool = False              # Enable AGC for read amplitude optimization
@@ -221,6 +222,18 @@ class LRTTController:
         self._ab_update_step: int = 0
         """Internal counter for A/B update logging."""
 
+        # === Auto-Scale state (A/B update LR normalization) ===
+        self.auto_scale: bool = False
+        self.auto_scale_momentum: float = 0.99
+        self._ema_m_x: Optional[Tensor] = None  # GPU scalar: EMA of max|x|
+        self._ema_m_d: Optional[Tensor] = None  # GPU scalar: EMA of max|d|
+
+        # === Transfer EMA state (transfer magnitude normalization) ===
+        self.transfer_ema_scale: bool = False
+        self.transfer_ema_momentum: float = 0.99
+        self.transfer_ema_target_norm: float = 0.0
+        self._ema_ab_norm: Optional[Tensor] = None  # GPU scalar: EMA of ||A@B||_F
+
         # === Hardware Mode Flag ===
         self._hardware_mode: Optional[bool] = None
         """Cache for hardware mode detection (use_manual_scaling=True)."""
@@ -252,6 +265,79 @@ class LRTTController:
         """Ensure ΣΔ state tensors exist on the right device/dtype."""
         if self.sd_acc is None or self.sd_acc.numel() != self.rank or self.sd_acc.device != self.device:
             self.sd_acc = torch.zeros(self.rank, device=self.device, dtype=self.dtype)
+
+    def _ensure_auto_scale_state(self) -> None:
+        """Ensure auto-scale EMA tensors exist on the right device/dtype."""
+        if self._ema_m_x is None or self._ema_m_x.device != self.device:
+            self._ema_m_x = torch.zeros((), device=self.device, dtype=self.dtype)
+            self._ema_m_d = torch.zeros((), device=self.device, dtype=self.dtype)
+
+    def _ensure_transfer_ema_state(self) -> None:
+        """Ensure transfer EMA tensor exists on the right device/dtype."""
+        if self._ema_ab_norm is None or self._ema_ab_norm.device != self.device:
+            self._ema_ab_norm = torch.zeros((), device=self.device, dtype=self.dtype)
+
+    # === Auto-Scale methods ===
+
+    def _update_auto_scale_ema(self, x: Tensor, d: Tensor) -> None:
+        """GPU-safe EMA update for auto_scale. No .item() calls."""
+        self._ensure_auto_scale_state()
+        m_batch = x.shape[0]
+        tau = (1.0 - self.auto_scale_momentum) / m_batch
+
+        new_m_x = x.abs().amax()   # GPU 0-dim tensor
+        new_m_d = d.abs().amax()   # GPU 0-dim tensor
+
+        # First call: seed with current values. After: EMA (all GPU ops).
+        self._ema_m_x = torch.where(
+            self._ema_m_x > 0.0,
+            (1.0 - tau) * self._ema_m_x + tau * new_m_x,
+            new_m_x
+        )
+        self._ema_m_d = torch.where(
+            self._ema_m_d > 0.0,
+            (1.0 - tau) * self._ema_m_d + tau * new_m_d,
+            new_m_d
+        )
+
+    def _get_auto_scaled_lr(self, lr_base: float) -> float:
+        """Return auto_scaled lr. One .item() call per batch (acceptable)."""
+        product = self._ema_m_x * self._ema_m_d  # GPU scalar
+        val = product.item()  # 1 sync per batch
+        if val > 0.0:
+            return lr_base / val
+        return lr_base
+
+    # === Transfer EMA methods ===
+
+    def _ze_norm2_via_gram_gpu(self, A_cols: Tensor, B_rows: Tensor) -> Tensor:
+        """||A@B||_F^2 via Gram matrices. Returns GPU tensor (no .item())."""
+        G_A = A_cols.t() @ A_cols      # [rank, rank]
+        G_B = B_rows @ B_rows.t()      # [rank, rank]
+        return (G_A * G_B).sum()        # GPU scalar
+
+    def _compute_transfer_ema_scale(self, A_cols: Tensor, B_rows: Tensor) -> float:
+        """EMA-based transfer lr scale. One .item() per transfer."""
+        self._ensure_transfer_ema_state()
+
+        norm2 = self._ze_norm2_via_gram_gpu(A_cols, B_rows)
+        current_norm = torch.sqrt(norm2 + 1e-12)
+
+        beta = self.transfer_ema_momentum
+        self._ema_ab_norm = torch.where(
+            self._ema_ab_norm > 0.0,
+            beta * self._ema_ab_norm + (1.0 - beta) * current_norm,
+            current_norm
+        )
+
+        # target auto-calibration: use first transfer's norm
+        ema_val = self._ema_ab_norm.item()  # 1 sync per transfer
+        if self.transfer_ema_target_norm <= 0.0:
+            self.transfer_ema_target_norm = ema_val
+
+        if ema_val > 1e-12:
+            return self.transfer_ema_target_norm / ema_val
+        return 1.0
 
     def _diff_read(self, tile, e: Tensor, amp: float, mode: str, read_n_avg: int) -> Tensor:
         """Differential read with amplitude scaling and averaging.
@@ -300,7 +386,10 @@ class LRTTController:
             Optimal amplitude for the tile read operation
         """
         # Get IO parameters from tile config
-        io = tile.rpu_config.forward if mode == "fwd" else tile.rpu_config.backward
+        # FloatingPointTile doesn't have forward/backward IO parameters
+        io = getattr(tile.rpu_config, 'forward' if mode == "fwd" else 'backward', None)
+        if io is None:
+            return 1.0  # FloatingPointTile: 기본 amplitude 1.0 반환
         out_bound = float(getattr(io, "out_bound", 0.0) or 0.0)
         inp_bound = float(getattr(io, "inp_bound", 1.0) or 1.0)
 
@@ -679,6 +768,9 @@ class LRTTController:
             lr_eff = lr * self.lora_alpha
             if self.correct_gradient_magnitudes:
                 lr_eff /= math.sqrt(self.rank)
+            if self.auto_scale:
+                self._update_auto_scale_ema(x, d)
+                lr_eff = self._get_auto_scaled_lr(lr_eff)
 
         # === Debug Logging: x,d max values for A and B tiles ===
         self._ab_update_step += 1
@@ -762,6 +854,9 @@ class LRTTController:
         lr_rec = lr * self.recon_lr_scale
         if self.correct_gradient_magnitudes:
             lr_rec /= math.sqrt(self.rank)
+        if self.auto_scale:
+            self._update_auto_scale_ema(x, d)
+            lr_rec = self._get_auto_scaled_lr(lr_rec)
 
         # 2) Projections for Hebbian terms
         with torch.no_grad():
@@ -1037,23 +1132,6 @@ class LRTTController:
         # CRITICAL: Reset transfer counter after transfer (matches CUDA)
         self.transfer_counter = 0
 
-        # Clip C weights to [-1, 1] range for analog hardware realism
-        C_weights = self.tile_c.get_weights()[0]
-        C_min_before, C_max_before = C_weights.min().item(), C_weights.max().item()
-        C_clipped = torch.clamp(C_weights, -1.0, 1.0)
-
-        if self.num_transfers < 1:  # Debug first transfer only (거의 출력 안 함)
-            print(f"[CLIP-CHECK] Transfer #{self.num_transfers}: C range before: [{C_min_before:.4f}, {C_max_before:.4f}]")
-
-        if not torch.equal(C_weights, C_clipped):
-            self.tile_c.set_weights(C_clipped, None)
-            if self.num_transfers < 1:
-                C_verify = self.tile_c.get_weights()[0]
-                print(f"[CLIP-APPLIED] Transfer #{self.num_transfers}: C range after:  [{C_verify.min():.4f}, {C_verify.max():.4f}]")
-        else:
-            if self.num_transfers < 1:
-                print(f"[CLIP-SKIPPED] Transfer #{self.num_transfers}: C already in range, no clipping needed")
-
         # DEBUG: Check A before reinit (first few transfers only)
         if self.num_transfers < 1:
             A_before_reinit = self.tile_a.get_weights()[0] if hasattr(self.tile_a, 'get_weights') else None
@@ -1095,20 +1173,25 @@ class LRTTController:
             # Compute new C weights
             C_new = C_weights + delta
 
-            # Clip to [-1, 1] for analog hardware realism
-            C_min_before, C_max_before = C_new.min().item(), C_new.max().item()
-            C_new = torch.clamp(C_new, -1.0, 1.0)
+            # Clip to per-element device bounds (respects d2d variation)
+            # FloatingPointDevice doesn't have hidden_parameters, so we need to handle that
+            try:
+                hidden_params = self.tile_c.tile.get_hidden_parameters()
+                if hidden_params is not None and len(hidden_params) >= 2:
+                    max_bound = hidden_params[0]  # [d_size, x_size]
+                    min_bound = hidden_params[1]  # [d_size, x_size]
+                    C_new = torch.clamp(C_new, min_bound, max_bound)
+                # else: FloatingPointDevice - no clipping needed (infinite precision)
+            except (AttributeError, IndexError, RuntimeError):
+                # FloatingPointDevice or other device without hidden_parameters
+                # No clipping needed for floating point
+                pass
 
             # Set weights directly (exact, no pulsed update)
             self.tile_c.set_weights(C_new, None)
 
         self.num_transfers += 1
         self.transfer_counter = 0
-
-        if self.num_transfers < 1:  # 거의 출력 안 함
-            print(f"[SET-TRANSFER] Transfer #{self.num_transfers}: "
-                  f"delta norm={delta.norm():.6f}, "
-                  f"C range before clip: [{C_min_before:.4f}, {C_max_before:.4f}]")
 
         # DEBUG: Check A before reinit (first few transfers only)
         if self.num_transfers < 1:  # 거의 출력 안 함
@@ -1153,11 +1236,29 @@ class LRTTController:
             )
 
         I = self._transfer_vec_a
-        A_cols = []
-        B_rows = []
 
         # Determine read count (new read_n_avg takes precedence over legacy num_reads)
         read_count = self.read_n_avg if self.read_n_avg > 1 else self.num_reads
+
+        # Fast path: batch processing (no AGC, no two_amp, single read)
+        if read_count == 1 and not self.agc_enabled and not self.two_amp_enabled:
+            if self.differential_read:
+                # Batch differential read: 4 GPU calls instead of 4*rank
+                A_p = self.tile_a.forward(I)    # [rank, d_size]
+                A_m = self.tile_a.forward(-I)   # [rank, d_size]
+                B_p = self.tile_b.backward(I)   # [rank, x_size]
+                B_m = self.tile_b.backward(-I)  # [rank, x_size]
+                A_cols = (0.5 * (A_p - A_m)).T  # [d_size, rank]
+                B_rows = 0.5 * (B_p - B_m)      # [rank, x_size]
+            else:
+                # Batch simple read: 2 GPU calls instead of 2*rank
+                A_cols = self.tile_a.forward(I).T   # [d_size, rank]
+                B_rows = self.tile_b.backward(I)    # [rank, x_size]
+            return A_cols, B_rows
+
+        # Slow path: per-rank processing (for AGC, two_amp, or multi-read)
+        A_cols = []
+        B_rows = []
 
         for k in range(self.rank):
             e = I[k].unsqueeze(0)  # [1, rank], +one-hot
@@ -1182,15 +1283,18 @@ class LRTTController:
                 a_k = self._diff_read(self.tile_a, e, amp=amp_a, mode="fwd", read_n_avg=read_count).squeeze(0)
                 b_k = self._diff_read(self.tile_b, e, amp=amp_b, mode="bwd", read_n_avg=read_count).squeeze(0)
             elif read_count == 1:
-                # Single read (original behavior)
-                a_p = self.tile_a.forward(e).squeeze(0)   # [d_size]
-                a_m = self.tile_a.forward(-e).squeeze(0)  # [d_size]
-                b_p = self.tile_b.backward(e).squeeze(0)  # [x_size]
-                b_m = self.tile_b.backward(-e).squeeze(0) # [x_size]
-
-                # Differential: cancels DC offset and even-order distortions
-                a_k = 0.5 * (a_p - a_m)
-                b_k = 0.5 * (b_p - b_m)
+                if self.differential_read:
+                    # Differential read: cancels DC offset (2x tile ops)
+                    a_p = self.tile_a.forward(e).squeeze(0)   # [d_size]
+                    a_m = self.tile_a.forward(-e).squeeze(0)  # [d_size]
+                    b_p = self.tile_b.backward(e).squeeze(0)  # [x_size]
+                    b_m = self.tile_b.backward(-e).squeeze(0) # [x_size]
+                    a_k = 0.5 * (a_p - a_m)
+                    b_k = 0.5 * (b_p - b_m)
+                else:
+                    # Simple read: faster but includes DC offset (1x tile ops)
+                    a_k = self.tile_a.forward(e).squeeze(0)   # [d_size]
+                    b_k = self.tile_b.backward(e).squeeze(0)  # [x_size]
             else:
                 # Multi-read averaging with amplitude=1.0
                 a_k = self._diff_read(self.tile_a, e, amp=1.0, mode="fwd", read_n_avg=read_count).squeeze(0)
@@ -1242,20 +1346,22 @@ class LRTTController:
         return (G_A * G_B).sum().item()
 
     def _ab_weight_transfer_onehot(self) -> None:
-        """One-hot 기반 전송 (모드에 따라 pilot 또는 sigma_delta 방식 선택).
+        """One-hot 기반 전송 (모드에 따라 off, pilot, sigma_delta 방식 선택).
 
         Transfer modes:
+        - "off": No calibration, simple direct transfer (default)
         - "pilot": Pilot-based γ calibration for scale correction
         - "sigma_delta": ΣΔ quantization with residual accumulation
-        - "off": No calibration, direct transfer
         """
         # 모드 결정 (transfer_mode 우선, 없으면 transfer_gamma_mode 사용)
         mode = getattr(self, 'transfer_mode', None) or self.transfer_gamma_mode
 
         if mode == "sigma_delta":
             self._ab_weight_transfer_onehot_sigma_delta()
-        else:
+        elif mode == "pilot":
             self._ab_weight_transfer_onehot_pilot()
+        else:  # "off" (default)
+            self._ab_weight_transfer_onehot_off()
 
     def _ab_weight_transfer_onehot_pilot(self) -> None:
         """One-hot 기반 전송 (± 차분, 파일럿 γ 보정, micro-transfer 포함).
@@ -1275,15 +1381,19 @@ class LRTTController:
             old_lr_c = self.tile_c.get_learning_rate()
 
             # A/B/C 읽기·계측 동안 out_noise=0으로 (out_res 등은 유지)
-            old_out_a = self.tile_a.rpu_config.forward.out_noise
-            old_out_b_f = self.tile_b.rpu_config.forward.out_noise
-            old_out_b_b = self.tile_b.rpu_config.backward.out_noise
-            old_out_c = getattr(self.tile_c.rpu_config.forward, "out_noise", 0.0)
+            # A, B 타일이 FloatingPointTile일 경우 forward/backward 속성이 없음
+            old_out_a = getattr(getattr(self.tile_a.rpu_config, 'forward', None), 'out_noise', None)
+            old_out_b_f = getattr(getattr(self.tile_b.rpu_config, 'forward', None), 'out_noise', None)
+            old_out_b_b = getattr(getattr(self.tile_b.rpu_config, 'backward', None), 'out_noise', None)
+            old_out_c = getattr(getattr(self.tile_c.rpu_config, 'forward', None), 'out_noise', None)
 
-            self.tile_a.rpu_config.forward.out_noise = 0.0
-            self.tile_b.rpu_config.forward.out_noise = 0.0
-            self.tile_b.rpu_config.backward.out_noise = 0.0
-            if hasattr(self.tile_c.rpu_config.forward, "out_noise"):
+            if old_out_a is not None:
+                self.tile_a.rpu_config.forward.out_noise = 0.0
+            if old_out_b_f is not None:
+                self.tile_b.rpu_config.forward.out_noise = 0.0
+            if old_out_b_b is not None:
+                self.tile_b.rpu_config.backward.out_noise = 0.0
+            if old_out_c is not None:
                 self.tile_c.rpu_config.forward.out_noise = 0.0
 
             try:
@@ -1298,6 +1408,8 @@ class LRTTController:
                 pilot_frac = max(1e-4, float(self.transfer_pilot_frac))
                 M_total = max(2, int(self.transfer_micro_steps))
                 lr_abs = abs(self.transfer_lr)
+                if self.transfer_ema_scale:
+                    lr_abs *= self._compute_transfer_ema_scale(A_cols, B_rows)
 
                 # 파일럿 lr
                 lr_pilot = lr_abs * pilot_frac
@@ -1394,8 +1506,9 @@ class LRTTController:
                             else:
                                 self.tile_c.update(X_k.unsqueeze(0), D_k.unsqueeze(0))
 
-                # 디버그 로깅 (처음 몇 번만)
-                if self.num_transfers < 1:  # 거의 출력 안 함
+                # 디버그 로깅 (LRTT_SILENT가 설정되지 않은 경우에만)
+                import os
+                if self.num_transfers < 1 and not os.environ.get("LRTT_SILENT"):
                     pilot_info = f"lr_pilot={lr_pilot:.3e} " if self.transfer_gamma_mode == "pilot" else ""
                     print(f"[LRTT onehot] gamma={gamma:.3f} {pilot_info}"
                           f"lr_remain={lr_remain:.3e} Znorm2={Z_norm2:.3e}")
@@ -1403,31 +1516,87 @@ class LRTTController:
             finally:
                 # 5) 복구 + 후처리
                 self.tile_c.set_learning_rate(old_lr_c)
-                self.tile_a.rpu_config.forward.out_noise = old_out_a
-                self.tile_b.rpu_config.forward.out_noise = old_out_b_f
-                self.tile_b.rpu_config.backward.out_noise = old_out_b_b
-                if hasattr(self.tile_c.rpu_config.forward, "out_noise"):
+                if old_out_a is not None:
+                    self.tile_a.rpu_config.forward.out_noise = old_out_a
+                if old_out_b_f is not None:
+                    self.tile_b.rpu_config.forward.out_noise = old_out_b_f
+                if old_out_b_b is not None:
+                    self.tile_b.rpu_config.backward.out_noise = old_out_b_b
+                if old_out_c is not None:
                     self.tile_c.rpu_config.forward.out_noise = old_out_c
 
         self.num_transfers += 1
         self.transfer_counter = 0
 
-        # Clip C weights to [-1, 1] range for analog hardware realism
-        C_weights = self.tile_c.get_weights()[0]
-        C_min_before, C_max_before = C_weights.min().item(), C_weights.max().item()
-        C_clipped = torch.clamp(C_weights, -1.0, 1.0)
+        self.reinit()
 
-        if self.num_transfers < 1:  # Debug first transfer only (거의 출력 안 함)
-            print(f"[CLIP-CHECK-ONEHOT] Transfer #{self.num_transfers}: C range before: [{C_min_before:.4f}, {C_max_before:.4f}]")
+    def _ab_weight_transfer_onehot_off(self) -> None:
+        """One-hot 기반 전송 (off 모드: calibration 없이 직접 전송).
 
-        if not torch.equal(C_weights, C_clipped):
-            self.tile_c.set_weights(C_clipped, None)
-            if self.num_transfers < 1:
-                C_verify = self.tile_c.get_weights()[0]
-                print(f"[CLIP-APPLIED-ONEHOT] Transfer #{self.num_transfers}: C range after:  [{C_verify.min():.4f}, {C_verify.max():.4f}]")
-        else:
-            if self.num_transfers < 1:
-                print(f"[CLIP-SKIPPED-ONEHOT] Transfer #{self.num_transfers}: C already in range, no clipping needed")
+        Simple transfer without pilot calibration or sigma-delta:
+        - gamma = 1.0 (fixed)
+        - Uses full transfer_lr
+        - No calibration overhead
+        """
+        with torch.no_grad():
+            # 1) 준비: one-hot 캐시, LR/노이즈 백업
+            if self._transfer_vec_a is None:
+                self._transfer_vec_a = torch.eye(
+                    self.rank, dtype=self.dtype, device=self.device
+                )
+
+            old_lr_c = self.tile_c.get_learning_rate()
+
+            # A/B 읽기 동안 out_noise=0
+            old_out_a = getattr(getattr(self.tile_a.rpu_config, 'forward', None), 'out_noise', None)
+            old_out_b_f = getattr(getattr(self.tile_b.rpu_config, 'forward', None), 'out_noise', None)
+            old_out_b_b = getattr(getattr(self.tile_b.rpu_config, 'backward', None), 'out_noise', None)
+
+            if old_out_a is not None:
+                self.tile_a.rpu_config.forward.out_noise = 0.0
+            if old_out_b_f is not None:
+                self.tile_b.rpu_config.forward.out_noise = 0.0
+            if old_out_b_b is not None:
+                self.tile_b.rpu_config.backward.out_noise = 0.0
+
+            try:
+                # 2) ± one-hot 차분 읽기
+                A_cols, B_rows = self._read_ab_onehot_symmetric()
+                A_cols, B_rows = self._center_and_normalize(A_cols, B_rows)
+
+                # 3) off 모드: gamma=1.0, 전체 lr 사용
+                lr_abs = abs(self.transfer_lr)
+                if self.transfer_ema_scale:
+                    lr_abs *= self._compute_transfer_ema_scale(A_cols, B_rows)
+                M_total = max(1, int(self.transfer_micro_steps))
+                lr_step = lr_abs / M_total
+                self.tile_c.set_learning_rate(lr_step if lr_step > 0 else 1e-12)
+
+                # 4) micro-transfer
+                for k in range(self.rank):
+                    a_k = A_cols[:, k]
+                    b_k = B_rows[k, :]
+                    D_k = -a_k if self.transfer_lr > 0 else a_k
+                    X_k = b_k
+
+                    for _ in range(M_total):
+                        if hasattr(self.tile_c, '_orig_update'):
+                            self.tile_c._orig_update(X_k.unsqueeze(0), D_k.unsqueeze(0))
+                        else:
+                            self.tile_c.update(X_k.unsqueeze(0), D_k.unsqueeze(0))
+
+            finally:
+                # 5) 복구
+                self.tile_c.set_learning_rate(old_lr_c)
+                if old_out_a is not None:
+                    self.tile_a.rpu_config.forward.out_noise = old_out_a
+                if old_out_b_f is not None:
+                    self.tile_b.rpu_config.forward.out_noise = old_out_b_f
+                if old_out_b_b is not None:
+                    self.tile_b.rpu_config.backward.out_noise = old_out_b_b
+
+        self.num_transfers += 1
+        self.transfer_counter = 0
 
         self.reinit()
 
@@ -1448,15 +1617,19 @@ class LRTTController:
             old_lr_c = self.tile_c.get_learning_rate()
 
             # A/B/C 읽기 동안 out_noise=0
-            old_out_a = self.tile_a.rpu_config.forward.out_noise
-            old_out_b_f = self.tile_b.rpu_config.forward.out_noise
-            old_out_b_b = self.tile_b.rpu_config.backward.out_noise
-            old_out_c = getattr(self.tile_c.rpu_config.forward, "out_noise", 0.0)
+            # A, B 타일이 FloatingPointTile일 경우 forward/backward 속성이 없음
+            old_out_a = getattr(getattr(self.tile_a.rpu_config, 'forward', None), 'out_noise', None)
+            old_out_b_f = getattr(getattr(self.tile_b.rpu_config, 'forward', None), 'out_noise', None)
+            old_out_b_b = getattr(getattr(self.tile_b.rpu_config, 'backward', None), 'out_noise', None)
+            old_out_c = getattr(getattr(self.tile_c.rpu_config, 'forward', None), 'out_noise', None)
 
-            self.tile_a.rpu_config.forward.out_noise = 0.0
-            self.tile_b.rpu_config.forward.out_noise = 0.0
-            self.tile_b.rpu_config.backward.out_noise = 0.0
-            if hasattr(self.tile_c.rpu_config.forward, "out_noise"):
+            if old_out_a is not None:
+                self.tile_a.rpu_config.forward.out_noise = 0.0
+            if old_out_b_f is not None:
+                self.tile_b.rpu_config.forward.out_noise = 0.0
+            if old_out_b_b is not None:
+                self.tile_b.rpu_config.backward.out_noise = 0.0
+            if old_out_c is not None:
                 self.tile_c.rpu_config.forward.out_noise = 0.0
 
             try:
@@ -1469,6 +1642,8 @@ class LRTTController:
                 # 2) ΣΔ 상태/파라미터 확보
                 self._ensure_sd_state()
                 lr_abs = float(abs(self.transfer_lr))
+                if self.transfer_ema_scale:
+                    lr_abs *= self._compute_transfer_ema_scale(A_cols, B_rows)
                 g = float(self.sd_quantum) if (self.sd_quantum is not None and self.sd_quantum > 0.0) \
                     else max(lr_abs / float(max(1, int(self.transfer_micro_steps))), 1e-12)
 
@@ -1520,10 +1695,13 @@ class LRTTController:
             finally:
                 # 복구
                 self.tile_c.set_learning_rate(old_lr_c)
-                self.tile_a.rpu_config.forward.out_noise = old_out_a
-                self.tile_b.rpu_config.forward.out_noise = old_out_b_f
-                self.tile_b.rpu_config.backward.out_noise = old_out_b_b
-                if hasattr(self.tile_c.rpu_config.forward, "out_noise"):
+                if old_out_a is not None:
+                    self.tile_a.rpu_config.forward.out_noise = old_out_a
+                if old_out_b_f is not None:
+                    self.tile_b.rpu_config.forward.out_noise = old_out_b_f
+                if old_out_b_b is not None:
+                    self.tile_b.rpu_config.backward.out_noise = old_out_b_b
+                if old_out_c is not None:
                     self.tile_c.rpu_config.forward.out_noise = old_out_c
 
         self.num_transfers += 1
@@ -1668,7 +1846,10 @@ class LRTTController:
             'reinit_gain': self.reinit_gain,
             'reinit_mode': self.reinit_mode,
             'decay_factor': self.decay_factor,
-            'forward_inject_enabled': self.forward_inject_enabled
+            'forward_inject_enabled': self.forward_inject_enabled,
+            '_ema_m_x': self._ema_m_x,
+            '_ema_m_d': self._ema_m_d,
+            '_ema_ab_norm': self._ema_ab_norm,
         }
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
@@ -1695,3 +1876,7 @@ class LRTTController:
         self._d_pad = None
         # Clear transfer vectors (one-hot reading)
         self._transfer_vec_a = None
+        # Clear auto-scale / transfer EMA state for device reallocation
+        self._ema_m_x = None
+        self._ema_m_d = None
+        self._ema_ab_norm = None

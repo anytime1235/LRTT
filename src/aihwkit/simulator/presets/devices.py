@@ -466,3 +466,143 @@ class ReRamArrayHfO2PresetDevice(SoftBoundsReferenceDevice):
 
     subtract_symmetry_point: bool = True
     reference_std: float = 0.05
+
+
+@dataclass
+class SixT1CPresetDevice(LinearStepDevice):
+    """Preset configuration for a 6T1C (6-transistor 1-capacitor) analog
+    resistive processing unit based on linear step device.
+
+    This device model is designed for TikiTaka-style training where it serves
+    as the "Fast" tile that receives SGD updates. The parameters are based on
+    6T1C SRAM-based analog compute characteristics.
+
+    Key characteristics:
+        - Asymmetric up/down behavior (gamma_up < 0, gamma_down > 0)
+        - Moderate cycle-to-cycle noise
+        - Optional retention/leakage effects via lifetime parameter
+
+    Note:
+        The ``lifetime`` parameter controls retention decay and should be
+        adjusted based on the assumed time per mini-batch. A larger lifetime
+        means slower decay (more stable weights).
+
+    Usage in TikiTaka:
+        This device is typically used as the Fast tile in a TransferCompound,
+        paired with a SoftBoundsReferenceDevice Slow tile for stable weight
+        storage.
+    """
+
+    # Step size parameters
+    dw_min: float = 0.001981
+    up_down: float = 0.0
+
+    # Weight bounds
+    w_max: float = 1.0
+    w_min: float = -1.0
+
+    # Use multiplicative noise for more realistic behavior
+    mult_noise: bool = False
+
+    # Asymmetric gamma parameters (key 6T1C characteristic)
+    # Negative gamma_up means UP updates decrease with increasing weight
+    # Positive gamma_down means DOWN updates decrease with decreasing weight
+    gamma_up: float = -0.1678
+    gamma_down: float = 0.1410
+
+    # Device-to-device variation
+    dw_min_dtod: float = 0.1
+    up_down_dtod: float = 0.01
+
+    w_max_dtod: float = 0.1
+    w_min_dtod: float = 0.1
+
+    gamma_up_dtod: float = 0.05
+    gamma_down_dtod: float = 0.05
+
+    # Cycle-to-cycle variation
+    dw_min_std: float = 0.3
+    write_noise_std: float = 0.0182
+
+    # Slope does not depend on bound
+    mean_bound_reference: bool = True
+
+    # Retention/leakage (set lifetime based on dt_batch assumption)
+    # Default: no retention effect (infinite lifetime)
+    # For retention: lifetime = t_decay / dt_batch
+    # where t_decay is the characteristic decay time
+    lifetime: float = 0.0
+    lifetime_dtod: float = 0.3
+
+
+@dataclass
+class SixT1CNoNoisePresetDevice(LinearStepDevice):
+    """Noise-free variant of 6T1C device for idealized simulations.
+
+    Same asymmetric gamma behavior as SixT1CPresetDevice but with all
+    noise sources disabled. Useful for baseline comparisons.
+    """
+
+    dw_min: float = 0.001981
+    up_down: float = 0.0
+
+    w_max: float = 1.0
+    w_min: float = -1.0
+
+    mult_noise: bool = False
+
+    gamma_up: float = -0.1678
+    gamma_down: float = 0.1410
+
+    # No device-to-device variation
+    dw_min_dtod: float = 0.0
+    up_down_dtod: float = 0.0
+
+    w_max_dtod: float = 0.0
+    w_min_dtod: float = 0.0
+
+    gamma_up_dtod: float = 0.0
+    gamma_down_dtod: float = 0.0
+
+    # No cycle-to-cycle variation
+    dw_min_std: float = 0.0
+    write_noise_std: float = 0.0
+
+    mean_bound_reference: bool = True
+
+    lifetime: float = 0.0
+    lifetime_dtod: float = 0.0
+
+
+@dataclass
+class SoftBoundsNoNoisePresetDevice(SoftBoundsReferenceDevice):
+    """Noise-free SoftBounds device for TikiTaka Slow tile.
+
+    Designed for stable weight storage in TikiTaka configuration.
+    All noise sources disabled for clean weight accumulation.
+    """
+
+    dw_min: float = 0.001
+    up_down: float = 0.0
+
+    w_max: float = 1.0
+    w_min: float = -1.0
+
+    mult_noise: bool = False
+
+    # No device-to-device variation
+    dw_min_dtod: float = 0.0
+    up_down_dtod: float = 0.0
+
+    w_max_dtod: float = 0.0
+    w_min_dtod: float = 0.0
+
+    # No cycle-to-cycle variation
+    dw_min_std: float = 0.0
+    write_noise_std: float = 0.0
+
+    # No diffusion
+    diffusion: float = 0.0
+
+    # No retention decay
+    lifetime: float = 0.0

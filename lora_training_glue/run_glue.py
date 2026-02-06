@@ -58,11 +58,14 @@ from peft import PeftModel
 from torch import save as torch_save, load as torch_load
 
 # other related imports
-from related_functions import list_analog_linear_layers, list_linear_layers, replace_layer, convert_selected_layers_to_analog, convert_lora_layers_only_to_analog, apply_sixt1c_retention, apply_sixt1c_lora_retention, apply_pcm_drift_to_base_layer
+from related_functions import list_analog_linear_layers, list_linear_layers, replace_layer, convert_selected_layers_to_analog, convert_lora_layers_only_to_analog, apply_sixt1c_retention, apply_sixt1c_lora_retention, apply_pcm_drift_to_base_layer, apply_tikitaka_drift
 import torch
 
 # Sixt1c config import
-from sixt1c_config import gen_sixt1c_inference_config, calculate_lifetime, TAU_SEC
+from sixt1c_config import gen_sixt1c_lora_config, calculate_lifetime, TAU_SEC
+
+# TikiTaka v2 config import
+from tikitaka_config import create_tikitaka_v2_config, create_tikitaka_v2_config_with_drift, TIKITAKA_V2_DEFAULT_PARAMS
 
 # - AIHWKIT related imports
 import aihwkit
@@ -334,14 +337,45 @@ def main():
                                 choices=["digital", "analog"],
                                 help="Baseline mode: 'digital' (no analog conversion) or 'analog' (with PCM noise)")
     general_parser.add_argument('--analog_device', type=str, default="pcm",
-                                choices=["pcm", "sixt1c", "sixt1c_lora"],
-                                help="Analog device type: 'pcm' (PCMLikeNoiseModel), 'sixt1c' (6T1C for LoRA only), or 'sixt1c_lora' (PCM for base_layer, 6T1C for LoRA)")
+                                choices=["pcm", "sixt1c", "tikitaka"],
+                                help="Analog device type: 'pcm' (PCMLikeNoiseModel for all layers), 'sixt1c' (PCM for base_layer, 6T1C LinearStepDevice for LoRA), or 'tikitaka' (TikiTaka v2 ChoppedTransferCompound)")
     general_parser.add_argument('--sixt1c_dt_batch_sec', type=float, default=1.0,
                                 help="Time step between batches in seconds for sixt1c retention (default: 1.0)")
     general_parser.add_argument('--sixt1c_include_retention', type=bool, default=True,
                                 help="Whether to include retention decay for sixt1c (default: True)")
-    general_parser.add_argument('--sixt1c_write_noise_std', type=float, default=0.0,
-                                help="Write noise std for sixt1c (default: 0.0)")
+
+    # TikiTaka v2 specific arguments
+    general_parser.add_argument('--tikitaka_transfer_every', type=int, default=160,
+                                help="TikiTaka transfer frequency in mini-batches (default: 160)")
+    general_parser.add_argument('--tikitaka_transfer_lr', type=float, default=7.36,
+                                help="TikiTaka transfer learning rate (default: 7.36)")
+    general_parser.add_argument('--tikitaka_fast_lr', type=float, default=0.862,
+                                help="TikiTaka fast tile learning rate multiplier (default: 0.862)")
+    general_parser.add_argument('--tikitaka_auto_granularity', type=float, default=305.91,
+                                help="TikiTaka auto granularity (default: 305.91)")
+    general_parser.add_argument('--tikitaka_in_chop_prob', type=float, default=0.020,
+                                help="TikiTaka chopped input probability (default: 0.020)")
+    general_parser.add_argument('--tikitaka_target_modules', type=str, nargs='+',
+                                default=["query", "key", "value", "dense", "embedding_transformation"],
+                                help="TikiTaka target modules for analog conversion (default: query, key, value, dense, embedding_transformation)")
+
+    # TikiTaka v2 drift evaluation arguments
+    general_parser.add_argument('--tikitaka_enable_drift', action='store_true',
+                                help="Enable drift evaluation for TikiTaka v2 (applies drift to Slow tile)")
+    general_parser.add_argument('--tikitaka_drift_nu', type=float, default=0.05,
+                                help="TikiTaka drift exponent nu (default: 0.05, typical PCM value)")
+    general_parser.add_argument('--tikitaka_drift_nu_dtod', type=float, default=0.02,
+                                help="TikiTaka drift device-to-device variation in nu (default: 0.02)")
+    general_parser.add_argument('--tikitaka_drift_t0', type=float, default=1.0,
+                                help="TikiTaka drift reference time t_0 in seconds (default: 1.0)")
+
+    # LoRA configuration arguments
+    general_parser.add_argument('--lora_rank', type=int, default=8,
+                                help="LoRA adapter rank (default: 8)")
+    general_parser.add_argument('--lora_alpha', type=float, default=32,
+                                help="LoRA alpha scaling factor (default: 32)")
+    general_parser.add_argument('--lora_dropout', type=float, default=0.1,
+                                help="LoRA dropout rate (default: 0.1)")
 
     general_args, remaining_argv = general_parser.parse_known_args()
 
@@ -541,92 +575,137 @@ def main():
     if general_args.analog_device == "sixt1c":
         print(f"Sixt1c dt_batch_sec: {general_args.sixt1c_dt_batch_sec}")
         print(f"Sixt1c include_retention: {general_args.sixt1c_include_retention}")
-        print(f"Sixt1c write_noise_std: {general_args.sixt1c_write_noise_std}")
+    if general_args.analog_device == "tikitaka":
+        print(f"TikiTaka transfer_every: {general_args.tikitaka_transfer_every}")
+        print(f"TikiTaka transfer_lr: {general_args.tikitaka_transfer_lr}")
+        print(f"TikiTaka fast_lr: {general_args.tikitaka_fast_lr}")
+        print(f"TikiTaka auto_granularity: {general_args.tikitaka_auto_granularity}")
+        print(f"TikiTaka in_chop_prob: {general_args.tikitaka_in_chop_prob}")
+        print(f"TikiTaka target_modules: {general_args.tikitaka_target_modules}")
+        print(f"TikiTaka enable_drift: {general_args.tikitaka_enable_drift}")
+        if general_args.tikitaka_enable_drift:
+            print(f"TikiTaka drift_nu: {general_args.tikitaka_drift_nu}")
+            print(f"TikiTaka drift_nu_dtod: {general_args.tikitaka_drift_nu_dtod}")
+            print(f"TikiTaka drift_t0: {general_args.tikitaka_drift_t0}")
 
 
     print("Original digital model:")
     print(model)
 
+    # TikiTaka v2 mode - skip LoRA setup, use full analog conversion with exclude_modules
+    if general_args.analog_device == "tikitaka":
+        print("\n" + "=" * 50)
+        print("TIKITAKA v2 MODE - ChoppedTransferCompound (No LoRA)")
+        print("=" * 50 + "\n")
 
+        # Create TikiTaka v2 RPU config (with or without drift)
+        if general_args.tikitaka_enable_drift:
+            tikitaka_rpu_config = create_tikitaka_v2_config_with_drift(
+                transfer_every=general_args.tikitaka_transfer_every,
+                transfer_lr=general_args.tikitaka_transfer_lr,
+                fast_lr=general_args.tikitaka_fast_lr,
+                auto_granularity=general_args.tikitaka_auto_granularity,
+                in_chop_prob=general_args.tikitaka_in_chop_prob,
+                nu=general_args.tikitaka_drift_nu,
+                nu_dtod=general_args.tikitaka_drift_nu_dtod,
+                t_0=general_args.tikitaka_drift_t0,
+            )
+            print("TikiTaka v2 RPU Configuration (WITH DRIFT):")
+        else:
+            tikitaka_rpu_config = create_tikitaka_v2_config(
+                transfer_every=general_args.tikitaka_transfer_every,
+                transfer_lr=general_args.tikitaka_transfer_lr,
+                fast_lr=general_args.tikitaka_fast_lr,
+                auto_granularity=general_args.tikitaka_auto_granularity,
+                in_chop_prob=general_args.tikitaka_in_chop_prob,
+            )
+            print("TikiTaka v2 RPU Configuration (no drift):")
+        print(tikitaka_rpu_config)
 
-    peft_config = LoraConfig(r=8, lora_alpha=32,
-                             lora_dropout=0.1,
-                             target_modules=["dense","query","key","value","qa_outputs","embedding_transformation"],)
+        # Get target modules for analog conversion
+        target_modules = general_args.tikitaka_target_modules
+        print(f"\nTarget modules: {target_modules}")
 
+        # Get all linear layers and create exclude list
+        all_linear = list_linear_layers(model)
+        exclude = [name for name in all_linear
+                   if not any(t in name for t in target_modules)]
+        exclude.append("classifier")  # Always exclude classifier
 
-    if training_args.do_train:
-        model = get_peft_model(model, peft_config)
-        print("Digital model with LORA:")
-        model.print_trainable_parameters()
-    elif training_args.do_eval:
-        # model = PeftModel.from_pretrained(model, "./squad_models_train")
-        model = get_peft_model(model, peft_config)
-        model.print_trainable_parameters()
+        print(f"Total linear layers: {len(all_linear)}")
+        print(f"Excluded layers: {len(exclude)}")
+        print(f"Target layers to convert: {len(all_linear) - len(exclude)}")
+
+        # Convert to analog with exclude_modules
+        model = convert_to_analog(model, tikitaka_rpu_config, exclude_modules=exclude)
+
+        # Freeze non-target layers (only train target modules and classifier)
+        for name, param in model.named_parameters():
+            is_target = any(t in name for t in target_modules)
+            if is_target or "classifier" in name:
+                param.requires_grad = True
+            else:
+                param.requires_grad = False
+
+        # Count trainable parameters
+        trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        total_params = sum(p.numel() for p in model.parameters())
+        print(f"\nTrainable parameters: {trainable_params:,} ({100 * trainable_params / total_params:.2f}%)")
+        print(f"Total parameters: {total_params:,}")
+
+        model.to("cuda")
+        print("\nTikiTaka v2 Analog model:")
+        print(model)
+
+        # Create optimizer
+        if general_args.analog_optimizer == "AnalogSGD":
+            optimizer = AnalogSGD(model.parameters(), lr=general_args.analog_lr, momentum=0.9)
+            optimizer.regroup_param_groups(model)
+        elif general_args.analog_optimizer == "AnalogAdam":
+            optimizer = AnalogAdam(model.parameters(), lr=general_args.analog_lr)
+            optimizer.regroup_param_groups(model)
+        else:
+            optimizer = None
+            raise ValueError("TikiTaka requires AnalogSGD or AnalogAdam optimizer")
+
+        digital_model = None  # Not used for TikiTaka
+
     else:
-        raise ValueError("command not found!")
-    print("Digital model with LORA")
-    print(model)
-    digital_model = model
+        # Non-TikiTaka modes use LoRA
+        peft_config = LoraConfig(r=general_args.lora_rank,
+                                 lora_alpha=general_args.lora_alpha,
+                                 lora_dropout=general_args.lora_dropout,
+                                 target_modules=["dense","query","key","value","qa_outputs","embedding_transformation"],)
+
+
+        if training_args.do_train:
+            model = get_peft_model(model, peft_config)
+            print("Digital model with LORA:")
+            model.print_trainable_parameters()
+        elif training_args.do_eval:
+            # model = PeftModel.from_pretrained(model, "./squad_models_train")
+            model = get_peft_model(model, peft_config)
+            model.print_trainable_parameters()
+        else:
+            raise ValueError("command not found!")
+        print("Digital model with LORA")
+        print(model)
+        digital_model = model
 
     # Check baseline mode - skip analog conversion for digital mode
-    if general_args.baseline_mode == "digital":
+    if general_args.analog_device == "tikitaka":
+        # TikiTaka already handled above - skip the rest of analog conversion
+        pass
+    elif general_args.baseline_mode == "digital":
         print("\n" + "=" * 50)
         print("DIGITAL BASELINE MODE - Skipping analog conversion")
         print("=" * 50 + "\n")
         model.to("cuda")
         optimizer = None  # Use default optimizer for digital mode
     elif general_args.analog_device == "sixt1c":
-        # Sixt1c mode - convert only LoRA layers to analog
+        # Sixt1c mode: base_layer=PCM, lora_A/lora_B=Sixt1c (LinearStepDevice)
         print("\n" + "=" * 50)
-        print("SIXT1C ANALOG MODE - Converting LoRA layers only")
-        print("=" * 50 + "\n")
-
-        # Generate sixt1c RPU config
-        sixt1c_rpu_config = gen_sixt1c_inference_config(
-            dt_batch_sec=general_args.sixt1c_dt_batch_sec,
-            include_retention=general_args.sixt1c_include_retention,
-            write_noise_std=general_args.sixt1c_write_noise_std,
-            output_noise_level=general_args.output_noise_level,
-        )
-        print("Sixt1c RPU Configuration:")
-        print(sixt1c_rpu_config)
-
-        # Calculate and print lifetime for reference
-        if general_args.sixt1c_include_retention:
-            lifetime = calculate_lifetime(general_args.sixt1c_dt_batch_sec)
-            print(f"Calculated lifetime for retention: {lifetime:.2f}")
-            print(f"TAU_SEC: {TAU_SEC} seconds ({TAU_SEC/60:.1f} minutes)")
-
-        # Convert only LoRA layers to analog (base model stays digital)
-        model = convert_lora_layers_only_to_analog(model, sixt1c_rpu_config)
-
-        if training_args.do_train:
-            model.print_trainable_parameters()
-        model.to("cuda")
-        print("Sixt1c Analog model with LoRA (LoRA layers only converted)")
-        print(model)
-
-        # Freeze analog layers only for eval-only mode (not during training)
-        if not training_args.do_train:
-            for module in model.modules():
-                if isinstance(module, AnalogLinear):
-                    for param in module.parameters():
-                        param.requires_grad = False
-            print("Froze AnalogLinear layers for eval-only mode")
-
-        if training_args.do_train:
-            model.print_trainable_parameters()
-
-        if general_args.analog_optimizer == "AnalogSGD":
-            optimizer = AnalogSGD(model.parameters(), lr=general_args.analog_lr, momentum=0.9)
-        elif general_args.analog_optimizer == "AnalogAdam":
-            optimizer = AnalogAdam(model.parameters(), lr=general_args.analog_lr)
-        else:
-            optimizer = None
-    elif general_args.analog_device == "sixt1c_lora":
-        # Sixt1c_lora mode: base_layer=PCM, lora_A/lora_B=Sixt1c
-        print("\n" + "=" * 50)
-        print("SIXT1C_LORA MODE - PCM base_layer + Sixt1c LoRA")
+        print("SIXT1C MODE - PCM base_layer + Sixt1c LoRA (LinearStepDevice)")
         print("=" * 50 + "\n")
 
         # Step 1: Convert entire model to PCM analog
@@ -647,22 +726,27 @@ def main():
             replace_layer(model, digital_model, layer_name)
         print(f"Replaced {len(lora_layer_names)} LoRA layers back to digital")
 
-        # Step 4: Convert lora_A/lora_B to Sixt1c analog
-        sixt1c_rpu_config = gen_sixt1c_inference_config(
+        # Step 4: Convert lora_A/lora_B to Sixt1c analog (LinearStepDevice)
+        sixt1c_rpu_config = gen_sixt1c_lora_config(
             dt_batch_sec=general_args.sixt1c_dt_batch_sec,
             include_retention=general_args.sixt1c_include_retention,
-            write_noise_std=general_args.sixt1c_write_noise_std,
             output_noise_level=general_args.output_noise_level,
         )
-        print("Sixt1c RPU Configuration (for LoRA layers):")
+        print("Sixt1c RPU Configuration (for LoRA layers - LinearStepDevice):")
         print(sixt1c_rpu_config)
+
+        # Calculate and print lifetime for reference
+        if general_args.sixt1c_include_retention:
+            lifetime = calculate_lifetime(general_args.sixt1c_dt_batch_sec)
+            print(f"Calculated lifetime for retention: {lifetime:.2f}")
+            print(f"TAU_SEC: {TAU_SEC} seconds ({TAU_SEC/60:.1f} minutes)")
 
         model = convert_lora_layers_only_to_analog(model, sixt1c_rpu_config)
 
         if training_args.do_train:
             model.print_trainable_parameters()
         model.to("cuda")
-        print("Sixt1c_lora Analog model (base_layer=PCM, lora_A/B=Sixt1c)")
+        print("Sixt1c Analog model (base_layer=PCM, lora_A/B=Sixt1c LinearStepDevice)")
         print(model)
 
         # Freeze only base_layer (PCM), keep lora_A/lora_B trainable
@@ -677,8 +761,10 @@ def main():
 
         if general_args.analog_optimizer == "AnalogSGD":
             optimizer = AnalogSGD(model.parameters(), lr=general_args.analog_lr, momentum=0.9)
+            optimizer.regroup_param_groups(model)
         elif general_args.analog_optimizer == "AnalogAdam":
             optimizer = AnalogAdam(model.parameters(), lr=general_args.analog_lr)
+            optimizer.regroup_param_groups(model)
         else:
             optimizer = None
     else:
@@ -738,8 +824,10 @@ def main():
 
         if general_args.analog_optimizer == "AnalogSGD":
             optimizer = AnalogSGD(model.parameters(), lr=general_args.analog_lr, momentum=0.9)
+            optimizer.regroup_param_groups(model)
         elif general_args.analog_optimizer == "AnalogAdam":
             optimizer = AnalogAdam(model.parameters(), lr=general_args.analog_lr)
+            optimizer.regroup_param_groups(model)
         else:
             optimizer = None
 
@@ -902,8 +990,20 @@ def main():
             tokenizer=tokenizer,
             data_collator=data_collator,
         )
-    elif general_args.analog_device in ["sixt1c", "sixt1c_lora"] and not training_args.do_train:
-        # Sixt1c/Sixt1c_lora evaluation-only mode (no optimizer needed)
+    elif general_args.analog_device == "sixt1c" and not training_args.do_train:
+        # Sixt1c evaluation-only mode (no optimizer needed)
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=None,
+            eval_dataset=eval_dataset if training_args.do_eval else None,
+            # load_best_model_at_end=True,
+            compute_metrics=compute_metrics,
+            tokenizer=tokenizer,
+            data_collator=data_collator,
+        )
+    elif general_args.analog_device == "tikitaka" and not training_args.do_train:
+        # TikiTaka evaluation-only mode (no optimizer needed)
         trainer = Trainer(
             model=model,
             args=training_args,
@@ -1097,6 +1197,105 @@ def main():
 
             # Log to wandb
             wandb.log({"eval_digital": metrics})
+        elif general_args.analog_device == "tikitaka":
+            if general_args.tikitaka_enable_drift:
+                # TikiTaka v2 mode with drift evaluation (same as PCM/sixt1c)
+                logger.info("*** Evaluate (TikiTaka v2 - With Drift) ***")
+                print("\n" + "=" * 50)
+                print("TIKITAKA v2 EVALUATION - With drift simulation on Slow tile")
+                print(f"Drift parameters: nu={general_args.tikitaka_drift_nu}, nu_dtod={general_args.tikitaka_drift_nu_dtod}")
+                print("=" * 50 + "\n")
+
+                # Define all possible drift values (0 second, 1 hour, 1 day, 1 week, 1 month, 1 year, 10 years)
+                all_drift_values = [0, 3600, 86400, 604800, 2592000, 31536000, 315360000]
+
+                # Select the first num_evaluation_drift_values drift values
+                drift_values = all_drift_values[:general_args.num_evaluation_drift_values]
+
+                eval_metrics = {}
+
+                for drift in drift_values:
+                    all_metrics = []
+
+                    for i in range(general_args.num_evaluation_repetition):
+                        # Load model checkpoint before each evaluation
+                        output_model_file = os.path.join(training_args.output_dir, "saved_chkpt.pt")
+                        model.load_state_dict(torch.load(output_model_file, weights_only=False), load_rpu_config=False)
+
+                        model.eval()
+
+                        print(
+                            f"Testing TikiTaka with drift time = {drift}s (Repetition {i + 1}/{general_args.num_evaluation_repetition})"
+                        )
+                        # Apply drift to TikiTaka Slow tiles (weight_tile)
+                        apply_tikitaka_drift(model, drift)
+
+                        # Collect metrics for all tasks
+                        metrics_per_repetition = {}
+
+                        for eval_ds, task in zip(eval_datasets, tasks):
+                            metrics = trainer.evaluate(eval_dataset=eval_ds)
+                            print("metrics")
+                            print(metrics)
+                            max_eval_samples = (
+                                data_args.max_eval_samples if data_args.max_eval_samples is not None else len(eval_ds)
+                            )
+                            metrics["eval_samples"] = min(max_eval_samples, len(eval_ds))
+
+                            if task == "mnli-mm":
+                                metrics = {k + "_mm": v for k, v in metrics.items()}
+                            if task is not None and "mnli" in task:
+                                combined.update(metrics)
+
+                            # Update metrics_per_repetition with metrics from this task
+                            metrics_per_repetition.update(metrics)
+
+                        # Append the metrics for all tasks from this repetition
+                        all_metrics.append(metrics_per_repetition)
+
+                    # Calculate mean and standard deviation for the metrics across all repetitions
+                    keys = all_metrics[0].keys()
+                    mean_metrics = {key: np.mean([m[key] for m in all_metrics]) for key in keys}
+                    std_metrics = {key: np.std([m[key] for m in all_metrics]) for key in keys}
+
+                    eval_metrics[drift] = {'mean': mean_metrics, 'std': std_metrics}
+
+                    # Save the metrics
+                    trainer.log_metrics(f"eval_mean_driftsecond={drift}s", mean_metrics)
+                    trainer.save_metrics(f"eval_mean_driftsecond={drift}s", mean_metrics)
+                    trainer.log_metrics(f"eval_std_driftsecond={drift}s", std_metrics)
+                    trainer.save_metrics(f"eval_std_driftsecond={drift}s", std_metrics)
+                    print(f"TikiTaka drift = {drift} second")
+
+                    # Log the metric to wandb
+                    wandb.log({"eval_mean_vs_drift_seconds": mean_metrics})
+
+            else:
+                # TikiTaka v2 mode - simple evaluation without drift (noise-free tiles)
+                logger.info("*** Evaluate (TikiTaka v2 - No Drift) ***")
+                print("\n" + "=" * 50)
+                print("TIKITAKA v2 EVALUATION - No drift simulation (noise-free tiles)")
+                print("=" * 50 + "\n")
+
+                for eval_ds, task in zip(eval_datasets, tasks):
+                    metrics = trainer.evaluate(eval_dataset=eval_ds)
+                    print("metrics")
+                    print(metrics)
+                    max_eval_samples = (
+                        data_args.max_eval_samples if data_args.max_eval_samples is not None else len(eval_ds)
+                    )
+                    metrics["eval_samples"] = min(max_eval_samples, len(eval_ds))
+
+                    if task == "mnli-mm":
+                        metrics = {k + "_mm": v for k, v in metrics.items()}
+                    if task is not None and "mnli" in task:
+                        combined.update(metrics)
+
+                    trainer.log_metrics("eval", metrics)
+                    trainer.save_metrics("eval", combined if task is not None and "mnli" in task else metrics)
+
+                # Log to wandb
+                wandb.log({"eval_tikitaka": metrics})
         else:
             # Analog mode - evaluation with drift/retention
             # Define all possible drift values (0 second, 1 hour, 1 day, 1 week, 1 month, 1 year, 10 years)
@@ -1123,12 +1322,6 @@ def main():
                     model.eval()
 
                     if general_args.analog_device == "sixt1c":
-                        print(
-                            f"Testing with retention time = {drift}s (Repetition {i + 1}/{general_args.num_evaluation_repetition})"
-                        )
-                        # Apply sixt1c retention decay directly to weights
-                        apply_sixt1c_retention(model, drift)
-                    elif general_args.analog_device == "sixt1c_lora":
                         print(
                             f"Testing with drift/retention time = {drift}s (Repetition {i + 1}/{general_args.num_evaluation_repetition})"
                         )

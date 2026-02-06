@@ -9,7 +9,7 @@
 """Forward / backward / update related parameters for resistive processing units."""
 
 from dataclasses import dataclass
-from typing import ClassVar, Type, Optional, Union
+from typing import ClassVar, List, Type, Optional, Union
 
 from .helpers import _PrintableMixin
 from .enums import PulseType
@@ -21,6 +21,11 @@ class UpdateParameters(_PrintableMixin):
 
     bindings_class: ClassVar[Optional[Union[str, Type]]] = "AnalogTileUpdateParameter"
     bindings_module: ClassVar[str] = "devices"
+    bindings_ignore: ClassVar[List[str]] = [
+        "use_manual_scaling",
+        "manual_x_scaling",
+        "manual_d_scaling"
+    ]
 
     desired_bl: int = 31
     """Desired length of the pulse trains.

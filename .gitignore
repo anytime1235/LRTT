@@ -185,3 +185,18 @@ checkpoints/
 # Test outputs and results
 *_RESULTS/
 *.log
+
+# Compiled shared libraries (CUDA, BLAS, etc.)
+src/aihwkit.libs/
+
+# Database files
+*.db
+
+# Nohup output
+nohup.out
+
+# Claude Code config
+.claude/
+
+# Large result directories
+experiments/hybrid_results_*/

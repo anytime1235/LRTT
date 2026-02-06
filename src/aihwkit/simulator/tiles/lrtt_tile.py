@@ -78,7 +78,7 @@ class LRTTSimulatorTile(SimulatorTile, Module):
 
             dtype = RPUDataType.FLOAT  # Default to float32
         self.dtype = dtype
-        self.bias = bias  # Store but don't use for now
+        self.bias = bias  # Passed to tile_c for digital_bias support
 
         # Validate configuration - check for PythonLRTTDevice
         from aihwkit.simulator.configs.lrtt_python import PythonLRTTDevice
@@ -212,6 +212,9 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         self.tile_b = rpu_config_b.tile_class(self.rank, x_size, rpu_config_b)
 
         # Tile C: visible [d_size, x_size] - uses base update params
+        # NOTE: mapping is passed to C tile for weight scaling support
+        # This allows pretrained weights to be scaled into tile bounds (w_max=1.0)
+        # instead of being clipped, preventing loss explosion
         tile_class_c = get_tile_class(unit_devices[2])
         update_c = create_update_params(rpu_config.update, "c")
         rpu_config_c = SingleRPUConfig(
@@ -220,6 +223,7 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             backward=rpu_config.backward,
             update=update_c,
             tile_class=tile_class_c,
+            mapping=rpu_config.mapping,  # Pass mapping for weight scaling
         )
         # Pass bias to tile_c for digital_bias support
         # When bias=True, tile_c will have digital_bias=True and create self.bias Parameter
@@ -272,6 +276,7 @@ class LRTTSimulatorTile(SimulatorTile, Module):
 
         # Read noise reduction
         self.controller.read_n_avg = post_init.get("read_n_avg", 1)
+        self.controller.differential_read = post_init.get("differential_read", False)
 
         # AGC settings
         self.controller.agc_enabled = post_init.get("agc_enabled", False)
@@ -304,6 +309,15 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         # Debug logging settings
         self.controller.log_ab_scaling = post_init.get("log_ab_scaling", False)
         self.controller.log_ab_scaling_every = post_init.get("log_ab_scaling_every", 10)
+
+        # Auto-scale settings
+        self.controller.auto_scale = post_init.get("auto_scale", False)
+        self.controller.auto_scale_momentum = post_init.get("auto_scale_momentum", 0.99)
+
+        # Transfer EMA scaling settings
+        self.controller.transfer_ema_scale = post_init.get("transfer_ema_scale", False)
+        self.controller.transfer_ema_momentum = post_init.get("transfer_ema_momentum", 0.99)
+        self.controller.transfer_ema_target_norm = post_init.get("transfer_ema_target_norm", 0.0)
 
         # Initialize LRTT weights
         self.controller.reinit()
@@ -407,8 +421,9 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         # Reset update flag for this forward pass
         self._reset_update_flag()
 
-        if bias:
-            raise TileError("LRTT does not support bias")
+        # Note: bias parameter here is for interface compatibility only.
+        # Actual bias is handled by tile_c's digital_bias (set at __init__)
+        # tile_c.forward() automatically adds bias when digital_bias=True
 
         # Store input for potential local A,B update when forward_inject=False
         self._last_x_input = x_input.detach().clone()
@@ -440,10 +455,10 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         - If forward_inject_enabled: x_grad = C^T @ d + α * B^T @ (A^T @ d)
         - If forward_inject_disabled: x_grad = C^T @ d (for upstream), but store gradients for A,B local update
         All operations use tile.backward() to ensure proper analog constraints.
-        """
-        if bias:
-            raise TileError("LRTT does not support bias")
 
+        Note: bias parameter is for interface compatibility only.
+        Bias gradients are not computed here (digital_bias is handled separately).
+        """
         # 1) Input to batch-first
         d_bf = d_input.t() if in_trans else d_input  # [batch, d_size]
 
@@ -486,14 +501,14 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         Args:
             x_input: Input tensor
             d_input: Error tensor
-            bias: Bias flag (not supported)
+            bias: Bias flag (for interface compatibility, bias updates handled by tile_c)
             in_trans: Input transposed
             out_trans: Output transposed
             non_blocking: Non-blocking flag
-        """
-        if bias:
-            raise TileError("LRTT does not support bias")
 
+        Note: bias parameter is for interface compatibility only.
+        Digital bias updates are handled automatically by tile_c's optimizer.
+        """
         # Prevent double updates
         if self._update_handled:
             return None

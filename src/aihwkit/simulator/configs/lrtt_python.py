@@ -99,8 +99,10 @@ class PythonLRTTDevice(_PrintableMixin):
     - 'off': No calibration, direct transfer with transfer_lr.
     Default is 'off'."""
 
-    transfer_micro_steps: int = 4
+    transfer_micro_steps: int = 1
     """M: Number of micro-transfer steps per transfer.
+    - 1: Fast, single update per rank (default, recommended for speed)
+    - 4+: Slower but more realistic analog simulation with noise averaging
     Higher values give smoother pulse accumulation but increase transfer time.
     For 'pilot' mode: lr_remain is split across M_rest = M - 1 steps.
     For 'sigma_delta' mode: g = |transfer_lr| / M if sd_quantum is not set."""
@@ -120,6 +122,12 @@ class PythonLRTTDevice(_PrintableMixin):
     - 1: Standard single reading (original behavior)
     - 4-8: Recommended for noise reduction (√N improvement)
     Default is 1."""
+
+    differential_read: bool = False
+    """Use differential read (+e, -e) for DC offset cancellation.
+    - True: Read with +e and -e, use 0.5*(f(+e) - f(-e)). More accurate but 2x slower.
+    - False: Read with +e only. Faster but includes DC offset.
+    Default is False (faster)."""
 
     # === AGC (Automatic Gain Control) Settings ===
     agc_enabled: bool = False
@@ -242,7 +250,24 @@ class PythonLRTTDevice(_PrintableMixin):
 
     log_ab_scaling_every: int = 10
     """Log x,d max values every N steps (only when log_ab_scaling=True)."""
-    
+
+    # === Auto-Scale (A/B update LR normalization) ===
+    auto_scale: bool = False
+    """Normalize lr_eff by EMA(|x|_max * |d|_max) for layer-agnostic A/B accumulation speed."""
+
+    auto_scale_momentum: float = 0.99
+    """EMA momentum for auto_scale. tau = (1 - momentum) / batch_size. Default 0.99."""
+
+    # === Transfer EMA Scaling (transfer magnitude normalization) ===
+    transfer_ema_scale: bool = False
+    """Normalize transfer_lr by EMA(||A@B||_F) for transfer magnitude stabilization."""
+
+    transfer_ema_momentum: float = 0.99
+    """Transfer norm EMA momentum. Default 0.99."""
+
+    transfer_ema_target_norm: float = 0.0
+    """Target norm for transfer EMA scaling. 0 = auto-calibrate from first transfer."""
+
     def __post_init__(self):
         """Validate configuration parameters."""
         # Validate rank
@@ -333,6 +358,16 @@ class PythonLRTTDevice(_PrintableMixin):
         if self.sd_quantum is not None and self.sd_quantum <= 0:
             raise ValueError(f"sd_quantum must be positive or None, got {self.sd_quantum}")
 
+        # Validate auto_scale parameters
+        if self.auto_scale and not (0 < self.auto_scale_momentum < 1):
+            raise ValueError(f"auto_scale_momentum must be in (0, 1), got {self.auto_scale_momentum}")
+
+        # Validate transfer_ema_scale parameters
+        if self.transfer_ema_scale and not (0 < self.transfer_ema_momentum < 1):
+            raise ValueError(f"transfer_ema_momentum must be in (0, 1), got {self.transfer_ema_momentum}")
+        if self.transfer_ema_target_norm < 0:
+            raise ValueError(f"transfer_ema_target_norm must be >= 0, got {self.transfer_ema_target_norm}")
+
         # Validate rank_chunk
         if self.rank_chunk is not None and self.rank_chunk <= 0:
             raise ValueError(f"rank_chunk must be positive or None, got {self.rank_chunk}")
@@ -400,6 +435,7 @@ class PythonLRTTDevice(_PrintableMixin):
             'sd_quantum': self.sd_quantum,
             # Read noise reduction
             'read_n_avg': self.read_n_avg,
+            'differential_read': self.differential_read,
             # AGC settings
             'agc_enabled': self.agc_enabled,
             'agc_margin': self.agc_margin,
@@ -427,6 +463,13 @@ class PythonLRTTDevice(_PrintableMixin):
             'log_ab_scaling_every': self.log_ab_scaling_every,
             # Separate BL for C tile
             'c_desired_bl': self.c_desired_bl,
+            # Auto-scale
+            'auto_scale': self.auto_scale,
+            'auto_scale_momentum': self.auto_scale_momentum,
+            # Transfer EMA scaling
+            'transfer_ema_scale': self.transfer_ema_scale,
+            'transfer_ema_momentum': self.transfer_ema_momentum,
+            'transfer_ema_target_norm': self.transfer_ema_target_norm,
         }
         return kwargs
     
@@ -448,7 +491,7 @@ class PythonLRTTDevice(_PrintableMixin):
             reinit_gain=getattr(legacy_compound, 'reinit_gain', 0.1),
             units_in_mbatch=getattr(legacy_compound, 'units_in_mbatch', False),
             correct_gradient_magnitudes=getattr(legacy_compound, 'correct_gradient_magnitudes', False),
-            forward_inject=getattr(legacy_compound, 'forward_inject', True),
+            forward_inject=getattr(legacy_compound, 'forward_inject', False),
             rank_chunk=getattr(legacy_compound, 'rank_chunk', None),
             unit_cell_devices=getattr(legacy_compound, 'unit_cell_devices', [ConstantStepDevice()] * 3)
         )
@@ -479,7 +522,7 @@ class PythonLRTTPreset(_PrintableMixin):
             transfer_every=transfer_every,
             lora_alpha=lora_alpha,
             reinit_gain=0.1,
-            forward_inject=True,
+            forward_inject=False,
             unit_cell_devices=[ideal_device, ideal_device, ideal_device]
         )
     
@@ -508,7 +551,7 @@ class PythonLRTTPreset(_PrintableMixin):
             transfer_every=transfer_every,
             lora_alpha=1.0,
             reinit_gain=0.1,
-            forward_inject=True,
+            forward_inject=False,
             unit_cell_devices=[device, device, device]
         )
     
@@ -533,7 +576,7 @@ class PythonLRTTPreset(_PrintableMixin):
             transfer_every=transfer_every,
             lora_alpha=lora_alpha,
             reinit_gain=0.05,  # Smaller reinit for frequent transfers
-            forward_inject=True,
+            forward_inject=False,
             correct_gradient_magnitudes=True,  # Better scaling for higher ranks
             unit_cell_devices=[IdealizedPresetDevice(), IdealizedPresetDevice(), IdealizedPresetDevice()]
         )
@@ -560,7 +603,7 @@ class PythonLRTTPreset(_PrintableMixin):
             transfer_every=transfer_every,
             lora_alpha=1.0,
             reinit_gain=0.1,
-            forward_inject=True,
+            forward_inject=False,
             unit_cell_devices=[low_precision, low_precision, high_precision]
         )
     
@@ -582,7 +625,7 @@ class PythonLRTTPreset(_PrintableMixin):
             transfer_every=1,  # Transfer immediately
             lora_alpha=lora_alpha,
             reinit_gain=0.0,  # No reinit needed for inference
-            forward_inject=True,  # Essential for inference
+            forward_inject=False,  # Essential for inference
             columns_mode=True,  # Optimized mode
             unit_cell_devices=[IdealizedPresetDevice(), IdealizedPresetDevice(), IdealizedPresetDevice()]
         )
@@ -648,7 +691,7 @@ class PythonLRTTPreset(_PrintableMixin):
             transfer_every=transfer_every,
             lora_alpha=lora_alpha,
             reinit_gain=0.1,
-            forward_inject=True,
+            forward_inject=False,
             unit_cell_devices=[
                 FloatingPointDevice(),  # A: exact arithmetic
                 FloatingPointDevice(),  # B: exact arithmetic
@@ -767,7 +810,7 @@ class PythonLRTTPreset(_PrintableMixin):
             reinit_gain=0.1,
             reinit_mode=reinit_mode,
             decay_factor=decay_factor,
-            forward_inject=True,
+            forward_inject=False,
             unit_cell_devices=[sixt1c_device, sixt1c_device, c_device]
         )
 
@@ -913,7 +956,7 @@ class PythonLRTTPreset(_PrintableMixin):
             transfer_every=transfer_every,
             lora_alpha=lora_alpha,
             reinit_gain=0.1,
-            forward_inject=True,
+            forward_inject=False,
             unit_cell_devices=[sixt1c_device, sixt1c_device, sixt1c_device]
         )
 

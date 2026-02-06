@@ -329,3 +329,42 @@ def apply_pcm_drift_to_base_layer(model, drift_time):
 
     return model
 
+
+def apply_tikitaka_drift(model, drift_time):
+    """
+    Apply drift to TikiTaka v2 Slow tiles (weight_tile).
+
+    TikiTaka v2 uses a 2-tile structure with ChoppedTransferCompound:
+    - Fast tile (grad_tile): 6T1C LinearStepDevice - receives SGD updates
+    - Slow tile (weight_tile): SoftBoundsDevice - used in forward pass (gamma=0)
+
+    This function applies drift only to the Slow tile (weight_tile), which is
+    the tile visible during inference. The drift is applied using the
+    drift_weights() method on the underlying tile.
+
+    Args:
+        model: The model containing AnalogLinear layers with TikiTaka v2 config
+        drift_time: Time in seconds for drift simulation
+
+    Returns:
+        The model with drift applied to TikiTaka v2 Slow tiles
+    """
+    if drift_time <= 0:
+        return model
+
+    print(f"Applying TikiTaka drift: drift_time={drift_time}s")
+
+    drift_count = 0
+    for name, module in model.named_modules():
+        if isinstance(module, AnalogLinear):
+            tile = module.analog_module.tile
+            # TransferSimulatorTile (TikiTaka) has weight_tile attribute
+            if hasattr(tile, 'weight_tile'):
+                # Apply drift to the Slow tile (weight_tile)
+                tile.weight_tile.tile.drift_weights(drift_time)
+                drift_count += 1
+                print(f"  Applied drift to {name}")
+
+    print(f"  Total: Applied drift to {drift_count} TikiTaka layers")
+    return model
+

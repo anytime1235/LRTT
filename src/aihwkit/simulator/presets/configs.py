@@ -40,6 +40,9 @@ from aihwkit.simulator.presets.devices import (
     ReRamESPresetDevice,
     ReRamSBPresetDevice,
     GokmenVlasovPresetDevice,
+    SixT1CPresetDevice,
+    SixT1CNoNoisePresetDevice,
+    SoftBoundsNoNoisePresetDevice,
 )
 from aihwkit.simulator.presets.compounds import PCMPresetUnitCell
 from aihwkit.simulator.presets.utils import PresetIOParameters, PresetUpdateParameters
