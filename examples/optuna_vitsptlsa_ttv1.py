@@ -45,6 +45,7 @@ from tqdm import tqdm
 
 import optuna
 from optuna.trial import TrialState
+from optuna_integration import BoTorchSampler
 import matplotlib.pyplot as plt
 
 # Default study name for persistence
@@ -386,10 +387,10 @@ def objective(trial):
         torch.cuda.empty_cache()
 
     # Hyperparameters to tune
-    transfer_every = trial.suggest_int('transfer_every', 1, 800000, log=True)
-    learning_rate = trial.suggest_float('learning_rate', 1e-5, 1e0, log=True)
+    transfer_every = trial.suggest_int('transfer_every', 1, 30000, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 1e-5, 1e-1, log=True)
     batch_size = trial.suggest_int('batch_size', 8, 8)
-    weight_decay = trial.suggest_float('weight_decay', 1e-6, 1e-1, log=True)
+    weight_decay = trial.suggest_float('weight_decay', 1e-6, 1e-2, log=True)
     optimizer_name = trial.suggest_categorical('optimizer', ['AnalogAdam', 'AnalogSGD'])
 
     max_epochs = 2000
@@ -641,6 +642,7 @@ def main():
         study_name=study_name,
         storage=storage,
         direction="maximize",
+        sampler=BoTorchSampler(),
         pruner=optuna.pruners.NopPruner(),
         load_if_exists=True,
     )

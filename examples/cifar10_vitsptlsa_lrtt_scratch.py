@@ -61,11 +61,11 @@ WEIGHT_PATH = os.path.join(RESULTS, "cifar10_vitsptlsa_lrtt_scratch_model_weight
 SEED = 1
 N_EPOCHS = 40  # Paper: 40 epochs
 BATCH_SIZE = 8  # Paper: batch size 8
-LEARNING_RATE = 1e-4  # Initial LR (will be reduced on plateau)
+LEARNING_RATE = 0.0009856  # Initial LR (will be reduced on plateau)
 LR_REDUCTION_FACTOR = 0.1  # Paper: reduce LR by 0.1 on plateau
 LR_PATIENCE = 5  # Patience for ReduceLROnPlateau
-WEIGHT_DECAY = 5e-5
-OPTIMIZER = "AnalogAdam"  # "AnalogSGD", "AnalogAdam"
+WEIGHT_DECAY = 0.001003
+OPTIMIZER = "AnalogSGD"  # "AnalogSGD", "AnalogAdam"
 N_CLASSES = 10
 NUM_WORKERS = 4  # WSL에서는 0이 가장 빠름
 IMAGE_SIZE = 32  # CIFAR-10 native size (no resize for this model)
@@ -81,8 +81,8 @@ DROPOUT = 0.0  # Dropout rate
 
 # LRTT configuration parameters
 LRTT_RANK = 8
-TRANSFER_EVERY = 1000
-LORA_ALPHA = 2.0
+TRANSFER_EVERY = 826
+LORA_ALPHA = 1.708
 TRANSFER_LR = LORA_ALPHA
 TRANSFER_LR_SCALE = 1.0  # Scaling factor for transfer_lr (effective = transfer_lr * scale)
 REINIT_MODE = "decay"  # "standard", "decay", "hybrid", "orthogonal_zero", "orthogonal_decay"

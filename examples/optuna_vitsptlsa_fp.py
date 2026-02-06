@@ -53,6 +53,7 @@ from tqdm import tqdm
 
 import optuna
 from optuna.trial import TrialState
+from optuna_integration import BoTorchSampler
 import matplotlib.pyplot as plt
 
 # Default study name for persistence
@@ -484,6 +485,7 @@ def main():
         study_name=study_name,
         storage=storage,
         direction="maximize",
+        sampler=BoTorchSampler(),
         pruner=optuna.pruners.NopPruner(),
         load_if_exists=True,
     )
