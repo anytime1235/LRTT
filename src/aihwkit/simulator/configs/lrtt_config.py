@@ -227,46 +227,6 @@ def lrtt_floating_ab_softbound_c_config(
 # 6T1C Device Configurations
 # =============================================================================
 
-def lrtt_sixt1c_ab_config(
-    rank: int = 4,
-    transfer_every: int = 32,
-    lora_alpha: float = 1.0,
-    dt_batch_sec: float = 1.0,
-    include_retention: bool = True,
-    c_device=None
-) -> PythonLRTTRPUConfig:
-    """Create LRTT configuration with 6T1C A/B tiles and configurable C tile.
-
-    A/B tiles use 6T1C devices. C tile (visible) can use any device.
-
-    Args:
-        rank: LoRA rank dimension
-        transfer_every: Transfer frequency (steps)
-        lora_alpha: LoRA scaling factor
-        dt_batch_sec: Assumed time per mini-batch in seconds (for 6T1C retention)
-        include_retention: Whether to include retention effects for 6T1C
-        c_device: Device for C tile. If None, uses IdealizedPresetDevice.
-                  Can be: PCMPresetDevice, ReRamESPresetDevice, etc.
-
-    Returns:
-        Configured PythonLRTTRPUConfig with 6T1C A/B and custom C
-
-    Example:
-        >>> from aihwkit.simulator.presets.devices import PCMPresetDevice
-        >>> config = lrtt_sixt1c_ab_config(c_device=PCMPresetDevice())
-    """
-    from .lrtt_python import PythonLRTTPreset
-    device = PythonLRTTPreset.sixt1c_ab(
-        rank=rank,
-        transfer_every=transfer_every,
-        lora_alpha=lora_alpha,
-        dt_batch_sec=dt_batch_sec,
-        include_retention=include_retention,
-        c_device=c_device
-    )
-    return PythonLRTTRPUConfig(device=device)
-
-
 def lrtt_sixt1c_ab_pcm_config(
     rank: int = 4,
     transfer_every: int = 32,

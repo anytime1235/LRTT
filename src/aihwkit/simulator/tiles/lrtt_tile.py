@@ -212,9 +212,6 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         self.tile_b = rpu_config_b.tile_class(self.rank, x_size, rpu_config_b)
 
         # Tile C: visible [d_size, x_size] - uses base update params
-        # NOTE: mapping is passed to C tile for weight scaling support
-        # This allows pretrained weights to be scaled into tile bounds (w_max=1.0)
-        # instead of being clipped, preventing loss explosion
         tile_class_c = get_tile_class(unit_devices[2])
         update_c = create_update_params(rpu_config.update, "c")
         rpu_config_c = SingleRPUConfig(
@@ -223,7 +220,6 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             backward=rpu_config.backward,
             update=update_c,
             tile_class=tile_class_c,
-            mapping=rpu_config.mapping,  # Pass mapping for weight scaling
         )
         # Pass bias to tile_c for digital_bias support
         # When bias=True, tile_c will have digital_bias=True and create self.bias Parameter
@@ -309,15 +305,6 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         # Debug logging settings
         self.controller.log_ab_scaling = post_init.get("log_ab_scaling", False)
         self.controller.log_ab_scaling_every = post_init.get("log_ab_scaling_every", 10)
-
-        # Auto-scale settings
-        self.controller.auto_scale = post_init.get("auto_scale", False)
-        self.controller.auto_scale_momentum = post_init.get("auto_scale_momentum", 0.99)
-
-        # Transfer EMA scaling settings
-        self.controller.transfer_ema_scale = post_init.get("transfer_ema_scale", False)
-        self.controller.transfer_ema_momentum = post_init.get("transfer_ema_momentum", 0.99)
-        self.controller.transfer_ema_target_norm = post_init.get("transfer_ema_target_norm", 0.0)
 
         # Initialize LRTT weights
         self.controller.reinit()

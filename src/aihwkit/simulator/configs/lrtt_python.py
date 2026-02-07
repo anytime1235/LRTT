@@ -250,24 +250,7 @@ class PythonLRTTDevice(_PrintableMixin):
 
     log_ab_scaling_every: int = 10
     """Log x,d max values every N steps (only when log_ab_scaling=True)."""
-
-    # === Auto-Scale (A/B update LR normalization) ===
-    auto_scale: bool = False
-    """Normalize lr_eff by EMA(|x|_max * |d|_max) for layer-agnostic A/B accumulation speed."""
-
-    auto_scale_momentum: float = 0.99
-    """EMA momentum for auto_scale. tau = (1 - momentum) / batch_size. Default 0.99."""
-
-    # === Transfer EMA Scaling (transfer magnitude normalization) ===
-    transfer_ema_scale: bool = False
-    """Normalize transfer_lr by EMA(||A@B||_F) for transfer magnitude stabilization."""
-
-    transfer_ema_momentum: float = 0.99
-    """Transfer norm EMA momentum. Default 0.99."""
-
-    transfer_ema_target_norm: float = 0.0
-    """Target norm for transfer EMA scaling. 0 = auto-calibrate from first transfer."""
-
+    
     def __post_init__(self):
         """Validate configuration parameters."""
         # Validate rank
@@ -357,16 +340,6 @@ class PythonLRTTDevice(_PrintableMixin):
         # Validate sd_quantum
         if self.sd_quantum is not None and self.sd_quantum <= 0:
             raise ValueError(f"sd_quantum must be positive or None, got {self.sd_quantum}")
-
-        # Validate auto_scale parameters
-        if self.auto_scale and not (0 < self.auto_scale_momentum < 1):
-            raise ValueError(f"auto_scale_momentum must be in (0, 1), got {self.auto_scale_momentum}")
-
-        # Validate transfer_ema_scale parameters
-        if self.transfer_ema_scale and not (0 < self.transfer_ema_momentum < 1):
-            raise ValueError(f"transfer_ema_momentum must be in (0, 1), got {self.transfer_ema_momentum}")
-        if self.transfer_ema_target_norm < 0:
-            raise ValueError(f"transfer_ema_target_norm must be >= 0, got {self.transfer_ema_target_norm}")
 
         # Validate rank_chunk
         if self.rank_chunk is not None and self.rank_chunk <= 0:
@@ -463,13 +436,6 @@ class PythonLRTTDevice(_PrintableMixin):
             'log_ab_scaling_every': self.log_ab_scaling_every,
             # Separate BL for C tile
             'c_desired_bl': self.c_desired_bl,
-            # Auto-scale
-            'auto_scale': self.auto_scale,
-            'auto_scale_momentum': self.auto_scale_momentum,
-            # Transfer EMA scaling
-            'transfer_ema_scale': self.transfer_ema_scale,
-            'transfer_ema_momentum': self.transfer_ema_momentum,
-            'transfer_ema_target_norm': self.transfer_ema_target_norm,
         }
         return kwargs
     

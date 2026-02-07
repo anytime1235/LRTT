@@ -222,18 +222,6 @@ class LRTTController:
         self._ab_update_step: int = 0
         """Internal counter for A/B update logging."""
 
-        # === Auto-Scale state (A/B update LR normalization) ===
-        self.auto_scale: bool = False
-        self.auto_scale_momentum: float = 0.99
-        self._ema_m_x: Optional[Tensor] = None  # GPU scalar: EMA of max|x|
-        self._ema_m_d: Optional[Tensor] = None  # GPU scalar: EMA of max|d|
-
-        # === Transfer EMA state (transfer magnitude normalization) ===
-        self.transfer_ema_scale: bool = False
-        self.transfer_ema_momentum: float = 0.99
-        self.transfer_ema_target_norm: float = 0.0
-        self._ema_ab_norm: Optional[Tensor] = None  # GPU scalar: EMA of ||A@B||_F
-
         # === Hardware Mode Flag ===
         self._hardware_mode: Optional[bool] = None
         """Cache for hardware mode detection (use_manual_scaling=True)."""
@@ -265,79 +253,6 @@ class LRTTController:
         """Ensure ΣΔ state tensors exist on the right device/dtype."""
         if self.sd_acc is None or self.sd_acc.numel() != self.rank or self.sd_acc.device != self.device:
             self.sd_acc = torch.zeros(self.rank, device=self.device, dtype=self.dtype)
-
-    def _ensure_auto_scale_state(self) -> None:
-        """Ensure auto-scale EMA tensors exist on the right device/dtype."""
-        if self._ema_m_x is None or self._ema_m_x.device != self.device:
-            self._ema_m_x = torch.zeros((), device=self.device, dtype=self.dtype)
-            self._ema_m_d = torch.zeros((), device=self.device, dtype=self.dtype)
-
-    def _ensure_transfer_ema_state(self) -> None:
-        """Ensure transfer EMA tensor exists on the right device/dtype."""
-        if self._ema_ab_norm is None or self._ema_ab_norm.device != self.device:
-            self._ema_ab_norm = torch.zeros((), device=self.device, dtype=self.dtype)
-
-    # === Auto-Scale methods ===
-
-    def _update_auto_scale_ema(self, x: Tensor, d: Tensor) -> None:
-        """GPU-safe EMA update for auto_scale. No .item() calls."""
-        self._ensure_auto_scale_state()
-        m_batch = x.shape[0]
-        tau = (1.0 - self.auto_scale_momentum) / m_batch
-
-        new_m_x = x.abs().amax()   # GPU 0-dim tensor
-        new_m_d = d.abs().amax()   # GPU 0-dim tensor
-
-        # First call: seed with current values. After: EMA (all GPU ops).
-        self._ema_m_x = torch.where(
-            self._ema_m_x > 0.0,
-            (1.0 - tau) * self._ema_m_x + tau * new_m_x,
-            new_m_x
-        )
-        self._ema_m_d = torch.where(
-            self._ema_m_d > 0.0,
-            (1.0 - tau) * self._ema_m_d + tau * new_m_d,
-            new_m_d
-        )
-
-    def _get_auto_scaled_lr(self, lr_base: float) -> float:
-        """Return auto_scaled lr. One .item() call per batch (acceptable)."""
-        product = self._ema_m_x * self._ema_m_d  # GPU scalar
-        val = product.item()  # 1 sync per batch
-        if val > 0.0:
-            return lr_base / val
-        return lr_base
-
-    # === Transfer EMA methods ===
-
-    def _ze_norm2_via_gram_gpu(self, A_cols: Tensor, B_rows: Tensor) -> Tensor:
-        """||A@B||_F^2 via Gram matrices. Returns GPU tensor (no .item())."""
-        G_A = A_cols.t() @ A_cols      # [rank, rank]
-        G_B = B_rows @ B_rows.t()      # [rank, rank]
-        return (G_A * G_B).sum()        # GPU scalar
-
-    def _compute_transfer_ema_scale(self, A_cols: Tensor, B_rows: Tensor) -> float:
-        """EMA-based transfer lr scale. One .item() per transfer."""
-        self._ensure_transfer_ema_state()
-
-        norm2 = self._ze_norm2_via_gram_gpu(A_cols, B_rows)
-        current_norm = torch.sqrt(norm2 + 1e-12)
-
-        beta = self.transfer_ema_momentum
-        self._ema_ab_norm = torch.where(
-            self._ema_ab_norm > 0.0,
-            beta * self._ema_ab_norm + (1.0 - beta) * current_norm,
-            current_norm
-        )
-
-        # target auto-calibration: use first transfer's norm
-        ema_val = self._ema_ab_norm.item()  # 1 sync per transfer
-        if self.transfer_ema_target_norm <= 0.0:
-            self.transfer_ema_target_norm = ema_val
-
-        if ema_val > 1e-12:
-            return self.transfer_ema_target_norm / ema_val
-        return 1.0
 
     def _diff_read(self, tile, e: Tensor, amp: float, mode: str, read_n_avg: int) -> Tensor:
         """Differential read with amplitude scaling and averaging.
@@ -768,9 +683,6 @@ class LRTTController:
             lr_eff = lr * self.lora_alpha
             if self.correct_gradient_magnitudes:
                 lr_eff /= math.sqrt(self.rank)
-            if self.auto_scale:
-                self._update_auto_scale_ema(x, d)
-                lr_eff = self._get_auto_scaled_lr(lr_eff)
 
         # === Debug Logging: x,d max values for A and B tiles ===
         self._ab_update_step += 1
@@ -854,9 +766,6 @@ class LRTTController:
         lr_rec = lr * self.recon_lr_scale
         if self.correct_gradient_magnitudes:
             lr_rec /= math.sqrt(self.rank)
-        if self.auto_scale:
-            self._update_auto_scale_ema(x, d)
-            lr_rec = self._get_auto_scaled_lr(lr_rec)
 
         # 2) Projections for Hebbian terms
         with torch.no_grad():
@@ -1408,8 +1317,6 @@ class LRTTController:
                 pilot_frac = max(1e-4, float(self.transfer_pilot_frac))
                 M_total = max(2, int(self.transfer_micro_steps))
                 lr_abs = abs(self.transfer_lr)
-                if self.transfer_ema_scale:
-                    lr_abs *= self._compute_transfer_ema_scale(A_cols, B_rows)
 
                 # 파일럿 lr
                 lr_pilot = lr_abs * pilot_frac
@@ -1566,8 +1473,6 @@ class LRTTController:
 
                 # 3) off 모드: gamma=1.0, 전체 lr 사용
                 lr_abs = abs(self.transfer_lr)
-                if self.transfer_ema_scale:
-                    lr_abs *= self._compute_transfer_ema_scale(A_cols, B_rows)
                 M_total = max(1, int(self.transfer_micro_steps))
                 lr_step = lr_abs / M_total
                 self.tile_c.set_learning_rate(lr_step if lr_step > 0 else 1e-12)
@@ -1642,8 +1547,6 @@ class LRTTController:
                 # 2) ΣΔ 상태/파라미터 확보
                 self._ensure_sd_state()
                 lr_abs = float(abs(self.transfer_lr))
-                if self.transfer_ema_scale:
-                    lr_abs *= self._compute_transfer_ema_scale(A_cols, B_rows)
                 g = float(self.sd_quantum) if (self.sd_quantum is not None and self.sd_quantum > 0.0) \
                     else max(lr_abs / float(max(1, int(self.transfer_micro_steps))), 1e-12)
 
@@ -1846,10 +1749,7 @@ class LRTTController:
             'reinit_gain': self.reinit_gain,
             'reinit_mode': self.reinit_mode,
             'decay_factor': self.decay_factor,
-            'forward_inject_enabled': self.forward_inject_enabled,
-            '_ema_m_x': self._ema_m_x,
-            '_ema_m_d': self._ema_m_d,
-            '_ema_ab_norm': self._ema_ab_norm,
+            'forward_inject_enabled': self.forward_inject_enabled
         }
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
@@ -1876,7 +1776,3 @@ class LRTTController:
         self._d_pad = None
         # Clear transfer vectors (one-hot reading)
         self._transfer_vec_a = None
-        # Clear auto-scale / transfer EMA state for device reallocation
-        self._ema_m_x = None
-        self._ema_m_d = None
-        self._ema_ab_norm = None
