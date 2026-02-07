@@ -123,8 +123,8 @@ SIXT1C_TRAINING_PARAMS: Dict[str, Any] = {
     "do_train": True,
     "do_eval": True,
     "num_train_epochs": 3,  # Shorter than analog (3 vs 15)
-    "per_device_train_batch_size": 32,
-    "per_device_eval_batch_size": 32,
+    "per_device_train_batch_size": 16,  # Reduced for memory (SingleRPUConfig uses more)
+    "per_device_eval_batch_size": 16,
     "learning_rate": 2e-4,
     "warmup_ratio": 0.1,  # Use ratio instead of fixed steps for small datasets
     "warmup_steps": 0,
@@ -133,7 +133,7 @@ SIXT1C_TRAINING_PARAMS: Dict[str, Any] = {
     "save_strategy": "no",
     "eval_strategy": "epoch",
     "load_best_model_at_end": False,
-    "metric_for_best_model": "eval_loss",
+    "metric_for_best_model": "eval_f1",
     "report_to": "wandb",
 }
 

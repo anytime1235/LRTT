@@ -1,14 +1,9 @@
 #!/home/jovyan/work/ml/.venv310/bin/python
 # coding=utf-8
-"""LRTT Bayesian Optimization for ALL tasks (GLUE + SQuAD).
+"""LRTT Bayesian Optimization for SQuAD - RANK 8, QKV+Dense.
 
-Converted from TikiTaka v2 sweep script to use LRTT configuration.
-Runs N trials x M epochs for each task to find optimal hyperparameters.
-
-Key differences from TikiTaka v2:
-- Uses PythonLRTTRPUConfig instead of UnitCellRPUConfig + ChoppedTransferCompound
-- LRTT parameters: rank, transfer_every, transfer_lr, lora_alpha, reinit_gain, reinit_mode
-- CRITICAL FIX: Calls optimizer.regroup_param_groups() after AnalogAdam creation
+Based on sweep_lrtt_squad_rank8_v_only.py but converts all QKV and Dense layers.
+Target modules: ["query", "key", "value", "dense"].
 """
 
 import os
@@ -146,37 +141,39 @@ TASK_TO_METRIC = {
 # =============================================================================
 
 # Search space for LRTT parameters
-LR_MIN, LR_MAX = 1e-5, 1e-1                      # analog_lr (learning rate)
-TRANSFER_LR_MIN, TRANSFER_LR_MAX = 0.001, 100.0  # transfer learning rate
-TRANSFER_EVERY_CHOICES = [1, 100, 1000]          # transfer frequency (categorical)
+LR_MIN, LR_MAX = 1e-5, 1e-1                        # analog_lr (learning rate)
+TRANSFER_LR_MIN, TRANSFER_LR_MAX = 1e-4, 1e-1      # transfer learning rate
+TRANSFER_EVERY_MIN, TRANSFER_EVERY_MAX = 100, 10000 # transfer frequency (int, log)
 
 # Fixed LRTT parameters (not in sweep)
-RANK = 4
+RANK = 8
 REINIT_GAIN = 0.1
 LORA_ALPHA = 1.0
 
-# Default LRTT config (good starting point)
+# Default LRTT config (seeded from rank=4 best)
 DEFAULT_LRTT_PARAMS = {
-    "learning_rate": 0.001,
-    "transfer_lr": 1.0,
-    "transfer_every": 100,
+    "learning_rate": 0.00362,
+    "transfer_lr": 0.00115,
+    "transfer_every": 1000,
 }
 
 # =============================================================================
 # Fixed Parameters
 # =============================================================================
 
-N_TRIALS = 10
-NUM_EPOCHS = 1
-TARGET_MODULES = ["query", "key", "value"]
+N_TRIALS = 50
+NUM_EPOCHS = 3
+TARGET_MODULES = ["query", "key", "value", "dense"]
 MODEL_NAME = "google/mobilebert-uncased"
 MAX_SEQ_LENGTH = 128
 BATCH_SIZE = 32
 WARMUP_STEPS = 500
 SEED = 42
 
-WANDB_PROJECT = "lrtt-all-tasks-sweep"
-OUTPUT_DIR = "/data/AIMC_LoRA_results/lrtt_sweep"
+WANDB_PROJECT = "lrtt-squad-rank8-qkv-dense-sweep"
+OUTPUT_DIR = "/data/results/LRTT_sweep"
+
+os.environ["WANDB_MODE"] = "offline"
 
 
 # =============================================================================
@@ -729,7 +726,7 @@ def run_trial(trial: optuna.Trial, task_name: str, train_loader, eval_loader,
     params = {
         "learning_rate": trial.suggest_float("learning_rate", LR_MIN, LR_MAX, log=True),
         "transfer_lr": trial.suggest_float("transfer_lr", TRANSFER_LR_MIN, TRANSFER_LR_MAX, log=True),
-        "transfer_every": trial.suggest_categorical("transfer_every", TRANSFER_EVERY_CHOICES),
+        "transfer_every": trial.suggest_int("transfer_every", TRANSFER_EVERY_MIN, TRANSFER_EVERY_MAX, log=True),
     }
 
     # WandB logging
@@ -858,8 +855,40 @@ def run_task_sweep(task_name: str, device: torch.device, results_dir: str, n_tri
         sampler=sampler,
     )
 
-    # Enqueue default LRTT params as first trial (good starting point)
-    study.enqueue_trial(DEFAULT_LRTT_PARAMS)
+    # Replay completed trials from previous run (if any)
+    _COMPLETED_TRIALS = [
+        ({"learning_rate": 0.00362, "transfer_lr": 0.00115, "transfer_every": 1000}, 32.041067117871336),
+        ({"learning_rate": 0.00031489116479568613, "transfer_lr": 0.07114476009343425, "transfer_every": 2907}, 7.215110856908332),
+        ({"learning_rate": 0.0024810409748678114, "transfer_lr": 0.00029380279387035364, "transfer_every": 204}, 33.11269090714075),
+        ({"learning_rate": 1.7073967431528103e-05, "transfer_lr": 0.0396760507705299, "transfer_every": 1590}, 6.494232327235683),
+        ({"learning_rate": 0.006796578090758156, "transfer_lr": 0.00011527987128232407, "transfer_every": 8705}, 30.65536226863863),
+        ({"learning_rate": 0.021368329072358756, "transfer_lr": 0.0004335281794951569, "transfer_every": 230}, 14.773509552390498),
+        ({"learning_rate": 5.415244119402538e-05, "transfer_lr": 0.0008179499475211679, "transfer_every": 1118}, 7.879048118695711),
+        ({"learning_rate": 0.0005342937261279777, "transfer_lr": 0.0007476312062252305, "transfer_every": 1671}, 20.091884092481024),
+        ({"learning_rate": 3.613894271216525e-05, "transfer_lr": 0.0007523742884534858, "transfer_every": 539}, 8.767733811362923),
+        ({"learning_rate": 0.0006672367170464204, "transfer_lr": 0.0226739865237804, "transfer_every": 250}, 1.7445110299057656),
+        ({"learning_rate": 0.06521702977644389, "transfer_lr": 0.006301092218526267, "transfer_every": 103}, 0.6540208810797045),
+        ({"learning_rate": 0.0036240382475490464, "transfer_lr": 0.003343582251748473, "transfer_every": 494}, 33.690419643054696),
+        ({"learning_rate": 0.0031973619682575225, "transfer_lr": 0.004748459024928745, "transfer_every": 385}, 9.988191923497991),
+        ({"learning_rate": 0.01802998039776711, "transfer_lr": 0.00011119959665896413, "transfer_every": 119}, 15.300603015689372),
+        ({"learning_rate": 0.00016039686981772513, "transfer_lr": 0.0027918232007494307, "transfer_every": 482}, 9.827705180363322),
+    ]
+    if _COMPLETED_TRIALS:
+        from optuna.distributions import FloatDistribution, IntDistribution
+        for params, value in _COMPLETED_TRIALS:
+            study.add_trial(
+                optuna.trial.create_trial(
+                    params=params,
+                    distributions={
+                        "learning_rate": FloatDistribution(LR_MIN, LR_MAX, log=True),
+                        "transfer_lr": FloatDistribution(TRANSFER_LR_MIN, TRANSFER_LR_MAX, log=True),
+                        "transfer_every": IntDistribution(TRANSFER_EVERY_MIN, TRANSFER_EVERY_MAX, log=True),
+                    },
+                    values=[value],
+                )
+            )
+        print(f"Replayed {len(_COMPLETED_TRIALS)} completed trials (best so far: {study.best_value:.4f})")
+        n_trials = n_trials - len(_COMPLETED_TRIALS)
 
     # Optimize
     def objective(trial):
@@ -869,35 +898,68 @@ def run_task_sweep(task_name: str, device: torch.device, results_dir: str, n_tri
 
     study.optimize(objective, n_trials=n_trials, n_jobs=n_jobs, show_progress_bar=True)
 
-    # Save results
-    task_results = {
+    # Save ALL trial results
+    all_trials = []
+    for trial in study.trials:
+        trial_data = {
+            "trial": trial.number,
+            "value": trial.value,
+            "params": trial.params,
+            "state": str(trial.state),
+        }
+        all_trials.append(trial_data)
+
+    # Sort by metric (best first), handle None values from failed trials
+    all_trials.sort(key=lambda t: t["value"] if t["value"] is not None else -1, reverse=True)
+
+    all_trials_result = {
         "task": task_name,
+        "rank": RANK,
+        "epochs": NUM_EPOCHS,
+        "n_trials": n_trials,
+        "search_space": {
+            "learning_rate": {"min": LR_MIN, "max": LR_MAX, "scale": "log"},
+            "transfer_lr": {"min": TRANSFER_LR_MIN, "max": TRANSFER_LR_MAX, "scale": "log"},
+            "transfer_every": {"min": TRANSFER_EVERY_MIN, "max": TRANSFER_EVERY_MAX, "scale": "int_log"},
+        },
+        "fixed_params": {
+            "rank": RANK,
+            "lora_alpha": LORA_ALPHA,
+            "reinit_mode": "hybrid",
+            "reinit_gain": REINIT_GAIN,
+            "units_in_mbatch": True,
+            "target_modules": TARGET_MODULES,
+            "batch_size": BATCH_SIZE,
+            "warmup_steps": WARMUP_STEPS,
+            "model": MODEL_NAME,
+        },
         "best_trial": study.best_trial.number,
         "best_metric": study.best_value,
         "best_params": study.best_params,
         "metric_name": TASK_TO_METRIC.get(task_name, "metric"),
+        "trials": all_trials,
     }
 
-    results_file = os.path.join(results_dir, f"{task_name}_best_params.json")
-    with open(results_file, 'w') as f:
-        json.dump(task_results, f, indent=2)
+    all_trials_file = os.path.join(results_dir, f"{task_name}_rank{RANK}_qkv_dense_all_trials.json")
+    with open(all_trials_file, 'w') as f:
+        json.dump(all_trials_result, f, indent=2)
 
-    print(f"\n{task_name.upper()} Results:")
+    print(f"\n{task_name.upper()} Results (rank={RANK}):")
     print(f"  Best Trial: {study.best_trial.number}")
     print(f"  Best {TASK_TO_METRIC.get(task_name, 'metric')}: {study.best_value:.4f}")
     print(f"  Best Params: {study.best_params}")
-    print(f"  Saved to: {results_file}")
+    print(f"  All trials saved to: {all_trials_file}")
 
-    return task_results
+    return all_trials_result
 
 
 def main():
     global NUM_EPOCHS  # Allow overriding from command line
 
     parser = argparse.ArgumentParser(description="LRTT Bayesian Optimization for GLUE/SQuAD tasks")
-    parser.add_argument("--tasks", nargs="+", default=ALL_TASKS,
-                       help="Tasks to run (default: all)")
-    parser.add_argument("--n_trials", type=int, default=10,
+    parser.add_argument("--tasks", nargs="+", default=["squad"],
+                       help="Tasks to run (default: squad)")
+    parser.add_argument("--n_trials", type=int, default=N_TRIALS,
                        help="Number of trials per task")
     parser.add_argument("--n_jobs", type=int, default=1,
                        help="Number of parallel jobs per task")
@@ -914,7 +976,7 @@ def main():
     os.makedirs(results_dir, exist_ok=True)
 
     print("="*60)
-    print("LRTT Bayesian Optimization - All Tasks")
+    print("LRTT Bayesian Optimization - SQuAD RANK 8 (QKV+Dense)")
     print("="*60)
     print(f"Tasks: {args.tasks}")
     print(f"Trials per task: {n_trials}")
@@ -925,7 +987,7 @@ def main():
     print("LRTT Search Space:")
     print(f"  learning_rate: [{LR_MIN}, {LR_MAX}] (log)")
     print(f"  transfer_lr: [{TRANSFER_LR_MIN}, {TRANSFER_LR_MAX}] (log)")
-    print(f"  transfer_every: {TRANSFER_EVERY_CHOICES} (categorical)")
+    print(f"  transfer_every: [{TRANSFER_EVERY_MIN}, {TRANSFER_EVERY_MAX}] (int, log)")
     print()
     print("LRTT Fixed Parameters:")
     print(f"  rank: {RANK}")

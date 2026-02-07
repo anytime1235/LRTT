@@ -29,7 +29,7 @@ from transformers import (
     AutoTokenizer,
     default_data_collator,
     set_seed,
-    get_linear_schedule_with_warmup,
+    get_cosine_schedule_with_warmup,
 )
 from datasets import load_dataset
 from torch.utils.data import DataLoader
@@ -136,8 +136,16 @@ def create_config() -> UnitCellRPUConfig:
         write_noise_std=0.0, mult_noise=True, mean_bound_reference=True, lifetime=0.0,
     )
     softbounds_device = SoftBoundsReferenceDevice(
-        dw_min=0.001, w_max=1.0, w_min=-1.0,
-        dw_min_dtod=0.0, dw_min_std=0.0, write_noise_std=0.0, mult_noise=True,
+        w_max=1.0, w_min=-1.0, dw_min=0.001,
+        # All noise = 0
+        dw_min_std=0.0, write_noise_std=0.0, diffusion=0.0,
+        # Device-to-device variation = 0
+        dw_min_dtod=0.0, w_max_dtod=0.0, w_min_dtod=0.0,
+        up_down=0.0, up_down_dtod=0.0,
+        # Lifetime = 0
+        lifetime=0.0, lifetime_dtod=0.0,
+        # Slope variations = 0
+        slope_up_dtod=0.0, slope_down_dtod=0.0,
     )
     rpu_config = UnitCellRPUConfig(
         device=ChoppedTransferCompound(
@@ -429,14 +437,16 @@ def main():
     print(f"Best params (Trial 42, F1=61.93): {BEST_PARAMS}")
     print(f"Epochs: {NUM_EPOCHS}")
 
+    os.environ["WANDB_MODE"] = "offline"
     run = wandb.init(
         project="tikitaka-v2-squad-diagnostic",
-        name=f"squad_trial42_15ep_diagnostic",
+        name=f"squad_trial42_15ep_cosine_softbound_noisefree",
         config={
             "task": "squad",
             "num_epochs": NUM_EPOCHS,
             "batch_size": BATCH_SIZE,
             "warmup_steps": WARMUP_STEPS,
+            "lr_scheduler": "cosine",
             "seed": SEED,
             "model": MODEL_NAME,
             "mapping_enabled": True,
@@ -457,7 +467,7 @@ def main():
     optimizer.regroup_param_groups(model)
 
     num_training_steps = len(train_loader) * NUM_EPOCHS
-    scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=WARMUP_STEPS,
+    scheduler = get_cosine_schedule_with_warmup(optimizer, num_warmup_steps=WARMUP_STEPS,
                                                  num_training_steps=num_training_steps)
 
     all_diagnostics = []
@@ -544,7 +554,7 @@ def main():
               f"{d.get('start_logits_std',0):>7.2f} | {d.get('start_logits_max',0):>8.2f}")
 
     # Save results
-    output_path = "/data/AIMC_LoRA_results/tikitaka_sweep/squad_trial42_diagnostic_results.json"
+    output_path = "/data/LRTT_transformer/tikitaka/results/squad_trial42_15ep_cosine_softbound_noisefree.json"
     with open(output_path, 'w') as f:
         # Convert non-serializable items
         safe_diags = []

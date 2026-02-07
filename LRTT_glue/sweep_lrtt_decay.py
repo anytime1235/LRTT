@@ -716,8 +716,15 @@ def train_epoch(model, optimizer, scheduler, train_loader, device, task_name, tr
 
 def run_trial(trial: optuna.Trial, task_name: str, train_loader, eval_loader,
               device: torch.device, results_dir: str,
-              tokenizer=None, eval_examples=None, eval_features=None) -> float:
-    """Run single trial for a task."""
+              tokenizer=None, eval_examples=None, eval_features=None,
+              init_results=None) -> float:
+    """Run single trial for a task.
+
+    Args:
+        init_results: Cached initial evaluation results to avoid redundant computation.
+                     For SQuAD: {"f1": float, "em": float}
+                     For GLUE: {"metric": float, "loss": float}
+    """
 
     # Sample LRTT hyperparameters
     params = {
@@ -758,16 +765,14 @@ def run_trial(trial: optuna.Trial, task_name: str, train_loader, eval_loader,
             num_training_steps=num_training_steps
         )
 
-        # Initial evaluation
+        # Use cached initial evaluation (computed once in run_task_sweep)
         if task_name == "squad":
-            init_metric, init_em = evaluate_squad(model, eval_features, eval_examples, tokenizer, device)
-            init_loss = 0.0  # Not computed in F1 mode
-        else:
-            init_metric, init_loss = evaluate_glue(model, eval_loader, task_name, device)
-
-        if task_name == "squad":
+            init_metric = init_results["f1"]
+            init_em = init_results["em"]
             wandb.log({"epoch": 0, "eval/f1": init_metric, "eval/em": init_em})
         else:
+            init_metric = init_results["metric"]
+            init_loss = init_results["loss"]
             wandb.log({"epoch": 0, "eval/metric": init_metric, "eval/loss": init_loss})
 
         # Train
@@ -832,6 +837,20 @@ def run_task_sweep(task_name: str, device: torch.device, results_dir: str, n_tri
         train_loader, eval_loader = load_glue_data(task_name, tokenizer)
         print(f"Train batches: {len(train_loader)}, Eval batches: {len(eval_loader)}")
 
+    # Compute initial evaluation ONCE (optimization: avoid redundant computation per trial)
+    set_seed(SEED)
+    if task_name == "squad":
+        ref_model = create_squad_model(DEFAULT_LRTT_PARAMS, device)
+        init_f1, init_em = evaluate_squad(ref_model, eval_features, eval_examples, tokenizer, device)
+        init_results = {"f1": init_f1, "em": init_em}
+    else:
+        ref_model = create_glue_model(task_name, DEFAULT_LRTT_PARAMS, device)
+        init_metric, init_loss = evaluate_glue(ref_model, eval_loader, task_name, device)
+        init_results = {"metric": init_metric, "loss": init_loss}
+    del ref_model
+    torch.cuda.empty_cache()
+    print(f"Initial evaluation (computed once): {init_results}")
+
     # Create study
     sampler = TPESampler(seed=SEED)
     study = optuna.create_study(
@@ -846,7 +865,8 @@ def run_task_sweep(task_name: str, device: torch.device, results_dir: str, n_tri
     # Optimize
     def objective(trial):
         return run_trial(trial, task_name, train_loader, eval_loader, device, results_dir,
-                        tokenizer=tokenizer, eval_examples=eval_examples, eval_features=eval_features)
+                        tokenizer=tokenizer, eval_examples=eval_examples, eval_features=eval_features,
+                        init_results=init_results)
 
     study.optimize(objective, n_trials=n_trials, n_jobs=n_jobs, show_progress_bar=True)
 

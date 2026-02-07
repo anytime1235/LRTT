@@ -18,6 +18,7 @@ from aihwkit.simulator.configs.utils import (
     WeightModifierType,
     WeightClipType,
     WeightRemapType,
+    NoiseManagementType,
 )
 
 
@@ -57,6 +58,7 @@ def gen_sixt1c_lora_config(
     dt_batch_sec: float = 1.0,
     include_retention: bool = True,
     output_noise_level: float = 0.0,
+    test_mode: str = None,
 ):
     """
     Generate sixt1c RPU config for LoRA layers.
@@ -70,20 +72,26 @@ def gen_sixt1c_lora_config(
         dt_batch_sec: Time step between batches in seconds (default: 1.0)
         include_retention: Whether to include retention decay (default: True)
         output_noise_level: Output noise level for forward pass (default: 0.0)
+        test_mode: Diagnostic test mode (default: None). Options:
+            - None: Default configuration (omega=1.0, backward hook active)
+            - "is_perfect": Test 1 — forward.is_perfect=True, bypass HW simulation
+            - "omega0": Regression test — omega=0.0, reproduces divergence bug
+            - "noise_none": Test 3 — noise_management=NONE, removes ABS_MAX scaling
 
     Returns:
         TorchInferenceRPUConfig configured for 6T1C characteristics
     """
     rpu_config = TorchInferenceRPUConfig()
 
-    # Mapping configuration — disable weight scaling/remap for LoRA layers.
-    # CHANNELWISE_SYMMETRIC remap normalizes weights to [-1, 1] per channel,
-    # which causes NaN for lora_B (zero-initialized: max=0 → division by zero).
-    # weight_scaling_omega/columnwise similarly distorts small LoRA weights.
-    # These settings are designed for PCM base_layer, not LoRA adapters.
+    # Mapping configuration for LoRA layers:
+    # - remap=NONE (below): prevents NaN from zero-initialized lora_B (max=0 → div by zero)
+    # - weight_scaling_omega=1.0: enables backward gradient hook via set_scales()
+    #   Required because ABS_MAX noise_management scales forward pass, and the
+    #   backward hook compensates gradients. Without it (omega=0), gradients explode.
+    # - alpha[alpha==0.0]=1.0 in periphery.py protects zero-init lora_B columns.
     rpu_config.mapping.digital_bias = True
-    rpu_config.mapping.weight_scaling_omega = 0.0  # Disable weight scaling
-    rpu_config.mapping.weight_scaling_columnwise = False
+    rpu_config.mapping.weight_scaling_omega = 1.0   # Enable backward hook
+    rpu_config.mapping.weight_scaling_columnwise = True  # Per-column scaling
     rpu_config.mapping.learn_out_scaling = False
     rpu_config.mapping.out_scaling_columnwise = False
 
@@ -111,6 +119,34 @@ def gen_sixt1c_lora_config(
     # No PCM noise model for sixt1c (retention handled by apply_sixt1c_lora_retention)
     rpu_config.noise_model = None
     rpu_config.drift_compensation = None
+
+    # --- Diagnostic test modes ---
+    if test_mode == "is_perfect":
+        # Test 1: Bypass all HW simulation in forward pass (pure digital forward).
+        # AnalogLinear wrapper is kept but quantization/scaling/noise are disabled.
+        rpu_config.forward.is_perfect = True
+        print("[sixt1c_config] TEST MODE: is_perfect=True (digital forward)")
+
+    elif test_mode == "omega0":
+        # Regression test: Reproduce the divergence bug by disabling backward hook.
+        # omega=0.0 → set_scales() never called → no backward gradient compensation
+        # → ABS_MAX forward scaling causes gradient explosion.
+        rpu_config.mapping.weight_scaling_omega = 0.0
+        rpu_config.mapping.weight_scaling_columnwise = False
+        print("[sixt1c_config] TEST MODE: omega=0.0 (backward hook disabled — will diverge)")
+
+    elif test_mode == "noise_none":
+        # Test 3: Disable ABS_MAX noise management to remove forward/backward
+        # scale mismatch entirely. May cause input clipping but prevents
+        # gradient explosion from uncompensated scaling.
+        rpu_config.forward.noise_management = NoiseManagementType.NONE
+        print("[sixt1c_config] TEST MODE: noise_management=NONE (no ABS_MAX scaling)")
+
+    elif test_mode is not None:
+        raise ValueError(
+            f"Unknown test_mode='{test_mode}'. "
+            f"Valid options: None, 'is_perfect', 'omega0', 'noise_none'"
+        )
 
     return rpu_config
 

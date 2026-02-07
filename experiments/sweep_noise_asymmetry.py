@@ -345,7 +345,24 @@ def main():
     train_loader, val_loader = load_data()
     use_wandb = WANDB_AVAILABLE
 
+    # Load existing results for resume
+    results_path = '/data/LRTT_transformer/experiments/noise_asymmetry_results.json'
     all_results = []
+    completed_keys = set()
+
+    if os.path.exists(results_path):
+        try:
+            with open(results_path, 'r') as f:
+                all_results = json.load(f)
+            # Build set of completed experiment keys
+            for r in all_results:
+                key = (r['mode'], r['rank'], r['up_down'], r['noise_scale'])
+                completed_keys.add(key)
+            print(f"Resuming: Found {len(all_results)} completed experiments")
+        except Exception as e:
+            print(f"Warning: Could not load existing results: {e}")
+            all_results = []
+
     exp_count = 0
 
     for mode in ['hybrid', 'decay']:
@@ -360,6 +377,12 @@ def main():
                 noise_scale = exp['noise_scale']
                 up_down_label = exp['up_down_label']
                 noise_label = exp['noise_label']
+
+                # Skip if already completed
+                exp_key = (mode, rank, up_down, noise_scale)
+                if exp_key in completed_keys:
+                    print(f"\n[{exp_count}/{total_experiments}] {mode} rank={rank} asymm={up_down_label} noise={noise_label} - SKIPPED (already done)")
+                    continue
 
                 print(f"\n[{exp_count}/{total_experiments}] {mode} rank={rank} asymm={up_down_label} noise={noise_label}")
                 print(f"  Config: te={config['te']}, lifetime={config['lifetime']}, lr={config['lr']:.4f}, tlr={config['tlr']:.4f}")

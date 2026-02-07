@@ -1,6 +1,7 @@
 from aihwkit.nn import AnalogLinear
 from aihwkit.nn.conversion import convert_to_analog
 from aihwkit.simulator.tiles.inference_torch import TorchInferenceTile
+from aihwkit.simulator.configs import TorchInferenceRPUConfig
 from torch.nn import Linear
 import torch.nn as nn
 import torch
@@ -149,6 +150,8 @@ def convert_lora_layers_only_to_analog(model, rpu_config):
     Args:
         model: The model with LoRA adapters
         rpu_config: RPU configuration for analog conversion
+            - TorchInferenceRPUConfig: Uses TorchInferenceTile (inference-only)
+            - SingleRPUConfig/UnitCellRPUConfig: Uses default AnalogTile (training)
 
     Returns:
         The model with LoRA layers converted to analog
@@ -163,17 +166,32 @@ def convert_lora_layers_only_to_analog(model, rpu_config):
     for name in lora_layer_names:
         print(f"  - {name}")
 
+    # Determine tile_module_class based on config type
+    # TorchInferenceRPUConfig requires TorchInferenceTile
+    # SingleRPUConfig/UnitCellRPUConfig use default AnalogTile (no tile_module_class needed)
+    use_inference_tile = isinstance(rpu_config, TorchInferenceRPUConfig)
+    if use_inference_tile:
+        print("Using TorchInferenceTile for TorchInferenceRPUConfig")
+    else:
+        print(f"Using default AnalogTile for {type(rpu_config).__name__}")
+
     # Convert each LoRA layer to analog and make PEFT-compatible
     for layer_name in lora_layer_names:
         parent, attr = get_parent_module(model, layer_name)
         original_layer = getattr(parent, attr)
 
-        # Convert to analog layer
-        analog_layer = AnalogLinear.from_digital(
-            original_layer,
-            rpu_config,
-            tile_module_class=TorchInferenceTile
-        )
+        # Convert to analog layer with appropriate tile class
+        if use_inference_tile:
+            analog_layer = AnalogLinear.from_digital(
+                original_layer,
+                rpu_config,
+                tile_module_class=TorchInferenceTile
+            )
+        else:
+            analog_layer = AnalogLinear.from_digital(
+                original_layer,
+                rpu_config,
+            )
 
         # Make PEFT-compatible by setting the weight attribute
         analog_layer = make_analog_peft_compatible(analog_layer)

@@ -62,7 +62,7 @@ SWEEP_TASKS: List[str] = [
 ]
 
 # Number of trials per task
-NUM_TRIALS = 30
+NUM_TRIALS = 50
 
 # Sweep parameter ranges (log scale)
 LORA_ALPHA_MIN = 0.01
@@ -70,13 +70,14 @@ LORA_ALPHA_MAX = 100.0
 ANALOG_LR_MIN = 1e-5
 ANALOG_LR_MAX = 1e-1
 
-# Fixed parameters for sweep
+# Fixed parameters for sweep (LRTT-style: linear scheduler with warmup)
 FIXED_PARAMS = {
     "sixt1c_dt_batch_sec": 1.0,
     "num_train_epochs": 3,
     "lora_dropout": 0.1,
-    "warmup_ratio": 0.1,
-    "warmup_steps": 0,
+    "warmup_steps": 500,
+    "lr_scheduler_type": "linear",
+    "save_strategy": "no",  # Avoid checkpoint save errors with analog tiles
 }
 
 
@@ -144,8 +145,9 @@ def run_single_experiment(
 
     # Override with fixed sweep parameters
     params["num_train_epochs"] = FIXED_PARAMS["num_train_epochs"]
-    params["warmup_ratio"] = FIXED_PARAMS["warmup_ratio"]
     params["warmup_steps"] = FIXED_PARAMS["warmup_steps"]
+    params["lr_scheduler_type"] = FIXED_PARAMS["lr_scheduler_type"]
+    params["save_strategy"] = FIXED_PARAMS["save_strategy"]
 
     # Build command
     cmd = [
@@ -233,6 +235,7 @@ def run_sweep(
     num_trials: int = NUM_TRIALS,
     seed: int = 42,
     dry_run: bool = False,
+    start_trial: int = 0,
 ) -> List[Dict[str, Any]]:
     """
     Run hyperparameter sweep for a given LoRA rank.
@@ -310,7 +313,7 @@ def run_sweep(
         print(f"TASK: {task.upper()}")
         print(f"{'='*60}")
 
-        for trial_idx in range(num_trials):
+        for trial_idx in range(start_trial, num_trials):
             samples = all_samples[task][trial_idx]
 
             result = run_single_experiment(
@@ -386,6 +389,12 @@ def main():
         action="store_true",
         help="Print commands without executing"
     )
+    parser.add_argument(
+        "--start_trial",
+        type=int,
+        default=0,
+        help="Trial index to start from (for resuming)"
+    )
 
     args = parser.parse_args()
 
@@ -404,6 +413,7 @@ def main():
         num_trials=args.num_trials,
         seed=args.seed,
         dry_run=args.dry_run,
+        start_trial=args.start_trial,
     )
 
 

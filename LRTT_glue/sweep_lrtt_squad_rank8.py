@@ -1,14 +1,9 @@
 #!/home/jovyan/work/ml/.venv310/bin/python
 # coding=utf-8
-"""LRTT Bayesian Optimization for ALL tasks (GLUE + SQuAD).
+"""LRTT Bayesian Optimization for SQuAD - RANK 8.
 
-Converted from TikiTaka v2 sweep script to use LRTT configuration.
-Runs N trials x M epochs for each task to find optimal hyperparameters.
-
-Key differences from TikiTaka v2:
-- Uses PythonLRTTRPUConfig instead of UnitCellRPUConfig + ChoppedTransferCompound
-- LRTT parameters: rank, transfer_every, transfer_lr, lora_alpha, reinit_gain, reinit_mode
-- CRITICAL FIX: Calls optimizer.regroup_param_groups() after AnalogAdam creation
+Based on sweep_lrtt_all_tasks.py with rank=8 and adjusted search space.
+Default trial seeded from rank=4 best: lr=0.00362, t_lr=0.00115, te=1000.
 """
 
 import os
@@ -145,29 +140,39 @@ TASK_TO_METRIC = {
 # LRTT Search Space
 # =============================================================================
 
-# Search space for LRTT parameters
-LR_MIN, LR_MAX = 1e-5, 1e-1                      # analog_lr (learning rate)
-TRANSFER_LR_MIN, TRANSFER_LR_MAX = 0.001, 100.0  # transfer learning rate
-TRANSFER_EVERY_CHOICES = [1, 100, 1000]          # transfer frequency (categorical)
+# Search space for LRTT parameters (mode="lrtt")
+LR_MIN, LR_MAX = 1e-5, 1e-1                        # analog_lr (learning rate)
+TRANSFER_LR_MIN, TRANSFER_LR_MAX = 1e-4, 1e-1      # transfer learning rate
+TRANSFER_EVERY_MIN, TRANSFER_EVERY_MAX = 100, 10000 # transfer frequency (int, log)
+
+# Search space for sixt1c_lora parameters (mode="sixt1c_lora")
+LORA_ALPHA_MIN, LORA_ALPHA_MAX = 0.1, 10.0         # lora scaling factor
 
 # Fixed LRTT parameters (not in sweep)
-RANK = 4
+RANK = 8
 REINIT_GAIN = 0.1
-LORA_ALPHA = 1.0
+LORA_ALPHA = 1.0  # Only used in lrtt mode (fixed)
 
-# Default LRTT config (good starting point)
+# Default LRTT config (seeded from rank=4 best)
 DEFAULT_LRTT_PARAMS = {
+    "learning_rate": 0.00362,
+    "transfer_lr": 0.00115,
+    "transfer_every": 1000,
+}
+
+# Default sixt1c_lora config
+DEFAULT_SIXT1C_LORA_PARAMS = {
     "learning_rate": 0.001,
-    "transfer_lr": 1.0,
-    "transfer_every": 100,
+    "lora_alpha": 1.0,
 }
 
 # =============================================================================
 # Fixed Parameters
 # =============================================================================
 
-N_TRIALS = 10
-NUM_EPOCHS = 1
+N_TRIALS = 50
+NUM_EPOCHS = 3
+MODE = "lrtt"  # "lrtt" (default) or "sixt1c_lora"
 TARGET_MODULES = ["query", "key", "value"]
 MODEL_NAME = "google/mobilebert-uncased"
 MAX_SEQ_LENGTH = 128
@@ -175,8 +180,10 @@ BATCH_SIZE = 32
 WARMUP_STEPS = 500
 SEED = 42
 
-WANDB_PROJECT = "lrtt-all-tasks-sweep"
-OUTPUT_DIR = "/data/AIMC_LoRA_results/lrtt_sweep"
+WANDB_PROJECT = "lrtt-squad-rank8-sweep"
+OUTPUT_DIR = "/data/results/LRTT_sweep"
+
+os.environ["WANDB_MODE"] = "offline"
 
 
 # =============================================================================
@@ -189,6 +196,7 @@ def create_lrtt_config(
     transfer_lr: float,
     lora_alpha: float = 1.0,
     reinit_gain: float = 0.1,
+    mode: str = "lrtt",  # "lrtt" (default) or "sixt1c_lora"
 ):
     """Create LRTT config matching layer test (dtod0 version).
 
@@ -201,6 +209,9 @@ def create_lrtt_config(
         transfer_lr: Transfer learning rate scalar
         lora_alpha: LoRA scaling factor
         reinit_gain: Kaiming initialization gain for B matrix after transfer
+        mode: "lrtt" (default) or "sixt1c_lora"
+              - lrtt: forward_inject=False, transfer_every as specified
+              - sixt1c_lora: forward_inject=True, transfer_every=1000000 (no transfer)
 
     Returns:
         Configured PythonLRTTRPUConfig
@@ -253,6 +264,10 @@ def create_lrtt_config(
         mult_noise=True,
     )
 
+    # Override transfer_every for sixt1c_lora mode (no transfer)
+    if mode == "sixt1c_lora":
+        transfer_every = 1000000  # Effectively no transfer
+
     # LRTT Device config
     device_config = PythonLRTTDevice(
         rank=rank,
@@ -265,10 +280,15 @@ def create_lrtt_config(
     )
     device_config.transfer_lr = transfer_lr
     device_config.units_in_mbatch = True  # Sample units (like TikiTaka)
-    device_config.forward_inject = False
     device_config.transfer_method = "onehot"
     device_config.update_mode = "lora"
     device_config.a_init_mode = "zero"
+
+    # Mode-specific forward_inject setting
+    if mode == "sixt1c_lora":
+        device_config.forward_inject = True  # y = Cx + alpha*A(Bx)
+    else:
+        device_config.forward_inject = False  # y = Cx only (default LRTT)
 
     rpu_config = PythonLRTTRPUConfig(device=device_config)
 
@@ -297,6 +317,12 @@ def create_glue_model(task_name: str, params: Dict, device: torch.device) -> nn.
     model_config = AutoConfig.from_pretrained(MODEL_NAME, num_labels=num_labels)
     model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, config=model_config)
 
+    # Remove bias from target layers (LRTT doesn't support bias)
+    for name, module in model.named_modules():
+        if any(t in name for t in TARGET_MODULES):
+            if hasattr(module, 'bias') and module.bias is not None:
+                module.bias = None
+
     all_linear = list_linear_layers(model)
     exclude = [name for name in all_linear if not any(t in name for t in TARGET_MODULES)]
     exclude.append("classifier")
@@ -305,8 +331,9 @@ def create_glue_model(task_name: str, params: Dict, device: torch.device) -> nn.
         rank=RANK,
         transfer_every=params["transfer_every"],
         transfer_lr=params["transfer_lr"],
-        lora_alpha=LORA_ALPHA,
+        lora_alpha=params.get("lora_alpha", LORA_ALPHA),
         reinit_gain=REINIT_GAIN,
+        mode=MODE,
     )
 
     model = convert_to_analog(model, rpu_config, exclude_modules=exclude)
@@ -401,6 +428,12 @@ def create_squad_model(params: Dict, device: torch.device) -> nn.Module:
     """Create SQuAD model with LRTT."""
     model = AutoModelForQuestionAnswering.from_pretrained(MODEL_NAME)
 
+    # Remove bias from target layers (LRTT doesn't support bias)
+    for name, module in model.named_modules():
+        if any(t in name for t in TARGET_MODULES):
+            if hasattr(module, 'bias') and module.bias is not None:
+                module.bias = None
+
     all_linear = list_linear_layers(model)
     exclude = [name for name in all_linear if not any(t in name for t in TARGET_MODULES)]
     exclude.append("qa_outputs")
@@ -409,8 +442,9 @@ def create_squad_model(params: Dict, device: torch.device) -> nn.Module:
         rank=RANK,
         transfer_every=params["transfer_every"],
         transfer_lr=params["transfer_lr"],
-        lora_alpha=LORA_ALPHA,
+        lora_alpha=params.get("lora_alpha", LORA_ALPHA),
         reinit_gain=REINIT_GAIN,
+        mode=MODE,
     )
 
     model = convert_to_analog(model, rpu_config, exclude_modules=exclude)
@@ -725,12 +759,23 @@ def run_trial(trial: optuna.Trial, task_name: str, train_loader, eval_loader,
                      For GLUE: {"metric": float, "loss": float}
     """
 
-    # Sample LRTT hyperparameters
-    params = {
-        "learning_rate": trial.suggest_float("learning_rate", LR_MIN, LR_MAX, log=True),
-        "transfer_lr": trial.suggest_float("transfer_lr", TRANSFER_LR_MIN, TRANSFER_LR_MAX, log=True),
-        "transfer_every": trial.suggest_categorical("transfer_every", TRANSFER_EVERY_CHOICES),
-    }
+    # Sample hyperparameters based on mode
+    if MODE == "sixt1c_lora":
+        # sixt1c_lora: only learning_rate and lora_alpha (no transfer)
+        params = {
+            "learning_rate": trial.suggest_float("learning_rate", LR_MIN, LR_MAX, log=True),
+            "lora_alpha": trial.suggest_float("lora_alpha", LORA_ALPHA_MIN, LORA_ALPHA_MAX, log=True),
+            "transfer_lr": 0.001,      # Not used (placeholder)
+            "transfer_every": 1000000,  # No transfer
+        }
+    else:
+        # lrtt mode: learning_rate, transfer_lr, transfer_every
+        params = {
+            "learning_rate": trial.suggest_float("learning_rate", LR_MIN, LR_MAX, log=True),
+            "transfer_lr": trial.suggest_float("transfer_lr", TRANSFER_LR_MIN, TRANSFER_LR_MAX, log=True),
+            "transfer_every": trial.suggest_int("transfer_every", TRANSFER_EVERY_MIN, TRANSFER_EVERY_MAX, log=True),
+            "lora_alpha": LORA_ALPHA,  # Fixed in lrtt mode
+        }
 
     # WandB logging
     run = wandb.init(
@@ -768,10 +813,13 @@ def run_trial(trial: optuna.Trial, task_name: str, train_loader, eval_loader,
         if task_name == "squad":
             init_metric = init_results["f1"]
             init_em = init_results["em"]
-            wandb.log({"epoch": 0, "eval/f1": init_metric, "eval/em": init_em})
         else:
             init_metric = init_results["metric"]
             init_loss = init_results["loss"]
+
+        if task_name == "squad":
+            wandb.log({"epoch": 0, "eval/f1": init_metric, "eval/em": init_em})
+        else:
             wandb.log({"epoch": 0, "eval/metric": init_metric, "eval/loss": init_loss})
 
         # Train
@@ -858,8 +906,11 @@ def run_task_sweep(task_name: str, device: torch.device, results_dir: str, n_tri
         sampler=sampler,
     )
 
-    # Enqueue default LRTT params as first trial (good starting point)
-    study.enqueue_trial(DEFAULT_LRTT_PARAMS)
+    # Enqueue default params as first trial (good starting point)
+    if MODE == "sixt1c_lora":
+        study.enqueue_trial(DEFAULT_SIXT1C_LORA_PARAMS)
+    else:
+        study.enqueue_trial(DEFAULT_LRTT_PARAMS)
 
     # Optimize
     def objective(trial):
@@ -869,68 +920,117 @@ def run_task_sweep(task_name: str, device: torch.device, results_dir: str, n_tri
 
     study.optimize(objective, n_trials=n_trials, n_jobs=n_jobs, show_progress_bar=True)
 
-    # Save results
-    task_results = {
+    # Save ALL trial results
+    all_trials = []
+    for trial in study.trials:
+        trial_data = {
+            "trial": trial.number,
+            "value": trial.value,
+            "params": trial.params,
+            "state": str(trial.state),
+        }
+        all_trials.append(trial_data)
+
+    # Sort by metric (best first), handle None values from failed trials
+    all_trials.sort(key=lambda t: t["value"] if t["value"] is not None else -1, reverse=True)
+
+    all_trials_result = {
         "task": task_name,
+        "rank": RANK,
+        "epochs": NUM_EPOCHS,
+        "n_trials": n_trials,
+        "search_space": {
+            "learning_rate": {"min": LR_MIN, "max": LR_MAX, "scale": "log"},
+            "transfer_lr": {"min": TRANSFER_LR_MIN, "max": TRANSFER_LR_MAX, "scale": "log"},
+            "transfer_every": {"min": TRANSFER_EVERY_MIN, "max": TRANSFER_EVERY_MAX, "scale": "int_log"},
+        },
+        "fixed_params": {
+            "rank": RANK,
+            "lora_alpha": LORA_ALPHA,
+            "reinit_mode": "hybrid",
+            "reinit_gain": REINIT_GAIN,
+            "units_in_mbatch": True,
+            "batch_size": BATCH_SIZE,
+            "warmup_steps": WARMUP_STEPS,
+            "model": MODEL_NAME,
+        },
         "best_trial": study.best_trial.number,
         "best_metric": study.best_value,
         "best_params": study.best_params,
         "metric_name": TASK_TO_METRIC.get(task_name, "metric"),
+        "trials": all_trials,
     }
 
-    results_file = os.path.join(results_dir, f"{task_name}_best_params.json")
-    with open(results_file, 'w') as f:
-        json.dump(task_results, f, indent=2)
+    all_trials_file = os.path.join(results_dir, f"{task_name}_rank{RANK}_all_trials.json")
+    with open(all_trials_file, 'w') as f:
+        json.dump(all_trials_result, f, indent=2)
 
-    print(f"\n{task_name.upper()} Results:")
+    print(f"\n{task_name.upper()} Results (rank={RANK}):")
     print(f"  Best Trial: {study.best_trial.number}")
     print(f"  Best {TASK_TO_METRIC.get(task_name, 'metric')}: {study.best_value:.4f}")
     print(f"  Best Params: {study.best_params}")
-    print(f"  Saved to: {results_file}")
+    print(f"  All trials saved to: {all_trials_file}")
 
-    return task_results
+    return all_trials_result
 
 
 def main():
-    global NUM_EPOCHS  # Allow overriding from command line
+    global NUM_EPOCHS, MODE  # Allow overriding from command line
 
     parser = argparse.ArgumentParser(description="LRTT Bayesian Optimization for GLUE/SQuAD tasks")
-    parser.add_argument("--tasks", nargs="+", default=ALL_TASKS,
-                       help="Tasks to run (default: all)")
-    parser.add_argument("--n_trials", type=int, default=10,
+    parser.add_argument("--tasks", nargs="+", default=["squad"],
+                       help="Tasks to run (default: squad)")
+    parser.add_argument("--n_trials", type=int, default=N_TRIALS,
                        help="Number of trials per task")
     parser.add_argument("--n_jobs", type=int, default=1,
                        help="Number of parallel jobs per task")
     parser.add_argument("--epochs", type=int, default=NUM_EPOCHS,
                        help="Number of epochs per trial")
+    parser.add_argument("--mode", type=str, default=MODE, choices=["lrtt", "sixt1c_lora"],
+                       help="Mode: 'lrtt' (default) or 'sixt1c_lora' (forward_inject=True, no transfer)")
     args = parser.parse_args()
 
     n_trials = args.n_trials
     n_jobs = args.n_jobs
     NUM_EPOCHS = args.epochs  # Override global
+    MODE = args.mode  # Override global
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     results_dir = os.path.join(OUTPUT_DIR, f"sweep_{timestamp}")
     os.makedirs(results_dir, exist_ok=True)
 
     print("="*60)
-    print("LRTT Bayesian Optimization - All Tasks")
+    print("LRTT Bayesian Optimization - SQuAD RANK 8")
     print("="*60)
+    print(f"Mode: {MODE}")
+    if MODE == "sixt1c_lora":
+        print("  -> forward_inject=True, transfer_every=1000000 (no transfer)")
     print(f"Tasks: {args.tasks}")
     print(f"Trials per task: {n_trials}")
     print(f"Parallel jobs: {n_jobs}")
     print(f"Epochs: {NUM_EPOCHS}")
     print(f"Results dir: {results_dir}")
     print()
-    print("LRTT Search Space:")
-    print(f"  learning_rate: [{LR_MIN}, {LR_MAX}] (log)")
-    print(f"  transfer_lr: [{TRANSFER_LR_MIN}, {TRANSFER_LR_MAX}] (log)")
-    print(f"  transfer_every: {TRANSFER_EVERY_CHOICES} (categorical)")
-    print()
-    print("LRTT Fixed Parameters:")
-    print(f"  rank: {RANK}")
-    print(f"  reinit_gain: {REINIT_GAIN}")
-    print(f"  lora_alpha: {LORA_ALPHA}")
+    if MODE == "sixt1c_lora":
+        print("sixt1c_lora Search Space:")
+        print(f"  learning_rate: [{LR_MIN}, {LR_MAX}] (log)")
+        print(f"  lora_alpha: [{LORA_ALPHA_MIN}, {LORA_ALPHA_MAX}] (log)")
+        print()
+        print("sixt1c_lora Fixed Parameters:")
+        print(f"  rank: {RANK}")
+        print(f"  reinit_gain: {REINIT_GAIN}")
+        print(f"  transfer_every: 1000000 (no transfer)")
+        print(f"  forward_inject: True")
+    else:
+        print("LRTT Search Space:")
+        print(f"  learning_rate: [{LR_MIN}, {LR_MAX}] (log)")
+        print(f"  transfer_lr: [{TRANSFER_LR_MIN}, {TRANSFER_LR_MAX}] (log)")
+        print(f"  transfer_every: [{TRANSFER_EVERY_MIN}, {TRANSFER_EVERY_MAX}] (int, log)")
+        print()
+        print("LRTT Fixed Parameters:")
+        print(f"  rank: {RANK}")
+        print(f"  reinit_gain: {REINIT_GAIN}")
+        print(f"  lora_alpha: {LORA_ALPHA}")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}")

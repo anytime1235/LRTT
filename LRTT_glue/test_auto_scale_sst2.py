@@ -1,8 +1,14 @@
 #!/home/jovyan/work/ml/.venv310/bin/python
 # coding=utf-8
-"""SST-2 A/B test: baseline LRTT vs auto_scale + transfer_ema_scale.
+"""SST-2 A/B test: auto_scale and transfer_ema_scale individual/combined effects.
 
-Runs 2 conditions × 1 epoch on SST-2 and compares:
+Runs 4 conditions × 1 epoch on SST-2 and compares:
+  - Condition A: BASELINE (both False) - reference
+  - Condition B: AUTO_SCALE_ONLY (auto_scale=True, transfer_ema=False)
+  - Condition C: TRANSFER_EMA_ONLY (auto_scale=False, transfer_ema=True)
+  - Condition D: BOTH (both True) - combined effect
+
+Metrics:
   - Loss trajectory stability (std of per-step loss)
   - Final accuracy
   - EMA state sanity (no NaN/Inf)
@@ -355,94 +361,177 @@ def main():
     train_loader, eval_loader = load_sst2_data(tokenizer)
     print(f"Train batches: {len(train_loader)}, Eval batches: {len(eval_loader)}")
 
-    # === Condition 1: Baseline (no auto_scale, no transfer_ema) ===
-    rpu_baseline = create_lrtt_config(auto_scale=False, transfer_ema_scale=False)
-    results_baseline = train_and_evaluate("BASELINE", rpu_baseline, train_loader, eval_loader, device)
-
-    # === Condition 2: auto_scale + transfer_ema_scale ===
-    rpu_scaled = create_lrtt_config(auto_scale=True, transfer_ema_scale=True)
-    results_scaled = train_and_evaluate("AUTO_SCALE+TRANSFER_EMA", rpu_scaled, train_loader, eval_loader, device)
-
-    # === Comparison ===
-    print("\n" + "=" * 60)
-    print("  COMPARISON SUMMARY")
-    print("=" * 60)
-
-    def fmt(v, is_pct=False):
-        if is_pct:
-            return f"{v*100:.2f}%"
-        return f"{v:.4f}"
-
-    headers = ["Metric", "BASELINE", "AUTO_SCALE+EMA", "Delta"]
-    rows = [
-        ("Accuracy", results_baseline["accuracy"], results_scaled["accuracy"]),
-        ("Eval Loss", results_baseline["eval_loss"], results_scaled["eval_loss"]),
-        ("Final Train Loss", results_baseline["final_train_loss"], results_scaled["final_train_loss"]),
-        ("Loss Traj Std", results_baseline["loss_trajectory_std"], results_scaled["loss_trajectory_std"]),
-        ("Tail Loss Std", results_baseline["tail_loss_std"], results_scaled["tail_loss_std"]),
-        ("Train Time (s)", results_baseline["train_time_sec"], results_scaled["train_time_sec"]),
+    # === 4 Conditions to Test ===
+    CONDITIONS = [
+        ("BASELINE", False, False),           # Reference
+        ("AUTO_SCALE_ONLY", True, False),     # auto_scale 단독 효과
+        ("TRANSFER_EMA_ONLY", False, True),   # transfer_ema 단독 효과
+        ("BOTH", True, True),                 # 조합 효과
     ]
 
-    print(f"\n  {'Metric':<22} {'BASELINE':>12} {'SCALED':>12} {'Delta':>12}")
-    print(f"  {'-'*22} {'-'*12} {'-'*12} {'-'*12}")
-    for name, base, scaled in rows:
-        delta = scaled - base
-        sign = "+" if delta > 0 else ""
-        if "Time" in name:
-            pct = (delta / base * 100) if base > 0 else 0
-            print(f"  {name:<22} {base:>11.1f}s {scaled:>11.1f}s {sign}{pct:>10.1f}%")
+    all_results = {}
+    for name, auto_scale, transfer_ema in CONDITIONS:
+        rpu_config = create_lrtt_config(auto_scale=auto_scale, transfer_ema_scale=transfer_ema)
+        results = train_and_evaluate(name, rpu_config, train_loader, eval_loader, device)
+        all_results[name] = results
+
+    # === Comparison Summary ===
+    print("\n" + "=" * 80)
+    print("  COMPARISON SUMMARY (4 CONDITIONS)")
+    print("=" * 80)
+
+    # Table header
+    cond_names = [c[0] for c in CONDITIONS]
+    header_fmt = f"{'Metric':<20}" + "".join(f"{name:>14}" for name in cond_names)
+    print(f"\n  {header_fmt}")
+    print(f"  {'-'*20}" + "".join(f"{'-'*14}" for _ in cond_names))
+
+    # Metrics to compare
+    metrics = [
+        ("Accuracy", "accuracy", False),
+        ("Eval Loss", "eval_loss", False),
+        ("Final Train Loss", "final_train_loss", False),
+        ("Train Loss Mean", "train_loss_mean", False),
+        ("Loss Traj Std", "loss_trajectory_std", False),
+        ("Tail Loss Std", "tail_loss_std", False),
+        ("Train Time (s)", "train_time_sec", True),
+    ]
+
+    for metric_name, key, is_time in metrics:
+        values = [all_results[name][key] for name in cond_names]
+        if is_time:
+            row = f"  {metric_name:<20}" + "".join(f"{v:>13.1f}s" for v in values)
         else:
-            print(f"  {name:<22} {base:>12.4f} {scaled:>12.4f} {sign}{delta:>12.4f}")
+            row = f"  {metric_name:<20}" + "".join(f"{v:>14.4f}" for v in values)
+        print(row)
 
-    # Stability assessment
-    print(f"\n  Stability Assessment:")
-    traj_improvement = (results_baseline["loss_trajectory_std"] - results_scaled["loss_trajectory_std"]) / results_baseline["loss_trajectory_std"] * 100 if results_baseline["loss_trajectory_std"] > 0 else 0
-    tail_improvement = (results_baseline["tail_loss_std"] - results_scaled["tail_loss_std"]) / results_baseline["tail_loss_std"] * 100 if results_baseline["tail_loss_std"] > 0 else 0
-    print(f"    Loss trajectory std improvement: {traj_improvement:+.1f}%")
-    print(f"    Tail loss std improvement:       {tail_improvement:+.1f}%")
+    # === Delta from BASELINE ===
+    print("\n  Delta from BASELINE:")
+    print(f"  {'-'*20}" + "".join(f"{'-'*14}" for _ in cond_names[1:]))
 
-    overhead = (results_scaled["train_time_sec"] - results_baseline["train_time_sec"]) / results_baseline["train_time_sec"] * 100
-    print(f"    Performance overhead:             {overhead:+.1f}%")
+    baseline = all_results["BASELINE"]
+    for metric_name, key, is_time in metrics:
+        base_val = baseline[key]
+        deltas = []
+        for name in cond_names[1:]:
+            delta = all_results[name][key] - base_val
+            if is_time and base_val > 0:
+                pct = (delta / base_val) * 100
+                deltas.append(f"{pct:+13.1f}%")
+            else:
+                deltas.append(f"{delta:+14.4f}")
+        row = f"  {metric_name:<20}" + "".join(deltas)
+        print(row)
 
-    # NaN/Inf check
-    has_nan = False
-    for layer_name, ls in results_scaled["lrtt_stats"].items():
-        for k, v in ls.items():
-            if isinstance(v, float) and (math.isnan(v) or math.isinf(v)):
-                print(f"  WARNING: {layer_name}.{k} = {v} (NaN/Inf detected!)")
-                has_nan = True
-    if not has_nan:
-        print(f"    NaN/Inf check:                   CLEAN")
+    # === Stability Assessment ===
+    print("\n  Stability Assessment (vs BASELINE):")
+    for name in cond_names[1:]:
+        r = all_results[name]
+        traj_improv = (baseline["loss_trajectory_std"] - r["loss_trajectory_std"]) / baseline["loss_trajectory_std"] * 100 if baseline["loss_trajectory_std"] > 0 else 0
+        tail_improv = (baseline["tail_loss_std"] - r["tail_loss_std"]) / baseline["tail_loss_std"] * 100 if baseline["tail_loss_std"] > 0 else 0
+        overhead = (r["train_time_sec"] - baseline["train_time_sec"]) / baseline["train_time_sec"] * 100
+        print(f"\n    [{name}]")
+        print(f"      Loss traj std improvement: {traj_improv:+.1f}%")
+        print(f"      Tail loss std improvement: {tail_improv:+.1f}%")
+        print(f"      Performance overhead:      {overhead:+.1f}%")
 
-    # Save results
+    # === NaN/Inf Check ===
+    print("\n  NaN/Inf Check:")
+    any_nan = False
+    for cond_name in cond_names:
+        has_nan = False
+        for layer_name, ls in all_results[cond_name]["lrtt_stats"].items():
+            for k, v in ls.items():
+                if isinstance(v, float) and (math.isnan(v) or math.isinf(v)):
+                    print(f"    WARNING: [{cond_name}] {layer_name}.{k} = {v}")
+                    has_nan = True
+                    any_nan = True
+        if not has_nan:
+            print(f"    [{cond_name}] CLEAN")
+
+    # === EMA Statistics Summary ===
+    print("\n  EMA Statistics Summary:")
+    for cond_name in cond_names:
+        ema_products = []
+        ema_ab_norms = []
+        for layer_name, ls in all_results[cond_name]["lrtt_stats"].items():
+            if "ema_product" in ls:
+                ema_products.append(ls["ema_product"])
+            if "ema_ab_norm" in ls:
+                ema_ab_norms.append(ls["ema_ab_norm"])
+
+        print(f"\n    [{cond_name}]")
+        if ema_products:
+            print(f"      EMA(x*d): mean={np.mean(ema_products):.4f}, std={np.std(ema_products):.4f}, cv={np.std(ema_products)/np.mean(ema_products):.2f}")
+        else:
+            print(f"      EMA(x*d): N/A (auto_scale=False)")
+        if ema_ab_norms:
+            print(f"      EMA(||AB||): mean={np.mean(ema_ab_norms):.4f}, std={np.std(ema_ab_norms):.4f}, cv={np.std(ema_ab_norms)/np.mean(ema_ab_norms):.2f}")
+        else:
+            print(f"      EMA(||AB||): N/A (transfer_ema=False)")
+
+    # === Save Results ===
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    out_dir = f"/data/results/tikitaka/auto_scale_test_{timestamp}"
+    out_dir = f"/data/results/tikitaka/auto_scale_4cond_test_{timestamp}"
     os.makedirs(out_dir, exist_ok=True)
 
-    # Remove step_losses (too large for JSON) and tensor objects
-    for r in [results_baseline, results_scaled]:
+    # Clean up for JSON serialization
+    for cond_name in cond_names:
+        r = all_results[cond_name]
         r.pop("step_losses", None)
-        # Clean up lrtt_stats for JSON serialization
         for layer_name in list(r["lrtt_stats"].keys()):
             for k, v in list(r["lrtt_stats"][layer_name].items()):
                 if isinstance(v, torch.Tensor):
                     r["lrtt_stats"][layer_name][k] = v.item()
 
-    summary = {
-        "baseline": results_baseline,
-        "scaled": results_scaled,
-        "comparison": {
-            "traj_std_improvement_pct": traj_improvement,
-            "tail_std_improvement_pct": tail_improvement,
+    # Comparison summary
+    comparison = {}
+    for name in cond_names[1:]:
+        r = all_results[name]
+        traj_improv = (baseline["loss_trajectory_std"] - r["loss_trajectory_std"]) / baseline["loss_trajectory_std"] * 100 if baseline["loss_trajectory_std"] > 0 else 0
+        tail_improv = (baseline["tail_loss_std"] - r["tail_loss_std"]) / baseline["tail_loss_std"] * 100 if baseline["tail_loss_std"] > 0 else 0
+        overhead = (r["train_time_sec"] - baseline["train_time_sec"]) / baseline["train_time_sec"] * 100
+        comparison[name] = {
+            "traj_std_improvement_pct": traj_improv,
+            "tail_std_improvement_pct": tail_improv,
             "overhead_pct": overhead,
-            "has_nan": has_nan,
+            "accuracy_delta": r["accuracy"] - baseline["accuracy"],
+            "eval_loss_delta": r["eval_loss"] - baseline["eval_loss"],
         }
+
+    summary = {
+        "conditions": {name: all_results[name] for name in cond_names},
+        "comparison_vs_baseline": comparison,
+        "has_any_nan": any_nan,
     }
 
     with open(os.path.join(out_dir, "results.json"), "w") as f:
         json.dump(summary, f, indent=2, default=str)
 
     print(f"\n  Results saved to: {out_dir}/results.json")
+
+    # === Final Recommendation ===
+    print("\n" + "=" * 80)
+    print("  RECOMMENDATION")
+    print("=" * 80)
+
+    # Find best condition by accuracy
+    best_acc_name = max(cond_names, key=lambda n: all_results[n]["accuracy"])
+    best_loss_name = min(cond_names, key=lambda n: all_results[n]["eval_loss"])
+    most_stable_name = min(cond_names, key=lambda n: all_results[n]["tail_loss_std"])
+
+    print(f"\n    Best Accuracy:    [{best_acc_name}] = {all_results[best_acc_name]['accuracy']:.4f}")
+    print(f"    Lowest Eval Loss: [{best_loss_name}] = {all_results[best_loss_name]['eval_loss']:.4f}")
+    print(f"    Most Stable:      [{most_stable_name}] (tail_std = {all_results[most_stable_name]['tail_loss_std']:.4f})")
+
+    # Check if BASELINE is still best
+    if best_acc_name == "BASELINE" and best_loss_name == "BASELINE":
+        print("\n    Conclusion: BASELINE outperforms all auto_scale/transfer_ema variants.")
+        print("    Recommendation: Keep auto_scale=False, transfer_ema_scale=False")
+    elif best_acc_name != "BASELINE":
+        print(f"\n    Conclusion: [{best_acc_name}] shows improvement over BASELINE.")
+        print(f"    Consider enabling: auto_scale={CONDITIONS[[c[0] for c in CONDITIONS].index(best_acc_name)][1]}, "
+              f"transfer_ema_scale={CONDITIONS[[c[0] for c in CONDITIONS].index(best_acc_name)][2]}")
 
 
 if __name__ == "__main__":

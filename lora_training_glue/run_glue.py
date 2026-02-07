@@ -675,7 +675,7 @@ def main():
         peft_config = LoraConfig(r=general_args.lora_rank,
                                  lora_alpha=general_args.lora_alpha,
                                  lora_dropout=general_args.lora_dropout,
-                                 target_modules=["dense","query","key","value","qa_outputs","embedding_transformation"],)
+                                 target_modules=["dense","query","key","value","embedding_transformation"],)
 
 
         if training_args.do_train:
@@ -708,10 +708,19 @@ def main():
         print("SIXT1C MODE - PCM base_layer + Sixt1c LoRA (LinearStepDevice)")
         print("=" * 50 + "\n")
 
-        # Step 1: Convert entire model to PCM analog
+        # Step 1: Convert LoRA target modules to PCM analog (exclude non-LoRA layers like classifier)
         pcm_rpu_config = gen_rpu_config(output_noise_level=general_args.output_noise_level,
                                          pcm_model=general_args.pcm_model)
-        model = convert_to_analog(model, pcm_rpu_config, tile_module_class=TorchInferenceTile)
+
+        # Build exclude list: all linear layers that are NOT LoRA targets
+        lora_target_modules = ["dense", "query", "key", "value", "embedding_transformation"]
+        all_linear = list_linear_layers(digital_model)
+        exclude = [name for name in all_linear
+                   if not any(t in name for t in lora_target_modules)]
+        exclude.append("classifier")  # Always exclude classifier
+        print(f"Excluding {len(exclude)} non-LoRA layers from analog conversion: {exclude}")
+
+        model = convert_to_analog(model, pcm_rpu_config, tile_module_class=TorchInferenceTile, exclude_modules=exclude)
         print("PCM RPU Configuration (for base_layer):")
         print(pcm_rpu_config)
 
@@ -759,6 +768,12 @@ def main():
                 # lora_A/lora_B remain trainable (Sixt1c)
         print("Froze base_layer (PCM), lora_A/lora_B remain trainable (Sixt1c)")
 
+        # classifier: digital full-param trainable (not LoRA, not analog)
+        for name, param in model.named_parameters():
+            if "classifier" in name:
+                param.requires_grad = True
+        print("classifier set to digital full-param trainable")
+
         if general_args.analog_optimizer == "AnalogSGD":
             optimizer = AnalogSGD(model.parameters(), lr=general_args.analog_lr, momentum=0.9)
             optimizer.regroup_param_groups(model)
@@ -773,11 +788,18 @@ def main():
         print("PCM ANALOG MODE - Full model conversion")
         print("=" * 50 + "\n")
 
+        # Exclude classifier from analog conversion (keep digital full-param trainable)
+        all_linear_pcm = list_linear_layers(digital_model)
+        pcm_exclude = [name for name in all_linear_pcm if "classifier" in name]
+        pcm_exclude.append("classifier")
+
         model = convert_to_analog(model, gen_rpu_config(output_noise_level=general_args.output_noise_level,
                                                         pcm_model=general_args.pcm_model),
-                                  tile_module_class=TorchInferenceTile)
+                                  tile_module_class=TorchInferenceTile,
+                                  exclude_modules=pcm_exclude)
         print("RPU Configuration:")
         print(gen_rpu_config(output_noise_level=general_args.output_noise_level, pcm_model=general_args.pcm_model))
+        print(f"Excluded from analog: {pcm_exclude}")
 
         print("Analog model with LoRA (Before layer correction)")
         print(model)
@@ -812,6 +834,13 @@ def main():
             if isinstance(module, AnalogLinear):  # Check if the module is an instance of AnalogLinear
                 for param in module.parameters():
                     param.requires_grad = False
+
+        # classifier: digital full-param trainable (not LoRA, not analog)
+        for name, param in model.named_parameters():
+            if "classifier" in name:
+                param.requires_grad = True
+        print("classifier set to digital full-param trainable")
+
         if training_args.do_train:
             model.print_trainable_parameters()
         # if training_args.do_eval:

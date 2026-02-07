@@ -713,7 +713,8 @@ def run_trial(trial: optuna.Trial, task_name: str, train_loader, eval_loader,
         "in_chop_prob": trial.suggest_float("in_chop_prob", CHOP_PROB_MIN, CHOP_PROB_MAX),
     }
 
-    # WandB logging
+    # WandB logging (offline mode)
+    os.environ["WANDB_MODE"] = "offline"
     run = wandb.init(
         project=WANDB_PROJECT,
         name=f"{task_name}_trial_{trial.number}",
@@ -741,17 +742,8 @@ def run_trial(trial: optuna.Trial, task_name: str, train_loader, eval_loader,
             num_training_steps=num_training_steps
         )
 
-        # Initial evaluation
-        if task_name == "squad":
-            init_metric, init_em = evaluate_squad(model, eval_features, eval_examples, tokenizer, device)
-            init_loss = 0.0  # Not computed in F1 mode
-        else:
-            init_metric, init_loss = evaluate_glue(model, eval_loader, task_name, device)
-
-        if task_name == "squad":
-            wandb.log({"epoch": 0, "eval/f1": init_metric, "eval/em": init_em})
-        else:
-            wandb.log({"epoch": 0, "eval/metric": init_metric, "eval/loss": init_loss})
+        # Skip initial evaluation - baseline is constant across trials
+        # (same pretrained model, negligible analog noise variation)
 
         # Train
         for epoch in range(1, NUM_EPOCHS + 1):
@@ -776,7 +768,7 @@ def run_trial(trial: optuna.Trial, task_name: str, train_loader, eval_loader,
 
         # Final metric
         final_metric = eval_metric
-        wandb.log({"final/metric": final_metric, "final/improvement": final_metric - init_metric})
+        wandb.log({"final/metric": final_metric})
 
         del model
         torch.cuda.empty_cache()

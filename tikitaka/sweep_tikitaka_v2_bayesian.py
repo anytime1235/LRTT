@@ -383,11 +383,8 @@ def run_trial(
         )
         optimizer = AnalogAdam(model.parameters(), lr=lr)
 
-        init_acc, init_loss = evaluate_model(model, eval_loader, device)
-        wandb.log({"epoch": 0, "eval/accuracy": init_acc, "eval/loss": init_loss})
-
-        csv_row['initial_accuracy'] = init_acc
-        csv_row['initial_loss'] = init_loss
+        csv_row['initial_accuracy'] = None
+        csv_row['initial_loss'] = None
 
         global_step = 0
         for epoch in range(1, NUM_EPOCHS + 1):
@@ -408,13 +405,13 @@ def run_trial(
                 raise optuna.TrialPruned()
 
         final_acc, final_loss = evaluate_model(model, eval_loader, device)
-        wandb.log({"final/accuracy": final_acc, "final/loss": final_loss, "final/improvement": final_acc - init_acc})
+        wandb.log({"final/accuracy": final_acc, "final/loss": final_loss})
         wandb.summary["final_accuracy"] = final_acc
-        wandb.summary["improvement"] = final_acc - init_acc
+        wandb.summary["improvement"] = None
 
         csv_row['final_accuracy'] = final_acc
         csv_row['final_loss'] = final_loss
-        csv_row['improvement'] = final_acc - init_acc
+        csv_row['improvement'] = None
         csv_row['status'] = 'completed'
 
         del model

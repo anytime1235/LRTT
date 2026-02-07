@@ -25,6 +25,18 @@ import warnings
 from dataclasses import dataclass, field
 from typing import Optional
 
+
+def str_to_bool(value):
+    """Convert string to boolean for argparse."""
+    if isinstance(value, bool):
+        return value
+    if value.lower() in ('true', 'yes', '1', 't', 'y'):
+        return True
+    elif value.lower() in ('false', 'no', '0', 'f', 'n'):
+        return False
+    else:
+        raise ValueError(f"Boolean value expected, got '{value}'")
+
 import datasets
 import evaluate
 from datasets import load_dataset
@@ -44,9 +56,39 @@ from transformers import (
     default_data_collator,
     set_seed,
 )
+from transformers import TrainerCallback
 from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils import check_min_version
 from transformers.utils.versions import require_version
+
+
+class MetricImprovementCallback(TrainerCallback):
+    """Stop training if eval metric doesn't improve by threshold between epochs."""
+
+    def __init__(self, metric_name="eval_f1", threshold=2.0, patience=1):
+        self.metric_name = metric_name
+        self.threshold = threshold
+        self.patience = patience
+        self.best_metric = None
+        self.no_improve_count = 0
+
+    def on_evaluate(self, args, state, control, metrics, **kwargs):
+        value = metrics.get(self.metric_name)
+        if value is None:
+            return
+        if self.best_metric is None:
+            self.best_metric = value
+            return
+        improvement = value - self.best_metric
+        if improvement >= self.threshold:
+            self.best_metric = value
+            self.no_improve_count = 0
+        else:
+            self.no_improve_count += 1
+            if self.no_improve_count >= self.patience:
+                print(f"Early stopping: {self.metric_name}={value:.2f}, "
+                      f"best={self.best_metric:.2f}, improvement={improvement:.2f} < {self.threshold}")
+                control.should_training_stop = True
 
 # send_example_telemetry removed in transformers 5.0
 def send_example_telemetry(*args, **kwargs):
@@ -68,7 +110,7 @@ from torch import save as torch_save, load as torch_load
 from related_functions import list_analog_linear_layers, list_linear_layers, replace_layer, convert_selected_layers_to_analog, convert_lora_layers_only_to_analog, apply_sixt1c_retention, apply_sixt1c_lora_retention, apply_pcm_drift_to_base_layer, apply_tikitaka_drift
 
 # Sixt1c config import
-from sixt1c_config import gen_sixt1c_lora_config, calculate_lifetime, TAU_SEC
+from sixt1c_config import gen_sixt1c_lora_config, gen_sixt1c_2tile_config, gen_softbounds_base_config, calculate_lifetime, TAU_SEC
 
 # TikiTaka v2 config import
 from tikitaka_config import create_tikitaka_v2_config, create_tikitaka_v2_config_with_drift, TIKITAKA_V2_DEFAULT_PARAMS
@@ -364,7 +406,7 @@ def main():
                                 help="Analog device type: 'pcm' (PCMLikeNoiseModel for all layers), 'sixt1c' (PCM for base_layer, 6T1C LinearStepDevice for LoRA), or 'tikitaka' (TikiTaka v2 ChoppedTransferCompound)")
     general_parser.add_argument('--sixt1c_dt_batch_sec', type=float, default=1.0,
                                 help="Time step between batches in seconds for sixt1c retention (default: 1.0)")
-    general_parser.add_argument('--sixt1c_include_retention', type=bool, default=True,
+    general_parser.add_argument('--sixt1c_include_retention', type=str_to_bool, default=True,
                                 help="Whether to include retention decay for sixt1c (default: True)")
 
     # TikiTaka v2 specific arguments
@@ -400,7 +442,16 @@ def main():
     general_parser.add_argument('--lora_dropout', type=float, default=0.1,
                                 help="LoRA dropout rate (default: 0.1)")
 
+    # Early stopping arguments
+    general_parser.add_argument('--early_stopping_threshold', type=float, default=0.0,
+                                help="Min metric improvement between epochs to continue (0=disabled)")
+    general_parser.add_argument('--early_stopping_patience', type=int, default=0,
+                                help="Number of epochs with insufficient improvement before stopping (0=disabled)")
+
     general_args, remaining_argv = general_parser.parse_known_args()
+
+    # Filter out empty strings that might come from shell line continuations
+    remaining_argv = [arg for arg in remaining_argv if arg != '']
 
     # Remove the parsed arguments from sys.argv
     sys.argv = [sys.argv[0]] + remaining_argv
@@ -650,7 +701,7 @@ def main():
         peft_config = LoraConfig(r=general_args.lora_rank,
                                  lora_alpha=general_args.lora_alpha,
                                  lora_dropout=general_args.lora_dropout,
-                                 target_modules=["dense","query","key","value","qa_outputs","embedding_transformation"],)
+                                 target_modules=["dense","query","key","value","embedding_transformation"],)
 
         if training_args.do_train:
             model = get_peft_model(model, peft_config)
@@ -677,79 +728,108 @@ def main():
         model.to("cuda")
         optimizer = None  # Use default optimizer for digital mode
     elif general_args.analog_device == "sixt1c":
-        # Sixt1c mode: base_layer=PCM, lora_A/lora_B=Sixt1c (LinearStepDevice)
+        # Sixt1c mode: 2-tile ChoppedTransferCompound (memory-efficient, same as TikiTaka structure)
+        # OOM 해결: SingleRPUConfig + AnalogTile → 2-tile ChoppedTransferCompound
         print("\n" + "=" * 50)
-        print("SIXT1C MODE - PCM base_layer + Sixt1c LoRA (LinearStepDevice)")
+        print("SIXT1C MODE - 2-tile ChoppedTransferCompound (Memory-Efficient)")
+        print("Fast tile: 6T1C LinearStepDevice, Slow tile: SoftBounds (noise=0)")
+        print("transfer_every=0 (no transfer), gamma=0 (Slow tile only for forward)")
         print("=" * 50 + "\n")
 
-        # Step 1: Convert entire model to PCM analog
-        pcm_rpu_config = gen_rpu_config(output_noise_level=general_args.output_noise_level,
-                                         pcm_model=general_args.pcm_model)
-        model = convert_to_analog(model, pcm_rpu_config, tile_module_class=TorchInferenceTile)
-        print("PCM RPU Configuration (for base_layer):")
-        print(pcm_rpu_config)
-
-        # Step 2: Get all analog layer names and filter out base_layer (keep lora_A, lora_B)
-        analog_linear_layer_names = list_analog_linear_layers(model)
-        substrings_to_remove = ["base_layer"]
-        lora_layer_names = [name for name in analog_linear_layer_names
-                           if not any(substring in name for substring in substrings_to_remove)]
-
-        # Step 3: Replace lora_A/lora_B back to digital
-        for layer_name in lora_layer_names:
-            replace_layer(model, digital_model, layer_name)
-        print(f"Replaced {len(lora_layer_names)} LoRA layers back to digital")
-
-        # Step 4: Convert lora_A/lora_B to Sixt1c analog (LinearStepDevice)
-        sixt1c_rpu_config = gen_sixt1c_lora_config(
-            dt_batch_sec=general_args.sixt1c_dt_batch_sec,
-            include_retention=general_args.sixt1c_include_retention,
-            output_noise_level=general_args.output_noise_level,
-        )
-        print("Sixt1c RPU Configuration (for LoRA layers - LinearStepDevice):")
-        print(sixt1c_rpu_config)
-
-        # Calculate and print lifetime for reference
+        # Calculate lifetime from dt_batch_sec if retention is enabled
         if general_args.sixt1c_include_retention:
             lifetime = calculate_lifetime(general_args.sixt1c_dt_batch_sec)
             print(f"Calculated lifetime for retention: {lifetime:.2f}")
             print(f"TAU_SEC: {TAU_SEC} seconds ({TAU_SEC/60:.1f} minutes)")
+        else:
+            lifetime = 0.0  # No retention
 
-        model = convert_lora_layers_only_to_analog(model, sixt1c_rpu_config)
+        # Create 2-tile sixt1c config (memory-efficient)
+        sixt1c_2tile_config = gen_sixt1c_2tile_config(lifetime=lifetime)
+        print("Sixt1c 2-tile RPU Configuration (ChoppedTransferCompound, no transfer):")
+        print(sixt1c_2tile_config)
+
+        # Get target modules for analog conversion (same as TikiTaka)
+        target_modules = ["query", "key", "value", "dense", "embedding_transformation"]
+        print(f"\nTarget modules for analog conversion: {target_modules}")
+
+        # Get all linear layers and create exclude list
+        all_linear = list_linear_layers(digital_model)
+        exclude = [name for name in all_linear
+                   if not any(t in name for t in target_modules)]
+        exclude.append("qa_outputs")  # Always exclude qa_outputs (classifier, keep digital)
+
+        print(f"Total linear layers: {len(all_linear)}")
+        print(f"Excluded layers: {len(exclude)}")
+        print(f"Target layers to convert: {len(all_linear) - len(exclude)}")
+
+        # Convert to analog with 2-tile config
+        model = convert_to_analog(model, sixt1c_2tile_config, exclude_modules=exclude)
+
+        # Freeze non-LoRA layers (only train LoRA adapters and qa_outputs)
+        # For analog layers, we freeze base_layer and keep lora_A/lora_B trainable
+        base_layer_count = 0
+        lora_layer_count = 0
+        for name, module in model.named_modules():
+            if isinstance(module, AnalogLinear):
+                if 'base_layer' in name:
+                    # Freeze base_layer by setting tile learning rate to 0
+                    for tile in module.analog_tiles():
+                        tile.set_learning_rate(0.0)
+                    for param in module.parameters():
+                        param.requires_grad = False
+                    base_layer_count += 1
+                elif 'lora_A' in name or 'lora_B' in name:
+                    # lora_A/lora_B remain trainable
+                    lora_layer_count += 1
+
+        # qa_outputs: digital full-param trainable (not LoRA, not analog)
+        for name, param in model.named_parameters():
+            if "qa_outputs" in name:
+                param.requires_grad = True
+
+        # Count trainable parameters
+        trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        total_params = sum(p.numel() for p in model.parameters())
+
+        print(f"\nFroze {base_layer_count} base_layer tiles (learning_rate=0)")
+        print(f"Trainable: {lora_layer_count} lora_A/lora_B tiles")
+        print(f"qa_outputs set to digital full-param trainable")
+        print(f"\nTrainable parameters: {trainable_params:,} ({100 * trainable_params / total_params:.2f}%)")
+        print(f"Total parameters: {total_params:,}")
 
         if training_args.do_train:
             model.print_trainable_parameters()
         model.to("cuda")
-        print("Sixt1c Analog model (base_layer=PCM, lora_A/B=Sixt1c LinearStepDevice)")
+        print("\nSixt1c 2-tile Analog model:")
         print(model)
 
-        # Freeze only base_layer (PCM), keep lora_A/lora_B trainable
-        for name, module in model.named_modules():
-            if isinstance(module, AnalogLinear):
-                if 'base_layer' in name:
-                    # Freeze base_layer (PCM)
-                    for param in module.parameters():
-                        param.requires_grad = False
-                # lora_A/lora_B remain trainable (Sixt1c)
-        print("Froze base_layer (PCM), lora_A/lora_B remain trainable (Sixt1c)")
-
+        # Create optimizer
         if general_args.analog_optimizer == "AnalogSGD":
             optimizer = AnalogSGD(model.parameters(), lr=general_args.analog_lr, momentum=0.9)
         elif general_args.analog_optimizer == "AnalogAdam":
             optimizer = AnalogAdam(model.parameters(), lr=general_args.analog_lr)
         else:
             optimizer = None
+            raise ValueError("Sixt1c 2-tile mode requires AnalogSGD or AnalogAdam optimizer")
     else:
         # PCM Analog mode - convert to analog (original behavior)
         print("\n" + "=" * 50)
         print("PCM ANALOG MODE - Full model conversion")
         print("=" * 50 + "\n")
 
+        # Exclude qa_outputs from analog conversion (keep digital full-param trainable)
+        all_linear_pcm = list_linear_layers(digital_model)
+        pcm_exclude = [name for name in all_linear_pcm if "qa_outputs" in name]
+        pcm_exclude.append("qa_outputs")
+
         model = convert_to_analog(model, gen_rpu_config(output_noise_level=general_args.output_noise_level,
                                                         pcm_model=general_args.pcm_model),
-                                  tile_module_class=TorchInferenceTile)
+                                  tile_module_class=TorchInferenceTile,
+                                  exclude_modules=pcm_exclude)
         print("RPU Configuration:")
         print(gen_rpu_config(output_noise_level=general_args.output_noise_level, pcm_model=general_args.pcm_model))
+        print(f"Excluded from analog: {pcm_exclude}")
 
         print("Analog model with LoRA (Before layer correction)")
         print(model)
@@ -784,6 +864,13 @@ def main():
             if isinstance(module, AnalogLinear):  # Check if the module is an instance of AnalogLinear
                 for param in module.parameters():
                     param.requires_grad = False
+
+        # qa_outputs: digital full-param trainable (not LoRA, not analog)
+        for name, param in model.named_parameters():
+            if "qa_outputs" in name:
+                param.requires_grad = True
+        print("qa_outputs set to digital full-param trainable")
+
         if training_args.do_train:
             model.print_trainable_parameters()
         # if training_args.do_eval:
@@ -1064,6 +1151,18 @@ def main():
     def compute_metrics(p: EvalPrediction):
         return metric.compute(predictions=p.predictions, references=p.label_ids)
 
+    # Build callbacks
+    trainer_callbacks = []
+    if general_args.early_stopping_patience > 0 and general_args.early_stopping_threshold > 0:
+        es_callback = MetricImprovementCallback(
+            metric_name="eval_f1",
+            threshold=general_args.early_stopping_threshold,
+            patience=general_args.early_stopping_patience,
+        )
+        trainer_callbacks.append(es_callback)
+        print(f"Early stopping enabled: threshold={general_args.early_stopping_threshold}, "
+              f"patience={general_args.early_stopping_patience}")
+
     # Initialize our Trainer
     if general_args.baseline_mode == "digital":
         # Digital mode - use default optimizer
@@ -1077,6 +1176,7 @@ def main():
             data_collator=data_collator,
             post_process_function=post_processing_function,
             compute_metrics=compute_metrics,
+            callbacks=trainer_callbacks if trainer_callbacks else None,
         )
     elif optimizer is not None:
         trainer = QuestionAnsweringTrainer(
@@ -1090,6 +1190,7 @@ def main():
             data_collator=data_collator,
             post_process_function=post_processing_function,
             compute_metrics=compute_metrics,
+            callbacks=trainer_callbacks if trainer_callbacks else None,
         )
     elif general_args.analog_device == "sixt1c" and not training_args.do_train:
         # Sixt1c evaluation-only mode (no optimizer needed)

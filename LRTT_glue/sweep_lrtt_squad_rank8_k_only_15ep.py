@@ -1,14 +1,9 @@
 #!/home/jovyan/work/ml/.venv310/bin/python
 # coding=utf-8
-"""LRTT Bayesian Optimization for ALL tasks (GLUE + SQuAD).
+"""LRTT Bayesian Optimization for SQuAD - RANK 8, Key-only (15 epoch).
 
-Converted from TikiTaka v2 sweep script to use LRTT configuration.
-Runs N trials x M epochs for each task to find optimal hyperparameters.
-
-Key differences from TikiTaka v2:
-- Uses PythonLRTTRPUConfig instead of UnitCellRPUConfig + ChoppedTransferCompound
-- LRTT parameters: rank, transfer_every, transfer_lr, lora_alpha, reinit_gain, reinit_mode
-- CRITICAL FIX: Calls optimizer.regroup_param_groups() after AnalogAdam creation
+15-epoch sweep with cosine+minLR scheduler and early stopping.
+Search space narrowed around Adam 3-epoch best: lr=0.0106, t_lr=1.58e-4, te=2541.
 """
 
 import os
@@ -17,6 +12,7 @@ import json
 import csv
 import re
 import string
+import math
 import argparse
 from datetime import datetime
 from typing import Dict, Any, List, Tuple, Optional
@@ -37,8 +33,8 @@ from transformers import (
     AutoTokenizer,
     default_data_collator,
     set_seed,
-    get_linear_schedule_with_warmup,
 )
+from torch.optim.lr_scheduler import LambdaLR
 from datasets import load_dataset
 from torch.utils.data import DataLoader
 import evaluate
@@ -146,37 +142,72 @@ TASK_TO_METRIC = {
 # =============================================================================
 
 # Search space for LRTT parameters
-LR_MIN, LR_MAX = 1e-5, 1e-1                      # analog_lr (learning rate)
-TRANSFER_LR_MIN, TRANSFER_LR_MAX = 0.001, 100.0  # transfer learning rate
-TRANSFER_EVERY_CHOICES = [1, 100, 1000]          # transfer frequency (categorical)
+LR_MIN, LR_MAX = 0.001, 0.1                            # learning rate
+TRANSFER_LR_MIN, TRANSFER_LR_MAX = 3e-5, 1e-3          # transfer learning rate
+TRANSFER_EVERY_MIN, TRANSFER_EVERY_MAX = 100, 10000     # transfer frequency (int, log)
 
 # Fixed LRTT parameters (not in sweep)
-RANK = 4
+RANK = 8
 REINIT_GAIN = 0.1
 LORA_ALPHA = 1.0
 
-# Default LRTT config (good starting point)
+# Default LRTT config (seeded from Adam 3-epoch K-only best)
 DEFAULT_LRTT_PARAMS = {
-    "learning_rate": 0.001,
-    "transfer_lr": 1.0,
-    "transfer_every": 100,
+    "learning_rate": 0.0106,
+    "transfer_lr": 1.58e-4,
+    "transfer_every": 2541,
 }
 
 # =============================================================================
 # Fixed Parameters
 # =============================================================================
 
-N_TRIALS = 10
-NUM_EPOCHS = 1
-TARGET_MODULES = ["query", "key", "value"]
+N_TRIALS = 50
+NUM_EPOCHS = 15
+TARGET_MODULES = ["key"]
 MODEL_NAME = "google/mobilebert-uncased"
 MAX_SEQ_LENGTH = 128
 BATCH_SIZE = 32
 WARMUP_STEPS = 500
 SEED = 42
 
-WANDB_PROJECT = "lrtt-all-tasks-sweep"
-OUTPUT_DIR = "/data/AIMC_LoRA_results/lrtt_sweep"
+# Early stopping
+PATIENCE = 3
+EARLY_STOP_MIN_DELTA = 1.0  # Minimum F1 improvement (1%) to reset patience
+
+# Cosine scheduler
+MIN_LR_RATE = 0.1  # Floor at 10% of peak LR
+
+WANDB_PROJECT = "lrtt-squad-rank8-k-only-15ep-sweep"
+OUTPUT_DIR = "/data/results/LRTT_sweep"
+
+os.environ["WANDB_MODE"] = "offline"
+
+
+# =============================================================================
+# Cosine Schedule with Min LR
+# =============================================================================
+
+def get_cosine_with_min_lr_schedule_with_warmup(
+    optimizer,
+    num_warmup_steps: int,
+    num_training_steps: int,
+    min_lr_rate: float = 0.1,
+):
+    """Cosine schedule with warmup and a minimum LR floor.
+
+    After warmup, LR decays via cosine from peak to min_lr_rate * peak_lr.
+    """
+    def lr_lambda(current_step: int) -> float:
+        if current_step < num_warmup_steps:
+            return float(current_step) / float(max(1, num_warmup_steps))
+        progress = float(current_step - num_warmup_steps) / float(
+            max(1, num_training_steps - num_warmup_steps)
+        )
+        cosine_decay = 0.5 * (1.0 + math.cos(math.pi * progress))
+        return min_lr_rate + (1.0 - min_lr_rate) * cosine_decay
+
+    return LambdaLR(optimizer, lr_lambda)
 
 
 # =============================================================================
@@ -729,7 +760,7 @@ def run_trial(trial: optuna.Trial, task_name: str, train_loader, eval_loader,
     params = {
         "learning_rate": trial.suggest_float("learning_rate", LR_MIN, LR_MAX, log=True),
         "transfer_lr": trial.suggest_float("transfer_lr", TRANSFER_LR_MIN, TRANSFER_LR_MAX, log=True),
-        "transfer_every": trial.suggest_categorical("transfer_every", TRANSFER_EVERY_CHOICES),
+        "transfer_every": trial.suggest_int("transfer_every", TRANSFER_EVERY_MIN, TRANSFER_EVERY_MAX, log=True),
     }
 
     # WandB logging
@@ -756,12 +787,13 @@ def run_trial(trial: optuna.Trial, task_name: str, train_loader, eval_loader,
         # Without this, analog tiles use default LR instead of specified LR
         optimizer.regroup_param_groups()
 
-        # Create warmup scheduler
+        # Create cosine scheduler with min LR
         num_training_steps = len(train_loader) * NUM_EPOCHS
-        scheduler = get_linear_schedule_with_warmup(
+        scheduler = get_cosine_with_min_lr_schedule_with_warmup(
             optimizer,
             num_warmup_steps=WARMUP_STEPS,
-            num_training_steps=num_training_steps
+            num_training_steps=num_training_steps,
+            min_lr_rate=MIN_LR_RATE,
         )
 
         # Use cached initial evaluation (computed once in run_task_sweep)
@@ -774,35 +806,67 @@ def run_trial(trial: optuna.Trial, task_name: str, train_loader, eval_loader,
             init_loss = init_results["loss"]
             wandb.log({"epoch": 0, "eval/metric": init_metric, "eval/loss": init_loss})
 
-        # Train
+        # Training loop with early stopping
+        best_metric = 0.0
+        patience_counter = 0
+
         for epoch in range(1, NUM_EPOCHS + 1):
             train_loss = train_epoch(model, optimizer, scheduler, train_loader, device, task_name, trial.number)
 
+            # Loss divergence check
+            if math.isnan(train_loss):
+                print(f"  Trial {trial.number} aborted: loss diverged at epoch {epoch}")
+                break
+
             if task_name == "squad":
                 eval_metric, eval_em = evaluate_squad(model, eval_features, eval_examples, tokenizer, device)
+                current_lr = scheduler.get_last_lr()[0]
                 wandb.log({
                     "epoch": epoch,
                     "train/loss": train_loss,
                     "eval/f1": eval_metric,
                     "eval/em": eval_em,
+                    "lr": current_lr,
                 })
+                print(f"  [Epoch {epoch}/{NUM_EPOCHS}] Loss: {train_loss:.4f}, "
+                      f"F1: {eval_metric:.2f}, EM: {eval_em:.2f}, LR: {current_lr:.6f}")
             else:
                 eval_metric, eval_loss = evaluate_glue(model, eval_loader, task_name, device)
+                current_lr = scheduler.get_last_lr()[0]
                 wandb.log({
                     "epoch": epoch,
                     "train/loss": train_loss,
                     "eval/metric": eval_metric,
                     "eval/loss": eval_loss,
+                    "lr": current_lr,
                 })
+                print(f"  [Epoch {epoch}/{NUM_EPOCHS}] Loss: {train_loss:.4f}, "
+                      f"Metric: {eval_metric:.4f}, LR: {current_lr:.6f}")
 
-        # Final metric
-        final_metric = eval_metric
-        wandb.log({"final/metric": final_metric, "final/improvement": final_metric - init_metric})
+            # Report to Optuna
+            trial.report(eval_metric, epoch)
+
+            # Early stopping: require >= EARLY_STOP_MIN_DELTA improvement
+            if eval_metric > best_metric + EARLY_STOP_MIN_DELTA:
+                best_metric = eval_metric
+                patience_counter = 0
+            else:
+                patience_counter += 1
+
+            if patience_counter >= PATIENCE:
+                print(f"  Early stopping at epoch {epoch} "
+                      f"(no {EARLY_STOP_MIN_DELTA}% improvement for {PATIENCE} epochs, best={best_metric:.2f})")
+                break
+
+        # Use best metric seen (not last epoch)
+        if best_metric == 0.0:
+            best_metric = eval_metric if not math.isnan(train_loss) else 0.0
+        wandb.log({"final/best_metric": best_metric, "final/stopped_epoch": epoch})
 
         del model
         torch.cuda.empty_cache()
 
-        return final_metric
+        return best_metric
 
     except Exception as e:
         print(f"Trial {trial.number} failed: {e}")
@@ -869,35 +933,72 @@ def run_task_sweep(task_name: str, device: torch.device, results_dir: str, n_tri
 
     study.optimize(objective, n_trials=n_trials, n_jobs=n_jobs, show_progress_bar=True)
 
-    # Save results
-    task_results = {
+    # Save ALL trial results
+    all_trials = []
+    for trial in study.trials:
+        trial_data = {
+            "trial": trial.number,
+            "value": trial.value,
+            "params": trial.params,
+            "state": str(trial.state),
+        }
+        all_trials.append(trial_data)
+
+    # Sort by metric (best first), handle None values from failed trials
+    all_trials.sort(key=lambda t: t["value"] if t["value"] is not None else -1, reverse=True)
+
+    all_trials_result = {
         "task": task_name,
+        "rank": RANK,
+        "epochs": NUM_EPOCHS,
+        "n_trials": n_trials,
+        "search_space": {
+            "learning_rate": {"min": LR_MIN, "max": LR_MAX, "scale": "log"},
+            "transfer_lr": {"min": TRANSFER_LR_MIN, "max": TRANSFER_LR_MAX, "scale": "log"},
+            "transfer_every": {"min": TRANSFER_EVERY_MIN, "max": TRANSFER_EVERY_MAX, "scale": "int_log"},
+        },
+        "fixed_params": {
+            "rank": RANK,
+            "lora_alpha": LORA_ALPHA,
+            "reinit_mode": "hybrid",
+            "reinit_gain": REINIT_GAIN,
+            "units_in_mbatch": True,
+            "target_modules": TARGET_MODULES,
+            "batch_size": BATCH_SIZE,
+            "warmup_steps": WARMUP_STEPS,
+            "model": MODEL_NAME,
+            "scheduler": "cosine_with_min_lr",
+            "min_lr_rate": MIN_LR_RATE,
+            "patience": PATIENCE,
+            "early_stop_min_delta": EARLY_STOP_MIN_DELTA,
+        },
         "best_trial": study.best_trial.number,
         "best_metric": study.best_value,
         "best_params": study.best_params,
         "metric_name": TASK_TO_METRIC.get(task_name, "metric"),
+        "trials": all_trials,
     }
 
-    results_file = os.path.join(results_dir, f"{task_name}_best_params.json")
-    with open(results_file, 'w') as f:
-        json.dump(task_results, f, indent=2)
+    all_trials_file = os.path.join(results_dir, f"{task_name}_rank{RANK}_k_only_15ep_all_trials.json")
+    with open(all_trials_file, 'w') as f:
+        json.dump(all_trials_result, f, indent=2)
 
-    print(f"\n{task_name.upper()} Results:")
+    print(f"\n{task_name.upper()} Results (rank={RANK}):")
     print(f"  Best Trial: {study.best_trial.number}")
     print(f"  Best {TASK_TO_METRIC.get(task_name, 'metric')}: {study.best_value:.4f}")
     print(f"  Best Params: {study.best_params}")
-    print(f"  Saved to: {results_file}")
+    print(f"  All trials saved to: {all_trials_file}")
 
-    return task_results
+    return all_trials_result
 
 
 def main():
     global NUM_EPOCHS  # Allow overriding from command line
 
     parser = argparse.ArgumentParser(description="LRTT Bayesian Optimization for GLUE/SQuAD tasks")
-    parser.add_argument("--tasks", nargs="+", default=ALL_TASKS,
-                       help="Tasks to run (default: all)")
-    parser.add_argument("--n_trials", type=int, default=10,
+    parser.add_argument("--tasks", nargs="+", default=["squad"],
+                       help="Tasks to run (default: squad)")
+    parser.add_argument("--n_trials", type=int, default=N_TRIALS,
                        help="Number of trials per task")
     parser.add_argument("--n_jobs", type=int, default=1,
                        help="Number of parallel jobs per task")
@@ -914,18 +1015,20 @@ def main():
     os.makedirs(results_dir, exist_ok=True)
 
     print("="*60)
-    print("LRTT Bayesian Optimization - All Tasks")
+    print("LRTT Bayesian Optimization - SQuAD RANK 8 (Key-only, 15ep)")
     print("="*60)
     print(f"Tasks: {args.tasks}")
     print(f"Trials per task: {n_trials}")
     print(f"Parallel jobs: {n_jobs}")
-    print(f"Epochs: {NUM_EPOCHS}")
+    print(f"Max epochs: {NUM_EPOCHS}")
+    print(f"Early stopping: patience={PATIENCE}, min_delta={EARLY_STOP_MIN_DELTA}%")
+    print(f"Scheduler: cosine with min_lr_rate={MIN_LR_RATE}")
     print(f"Results dir: {results_dir}")
     print()
     print("LRTT Search Space:")
     print(f"  learning_rate: [{LR_MIN}, {LR_MAX}] (log)")
     print(f"  transfer_lr: [{TRANSFER_LR_MIN}, {TRANSFER_LR_MAX}] (log)")
-    print(f"  transfer_every: {TRANSFER_EVERY_CHOICES} (categorical)")
+    print(f"  transfer_every: [{TRANSFER_EVERY_MIN}, {TRANSFER_EVERY_MAX}] (int, log)")
     print()
     print("LRTT Fixed Parameters:")
     print(f"  rank: {RANK}")
