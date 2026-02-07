@@ -52,18 +52,22 @@ from optuna_integration import BoTorchSampler
 import matplotlib.pyplot as plt
 
 
-class HybridOnlyBoTorchSampler(BoTorchSampler):
-    """BoTorchSampler that forces reinit_mode to 'hybrid'."""
+class HybridSGDOnlyBoTorchSampler(BoTorchSampler):
+    """BoTorchSampler that forces reinit_mode to 'hybrid' and optimizer to 'AnalogSGD'."""
 
     def sample_relative(self, study, trial, search_space):
         params = super().sample_relative(study, trial, search_space)
         if 'reinit_mode' in params:
             params['reinit_mode'] = 'hybrid'
+        if 'optimizer' in params:
+            params['optimizer'] = 'AnalogSGD'
         return params
 
     def sample_independent(self, study, trial, param_name, param_distribution):
         if param_name == 'reinit_mode':
             return 'hybrid'
+        if param_name == 'optimizer':
+            return 'AnalogSGD'
         return super().sample_independent(study, trial, param_name, param_distribution)
 
 # Default study name for persistence
@@ -432,11 +436,11 @@ def objective(trial):
         torch.cuda.empty_cache()
 
     # Hyperparameters to tune
-    rank_exp = trial.suggest_int('rank_exp', 0, 7)  # 2^0 ~ 2^7
+    rank_exp = trial.suggest_int('rank_exp', 5, 5)  # 2^0 ~ 2^7
     rank = 2 ** rank_exp  # 1, 2, 4, 8, 16, 32, 64, 128
-    transfer_every = trial.suggest_int('transfer_every', 1, 30000, log=True)
-    lora_alpha = trial.suggest_float('lora_alpha', 1e-3, 1000.0, log=True)
-    transfer_lr_scale = trial.suggest_float('transfer_lr_scale', 0.001, 1000.0, log=True)
+    transfer_every = trial.suggest_int('transfer_every', 100, 100, log=True)
+    lora_alpha = trial.suggest_float('lora_alpha', 1e-2, 100.0, log=True)
+    transfer_lr_scale = trial.suggest_float('transfer_lr_scale', 0.1, 10.0, log=True)
     learning_rate = trial.suggest_float('learning_rate', 1e-5, 1e-1, log=True)
     batch_size = trial.suggest_int('batch_size', 8, 8)
     weight_decay = trial.suggest_float('weight_decay', 1e-6, 1e-2, log=True)
@@ -752,7 +756,7 @@ def main():
         study_name=study_name,
         storage=storage,
         direction="maximize",
-        sampler=HybridOnlyBoTorchSampler(),
+        sampler=HybridSGDOnlyBoTorchSampler(),
         pruner=optuna.pruners.NopPruner(),  # Pruning disabled
         load_if_exists=True,  # Enable resume and parallel execution
     )

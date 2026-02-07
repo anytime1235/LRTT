@@ -48,6 +48,22 @@ from optuna.trial import TrialState
 from optuna_integration import BoTorchSampler
 import matplotlib.pyplot as plt
 
+
+class SGDOnlyBoTorchSampler(BoTorchSampler):
+    """BoTorchSampler that forces optimizer to 'AnalogSGD'."""
+
+    def sample_relative(self, study, trial, search_space):
+        params = super().sample_relative(study, trial, search_space)
+        if 'optimizer' in params:
+            params['optimizer'] = 'AnalogSGD'
+        return params
+
+    def sample_independent(self, study, trial, param_name, param_distribution):
+        if param_name == 'optimizer':
+            return 'AnalogSGD'
+        return super().sample_independent(study, trial, param_name, param_distribution)
+
+
 # Default study name for persistence
 DEFAULT_STUDY_NAME = "vitsptlsa_ttv1_main"
 
@@ -642,7 +658,7 @@ def main():
         study_name=study_name,
         storage=storage,
         direction="maximize",
-        sampler=BoTorchSampler(),
+        sampler=SGDOnlyBoTorchSampler(),
         pruner=optuna.pruners.NopPruner(),
         load_if_exists=True,
     )

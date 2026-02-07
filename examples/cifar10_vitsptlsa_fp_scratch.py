@@ -57,6 +57,7 @@ BATCH_SIZE = 8  # Paper: batch size 8
 LEARNING_RATE = 1e-2  # Initial LR (will be reduced on plateau)
 LR_REDUCTION_FACTOR = 0.1  # Paper: reduce LR by 0.1 on plateau
 LR_PATIENCE = 5  # Patience for ReduceLROnPlateau
+EARLY_STOP_PATIENCE = 7  # Stop if no improvement for N epochs
 WEIGHT_DECAY = 5e-5
 OPTIMIZER = "Adam"  # "SGD", "Adam"
 N_CLASSES = 10
@@ -428,11 +429,13 @@ def main():
 
     best_accuracy = 0
     best_epoch = 0
+    epochs_without_improvement = 0
     epoch_history = []  # Track epoch-wise results for plotting
 
     print(f"\n{'='*60}")
-    print(f"Starting training: {N_EPOCHS} epochs, batch_size={BATCH_SIZE}")
+    print(f"Starting training: {N_EPOCHS} epochs (max), batch_size={BATCH_SIZE}")
     print(f"LR schedule: ReduceLROnPlateau (factor={LR_REDUCTION_FACTOR}, patience={LR_PATIENCE})")
+    print(f"Early stopping: patience={EARLY_STOP_PATIENCE}")
     print(f"No image augmentation (as per paper)")
     print(f"{'='*60}\n")
 
@@ -505,17 +508,27 @@ def main():
             "learning_rate": current_lr,
         })
 
+        # Track best accuracy and early stopping
         if val_accuracy > best_accuracy:
             best_accuracy = val_accuracy
             best_epoch = epoch
+            epochs_without_improvement = 0
             save(model.state_dict(), WEIGHT_PATH)
+        else:
+            epochs_without_improvement += 1
 
         epoch_pbar.set_postfix({
             'Train': f'{train_acc:.2f}%',
             'Val': f'{val_accuracy:.2f}%',
             'Best': f'{best_accuracy:.2f}%',
-            'LR': f'{current_lr:.2e}'
+            'LR': f'{current_lr:.2e}',
+            'NoImp': f'{epochs_without_improvement}/{EARLY_STOP_PATIENCE}'
         })
+
+        # Early stopping
+        if epochs_without_improvement >= EARLY_STOP_PATIENCE:
+            tqdm.write(f"Early stopping at epoch {epoch + 1} (no improvement for {EARLY_STOP_PATIENCE} epochs)")
+            break
 
         if (epoch + 1) % 5 == 0:
             tqdm.write(f"Epoch {epoch + 1:3d}: "
