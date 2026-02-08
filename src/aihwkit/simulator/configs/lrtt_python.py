@@ -33,12 +33,35 @@ class PythonLRTTDevice(_PrintableMixin):
     
     transfer_every: int = 32
     """Transfer frequency: every N steps (or samples if units_in_mbatch=True)."""
+
+    # === Dynamic Transfer Every ===
+    dynamic_te: bool = False
+    """Enable dynamic transfer_every that increases as LR decays.
+    TE(t) = clip(te_min, te_max, round(TE_0 * (lr_peak / lr_current)^p)).
+    Only activates in LR decay phase (lr_current < lr_peak)."""
+
+    dynamic_te_power: float = 1.0
+    """Power p for dynamic TE. 1.0=exact LR inverse, 0.5=smoother."""
+
+    dynamic_te_min: Optional[int] = None
+    """Minimum TE floor. None=use TE_0 (never decrease below initial value)."""
+
+    dynamic_te_max: Optional[int] = None
+    """Maximum TE ceiling. None=10*TE_0."""
+
+    te_warmup_schedule: Optional[List[int]] = None
+    """Step-wise TE warmup schedule, e.g. [32, 64, 128, 230].
+    During warmup, TE transitions through these values in equal intervals.
+    The last value should match transfer_every (TE_0). None=no warmup ramp."""
+
+    te_warmup_steps: int = 0
+    """Number of steps for TE warmup ramp. The schedule is divided equally."""
     
     transfer_lr: float = 1.0
     """Transfer learning rate scalar applied during A⊗B -> visible transfer."""
 
     transfer_lr_scale: float = 1.0
-    """Scaling factor for transfer_lr. Effective transfer_lr = transfer_lr * transfer_lr_scale.
+    """Static scaling factor for transfer_lr. Effective transfer_lr = transfer_lr * transfer_lr_scale.
     - 1.0: No scaling (default)
     - < 1.0: Reduce transfer learning rate
     - > 1.0: Increase transfer learning rate
@@ -260,6 +283,17 @@ class PythonLRTTDevice(_PrintableMixin):
         # Validate transfer parameters
         if self.transfer_every <= 0:
             raise ValueError(f"transfer_every must be positive, got {self.transfer_every}")
+
+        # Validate dynamic TE parameters
+        if self.dynamic_te_power <= 0:
+            raise ValueError(f"dynamic_te_power must be positive, got {self.dynamic_te_power}")
+        if self.dynamic_te_min is not None and self.dynamic_te_min <= 0:
+            raise ValueError(f"dynamic_te_min must be positive or None, got {self.dynamic_te_min}")
+        if self.dynamic_te_max is not None and self.dynamic_te_max <= 0:
+            raise ValueError(f"dynamic_te_max must be positive or None, got {self.dynamic_te_max}")
+        if (self.dynamic_te_min is not None and self.dynamic_te_max is not None
+                and self.dynamic_te_min > self.dynamic_te_max):
+            raise ValueError(f"dynamic_te_min ({self.dynamic_te_min}) must be <= dynamic_te_max ({self.dynamic_te_max})")
             
         if self.transfer_lr <= 0:
             raise ValueError(f"transfer_lr must be positive, got {self.transfer_lr}")
@@ -289,7 +323,7 @@ class PythonLRTTDevice(_PrintableMixin):
         if self.multi_read_mode not in valid_read_modes:
             raise ValueError(f"multi_read_mode must be one of {valid_read_modes}, got '{self.multi_read_mode}'")
 
-        # Validate transfer_lr_scale (must be a positive float)
+        # Validate transfer_lr_scale
         if self.transfer_lr_scale <= 0:
             raise ValueError(f"transfer_lr_scale must be > 0, got {self.transfer_lr_scale}")
 
@@ -398,6 +432,11 @@ class PythonLRTTDevice(_PrintableMixin):
             'multi_read_mode': self.multi_read_mode,
             'update_mode': self.update_mode,
             'transfer_method': self.transfer_method,
+            # Dynamic TE
+            'dynamic_te': self.dynamic_te,
+            'dynamic_te_power': self.dynamic_te_power,
+            'dynamic_te_min': self.dynamic_te_min,
+            'dynamic_te_max': self.dynamic_te_max,
         }
         # Post-init settings (set on controller after creation)
         kwargs['_post_init'] = {

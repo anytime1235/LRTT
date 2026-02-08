@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Transfer Diagnostic: Track per-transfer metrics for SQuAD (MobileBERT, rank 8, V-only, hybrid reinit).
+"""Transfer Diagnostic with Dynamic TE: SQuAD (MobileBERT, rank 8, V-only, hybrid reinit).
 
-Investigates whether LRTT transfers become meaningless in later epochs —
-specifically, whether C stops changing despite transfers being triggered.
+Compares static TE baseline vs dynamic TE (power=configurable) on SQuAD.
+Dynamic TE formula: TE(t) = clip(te_min, te_max, round(TE_0 * (lr_peak / lr_current)^p))
 
 Adapts the MNIST transfer_diagnostic.py approach to MobileBERT on SQuAD
 using the same model/config as sweep_lrtt_squad_rank8_v_only_15ep.py.
@@ -76,18 +76,20 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MODEL_NAME = "google/mobilebert-uncased"
 TARGET_MODULES = ["value"]
 RANK = 8
-LR = 0.0396
-TLR = 3.12e-4
-TE = 193
+LR = 0.04623
+TLR = 6.32e-5
+TE = 230
 REINIT_GAIN = 0.1
 LORA_ALPHA = 1.0
 BATCH_SIZE = 32
 NUM_EPOCHS = 15
-WARMUP_STEPS = 500
-MIN_LR_RATE = 0.1
+WARMUP_STEPS = 0  # No LR warmup — full LR from start
+TE_WARMUP_STEPS = 500  # TE ramp duration (independent of LR warmup)
+TE_WARMUP_SCHEDULE = [32, 64, 128, 230]
+MIN_LR_RATE = 0.05
 SEED = 42
 
-OUTPUT_DIR = "/root/results/squad"
+OUTPUT_DIR = "/data/results/squad/dynamic_te"
 
 
 # =============================================================================
@@ -350,6 +352,11 @@ def create_lrtt_config(
     lora_alpha: float = 1.0,
     reinit_gain: float = 0.1,
     reinit_mode: str = "hybrid",
+    dynamic_te: bool = False,
+    dynamic_te_power: float = 1.0,
+    dynamic_te_max: int = None,
+    te_warmup_schedule: list = None,
+    te_warmup_steps: int = 0,
 ) -> PythonLRTTRPUConfig:
     """Create LRTT config with 6T1C analog device simulation."""
     # Calculate lifetime for 6T1C
@@ -414,6 +421,18 @@ def create_lrtt_config(
     device_config.update_mode = "lora"
     device_config.a_init_mode = "zero"
 
+    # Dynamic TE
+    if dynamic_te:
+        device_config.dynamic_te = True
+        device_config.dynamic_te_power = dynamic_te_power
+        if dynamic_te_max is not None:
+            device_config.dynamic_te_max = dynamic_te_max
+
+    # TE warmup schedule
+    if te_warmup_schedule:
+        device_config.te_warmup_schedule = te_warmup_schedule
+        device_config.te_warmup_steps = te_warmup_steps
+
     rpu_config = PythonLRTTRPUConfig(device=device_config)
 
     rpu_config.mapping.weight_scaling_omega = 1.0
@@ -433,7 +452,15 @@ def list_linear_layers(model: nn.Module) -> list[str]:
 # =============================================================================
 
 
-def create_squad_model(device: torch.device, reinit_mode: str = "hybrid") -> nn.Module:
+def create_squad_model(
+    device: torch.device,
+    reinit_mode: str = "hybrid",
+    dynamic_te: bool = False,
+    dynamic_te_power: float = 1.0,
+    dynamic_te_max: int = None,
+    te_warmup_schedule: list = None,
+    te_warmup_steps: int = 0,
+) -> nn.Module:
     """Create SQuAD model with LRTT (V-only)."""
     model = AutoModelForQuestionAnswering.from_pretrained(MODEL_NAME)
 
@@ -448,6 +475,11 @@ def create_squad_model(device: torch.device, reinit_mode: str = "hybrid") -> nn.
         lora_alpha=LORA_ALPHA,
         reinit_gain=REINIT_GAIN,
         reinit_mode=reinit_mode,
+        dynamic_te=dynamic_te,
+        dynamic_te_power=dynamic_te_power,
+        dynamic_te_max=dynamic_te_max,
+        te_warmup_schedule=te_warmup_schedule,
+        te_warmup_steps=te_warmup_steps,
     )
 
     model = convert_to_analog(model, rpu_config, exclude_modules=exclude)
@@ -717,9 +749,30 @@ def main() -> None:
         "--reinit_mode", type=str, default="hybrid", choices=["hybrid", "decay"],
         help="Reinit mode for LRTT (default: hybrid)"
     )
+    parser.add_argument(
+        "--dynamic_te", action="store_true", help="Enable dynamic TE"
+    )
+    parser.add_argument(
+        "--dynamic_te_power", type=float, default=2.0, help="Dynamic TE power (default: 2.0)"
+    )
+    parser.add_argument(
+        "--dynamic_te_max", type=int, default=None, help="Dynamic TE max (default: 10*TE)"
+    )
+    parser.add_argument(
+        "--tlr", type=float, default=None, help="Override transfer_lr (default: use TLR constant)"
+    )
     args = parser.parse_args()
     max_steps = args.max_steps
     reinit_mode = args.reinit_mode
+    dynamic_te = args.dynamic_te
+    dynamic_te_power = args.dynamic_te_power
+    dynamic_te_max = args.dynamic_te_max
+    if args.tlr is not None:
+        TLR = args.tlr
+
+    te_label = f"dynamic_te_p{dynamic_te_power}" if dynamic_te else "static_te"
+    if args.tlr is not None:
+        te_label += f"_tlr{TLR:.0e}"
 
     print("=" * 70)
     print(f"LRTT Transfer Diagnostic — SQuAD (MobileBERT, rank 8, V-only, {reinit_mode})")
@@ -727,6 +780,12 @@ def main() -> None:
     print(f"Config: rank={RANK}, te={TE}, lr={LR}, tlr={TLR}")
     print(f"  reinit_mode={reinit_mode}, decay_factor=1.0, units_in_mbatch=True")
     print(f"  target_modules={TARGET_MODULES}, lora_alpha={LORA_ALPHA}")
+    if dynamic_te:
+        print(f"  ** DYNAMIC TE: power={dynamic_te_power}, max={dynamic_te_max or TE*10} **")
+    else:
+        print(f"  Static TE={TE}")
+    if TE_WARMUP_STEPS > 0 and TE_WARMUP_SCHEDULE:
+        print(f"  TE warmup: {TE_WARMUP_SCHEDULE} over {TE_WARMUP_STEPS} steps")
     print(f"Epochs: {NUM_EPOCHS}, batch_size={BATCH_SIZE}, seed={SEED}")
     if max_steps > 0:
         print(f"  ** QUICK TEST: stopping after {max_steps} steps **")
@@ -750,7 +809,15 @@ def main() -> None:
 
     # Create model
     print("Creating model...")
-    model = create_squad_model(DEVICE, reinit_mode=reinit_mode)
+    model = create_squad_model(
+        DEVICE,
+        reinit_mode=reinit_mode,
+        dynamic_te=dynamic_te,
+        dynamic_te_power=dynamic_te_power,
+        dynamic_te_max=dynamic_te_max,
+        te_warmup_schedule=TE_WARMUP_SCHEDULE if TE_WARMUP_STEPS > 0 else None,
+        te_warmup_steps=TE_WARMUP_STEPS,
+    )
 
     # Set up tracker and patch controllers
     tracker = TransferTracker()
@@ -781,6 +848,24 @@ def main() -> None:
     init_f1, init_em = evaluate_squad(model, eval_features, eval_examples, tokenizer, DEVICE)
     print(f"  F1={init_f1:.2f}, EM={init_em:.2f}")
     print()
+
+    # Collect all LRTT controllers for warmup suppression
+    all_controllers = []
+    for _name, _mod in model.named_modules():
+        if isinstance(_mod, LRTTSimulatorTile):
+            all_controllers.append(_mod.controller)
+
+    # Suppress transfers during warmup: set TE very high, restore after
+    SUPPRESS_WARMUP_TRANSFER = False
+    WARMUP_TE = 10_000_000  # Effectively no transfer during warmup
+    warmup_done = False
+
+    if SUPPRESS_WARMUP_TRANSFER:
+        print(f"[Warmup] Suppressing transfers during warmup ({WARMUP_STEPS} steps)")
+        for ctrl in all_controllers:
+            ctrl._saved_te = ctrl.transfer_every
+            ctrl.transfer_every = WARMUP_TE
+            ctrl.transfer_counter = 0
 
     # Training loop
     epoch_metrics: list[dict] = []
@@ -823,6 +908,17 @@ def main() -> None:
             global_step += 1
             pbar.set_postfix(loss=f"{loss.item():.4f}", step=global_step)
 
+            # Restore TE after warmup
+            if SUPPRESS_WARMUP_TRANSFER and not warmup_done and global_step >= WARMUP_STEPS:
+                warmup_done = True
+                print(f"\n  [Warmup done at step {global_step}] Restoring TE={TE}")
+                for ctrl in all_controllers:
+                    ctrl.transfer_every = ctrl._saved_te
+                    ctrl.transfer_counter = 0
+                    # Also reset A tiles to zero (clean start for transfers)
+                    A_zeros = torch.zeros_like(ctrl.tile_a.get_weights()[0])
+                    ctrl.tile_a.set_weights(A_zeros)
+
             if max_steps > 0 and global_step >= max_steps:
                 print(f"\n  Reached max_steps={max_steps}, stopping training.")
                 stop_early = True
@@ -850,9 +946,16 @@ def main() -> None:
 
         current_lr = scheduler.get_last_lr()[0]
 
+        # Get current TE from first controller
+        current_te = TE
+        for _name, _mod in model.named_modules():
+            if isinstance(_mod, LRTTSimulatorTile):
+                current_te = _mod.controller.transfer_every
+                break
+
         print(
             f"Epoch {epoch:2d}/{NUM_EPOCHS} | loss={avg_loss:.4f} F1={f1:.2f} EM={em:.2f} "
-            f"| transfers={n_transfers} cos={mean_cosine:.3f} sig={mean_signal:.3f} "
+            f"| TE={current_te:5d} transfers={n_transfers} cos={mean_cosine:.3f} sig={mean_signal:.3f} "
             f"Δratio={mean_delta_ratio:.3f} unchanged={mean_unchanged:.3f} "
             f"| lr={current_lr:.6f} | {elapsed:.1f}s"
         )
@@ -864,6 +967,7 @@ def main() -> None:
                 "f1": f1,
                 "em": em,
                 "lr": current_lr,
+                "te": current_te,
                 "n_transfers": n_transfers,
                 "mean_cosine_sim": mean_cosine,
                 "mean_signal_ratio": mean_signal,
@@ -876,7 +980,7 @@ def main() -> None:
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     # Per-transfer CSV
-    transfer_csv = os.path.join(OUTPUT_DIR, f"transfer_diagnostic_{reinit_mode}_transfers.csv")
+    transfer_csv = os.path.join(OUTPUT_DIR, f"transfers_{te_label}.csv")
     fieldnames = [f.name for f in fields(TransferRecord)]
     with open(transfer_csv, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -885,7 +989,7 @@ def main() -> None:
             writer.writerow(rec.to_dict())
 
     # Per-epoch summary CSV
-    epoch_csv = os.path.join(OUTPUT_DIR, f"transfer_diagnostic_{reinit_mode}_epochs.csv")
+    epoch_csv = os.path.join(OUTPUT_DIR, f"epochs_{te_label}.csv")
     metric_keys = [
         "a_norm",
         "b_norm",
@@ -899,7 +1003,7 @@ def main() -> None:
         "sign_agree_changed",
         "signal_ratio_changed",
     ]
-    epoch_fieldnames = ["epoch", "train_loss", "f1", "em", "lr", "n_transfers"]
+    epoch_fieldnames = ["epoch", "train_loss", "f1", "em", "lr", "te", "n_transfers"]
     for key in metric_keys:
         for stat in ["mean", "min", "max"]:
             epoch_fieldnames.append(f"{key}_{stat}")
@@ -916,6 +1020,7 @@ def main() -> None:
                 "f1": em_data["f1"],
                 "em": em_data["em"],
                 "lr": em_data["lr"],
+                "te": em_data["te"],
                 "n_transfers": summary["n_transfers"],
             }
             for key in metric_keys:

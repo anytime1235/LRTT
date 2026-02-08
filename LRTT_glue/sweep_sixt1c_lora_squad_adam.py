@@ -118,7 +118,7 @@ TARGET_CONFIGS = {
 # =============================================================================
 
 # Search space for sixt1c_lora parameters
-LR_MIN, LR_MAX = 1e-6, 1e-1                        # learning rate
+LR_MIN, LR_MAX = 5e-4, 5e-3                        # learning rate (1e-3 근방으로 제한)
 LORA_ALPHA_MIN, LORA_ALPHA_MAX = 0.1, 10.0         # lora scaling factor
 
 # Fixed parameters
@@ -142,7 +142,7 @@ TARGET_MODULES = ["value"]  # Default, will be overridden by --target
 MODEL_NAME = "google/mobilebert-uncased"
 MAX_SEQ_LENGTH = 128
 BATCH_SIZE = 32
-WARMUP_STEPS = 500
+WARMUP_STEPS = 0  # Warmup 제거 - dw_min threshold 테스트
 SEED = 42
 
 WANDB_PROJECT = "sixt1c-lora-squad-sgd-sweep"
@@ -209,8 +209,8 @@ def create_sixt1c_lora_config(
     # C tile: SoftBoundsDevice (noise-free)
     c_device = SoftBoundsDevice(
         dw_min=0.001,
-        w_max=3.0,
-        w_min=-3.0,
+        w_max=1.0,
+        w_min=-1.0,
         dw_min_dtod=0.0,
         dw_min_std=0.0,
         up_down=0.0,
@@ -546,7 +546,7 @@ def run_trial(trial: optuna.Trial, train_loader, eval_loader,
     # Sample hyperparameters: lr, lora_alpha
     params = {
         "learning_rate": trial.suggest_float("learning_rate", LR_MIN, LR_MAX, log=True),
-        "lora_alpha": trial.suggest_float("lora_alpha", LORA_ALPHA_MIN, LORA_ALPHA_MAX, log=True),
+        "lora_alpha": 0.0,  # Fixed to 0 for OOM test (disable LoRA contribution)
     }
 
     target_name = "all" if target_modules is None else "_".join(target_modules)

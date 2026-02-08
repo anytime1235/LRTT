@@ -236,7 +236,7 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             x_size=x_size,
             rank=self.rank,
             transfer_lr=self.transfer_lr,
-            transfer_lr_scale=getattr(self.lrtt_config, "transfer_lr_scale", "none"),
+            transfer_lr_scale=getattr(self.lrtt_config, "transfer_lr_scale", 1.0),
             transfer_every=self.transfer_every,
             units_in_mbatch=self.units_in_mbatch,
             lora_alpha=self.lora_alpha,
@@ -256,6 +256,12 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             multi_read_mode=getattr(self.lrtt_config, "multi_read_mode", "average"),
             update_mode=getattr(self.lrtt_config, "update_mode", "lora"),
             transfer_method=getattr(self.lrtt_config, "transfer_method", "onehot"),
+            dynamic_te=getattr(self.lrtt_config, "dynamic_te", False),
+            dynamic_te_power=getattr(self.lrtt_config, "dynamic_te_power", 1.0),
+            dynamic_te_min=getattr(self.lrtt_config, "dynamic_te_min", None),
+            dynamic_te_max=getattr(self.lrtt_config, "dynamic_te_max", None),
+            te_warmup_schedule=getattr(self.lrtt_config, "te_warmup_schedule", None),
+            te_warmup_steps=getattr(self.lrtt_config, "te_warmup_steps", 0),
         )
 
         # Apply post-init settings from config._post_init

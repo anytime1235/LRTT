@@ -151,7 +151,7 @@ def create_lrtt_config(transfer_every, transfer_lr, units_in_mbatch):
     )
 
     c_device = SoftBoundsDevice(
-        dw_min=0.001, w_max=3.0, w_min=-3.0,
+        dw_min=0.001, w_max=1.0, w_min=-1.0,
         dw_min_dtod=0.0, dw_min_std=0.0,
         up_down=0.0, up_down_dtod=0.0,
         w_max_dtod=0.0, w_min_dtod=0.0,

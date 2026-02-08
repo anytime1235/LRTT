@@ -16,7 +16,7 @@ orchestrator on top of aihwkit tiles. Operates on A, B, visible (C) tile stack w
 
 import torch
 from torch import Tensor
-from typing import Optional, Dict, Any
+from typing import Optional, List, Dict, Any
 import math
 
 from aihwkit.simulator.tiles.analog import AnalogTileWithoutPeriphery
@@ -48,7 +48,7 @@ class LRTTController:
         rank: int,
         *,
         transfer_lr: float = 1.0,
-        transfer_lr_scale: float = 1.0,  # Scaling factor for transfer_lr
+        transfer_lr_scale: float = 1.0,  # Static scaling factor for transfer_lr
         transfer_every: int = 32,
         units_in_mbatch: bool = False,
         lora_alpha: float = 1.0,
@@ -66,6 +66,12 @@ class LRTTController:
         multi_read_mode: str = "average",
         update_mode: str = "lora",  # "lora" or "reconstruction"
         transfer_method: str = "onehot",  # "onehot", "direct", or "set"
+        dynamic_te: bool = False,
+        dynamic_te_power: float = 1.0,
+        dynamic_te_min: Optional[int] = None,
+        dynamic_te_max: Optional[int] = None,
+        te_warmup_schedule: Optional[List[int]] = None,
+        te_warmup_steps: int = 0,
         device: Optional[torch.device] = None,  # Explicit device to avoid get_weights()
         dtype: torch.dtype = torch.float32      # Explicit dtype
     ):
@@ -79,7 +85,7 @@ class LRTTController:
             x_size: Input dimension
             rank: LoRA rank (must be <= min(d_size, x_size))
             transfer_lr: Transfer learning rate scalar (base value before scaling)
-            transfer_lr_scale: Scaling factor for transfer_lr (default 1.0).
+            transfer_lr_scale: Static scaling factor for transfer_lr (default 1.0).
                         Effective transfer_lr = transfer_lr * transfer_lr_scale.
             transfer_every: Transfer frequency (steps or samples)
             units_in_mbatch: Whether transfer_every counts samples vs steps
@@ -117,9 +123,9 @@ class LRTTController:
         self.rank = rank
 
         # LRTT parameters with transfer_lr scaling
+        self.transfer_lr_base = transfer_lr  # Store original for reference
         self.transfer_lr_scale = transfer_lr_scale
         self.transfer_lr = transfer_lr * transfer_lr_scale
-        self.transfer_lr_base = transfer_lr  # Store original for reference
 
         self.transfer_every = transfer_every
         self.units_in_mbatch = units_in_mbatch
@@ -136,6 +142,23 @@ class LRTTController:
         self.multi_read_mode = multi_read_mode
         self.update_mode = update_mode
         self.transfer_method = transfer_method
+
+        # Dynamic TE state
+        self.dynamic_te = dynamic_te
+        self.dynamic_te_power = dynamic_te_power
+        self.te_base = transfer_every  # TE_0 (immutable)
+        self.dynamic_te_min = dynamic_te_min if dynamic_te_min is not None else transfer_every
+        self.dynamic_te_max = dynamic_te_max if dynamic_te_max is not None else transfer_every * 10
+        self.lr_peak: Optional[float] = None  # Auto-tracked peak LR
+
+        # TE warmup ramp state
+        self.te_warmup_schedule = te_warmup_schedule  # e.g. [32, 64, 128, 230]
+        self.te_warmup_steps = te_warmup_steps
+        self.te_step_counter = 0  # Counts _update_dynamic_te calls
+
+        # If warmup schedule is set, start TE at the first value
+        if self.te_warmup_schedule and len(self.te_warmup_schedule) > 0:
+            self.transfer_every = self.te_warmup_schedule[0]
 
         # BL management settings
         self.ab_bl_mgmt = ab_bl_mgmt or {}
@@ -650,6 +673,50 @@ class LRTTController:
         else:
             return self._ab_weight_update_lora(x, d, lr, in_trans, out_trans)
 
+    def _update_dynamic_te(self, lr_current: float) -> None:
+        """Update transfer_every based on warmup schedule and LR decay ratio.
+
+        Phase 1 (Warmup ramp): TE steps through te_warmup_schedule in equal intervals.
+        Phase 2 (Peak LR): TE fixed at te_base.
+        Phase 3 (LR decay): TE increases proportionally to LR ratio.
+
+        Formula (Phase 3): TE(t) = clip(te_min, te_max, round(TE_0 * (lr_peak / lr_current)^p))
+        """
+        self.te_step_counter += 1
+
+        # Phase 1: Warmup ramp (step-wise schedule)
+        if (self.te_warmup_schedule and self.te_warmup_steps > 0
+                and self.te_step_counter <= self.te_warmup_steps):
+            n_phases = len(self.te_warmup_schedule)
+            phase_len = self.te_warmup_steps / n_phases
+            phase_idx = min(int((self.te_step_counter - 1) / phase_len), n_phases - 1)
+            self.transfer_every = self.te_warmup_schedule[phase_idx]
+            # Still track lr_peak during warmup
+            if lr_current > 0 and (self.lr_peak is None or lr_current > self.lr_peak):
+                self.lr_peak = lr_current
+            return
+
+        if not self.dynamic_te:
+            self.transfer_every = self.te_base
+            return
+
+        if lr_current <= 0:
+            return
+
+        # Phase 2: Peak tracking (lr still increasing after warmup)
+        if self.lr_peak is None or lr_current > self.lr_peak:
+            self.lr_peak = lr_current
+            self.transfer_every = self.te_base
+            return
+
+        # Phase 3: Decay — increase TE proportionally
+        ratio = self.lr_peak / lr_current  # >= 1.0
+        te_proposed = round(self.te_base * (ratio ** self.dynamic_te_power))
+        te_proposed = max(self.dynamic_te_min, min(self.dynamic_te_max, te_proposed))
+
+        # Monotonic non-decreasing
+        self.transfer_every = max(self.transfer_every, te_proposed)
+
     def _ab_weight_update_lora(
         self,
         x: Tensor,
@@ -721,7 +788,10 @@ class LRTTController:
             self.tile_b.set_learning_rate(lr_b_old)
             self.num_b_updates += 1
 
-        # 5) Counter
+        # 5) Dynamic TE update (before counter check)
+        self._update_dynamic_te(lr)
+
+        # 6) Counter
         self.transfer_counter += (x.shape[0] if self.units_in_mbatch else 1)
 
     def _ab_weight_update_reconstruction(
@@ -802,7 +872,10 @@ class LRTTController:
         if self.recon_use_clip_norm:
             self._clip_ab_norms(max_norm=self.recon_clip_norm)
 
-        # 6) Counter
+        # 6) Dynamic TE update (before counter check)
+        self._update_dynamic_te(lr)
+
+        # 7) Counter
         self.transfer_counter += (x.shape[0] if self.units_in_mbatch else 1)
 
     def _apply_reconstruction_stabilizer(self, lr_rec: float) -> None:
@@ -1749,7 +1822,17 @@ class LRTTController:
             'reinit_gain': self.reinit_gain,
             'reinit_mode': self.reinit_mode,
             'decay_factor': self.decay_factor,
-            'forward_inject_enabled': self.forward_inject_enabled
+            'forward_inject_enabled': self.forward_inject_enabled,
+            # Dynamic TE state
+            'te_base': self.te_base,
+            'lr_peak': self.lr_peak,
+            'dynamic_te': self.dynamic_te,
+            'dynamic_te_power': self.dynamic_te_power,
+            'dynamic_te_min': self.dynamic_te_min,
+            'dynamic_te_max': self.dynamic_te_max,
+            'te_warmup_schedule': self.te_warmup_schedule,
+            'te_warmup_steps': self.te_warmup_steps,
+            'te_step_counter': self.te_step_counter,
         }
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
