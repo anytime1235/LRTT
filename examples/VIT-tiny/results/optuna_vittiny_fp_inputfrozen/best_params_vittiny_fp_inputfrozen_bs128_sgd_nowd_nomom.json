@@ -1,0 +1,9 @@
+{
+  "study_name": "vittiny_fp_inputfrozen_bs128_sgd_nowd_nomom",
+  "best_accuracy": 55.75,
+  "best_params": {
+    "learning_rate": 0.40838722357748763
+  },
+  "best_trial_number": 44,
+  "n_trials": 50
+}

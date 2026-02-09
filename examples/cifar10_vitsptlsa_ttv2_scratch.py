@@ -15,10 +15,10 @@ Based on the paper settings (C.1.4):
 - ReduceLROnPlateau scheduler
 
 Paper TTv2 parameters:
-- ns = 1, λA = 0.075
-- nstates = 200 (dw_min = 0.01)
+- ns = 1 (transfer_every)
+- λA = 0.5 (fast_lr)
 - γ0 = 10000 (auto_granularity)
-- ρ = 0.01 (chopper prob, for c-TTv2 only)
+- in_chop_prob = 0.0 (TTv2, c-TTv2 uses 0.01)
 
 Reference: https://github.com/kentaroy47/vision-transformers-cifar10
 """
@@ -68,8 +68,8 @@ N_EPOCHS = 40  # Paper: 40 epochs
 BATCH_SIZE = 8  # Paper: batch size 8
 LEARNING_RATE = 1e-2  # Initial LR (will be reduced on plateau)
 LR_REDUCTION_FACTOR = 0.1  # Paper: reduce LR by 0.1 on plateau
-LR_PATIENCE = 5  # Patience for ReduceLROnPlateau
-EARLY_STOP_PATIENCE = 7  # Stop if no improvement for N epochs
+LR_PATIENCE = 3  # Patience for ReduceLROnPlateau
+EARLY_STOP_PATIENCE = 10  # Stop if no improvement for N epochs
 WEIGHT_DECAY = 5e-5
 OPTIMIZER = "AnalogSGD"  # "AnalogSGD", "AnalogAdam"
 N_CLASSES = 10
@@ -87,9 +87,8 @@ DROPOUT = 0.0
 # TTv2 configuration parameters
 N_STATES = 10000  # ~10000 states (idealized)
 DW_MIN = 0.0002  # step size for ~10000 states
-AUTO_GRANULARITY = 10000  # Paper: γ0 = 10000
-FAST_LR = 0.075  # Fast tile learning rate (paper: λA = 0.075)
-IN_CHOP_PROB = 0.0  # TTv2: no chopping (c-TTv2 uses 0.01)
+FAST_LR = 0.5  # Fast tile learning rate (paper: λA = 0.5)
+AUTO_GRANULARITY = 10000  # Buffer granularity (γ0)
 TRANSFER_EVERY = 1.0  # Transfer frequency (ns)
 UNITS_IN_MBATCH = True  # True: mini-batch units, False: mat-vec units
 
@@ -183,7 +182,7 @@ def create_ttv2_config():
         _create_device(DEVICE_C),  # Core (visible)
     ]
 
-    # ChoppedTransferCompound for TTv2
+    # ChoppedTransferCompound for TTv2 (in_chop_prob=0.0 means no chopping, just buffered transfer)
     device_config = ChoppedTransferCompound(
         unit_cell_devices=unit_devices,
         transfer_forward=PresetIOParameters(
@@ -197,7 +196,7 @@ def create_ttv2_config():
         ),
         transfer_every=TRANSFER_EVERY,
         units_in_mbatch=UNITS_IN_MBATCH,
-        in_chop_prob=IN_CHOP_PROB,  # 0.0 for TTv2, 0.01 for c-TTv2
+        in_chop_prob=0.0,  # TTv2: no chopping (c-TTv2 uses 0.01)
         fast_lr=FAST_LR,
         auto_scale=True,
         auto_granularity=AUTO_GRANULARITY,
@@ -491,9 +490,8 @@ def create_model():
     print(f"  Device A (aux): {DEVICE_A}")
     print(f"  Device C (core): {DEVICE_C}")
     print(f"  Device states: {N_STATES} (dw_min={DW_MIN:.4f})")
-    print(f"  Auto granularity: {AUTO_GRANULARITY}")
     print(f"  Fast LR: {FAST_LR}")
-    print(f"  Chop prob: {IN_CHOP_PROB} (TTv2)")
+    print(f"  Auto granularity: {AUTO_GRANULARITY}")
     print(f"  Transfer every: {TRANSFER_EVERY}")
     print(f"  Units in mbatch: {UNITS_IN_MBATCH}\n")
 
@@ -531,10 +529,7 @@ def create_optimizer(model, learning_rate, weight_decay):
     if OPTIMIZER == "AnalogSGD":
         optimizer = AnalogSGD(
             model.parameters(),
-            lr=learning_rate,
-            momentum=0.9,
-            weight_decay=weight_decay,
-            nesterov=True
+            lr=learning_rate
         )
     elif OPTIMIZER == "AnalogAdam":
         optimizer = AnalogAdam(
@@ -614,9 +609,8 @@ def main():
             # TTv2 specific
             "n_states": N_STATES,
             "dw_min": DW_MIN,
-            "auto_granularity": AUTO_GRANULARITY,
             "fast_lr": FAST_LR,
-            "in_chop_prob": IN_CHOP_PROB,
+            "auto_granularity": AUTO_GRANULARITY,
             "transfer_every": TRANSFER_EVERY,
             "units_in_mbatch": UNITS_IN_MBATCH,
             "device_a": DEVICE_A,

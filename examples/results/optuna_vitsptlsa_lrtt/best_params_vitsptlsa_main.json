@@ -1,0 +1,18 @@
+{
+  "study_name": "vitsptlsa_main",
+  "best_accuracy": 41.2,
+  "best_params": {
+    "rank_exp": 7,
+    "transfer_every": 10663,
+    "lora_alpha": 2.0508067390385114,
+    "transfer_lr_scale": 0.5222941569693307,
+    "learning_rate": 0.00394755207855534,
+    "batch_size": 32,
+    "weight_decay": 0.012768299222745451,
+    "tau_sec": 16585.33983131448,
+    "reinit_mode": "hybrid",
+    "optimizer": "AnalogSGD"
+  },
+  "best_trial_number": 4,
+  "n_trials": 22
+}

@@ -1,0 +1,11 @@
+{
+  "study_name": "vitsptlsa_fp_main",
+  "best_accuracy": 70.36,
+  "best_params": {
+    "learning_rate": 0.0002768585952282861,
+    "batch_size": 32,
+    "weight_decay": 0.0005101658947266078
+  },
+  "best_trial_number": 47,
+  "n_trials": 55
+}

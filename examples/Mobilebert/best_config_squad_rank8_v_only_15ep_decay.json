@@ -1,0 +1,44 @@
+{
+  "experiment": "LRTT SQuAD Rank-8 V-Only 15ep Decay",
+  "task": "squad",
+  "metric_name": "f1",
+  "best_params": {
+    "learning_rate": 0.009676045941584346,
+    "transfer_lr": 7.640386441380507e-05,
+    "transfer_every": 1261,
+    "lifetime": 1826
+  },
+  "fixed_params": {
+    "rank": 8,
+    "lora_alpha": 1.0,
+    "reinit_mode": "decay",
+    "reinit_gain": 0.1,
+    "decay_factor": 1.0,
+    "units_in_mbatch": true,
+    "update_mode": "lora",
+    "transfer_method": "onehot",
+    "a_init_mode": "zero",
+    "forward_inject": false,
+    "target_modules": ["value"],
+    "model": "google/mobilebert-uncased",
+    "batch_size": 32,
+    "num_epochs": 15,
+    "warmup_steps": 500,
+    "scheduler": "cosine_with_min_lr",
+    "min_lr_rate": 0.1,
+    "patience": 3,
+    "early_stop_min_delta": 1.0,
+    "seed": 42
+  },
+  "search_space": {
+    "learning_rate": {"min": 1e-4, "max": 1e-2, "scale": "log"},
+    "transfer_lr": {"min": 3e-5, "max": 1e-2, "scale": "log"},
+    "transfer_every": {"min": 100, "max": 10000, "scale": "int_log"},
+    "lifetime": {"min": 10, "max": 100000, "scale": "int_log"}
+  },
+  "optimization": {
+    "sampler": "TPE",
+    "direction": "maximize",
+    "n_trials": 50
+  }
+}

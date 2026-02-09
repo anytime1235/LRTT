@@ -1,0 +1,12 @@
+{
+  "study_name": "vittiny_fp_main",
+  "best_accuracy": 72.14,
+  "best_params": {
+    "learning_rate": 0.00033900484775890833,
+    "batch_size": 128,
+    "weight_decay": 0.000445265659631347,
+    "optimizer": "Adam"
+  },
+  "best_trial_number": 24,
+  "n_trials": 50
+}

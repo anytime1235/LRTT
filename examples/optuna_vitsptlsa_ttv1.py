@@ -443,9 +443,9 @@ def objective(trial):
         if optimizer_name == "AnalogAdam":
             optimizer = AnalogAdam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
         else:
-            optimizer = AnalogSGD(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=weight_decay, nesterov=True)
+            optimizer = AnalogSGD(model.parameters(), lr=learning_rate)
         optimizer.regroup_param_groups(model)
-        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
+        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=3)
         criterion = nn.CrossEntropyLoss()
 
         best_accuracy = 0

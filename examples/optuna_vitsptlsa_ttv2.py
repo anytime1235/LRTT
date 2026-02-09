@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 """Optuna hyperparameter sweep for ViT-SPT-LSA with TTv2 on CIFAR-10.
 
-TTv2 uses ChoppedTransferCompound with the following key parameters:
+TTv2 uses TransferCompound with fast_lr for improved training dynamics.
+Key parameters:
 - transfer_every: Transfer frequency (ns)
 - fast_lr: Fast tile learning rate (paper: λA = 0.075)
-- auto_granularity: γ0 (paper: 10000)
-- in_chop_prob: Chopper probability (TTv2: 0.0, c-TTv2: 0.01)
 
 Usage:
     # Run trials (results are automatically saved and can be resumed)
@@ -170,14 +169,16 @@ def _create_device(device_type, dw_min=0.0002, dw_min_dtod=0.3, dw_min_std=0.3):
         )
 
 
-def create_ttv2_config(transfer_every=1.0, fast_lr=0.075, auto_granularity=10000, in_chop_prob=0.0, units_in_mbatch=True):
+def create_ttv2_config(transfer_every=1.0, fast_lr=0.5, auto_granularity=10000, units_in_mbatch=True):
     """Create TTv2 configuration with given hyperparameters.
+
+    TTv2 uses ChoppedTransferCompound with in_chop_prob=0.0 (no chopping).
+    This provides the H-buffer for digital accumulation between A and C arrays.
 
     Args:
         transfer_every: Transfer frequency (ns), paper default: 1.0
-        fast_lr: Fast tile learning rate (λA), paper default: 0.075
-        auto_granularity: γ0, paper default: 10000
-        in_chop_prob: Chopper probability (TTv2: 0.0, c-TTv2: 0.01)
+        fast_lr: Fast tile learning rate (λA), paper default: 0.5
+        auto_granularity: Buffer granularity (γ0), default: 10000
         units_in_mbatch: True for mini-batch units, False for mat-vec units
     """
     # A: Auxiliary array, C: Core array (visible)
@@ -186,7 +187,7 @@ def create_ttv2_config(transfer_every=1.0, fast_lr=0.075, auto_granularity=10000
         _create_device(DEVICE_C),  # Core (visible)
     ]
 
-    # ChoppedTransferCompound for TTv2
+    # ChoppedTransferCompound for TTv2 (in_chop_prob=0.0 means no chopping, just buffered transfer)
     device_config = ChoppedTransferCompound(
         unit_cell_devices=unit_devices,
         transfer_forward=PresetIOParameters(
@@ -200,7 +201,7 @@ def create_ttv2_config(transfer_every=1.0, fast_lr=0.075, auto_granularity=10000
         ),
         transfer_every=transfer_every,
         units_in_mbatch=units_in_mbatch,
-        in_chop_prob=in_chop_prob,
+        in_chop_prob=0.0,  # TTv2: no chopping (c-TTv2 uses 0.01)
         fast_lr=fast_lr,
         auto_scale=True,
         auto_granularity=auto_granularity,
@@ -252,9 +253,8 @@ def get_current_ttv2_config():
     """Get current TTv2 config from global holder."""
     return create_ttv2_config(
         transfer_every=_current_config.get('transfer_every', 1.0),
-        fast_lr=_current_config.get('fast_lr', 0.075),
+        fast_lr=_current_config.get('fast_lr', 0.5),
         auto_granularity=_current_config.get('auto_granularity', 10000),
-        in_chop_prob=_current_config.get('in_chop_prob', 0.0),
         units_in_mbatch=_current_config.get('units_in_mbatch', True),
     )
 
@@ -425,9 +425,8 @@ def objective(trial):
 
     # TTv2-specific hyperparameters to tune
     transfer_every = trial.suggest_int('transfer_every', 1, 30000, log=True)
-    fast_lr = trial.suggest_float('fast_lr', 0.001, 0.5, log=True)
-    auto_granularity =10000 #trial.suggest_int('auto_granularity', 100, 100000, log=True)
-    in_chop_prob =0.0 #trial.suggest_float('in_chop_prob', 0.0, 0.1)  # TTv2: 0.0, c-TTv2: 0.01
+    fast_lr = trial.suggest_float('fast_lr', 0.1, 1.0, log=True)
+    auto_granularity = 10000  # Fixed
 
     # General training hyperparameters
     learning_rate = trial.suggest_float('learning_rate', 1e-5, 1e-1, log=True)
@@ -442,7 +441,6 @@ def objective(trial):
         'transfer_every': transfer_every,
         'fast_lr': fast_lr,
         'auto_granularity': auto_granularity,
-        'in_chop_prob': in_chop_prob,
         'units_in_mbatch': True,
     }
 
@@ -451,8 +449,7 @@ def objective(trial):
     print(f"\n{'='*70}")
     print(f"Trial {trial.number} Starting")
     print(f"{'='*70}")
-    print(f"  transfer_every={transfer_every:.4f}, fast_lr={fast_lr:.4f}")
-    print(f"  auto_granularity={auto_granularity}, in_chop_prob={in_chop_prob:.4f}")
+    print(f"  transfer_every={transfer_every}, fast_lr={fast_lr:.4f}")
     print(f"  lr={learning_rate:.2e}, wd={weight_decay:.2e}, optimizer={optimizer_name}")
     print(f"{'='*70}")
 
@@ -474,9 +471,9 @@ def objective(trial):
         if optimizer_name == "AnalogAdam":
             optimizer = AnalogAdam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
         else:
-            optimizer = AnalogSGD(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=weight_decay, nesterov=True)
+            optimizer = AnalogSGD(model.parameters(), lr=learning_rate)
         optimizer.regroup_param_groups(model)
-        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
+        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=3)
         criterion = nn.CrossEntropyLoss()
 
         best_accuracy = 0

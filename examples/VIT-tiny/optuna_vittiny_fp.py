@@ -35,6 +35,7 @@ import os
 import math
 import json
 import argparse
+import gc
 from datetime import datetime
 
 import torch
@@ -75,6 +76,68 @@ DEPTH = 12
 NUM_HEADS = 3
 MLP_RATIO = 4.0
 DROPOUT = 0.0
+
+# Fixed batch size for study naming
+BATCH_SIZE = 64
+
+# Global configuration (set by argparse)
+OPT_CONFIG = {
+    'optimizer': 'sgd',
+    'tune_wd': True,
+    'tune_momentum': True,
+    'tune_nesterov': True,
+    'freeze_transformer': False,
+}
+
+
+def get_study_name_suffix():
+    """Generate study name suffix based on optimizer config."""
+    opt = OPT_CONFIG['optimizer']
+    suffix = opt
+
+    if OPT_CONFIG['freeze_transformer']:
+        suffix += "_frozen"
+
+    if opt == 'sgd':
+        if not OPT_CONFIG['tune_wd']:
+            suffix += "_nowd"
+        if not OPT_CONFIG['tune_momentum']:
+            suffix += "_nomom"
+        if not OPT_CONFIG['tune_nesterov']:
+            suffix += "_nonest"
+    else:  # adam
+        if not OPT_CONFIG['tune_wd']:
+            suffix += "_nowd"
+
+    return suffix
+
+
+def freeze_transformer_layers(model):
+    """Freeze transformer block layers (qkv, proj, fc1, fc2).
+
+    Only embeddings and layer norms remain trainable.
+    """
+    frozen_count = 0
+    frozen_params = 0
+
+    for block in model.blocks:
+        # Freeze attention: qkv and proj
+        for name in ['qkv', 'proj']:
+            layer = getattr(block.attn, name)
+            for param in layer.parameters():
+                param.requires_grad = False
+                frozen_params += param.numel()
+            frozen_count += 1
+
+        # Freeze MLP: fc1 and fc2
+        for name in ['fc1', 'fc2']:
+            layer = getattr(block.mlp, name)
+            for param in layer.parameters():
+                param.requires_grad = False
+                frozen_params += param.numel()
+            frozen_count += 1
+
+    return frozen_count, frozen_params
 
 
 import torch.nn.functional as F
@@ -225,8 +288,30 @@ def objective(trial):
     # Hyperparameters to tune
     learning_rate = trial.suggest_float('learning_rate', 1e-5, 1e0, log=True)
     batch_size = trial.suggest_categorical('batch_size', [32, 64, 128])
-    weight_decay = trial.suggest_float('weight_decay', 1e-7, 1e-2, log=True)
-    optimizer_name = 'SGD'  # Fixed to SGD
+
+    # Weight decay based on config
+    if OPT_CONFIG['tune_wd']:
+        weight_decay = trial.suggest_float('weight_decay', 1e-6, 1e-2, log=True)
+    else:
+        weight_decay = 0
+
+    # Optimizer selection
+    opt_type = OPT_CONFIG['optimizer']
+
+    # SGD-specific: momentum and nesterov
+    if opt_type == 'sgd':
+        if OPT_CONFIG['tune_momentum']:
+            momentum = trial.suggest_float('momentum', 0.0, 0.99)
+        else:
+            momentum = 0
+
+        if OPT_CONFIG['tune_nesterov'] and momentum > 0:
+            nesterov = trial.suggest_categorical('nesterov', [True, False])
+        else:
+            nesterov = False
+    else:
+        momentum = 0
+        nesterov = False
 
     max_epochs = 2000
     early_stop_patience = 7
@@ -234,9 +319,12 @@ def objective(trial):
     manual_seed(SEED)
 
     print(f"\n{'='*70}")
-    print(f"Trial {trial.number} Starting")
+    freeze_mode = "FROZEN" if OPT_CONFIG['freeze_transformer'] else "UNFROZEN"
+    print(f"Trial {trial.number} Starting (Digital FP - {freeze_mode})")
     print(f"{'='*70}")
-    print(f"  lr={learning_rate:.2e}, batch_size={batch_size}, wd={weight_decay:.2e}, optimizer={optimizer_name}")
+    print(f"  optimizer={opt_type}, lr={learning_rate:.2e}, wd={weight_decay:.2e}")
+    print(f"  momentum={momentum:.2f}, nesterov={nesterov}, batch_size={batch_size}")
+    print(f"  freeze_transformer={OPT_CONFIG['freeze_transformer']}")
     print(f"{'='*70}")
 
     train_loader, val_loader = load_data(batch_size)
@@ -254,27 +342,23 @@ def objective(trial):
             dropout=DROPOUT,
         ).to(DEVICE)
 
-        # Freeze transformer block linear layers (LRTT LoRA targets: qkv, proj, fc1, fc2)
-        for block in model.blocks:
-            for param in block.attn.qkv.parameters():
-                param.requires_grad = False
-            for param in block.attn.proj.parameters():
-                param.requires_grad = False
-            for param in block.mlp.fc1.parameters():
-                param.requires_grad = False
-            for param in block.mlp.fc2.parameters():
-                param.requires_grad = False
-
-        trainable_params = [p for p in model.parameters() if p.requires_grad]
-        total_params = sum(p.numel() for p in model.parameters())
-        frozen_params = sum(p.numel() for p in model.parameters() if not p.requires_grad)
-        print(f"  Params: total={total_params:,}, frozen={frozen_params:,}, trainable={total_params - frozen_params:,}")
-
-        if optimizer_name == "Adam":
-            optimizer = torch.optim.Adam(trainable_params, lr=learning_rate, weight_decay=weight_decay)
+        # Freeze transformer layers if requested
+        if OPT_CONFIG['freeze_transformer']:
+            frozen_count, frozen_params = freeze_transformer_layers(model)
+            trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+            total_params = sum(p.numel() for p in model.parameters())
+            print(f"  Frozen {frozen_count} layers ({frozen_params:,} params)")
+            print(f"  Params: total={total_params:,}, trainable={trainable_params:,}")
         else:
-            optimizer = torch.optim.SGD(trainable_params, lr=learning_rate, momentum=0.9, weight_decay=weight_decay, nesterov=True)
-        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
+            total_params = sum(p.numel() for p in model.parameters())
+            print(f"  Params: total={total_params:,} (all trainable)")
+
+        if opt_type == "adam":
+            optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+        else:  # sgd
+            optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, weight_decay=weight_decay,
+                                        momentum=momentum, nesterov=nesterov)
+        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=3)
         criterion = nn.CrossEntropyLoss()
 
         best_accuracy = 0
@@ -322,10 +406,16 @@ def objective(trial):
         return best_accuracy
 
     finally:
+        if 'optimizer' in dir():
+            del optimizer
+        if 'scheduler' in dir():
+            del scheduler
         if model is not None:
             del model
+        gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
+            torch.cuda.synchronize()
         print(f"[Trial {trial.number}] GPU cache cleared")
 
 
@@ -437,8 +527,8 @@ def print_study_summary(study):
 def main():
     """Run Optuna hyperparameter sweep."""
     parser = argparse.ArgumentParser(description="Optuna sweep for ViT-Tiny FP")
-    parser.add_argument('--study-name', type=str, default=DEFAULT_STUDY_NAME,
-                        help=f'Study name (default: {DEFAULT_STUDY_NAME})')
+    parser.add_argument('--study-name', type=str, default=None,
+                        help='Study name (default: auto-generated based on config)')
     parser.add_argument('--n-trials', type=int, default=50,
                         help='Number of trials to run (default: 50)')
     parser.add_argument('--timeout', type=int, default=None,
@@ -449,11 +539,29 @@ def main():
                         help='Visualize existing results without running new trials')
     parser.add_argument('--new-study', action='store_true',
                         help='Start a new study (ignore existing results)')
+    parser.add_argument('--optimizer', type=str, default='sgd', choices=['sgd', 'adam'],
+                        help='Optimizer type (default: sgd)')
+    parser.add_argument('--no-wd', action='store_true',
+                        help='Disable weight decay tuning (fix to 0)')
+    parser.add_argument('--no-momentum', action='store_true',
+                        help='Disable momentum tuning (fix to 0, SGD only)')
+    parser.add_argument('--no-nesterov', action='store_true',
+                        help='Disable nesterov tuning (fix to False, SGD only)')
+    parser.add_argument('--freeze-transformer', action='store_true',
+                        help='Freeze transformer layers (train only embeddings)')
     args = parser.parse_args()
+
+    # Update global config
+    OPT_CONFIG['optimizer'] = args.optimizer
+    OPT_CONFIG['tune_wd'] = not args.no_wd
+    OPT_CONFIG['tune_momentum'] = not args.no_momentum
+    OPT_CONFIG['tune_nesterov'] = not args.no_nesterov
+    OPT_CONFIG['freeze_transformer'] = args.freeze_transformer
 
     os.makedirs(RESULTS, exist_ok=True)
 
-    study_name = args.study_name
+    # Auto-generate study name based on config (includes batch size)
+    study_name = args.study_name or f"vittiny_fp_bs{BATCH_SIZE}_{get_study_name_suffix()}"
     storage = args.storage or f"sqlite:///{RESULTS}/optuna_{study_name}.db"
 
     if args.visualize:

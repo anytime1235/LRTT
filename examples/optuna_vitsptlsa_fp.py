@@ -281,7 +281,7 @@ def objective(trial):
             optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
         else:
             optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=weight_decay, nesterov=True)
-        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
+        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=3)
         criterion = nn.CrossEntropyLoss()
 
         best_accuracy = 0

@@ -19,6 +19,7 @@ Model: ViT-Tiny (standard ViT, no SPT/LSA)
 import os
 import math
 import json
+import gc
 
 import torch
 from torch import nn, device, no_grad, manual_seed, save
@@ -51,7 +52,7 @@ N_EPOCHS = 40
 BATCH_SIZE = 8
 LEARNING_RATE = 1e-2
 LR_REDUCTION_FACTOR = 0.1
-LR_PATIENCE = 5
+LR_PATIENCE = 3
 WEIGHT_DECAY = 5e-5
 OPTIMIZER = "SGD"  # "SGD", "Adam"
 N_CLASSES = 10
@@ -65,6 +66,37 @@ DEPTH = 12
 NUM_HEADS = 3
 MLP_RATIO = 4.0
 DROPOUT = 0.0
+
+# Freeze option: freeze attention (qkv, proj) and MLP (fc1, fc2) layers
+FREEZE_TRANSFORMER = False
+
+
+def freeze_transformer_layers(model):
+    """Freeze transformer block layers (qkv, proj, fc1, fc2).
+
+    Only embeddings and layer norms remain trainable.
+    """
+    frozen_count = 0
+    frozen_params = 0
+
+    for block in model.blocks:
+        # Freeze attention: qkv and proj
+        for name in ['qkv', 'proj']:
+            layer = getattr(block.attn, name)
+            for param in layer.parameters():
+                param.requires_grad = False
+                frozen_params += param.numel()
+            frozen_count += 1
+
+        # Freeze MLP: fc1 and fc2
+        for name in ['fc1', 'fc2']:
+            layer = getattr(block.mlp, name)
+            for param in layer.parameters():
+                param.requires_grad = False
+                frozen_params += param.numel()
+            frozen_count += 1
+
+    return frozen_count, frozen_params
 
 
 class PatchEmbedding(nn.Module):
@@ -236,7 +268,13 @@ def create_model():
         dropout=DROPOUT,
     )
 
+    # Freeze transformer layers if requested
+    if FREEZE_TRANSFORMER:
+        frozen_count, frozen_params = freeze_transformer_layers(model)
+        print(f"  Frozen {frozen_count} layers ({frozen_params:,} params)")
+
     num_params = count_parameters(model)
+    total_params = sum(p.numel() for p in model.parameters())
     num_linear = count_linear_layers(model)
 
     print(f"\nCreated ViT-Tiny model (Digital FP):")
@@ -247,8 +285,10 @@ def create_model():
     print(f"  Depth: {DEPTH} transformer blocks")
     print(f"  Num heads: {NUM_HEADS}")
     print(f"  MLP ratio: {MLP_RATIO}")
+    print(f"  Total parameters: {total_params:,}")
     print(f"  Trainable parameters: {num_params:,}")
     print(f"  Linear/Conv layers: {num_linear}")
+    print(f"  Transformer frozen: {FREEZE_TRANSFORMER}")
     print(f"  Mode: Full Precision (FP32)\n")
 
     return model
@@ -268,9 +308,14 @@ def load_images():
     train_set = datasets.CIFAR10(PATH_DATASET, download=True, train=True, transform=transform)
     val_set = datasets.CIFAR10(PATH_DATASET, download=True, train=False, transform=transform)
 
+    # Generator for reproducibility
+    g = torch.Generator()
+    g.manual_seed(SEED)
+
     train_data = DataLoader(
         train_set, batch_size=BATCH_SIZE, shuffle=True,
-        num_workers=NUM_WORKERS, pin_memory=True if USE_CUDA else False
+        num_workers=NUM_WORKERS, pin_memory=True if USE_CUDA else False,
+        generator=g
     )
     validation_data = DataLoader(
         val_set, batch_size=BATCH_SIZE, shuffle=False,
@@ -365,6 +410,7 @@ def main():
             "weight_decay": WEIGHT_DECAY,
             "optimizer": OPTIMIZER,
             "seed": SEED,
+            "freeze_transformer": FREEZE_TRANSFORMER,
             "augmentation": False,
             "device": str(DEVICE),
             "use_cuda": USE_CUDA,
@@ -504,9 +550,18 @@ def main():
             "model": "ViT-Tiny",
             "best_accuracy": best_accuracy,
             "best_epoch": best_epoch + 1,
+            "freeze_transformer": FREEZE_TRANSFORMER,
             "history": epoch_history
         }, f, indent=2)
     print(f"Epoch history saved to: {history_path}")
+
+    # Memory cleanup
+    del model, optimizer, scheduler
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()
+    print("GPU cache cleared")
 
     wandb.finish()
 

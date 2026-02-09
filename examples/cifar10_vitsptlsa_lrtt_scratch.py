@@ -63,8 +63,8 @@ N_EPOCHS = 40  # Paper: 40 epochs
 BATCH_SIZE = 8  # Paper: batch size 8
 LEARNING_RATE = 0.0009856  # Initial LR (will be reduced on plateau)
 LR_REDUCTION_FACTOR = 0.1  # Paper: reduce LR by 0.1 on plateau
-LR_PATIENCE = 5  # Patience for ReduceLROnPlateau
-EARLY_STOP_PATIENCE = 7  # Stop if no improvement for N epochs
+LR_PATIENCE = 3  # Patience for ReduceLROnPlateau
+EARLY_STOP_PATIENCE = 10  # Stop if no improvement for N epochs
 WEIGHT_DECAY = 0.001003
 OPTIMIZER = "AnalogSGD"  # "AnalogSGD", "AnalogAdam"
 N_CLASSES = 10
@@ -645,10 +645,7 @@ def create_optimizer(model, learning_rate, weight_decay):
     if OPTIMIZER == "AnalogSGD":
         optimizer = AnalogSGD(
             model.parameters(),
-            lr=learning_rate,
-            momentum=0.9,
-            weight_decay=weight_decay,
-            nesterov=True
+            lr=learning_rate
         )
     elif OPTIMIZER == "AnalogAdam":
         optimizer = AnalogAdam(

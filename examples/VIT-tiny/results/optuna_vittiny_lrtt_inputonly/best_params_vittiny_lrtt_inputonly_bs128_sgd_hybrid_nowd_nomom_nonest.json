@@ -1,0 +1,12 @@
+{
+  "best_accuracy": 55.27,
+  "best_params": {
+    "rank_exp": 4,
+    "transfer_every": 5000,
+    "lora_alpha": 0.19872970856775313,
+    "transfer_lr_scale": 1.0,
+    "learning_rate": 0.5160327382571784,
+    "weight_decay": 0.009999999999999998,
+    "tau_sec": 999999999.9999993
+  }
+}
