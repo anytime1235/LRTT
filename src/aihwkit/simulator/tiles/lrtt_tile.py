@@ -220,6 +220,7 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             backward=rpu_config.backward,
             update=update_c,
             tile_class=tile_class_c,
+            mapping=rpu_config.mapping,
         )
         # Pass bias to tile_c for digital_bias support
         # When bias=True, tile_c will have digital_bias=True and create self.bias Parameter
