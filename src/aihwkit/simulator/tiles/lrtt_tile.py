@@ -228,6 +228,10 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             d_size, x_size, rpu_config_c, bias=self.bias
         )
 
+        # Freeze bias in tile_c (pretrained bias should not be trainable, same as C tile weights)
+        if hasattr(self.tile_c, 'bias') and self.tile_c.bias is not None:
+            self.tile_c.bias.requires_grad = False
+
         # Create LRTT controller with all parameters
         self.controller = LRTTController(
             tile_a=self.tile_a,
