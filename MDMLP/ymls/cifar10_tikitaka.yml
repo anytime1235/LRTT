@@ -1,0 +1,56 @@
+dataset_download: True
+in_chans: 3
+workers: 4
+
+dataset: torch/cifar10
+pretrained: False
+num_classes: 10
+input_size:
+  - 3
+  - 32
+  - 32
+crop_pct: 0.875
+mean:
+  - 0.4914
+  - 0.4822
+  - 0.4465
+std:
+  - 0.2470
+  - 0.2435
+  - 0.2616
+batch_size: 128
+opt: sgd
+weight_decay: 1e-4
+sched: cosine
+lr: 0.1
+epochs: 30
+warmup_epochs: 0
+scale:
+  - 0.75
+  - 1.0
+ratio:
+  - 0.75
+  - 1.33
+hflip: 0.5
+color_jitter: 0.4
+aug_repeats: 0
+bce_loss: False
+reprob: 0
+mixup: 0
+cutmix: 0
+smoothing: 0
+drop: 0
+drop_path: 0
+seed: 42
+
+# TikiTaka v1 parameters
+analog: True
+algo: tikitaka
+transfer_every: 100
+transfer_lr: 1.0
+fast_lr: 1.0
+gamma: 0.0
+validate_c_only: True
+
+amp: False
+model_ema: False
