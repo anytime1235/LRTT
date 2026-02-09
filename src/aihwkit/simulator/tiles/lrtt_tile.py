@@ -19,7 +19,7 @@ from aihwkit.simulator.tiles.base import SimulatorTileWrapper, SimulatorTile
 from aihwkit.simulator.tiles.analog import AnalogTile
 from aihwkit.simulator.tiles.floating_point import FloatingPointTile
 from aihwkit.simulator.tiles.lrtt_controller import LRTTController
-from aihwkit.simulator.configs.devices import FloatingPointDevice
+from aihwkit.simulator.configs.devices import FloatingPointDevice, SoftBoundsDevice
 from aihwkit.simulator.parameters.base import RPUConfigGeneric
 from aihwkit.simulator.parameters.enums import RPUDataType
 from aihwkit.simulator.configs.configs import SingleRPUConfig, UnitCellRPUConfig
@@ -211,15 +211,28 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         )
         self.tile_b = rpu_config_b.tile_class(self.rank, x_size, rpu_config_b)
 
-        # Tile C: visible [d_size, x_size] - uses base update params
-        tile_class_c = get_tile_class(unit_devices[2])
+        # Tile C: visible [d_size, x_size] - always uses SoftBoundsDevice (noise-free)
+        c_device = SoftBoundsDevice(
+            dw_min=0.001,
+            w_max=1.0,
+            w_min=-1.0,
+            dw_min_dtod=0.0,
+            dw_min_std=0.0,
+            up_down=0.0,
+            up_down_dtod=0.0,
+            w_max_dtod=0.0,
+            w_min_dtod=0.0,
+            write_noise_std=0.0,
+            mult_noise=True,
+        )
         update_c = create_update_params(rpu_config.update, "c")
         rpu_config_c = SingleRPUConfig(
-            device=unit_devices[2],
+            device=c_device,
             forward=rpu_config.forward,
             backward=rpu_config.backward,
             update=update_c,
-            tile_class=tile_class_c,
+            tile_class=AnalogTile,
+            mapping=rpu_config.mapping,
         )
         # Pass bias to tile_c for digital_bias support
         # When bias=True, tile_c will have digital_bias=True and create self.bias Parameter
@@ -733,6 +746,13 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             and self.tile_c.rpu_config.device.requires_diffusion()
         ):
             self.tile_c.diffuse_weights()
+
+        # CRITICAL: Reset sub-tile analog contexts to prevent memory leak
+        # Each sub-tile accumulates analog_input/analog_grad_output during backward
+        # These lists must be cleared after each optimizer step
+        for tile in [self.tile_a, self.tile_b, self.tile_c]:
+            if hasattr(tile, "analog_ctx") and tile.analog_ctx is not None:
+                tile.analog_ctx.reset()
 
     def clip_weights(self, clip_type: str = "", sigma: float = 0.0) -> None:
         """Apply weight clipping to all tiles."""
