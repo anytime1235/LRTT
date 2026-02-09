@@ -152,6 +152,7 @@ TARGET_MODULES = ["value"]  # Default, will be overridden by --target
 MODEL_NAME = "google/mobilebert-uncased"
 MAX_SEQ_LENGTH = 128
 BATCH_SIZE = 256
+EVAL_BATCH_SIZE = 128
 WARMUP_STEPS = 0  # No warmup - testing dw_min threshold behavior
 MIN_LR_RATIO = 0.05  # min_lr = initial_lr / 20
 SEED = 42
@@ -294,7 +295,7 @@ def create_squad_model(params: Dict, device: torch.device, target_modules: List[
             # "all" mode: train everything except qa_outputs base weights
             param.requires_grad = "qa_outputs" in name or "analog" in name.lower()
         else:
-            is_target = any(t in name for t in target_modules)
+            is_target = any(t in name for t in target_modules) and "bias" not in name
             param.requires_grad = is_target or "qa_outputs" in name
 
     return model.to(device)
@@ -460,7 +461,7 @@ def evaluate_squad(model, eval_features, eval_examples, tokenizer, device) -> Tu
 
     eval_dataloader = DataLoader(
         eval_features.remove_columns(["example_id", "offset_mapping"]),
-        batch_size=BATCH_SIZE, collate_fn=default_data_collator
+        batch_size=EVAL_BATCH_SIZE, collate_fn=default_data_collator
     )
 
     with torch.no_grad():
@@ -626,7 +627,7 @@ def run_trial(trial: optuna.Trial, train_loader, eval_loader,
             "mode": "sixt1c_lora",
         }
 
-        trial_file = os.path.join(results_dir, f"trial_{trial.number}.json")
+        trial_file = os.path.join(results_dir, f"trial_{trial.number}_bias_frozen.json")
         with open(trial_file, 'w') as f:
             json.dump(trial_result, f, indent=2)
 
@@ -728,7 +729,7 @@ def run_target_sweep(target_key: str, device: torch.device, results_dir: str, n_
         "trials": all_trials,
     }
 
-    result_file = os.path.join(results_dir, f"{target_name}_results.json")
+    result_file = os.path.join(results_dir, f"{target_name}_results_bias_frozen.json")
     with open(result_file, 'w') as f:
         json.dump(result, f, indent=2)
 
@@ -759,7 +760,7 @@ def main():
     NUM_EPOCHS = args.epochs
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    results_dir = os.path.join(OUTPUT_DIR, f"sixt1c_lora_safe_{timestamp}")
+    results_dir = os.path.join(OUTPUT_DIR, f"sixt1c_lora_bias_frozen_{timestamp}")
     os.makedirs(results_dir, exist_ok=True)
 
     max_product = LR_MAX * LORA_ALPHA_MAX
@@ -816,7 +817,7 @@ def main():
             all_results[target] = {"error": str(e)}
 
     # Save combined results
-    summary_file = os.path.join(results_dir, "all_targets_summary.json")
+    summary_file = os.path.join(results_dir, "all_targets_summary_bias_frozen.json")
     with open(summary_file, 'w') as f:
         json.dump(all_results, f, indent=2)
 
