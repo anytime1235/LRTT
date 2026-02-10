@@ -5,6 +5,29 @@ Single-run training script for MobileBERT on SQuAD using LRTT analog layers.
 Converts Q/K/V attention layers to analog; all other layers remain digital.
 
 Based on sweep_lrtt_squad_rank8.py, restructured following VIT-tiny patterns.
+
+Inline flags (edit directly in script):
+    N_EPOCHS = 15                    # Number of training epochs
+    BATCH_SIZE = 32                 # Training batch size
+    LEARNING_RATE = 0.00362         # Peak learning rate
+    WEIGHT_DECAY = 0.0              # Weight decay
+    WARMUP_STEPS = 0               # LR scheduler warmup steps
+    MIN_LR_RATE = 0.0               # Min LR as fraction of peak (0 = decay to zero)
+    OPTIMIZER = "AnalogAdam"        # "AnalogSGD" | "AnalogAdam"
+    LRTT_RANK = 8                   # LoRA rank for LRTT
+    TRANSFER_EVERY = 1000           # Transfer interval (steps)
+    TRANSFER_LR = 0.00115           # Transfer learning rate
+    TRANSFER_METHOD = "onehot"      # Transfer method: "onehot" | "direct" | "set"
+    LORA_ALPHA = 1.0                # LoRA alpha scaling
+    REINIT_MODE = "hybrid"          # Reinit mode: "standard" | "decay" | "hybrid"
+    REINIT_GAIN = 0.1               # Reinitialization gain
+    DECAY_FACTOR = 1.0              # Decay factor for reinit
+    TAU_SEC = 46505.0               # 6T1C retention time constant
+    DYNAMIC_TE = False              # Enable dynamic transfer every
+    DYNAMIC_TE_POWER = 1.0          # Power for dynamic TE scaling
+    TE_WARMUP_STEPS = 0            # Steps before reaching target TE
+    TE_WARMUP_SCHEDULE = []         # Warmup TE schedule list
+    TARGET_MODULES = [...]          # Modules to convert to analog
 """
 
 import os
@@ -66,12 +89,12 @@ MODEL_NAME = "google/mobilebert-uncased"
 MAX_SEQ_LENGTH = 384
 
 # Training
-N_EPOCHS = 3
-BATCH_SIZE = 32
-EVAL_BATCH_SIZE = 32
+N_EPOCHS = 15
+BATCH_SIZE = 256
+EVAL_BATCH_SIZE = 128
 LEARNING_RATE = 0.00362
 WEIGHT_DECAY = 0.0
-EARLY_STOP_PATIENCE = 5
+EARLY_STOP_PATIENCE = 3
 
 # Scheduler
 WARMUP_STEPS = 0
@@ -88,6 +111,7 @@ LORA_ALPHA = 1.0
 REINIT_MODE = "hybrid"
 REINIT_GAIN = 0.1
 DECAY_FACTOR = 1.0
+TRANSFER_METHOD = "onehot"  # "onehot", "direct", or "set"
 
 # Device configuration for LRTT tiles
 AB_DEVICE = "6t1c"
@@ -182,7 +206,7 @@ def create_lrtt_config():
     )
     device_config.transfer_lr = TRANSFER_LR
     device_config.units_in_mbatch = True
-    device_config.transfer_method = "onehot"
+    device_config.transfer_method = TRANSFER_METHOD
     device_config.update_mode = "lora"
     device_config.a_init_mode = "zero"
     device_config.forward_inject = False

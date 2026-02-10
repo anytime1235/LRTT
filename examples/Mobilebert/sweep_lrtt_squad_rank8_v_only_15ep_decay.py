@@ -304,7 +304,7 @@ def create_lrtt_config(
     # which would destroy pretrained weight information and cause loss explosion
     rpu_config.mapping.weight_scaling_omega = 1.0        # Scale to ±1.0 range
     rpu_config.mapping.weight_scaling_columnwise = True  # Per-column scaling
-    rpu_config.mapping.learn_out_scaling = True          # Learnable output scaling
+    rpu_config.mapping.learn_out_scaling = False         # Disable learnable output scaling
     rpu_config.mapping.out_scaling_columnwise = True     # Per-column output scaling
 
     return rpu_config
