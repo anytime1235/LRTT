@@ -351,6 +351,8 @@ parser.add_argument('--auto-scale', action='store_true', default=True,
                     help='TTv2 enable auto scaling (default: True)')
 parser.add_argument('--no-auto-scale', action='store_true', default=False,
                     help='TTv2 disable auto scaling')
+parser.add_argument('--c-desired-bl', type=int, default=None,
+                    help='Desired BL for C tile transfer (default: None=use global)')
 
 # ==================== Freeze Arguments (digital mode) ====================
 parser.add_argument('--freeze-mode', type=str, default='none',
@@ -359,6 +361,8 @@ parser.add_argument('--freeze-mode', type=str, default='none',
                          'none (train all), '
                          'head-only (freeze everything except head.Linear), '
                          'stem-head (freeze everything except stem.Linear + head.Linear)')
+parser.add_argument('--patience', type=int, default=0, metavar='N',
+                    help='Early stopping patience (0=disabled). Stop if no improvement for N epochs.')
 
 
 def _parse_args():
@@ -386,6 +390,7 @@ def create_lrtt_config(
     transfer_lr: float,
     lora_alpha: float = 1.0,
     reinit_gain: float = 0.1,
+    c_desired_bl: int = None,
 ):
     """Create LRTT config matching sweep_lrtt_squad_rank8.py (dtod0 version).
 
@@ -401,11 +406,8 @@ def create_lrtt_config(
     Returns:
         Configured PythonLRTTRPUConfig
     """
-    # Calculate lifetime for 6T1C
-    TAU_SEC = 46505.0
-    dt_batch_sec = 1.0
-    delta = 1 - math.exp(-dt_batch_sec / TAU_SEC)
-    lifetime = 1.0 / delta if delta > 0 else 0.0
+    # Lifetime disabled (set to 0) for cleaner A/B tile behavior
+    lifetime = 0.0
 
     # A/B tiles: LinearStepDevice (6T1C)
     ab_device = LinearStepDevice(
@@ -452,18 +454,24 @@ def create_lrtt_config(
         transfer_every=transfer_every,
         lora_alpha=lora_alpha,
         reinit_gain=reinit_gain,
-        reinit_mode="hybrid",
+        reinit_mode="decay",
         decay_factor=1.0,
         unit_cell_devices=[ab_device, ab_device, c_device],
     )
     device_config.transfer_lr = transfer_lr
-    device_config.units_in_mbatch = True
+    if c_desired_bl is not None:
+        device_config.c_desired_bl = c_desired_bl
+    device_config.units_in_mbatch = False
     device_config.transfer_method = "onehot"
     device_config.update_mode = "lora"
     device_config.a_init_mode = "zero"
     device_config.forward_inject = False  # y = Cx only (default LRTT)
 
     rpu_config = PythonLRTTRPUConfig(device=device_config)
+
+    # Disable output noise on A/B tiles for cleaner gradient signal
+    rpu_config.forward.out_noise = 0.0
+    rpu_config.backward.out_noise = 0.0
 
     # Weight scaling for C tile
     rpu_config.mapping.weight_scaling_omega = 1.0
@@ -695,6 +703,7 @@ def convert_model_to_analog(model, args):
             transfer_every=args.transfer_every,
             transfer_lr=args.transfer_lr,
             lora_alpha=args.lora_alpha,
+            c_desired_bl=args.c_desired_bl,
         )
         algo_name = f"LRTT (rank={args.lrtt_rank})"
     elif algo == 'tikitaka':
@@ -1123,6 +1132,9 @@ def main():
     eval_metric = args.eval_metric
     best_metric = None
     best_epoch = None
+    patience = getattr(args, 'patience', 0)
+    patience_counter = 0
+    prev_best = None
     saver = None
     output_dir = None
     if args.rank == 0:
@@ -1190,6 +1202,19 @@ def main():
                 # save proper checkpoint with eval metric
                 save_metric = eval_metrics[eval_metric]
                 best_metric, best_epoch = saver.save_checkpoint(epoch, metric=save_metric)
+
+            # Early stopping check
+            if patience > 0:
+                if prev_best is not None and best_metric == prev_best:
+                    patience_counter += 1
+                    if patience_counter >= patience:
+                        _logger.info(
+                            f'Early stopping at epoch {epoch}: no improvement for {patience} epochs '
+                            f'(best={best_metric:.4f} at epoch {best_epoch})')
+                        break
+                else:
+                    patience_counter = 0
+                prev_best = best_metric
 
     except KeyboardInterrupt:
         pass
