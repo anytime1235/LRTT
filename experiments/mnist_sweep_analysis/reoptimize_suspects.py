@@ -82,7 +82,8 @@ RESUME_COMBO0_STAGE1 = [
     {"lr": 0.065344, "tlr": 0.001778, "best_acc": 93.14},
 ]
 
-BEST_CONFIGS_PATH = "/data/results/mnist/lrtt_sweep_best_configs.json"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+BEST_CONFIGS_PATH = os.path.join(SCRIPT_DIR, "lrtt_sweep_best_configs.json")
 
 # ─── Suspect combinations ───
 # Goal: Decay should peak at low TE (1,10), Hybrid should peak at high TE (100~1000)
@@ -343,7 +344,7 @@ def run_trial(mode, rank, te, lr, tlr, epochs, patience, train_loader, val_loade
 
 def main():
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    results_dir = "/data/results/mnist"
+    results_dir = SCRIPT_DIR
     results_file = os.path.join(results_dir, f"reopt_results_{timestamp}.json")
 
     print("=" * 70)
@@ -508,7 +509,7 @@ def main():
                         "global_trials": global_trial_count}, f, indent=2)
 
         # Global early stop: 3 consecutive combos with no improvement
-        if no_improve_streak >= 3 and si >= 4:
+        if no_improve_streak >= 6:
             print(f"\n  EARLY STOP: {no_improve_streak} consecutive combos without improvement")
             break
 
