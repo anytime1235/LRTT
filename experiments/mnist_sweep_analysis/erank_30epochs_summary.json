@@ -1,0 +1,45 @@
+{
+  "timestamp": "2026-02-05T11:32:40.945273",
+  "args": {
+    "config_json": "/data/results/mnist/lrtt_sweep_best_configs.json",
+    "output_dir": "/data/results/mnist/erank_eval_30epochs",
+    "checkpoint_every": 100,
+    "ranks": [
+      4
+    ],
+    "epochs": 30,
+    "target_acc": null,
+    "modes": [
+      "softbound_lifetime",
+      "hardreset"
+    ]
+  },
+  "results": [
+    {
+      "mode": "softbound_lifetime",
+      "rank": 4,
+      "config": {
+        "rank": 4,
+        "te": 100,
+        "lifetime": 46505,
+        "lr": 0.493706,
+        "tlr": 0.011245
+      },
+      "best_acc": 96.78,
+      "num_checkpoints": 281
+    },
+    {
+      "mode": "hardreset",
+      "rank": 4,
+      "config": {
+        "rank": 4,
+        "te": 50,
+        "lifetime": 10000,
+        "lr": 0.681364524500016,
+        "tlr": 0.0026083967629294425
+      },
+      "best_acc": 96.56,
+      "num_checkpoints": 281
+    }
+  ]
+}

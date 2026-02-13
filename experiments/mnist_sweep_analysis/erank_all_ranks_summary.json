@@ -1,0 +1,181 @@
+{
+  "timestamp": "2026-02-06T08:58:39.494371",
+  "args": {
+    "config_json": "/data/results/mnist/lrtt_sweep_best_configs.json",
+    "output_dir": "/data/results/mnist/erank_eval_all_ranks_te100_30epochs",
+    "checkpoint_every": 100,
+    "ranks": [
+      1,
+      4,
+      8,
+      16,
+      32,
+      64
+    ],
+    "epochs": 30,
+    "target_acc": null,
+    "modes": [
+      "softbound_lifetime",
+      "hardreset"
+    ],
+    "te_override": 100
+  },
+  "results": [
+    {
+      "mode": "softbound_lifetime",
+      "rank": 1,
+      "config": {
+        "rank": 1,
+        "te": 100,
+        "lifetime": 1000,
+        "lr": 0.674107,
+        "tlr": 0.011775
+      },
+      "best_acc": 96.78,
+      "num_checkpoints": 281
+    },
+    {
+      "mode": "hardreset",
+      "rank": 1,
+      "config": {
+        "rank": 1,
+        "te": 100,
+        "lifetime": 100000,
+        "lr": 0.2559987802145917,
+        "tlr": 0.06477913614978935
+      },
+      "best_acc": 94.4,
+      "num_checkpoints": 281
+    },
+    {
+      "mode": "softbound_lifetime",
+      "rank": 4,
+      "config": {
+        "rank": 4,
+        "te": 100,
+        "lifetime": 46505,
+        "lr": 0.493706,
+        "tlr": 0.011245
+      },
+      "best_acc": 97.03,
+      "num_checkpoints": 281
+    },
+    {
+      "mode": "hardreset",
+      "rank": 4,
+      "config": {
+        "rank": 4,
+        "te": 100,
+        "lifetime": 100000,
+        "lr": 0.34183447068119827,
+        "tlr": 0.003910713393630559
+      },
+      "best_acc": 96.61,
+      "num_checkpoints": 281
+    },
+    {
+      "mode": "softbound_lifetime",
+      "rank": 8,
+      "config": {
+        "rank": 8,
+        "te": 100,
+        "lifetime": 1000,
+        "lr": 0.493706,
+        "tlr": 0.011245
+      },
+      "best_acc": 96.33,
+      "num_checkpoints": 281
+    },
+    {
+      "mode": "hardreset",
+      "rank": 8,
+      "config": {
+        "rank": 8,
+        "te": 100,
+        "lifetime": 100000,
+        "lr": 0.7010916941927409,
+        "tlr": 0.004173727844750237
+      },
+      "best_acc": 96.7,
+      "num_checkpoints": 281
+    },
+    {
+      "mode": "softbound_lifetime",
+      "rank": 16,
+      "config": {
+        "rank": 16,
+        "te": 100,
+        "lifetime": 10000,
+        "lr": 0.089054,
+        "tlr": 0.001277
+      },
+      "best_acc": 96.98,
+      "num_checkpoints": 281
+    },
+    {
+      "mode": "hardreset",
+      "rank": 16,
+      "config": {
+        "rank": 16,
+        "te": 100,
+        "lifetime": 46505,
+        "lr": 0.2334611631608765,
+        "tlr": 0.004401532304629191
+      },
+      "best_acc": 93.56,
+      "num_checkpoints": 281
+    },
+    {
+      "mode": "softbound_lifetime",
+      "rank": 32,
+      "config": {
+        "rank": 32,
+        "te": 100,
+        "lifetime": 10000,
+        "lr": 0.089054,
+        "tlr": 0.001277
+      },
+      "best_acc": 97.46,
+      "num_checkpoints": 281
+    },
+    {
+      "mode": "hardreset",
+      "rank": 32,
+      "config": {
+        "rank": 32,
+        "te": 100,
+        "lifetime": 100000,
+        "lr": 0.6023546288776297,
+        "tlr": 0.001898086405681223
+      },
+      "best_acc": 96.62,
+      "num_checkpoints": 281
+    },
+    {
+      "mode": "softbound_lifetime",
+      "rank": 64,
+      "config": {
+        "rank": 64,
+        "te": 100,
+        "lifetime": 100000,
+        "lr": 0.089054,
+        "tlr": 0.001277
+      },
+      "best_acc": 97.15,
+      "num_checkpoints": 281
+    },
+    {
+      "mode": "hardreset",
+      "rank": 64,
+      "config": {
+        "rank": 64,
+        "te": 100,
+        "lifetime": 46505,
+        "lr": 0.2520116659530396,
+        "tlr": 0.0013358069303925648
+      },
+      "best_acc": 92.61,
+      "num_checkpoints": 281
+    }
+  ]
+}

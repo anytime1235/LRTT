@@ -1,0 +1,348 @@
+{
+  "suspects": [
+    {
+      "mode": "decay",
+      "rank": 1,
+      "te": 10,
+      "current": 90.13,
+      "reason": "TE=10 catastrophically low (90.13 vs TE=50=97.01), HP failure"
+    },
+    {
+      "mode": "decay",
+      "rank": 1,
+      "te": 1,
+      "current": 95.07,
+      "reason": "TE=1 should be ~97 like r=32/64, but only 95.07"
+    },
+    {
+      "mode": "decay",
+      "rank": 4,
+      "te": 1,
+      "current": 96.16,
+      "reason": "TE=1 (96.16) < TE=100 (97.34), low TE should win"
+    },
+    {
+      "mode": "decay",
+      "rank": 4,
+      "te": 10,
+      "current": 96.77,
+      "reason": "TE=10 (96.77) < TE=100 (97.34), low TE should win"
+    },
+    {
+      "mode": "decay",
+      "rank": 8,
+      "te": 1,
+      "current": 96.57,
+      "reason": "TE=1 (96.57) < TE=10 (97.17), TE=1 should be at least as good"
+    },
+    {
+      "mode": "hybrid",
+      "rank": 16,
+      "te": 100,
+      "current": 94.91,
+      "reason": "TE=100 (94.91) < TE=50 (95.89), contradicts high-TE claim"
+    },
+    {
+      "mode": "hybrid",
+      "rank": 8,
+      "te": 500,
+      "current": 93.55,
+      "reason": "TE=500 (93.55) << TE=50 (96.20), high TE should not drop this much"
+    },
+    {
+      "mode": "hybrid",
+      "rank": 32,
+      "te": 1000,
+      "current": 91.38,
+      "reason": "TE=1000 (91.38) far below TE=50~500 (~96), too steep decline"
+    },
+    {
+      "mode": "hybrid",
+      "rank": 8,
+      "te": 100,
+      "current": 96.2,
+      "reason": "TE=100 (96.20) = TE=50 (96.20), TE=100 should clearly beat TE=50"
+    },
+    {
+      "mode": "hybrid",
+      "rank": 1,
+      "te": 1000,
+      "current": 94.47,
+      "reason": "TE=1000 (94.47) < TE=500 (95.73), high TE should be sustained"
+    }
+  ],
+  "results": [
+    {
+      "mode": "decay",
+      "rank": 1,
+      "te": 10,
+      "old_best": 90.13,
+      "new_best": 96.36,
+      "improved": true,
+      "delta": 6.230000000000004,
+      "best_lr": 0.332709,
+      "best_tlr": 0.004094,
+      "stage1_trials": [
+        {
+          "lr": 0.089054,
+          "tlr": 0.001277,
+          "best_acc": 93.75
+        },
+        {
+          "lr": 0.674107,
+          "tlr": 0.011775,
+          "best_acc": 93.73
+        },
+        {
+          "lr": 0.040615,
+          "tlr": 1.692439,
+          "best_acc": 82.74
+        },
+        {
+          "lr": 0.081323,
+          "tlr": 0.000477,
+          "best_acc": 93.34
+        },
+        {
+          "lr": 0.058496,
+          "tlr": 0.708833,
+          "best_acc": 87.33
+        },
+        {
+          "lr": 0.724506,
+          "tlr": 0.021375,
+          "best_acc": 10.28
+        },
+        {
+          "lr": 0.247849,
+          "tlr": 0.017195,
+          "best_acc": 94.65
+        },
+        {
+          "lr": 0.031256,
+          "tlr": 0.002743,
+          "best_acc": 91.31
+        },
+        {
+          "lr": 0.332709,
+          "tlr": 0.004094,
+          "best_acc": 96.08
+        },
+        {
+          "lr": 0.047056,
+          "tlr": 0.001014,
+          "best_acc": 92.55
+        },
+        {
+          "lr": 0.069147,
+          "tlr": 2.778727,
+          "best_acc": 85.99
+        },
+        {
+          "lr": 0.743224,
+          "tlr": 0.010389,
+          "best_acc": 93.26
+        },
+        {
+          "lr": 0.068701,
+          "tlr": 0.002504,
+          "best_acc": 93.38
+        },
+        {
+          "lr": 0.077524,
+          "tlr": 1.132214,
+          "best_acc": 85.87
+        },
+        {
+          "lr": 0.083443,
+          "tlr": 0.000896,
+          "best_acc": 94.02
+        },
+        {
+          "lr": 0.036858,
+          "tlr": 1.675473,
+          "best_acc": 85.07
+        },
+        {
+          "lr": 0.094594,
+          "tlr": 0.001183,
+          "best_acc": 93.91
+        },
+        {
+          "lr": 0.065344,
+          "tlr": 0.001778,
+          "best_acc": 93.14
+        },
+        {
+          "lr": 0.8147516184902519,
+          "tlr": 0.015481193744377605,
+          "best_acc": 93.53
+        },
+        {
+          "lr": 0.10052636818494956,
+          "tlr": 0.0014559012876843819,
+          "best_acc": 94.18
+        }
+      ],
+      "stage2_trials": [
+        {
+          "lr": 0.332709,
+          "tlr": 0.004094,
+          "best_acc": 96.36
+        },
+        {
+          "lr": 0.710188,
+          "tlr": 0.012043,
+          "best_acc": 94.6
+        },
+        {
+          "lr": 0.10052636818494956,
+          "tlr": 0.0014559012876843819,
+          "best_acc": 95.72
+        }
+      ]
+    },
+    {
+      "mode": "decay",
+      "rank": 1,
+      "te": 1,
+      "old_best": 95.07,
+      "new_best": 95.07,
+      "improved": false,
+      "delta": 0.0,
+      "best_lr": null,
+      "best_tlr": null,
+      "stage1_trials": [
+        {
+          "lr": 0.040615,
+          "tlr": 1.692439,
+          "best_acc": 70.44
+        },
+        {
+          "lr": 0.089054,
+          "tlr": 0.001277,
+          "best_acc": 93.26
+        },
+        {
+          "lr": 0.032959380394170235,
+          "tlr": 4.880055258109055,
+          "best_acc": 63.37
+        },
+        {
+          "lr": 0.0820704579305535,
+          "tlr": 0.000435401708249491,
+          "best_acc": 93.17
+        },
+        {
+          "lr": 0.11139514207697747,
+          "tlr": 2.939754303200098,
+          "best_acc": 60.23
+        },
+        {
+          "lr": 0.02990579237719089,
+          "tlr": 3.145826395848195,
+          "best_acc": 77.03
+        },
+        {
+          "lr": 0.07986369736326608,
+          "tlr": 0.0022593332234473085,
+          "best_acc": 91.8
+        },
+        {
+          "lr": 0.050061490146145395,
+          "tlr": 0.002467314144219776,
+          "best_acc": 92.7
+        },
+        {
+          "lr": 0.07767500044722639,
+          "tlr": 0.0024509292388921627,
+          "best_acc": 92.65
+        },
+        {
+          "lr": 0.11737258628396482,
+          "tlr": 0.0015344312189779993,
+          "best_acc": 93.82
+        },
+        {
+          "lr": 0.028479116399966167,
+          "tlr": 1.7792398857604559,
+          "best_acc": 76.67
+        },
+        {
+          "lr": 0.10114348528926632,
+          "tlr": 0.0012099253019761756,
+          "best_acc": 93.94
+        },
+        {
+          "lr": 0.035410066060271875,
+          "tlr": 1.4394173482988866,
+          "best_acc": 76.84
+        },
+        {
+          "lr": 0.03846096647321124,
+          "tlr": 1.322028642982663,
+          "best_acc": 74.7
+        },
+        {
+          "lr": 0.12375167226096821,
+          "tlr": 0.0017182052697994497,
+          "best_acc": 93.92
+        },
+        {
+          "lr": 0.10529480855050005,
+          "tlr": 0.001751573235780171,
+          "best_acc": 92.72
+        },
+        {
+          "lr": 0.0313393795970329,
+          "tlr": 1.2497072426994458,
+          "best_acc": 70.3
+        }
+      ],
+      "stage2_trials": []
+    },
+    {
+      "mode": "decay",
+      "rank": 4,
+      "te": 1,
+      "old_best": 96.16,
+      "new_best": 96.16,
+      "improved": false,
+      "delta": 0.0,
+      "best_lr": null,
+      "best_tlr": null,
+      "stage1_trials": [],
+      "stage2_trials": []
+    },
+    {
+      "mode": "decay",
+      "rank": 4,
+      "te": 10,
+      "old_best": 96.77,
+      "new_best": 96.77,
+      "improved": false,
+      "delta": 0.0,
+      "best_lr": null,
+      "best_tlr": null,
+      "stage1_trials": [],
+      "stage2_trials": []
+    },
+    {
+      "mode": "decay",
+      "rank": 8,
+      "te": 1,
+      "old_best": 96.57,
+      "new_best": 96.57,
+      "improved": false,
+      "delta": 0.0,
+      "best_lr": null,
+      "best_tlr": null,
+      "stage1_trials": [],
+      "stage2_trials": []
+    }
+  ],
+  "updates": [
+    "decay r=1 TE=10: 90.13 -> 96.36%"
+  ],
+  "global_trials": 40
+}

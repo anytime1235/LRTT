@@ -1,0 +1,858 @@
+{
+  "generated_at": "2026-02-05T12:15:43.758491",
+  "hybrid_sweep": {
+    "project": "lrtt-hybrid-sweep",
+    "mode": "hybrid (A=0 hard reset, B unchanged)",
+    "best_per_rank": {
+      "1": {
+        "te": 500,
+        "lifetime": 100000,
+        "lr": 0.2559987802145917,
+        "tlr": 0.06477913614978935,
+        "best_acc": 95.73
+      },
+      "4": {
+        "te": 100,
+        "lifetime": 100000,
+        "lr": 0.34183447068119827,
+        "tlr": 0.003910713393630559,
+        "best_acc": 96.45
+      },
+      "8": {
+        "te": 50,
+        "lifetime": 100000,
+        "lr": 0.7010916941927409,
+        "tlr": 0.004173727844750237,
+        "best_acc": 96.2
+      },
+      "16": {
+        "te": 50,
+        "lifetime": 46505,
+        "lr": 0.187206,
+        "tlr": 0.002161,
+        "best_acc": 95.89,
+        "note": "rerun from te=100 HP (was 95.63 with te=500)"
+      },
+      "32": {
+        "te": 50,
+        "lifetime": 46505,
+        "lr": 0.993416,
+        "tlr": 0.001219,
+        "best_acc": 95.97,
+        "note": "rerun from te=100 HP (was 95.93 with te=500)"
+      },
+      "64": {
+        "te": 500,
+        "lifetime": 46505,
+        "lr": 0.2520116659530396,
+        "tlr": 0.0013358069303925648,
+        "best_acc": 95.86
+      }
+    },
+    "status": "completed",
+    "total_runs": 499,
+    "progress": "499/144 (100%+)",
+    "completed_at": "2026-02-05T17:23:43.184154",
+    "by_rank_te": {
+      "1": {
+        "1": {
+          "best_acc": 91,
+          "lifetime": 100000,
+          "lr": 0.5188255140756429,
+          "tlr": 0.006707823539222251
+        },
+        "10": {
+          "best_acc": 90.89,
+          "lifetime": 100000,
+          "lr": 0.19082009174427145,
+          "tlr": 0.04725796257400749
+        },
+        "50": {
+          "best_acc": 93.73,
+          "lifetime": 100000,
+          "lr": 0.15510118186312857,
+          "tlr": 0.0031447396046991585
+        },
+        "100": {
+          "best_acc": 94.3,
+          "lifetime": 100000,
+          "lr": 0.12184849000260192,
+          "tlr": 0.0434974914188134
+        },
+        "500": {
+          "best_acc": 95.73,
+          "lifetime": 100000,
+          "lr": 0.2559987802145917,
+          "tlr": 0.06477913614978935
+        },
+        "1000": {
+          "best_acc": 94.47,
+          "lifetime": 100000,
+          "lr": 0.6782049353002286,
+          "tlr": 0.003057646739820476
+        }
+      },
+      "4": {
+        "1": {
+          "best_acc": 90.27,
+          "lifetime": 100000,
+          "lr": 0.46120624645187,
+          "tlr": 0.0046408618390844465
+        },
+        "10": {
+          "best_acc": 95.09,
+          "lifetime": 100000,
+          "lr": 0.3889814980819412,
+          "tlr": 0.0010482469508763233
+        },
+        "50": {
+          "best_acc": 96.18,
+          "lifetime": 46505,
+          "lr": 0.341834,
+          "tlr": 0.003911,
+          "note": "rerun from te=100 HP (was 89.05)"
+        },
+        "100": {
+          "best_acc": 96.45,
+          "lifetime": 100000,
+          "lr": 0.34183447068119827,
+          "tlr": 0.003910713393630559
+        },
+        "500": {
+          "best_acc": 94.19,
+          "lifetime": 100000,
+          "lr": 0.2412157355150034,
+          "tlr": 0.04949869270173093
+        },
+        "1000": {
+          "best_acc": 93.74,
+          "lifetime": 100000,
+          "lr": 0.6852126139366258,
+          "tlr": 0.6249203566326256
+        }
+      },
+      "8": {
+        "1": {
+          "best_acc": 90.07,
+          "lifetime": 100000,
+          "lr": 0.11354501694746054,
+          "tlr": 0.0015219867143962367
+        },
+        "10": {
+          "best_acc": 90.96,
+          "lifetime": 100000,
+          "lr": 0.050209303722377224,
+          "tlr": 0.01097424304791519
+        },
+        "50": {
+          "best_acc": 96.2,
+          "lifetime": 100000,
+          "lr": 0.7010916941927409,
+          "tlr": 0.004173727844750237
+        },
+        "100": {
+          "best_acc": 96.2,
+          "lifetime": 100000,
+          "lr": 0.17193116397166314,
+          "tlr": 0.002665339076916122
+        },
+        "500": {
+          "best_acc": 93.55,
+          "lifetime": 100000,
+          "lr": 0.15018928882229668,
+          "tlr": 0.02262341804993333
+        },
+        "1000": {
+          "best_acc": 92.79,
+          "lifetime": 100000,
+          "lr": 0.3198252158370081,
+          "tlr": 1.276404978633269
+        }
+      },
+      "16": {
+        "1": {
+          "best_acc": 89.93,
+          "lifetime": 100000,
+          "lr": 0.17523012160338478,
+          "tlr": 0.0022097561208596285
+        },
+        "10": {
+          "best_acc": 90.07,
+          "lifetime": 100000,
+          "lr": 0.14073721840778378,
+          "tlr": 0.08573046720964383
+        },
+        "50": {
+          "best_acc": 95.89,
+          "lifetime": 46505,
+          "lr": 0.187206,
+          "tlr": 0.002161,
+          "note": "rerun from te=100 HP (was 87.47)"
+        },
+        "100": {
+          "best_acc": 94.91,
+          "lifetime": 100000,
+          "lr": 0.18720624781224737,
+          "tlr": 0.0021606889303927668
+        },
+        "500": {
+          "best_acc": 95.63,
+          "lifetime": 46505,
+          "lr": 0.2334611631608765,
+          "tlr": 0.004401532304629191
+        },
+        "1000": {
+          "best_acc": 94.51,
+          "lifetime": 46505,
+          "lr": 0.8820206818551698,
+          "tlr": 0.008596938175008083
+        }
+      },
+      "32": {
+        "1": {
+          "best_acc": 89.64,
+          "lifetime": 46505,
+          "lr": 0.169914,
+          "tlr": 0.001749,
+          "note": "rerun from te=10 HP (was 87.19)"
+        },
+        "10": {
+          "best_acc": 94.26,
+          "lifetime": 100000,
+          "lr": 0.16991391140405196,
+          "tlr": 0.0017486515876780936
+        },
+        "50": {
+          "best_acc": 95.97,
+          "lifetime": 46505,
+          "lr": 0.993416,
+          "tlr": 0.001219,
+          "note": "rerun from te=100 HP (was 87.50)"
+        },
+        "100": {
+          "best_acc": 95.9,
+          "lifetime": 100000,
+          "lr": 0.9934161007352174,
+          "tlr": 0.001219203558190773
+        },
+        "500": {
+          "best_acc": 95.93,
+          "lifetime": 100000,
+          "lr": 0.6023546288776297,
+          "tlr": 0.001898086405681223
+        },
+        "1000": {
+          "best_acc": 91.38,
+          "lifetime": 100000,
+          "lr": 0.00629663992901118,
+          "tlr": 0.1305505068004747
+        }
+      },
+      "64": {
+        "1": {
+          "best_acc": 89.85,
+          "lifetime": 46505,
+          "lr": 0.252012,
+          "tlr": 0.001336,
+          "note": "rerun from te=500 HP (was 85.30)"
+        },
+        "10": {
+          "best_acc": 94.32,
+          "lifetime": 46505,
+          "lr": 0.252012,
+          "tlr": 0.001336,
+          "note": "rerun from te=500 HP (was 87.30)"
+        },
+        "50": {
+          "best_acc": 92.15,
+          "lifetime": 46505,
+          "lr": 0.252012,
+          "tlr": 0.001336,
+          "note": "rerun from te=500 HP (was 85.47, unstable avg=42.56)"
+        },
+        "100": {
+          "best_acc": 95.78,
+          "lifetime": 46505,
+          "lr": 0.252012,
+          "tlr": 0.001336,
+          "note": "rerun from te=500 HP (was 86.86)"
+        },
+        "500": {
+          "best_acc": 95.86,
+          "lifetime": 46505,
+          "lr": 0.2520116659530396,
+          "tlr": 0.0013358069303925648
+        },
+        "1000": {
+          "best_acc": 92.77,
+          "lifetime": 46505,
+          "lr": 0.31871606193909174,
+          "tlr": 0.006834760702276346
+        }
+      }
+    }
+  },
+  "decay_sweep": {
+    "project": "lrtt-softbounds-sweep",
+    "mode": "decay (A and B both decay)",
+    "best_per_rank": {
+      "1": {
+        "te": 50,
+        "lifetime": 1000,
+        "lr": 0.674107,
+        "tlr": 0.011775,
+        "best_acc": 97.01
+      },
+      "4": {
+        "te": 100,
+        "lifetime": 46505,
+        "lr": 0.493706,
+        "tlr": 0.011245,
+        "best_acc": 97.34
+      },
+      "8": {
+        "te": 100,
+        "lifetime": 1000,
+        "lr": 0.493706,
+        "tlr": 0.011245,
+        "best_acc": 96.92
+      },
+      "16": {
+        "te": 1,
+        "lifetime": 10000,
+        "lr": 0.089054,
+        "tlr": 0.001277,
+        "best_acc": 96.88
+      },
+      "32": {
+        "te": 1,
+        "lifetime": 10000,
+        "lr": 0.089054,
+        "tlr": 0.001277,
+        "best_acc": 97.15
+      },
+      "64": {
+        "te": 1,
+        "lifetime": 100000,
+        "lr": 0.089054,
+        "tlr": 0.001277,
+        "best_acc": 97.54
+      }
+    },
+    "status": "completed",
+    "total_runs": 721,
+    "progress": "721/720 (100.0%)",
+    "completed_at": "2026-02-05T13:43:50.429181",
+    "by_rank_te": {
+      "1": {
+        "1": 95.07,
+        "10": 96.36,
+        "50": 97.01,
+        "100": 93.12,
+        "500": 93.01,
+        "1000": 90.57
+      },
+      "4": {
+        "1": 96.16,
+        "10": 96.77,
+        "50": 97.11,
+        "100": 97.34,
+        "500": 92.46,
+        "1000": 91.78
+      },
+      "8": {
+        "1": 96.57,
+        "10": 97.17,
+        "50": 96.02,
+        "100": 96.92,
+        "500": 94.08,
+        "1000": 91.17
+      },
+      "16": {
+        "1": 96.88,
+        "10": 95.23,
+        "50": 94.39,
+        "100": 96.2,
+        "500": 93.4,
+        "1000": 91.61
+      },
+      "32": {
+        "1": 97.15,
+        "10": 96.18,
+        "50": 94.62,
+        "100": 96.66,
+        "500": 95.66,
+        "1000": 91.67
+      },
+      "64": {
+        "1": 97.54,
+        "10": 96.15,
+        "50": 95.11,
+        "100": 94.61,
+        "500": 93.99,
+        "1000": 91.34
+      }
+    }
+  },
+  "anomalies": [
+    {
+      "sweep": "decay",
+      "name": "r4_te500_lt1000_run2",
+      "te": 500,
+      "lifetime": 1000,
+      "acc": 47.67
+    },
+    {
+      "sweep": "decay",
+      "name": "r4_te500_lt1000_run3",
+      "te": 500,
+      "lifetime": 1000,
+      "acc": 48.13
+    },
+    {
+      "sweep": "decay",
+      "name": "r4_te500_lt1000_run4",
+      "te": 500,
+      "lifetime": 1000,
+      "acc": 36.6
+    },
+    {
+      "sweep": "decay",
+      "name": "r64_te100_lt1000_run0",
+      "te": 100,
+      "lifetime": 1000,
+      "acc": 11.35
+    },
+    {
+      "sweep": "decay",
+      "name": "r64_te100_lt1000_run1",
+      "te": 100,
+      "lifetime": 1000,
+      "acc": 11.35
+    },
+    {
+      "sweep": "decay",
+      "name": "r64_te100_lt1000_run2",
+      "te": 100,
+      "lifetime": 1000,
+      "acc": 11.35
+    },
+    {
+      "sweep": "decay",
+      "name": "r64_te100_lt1000_run3",
+      "te": 100,
+      "lifetime": 1000,
+      "acc": 11.35
+    },
+    {
+      "sweep": "decay",
+      "name": "r64_te100_lt1000_run4",
+      "te": 100,
+      "lifetime": 1000,
+      "acc": 11.35
+    },
+    {
+      "sweep": "decay",
+      "name": "r4_te500_lt10000_run1",
+      "te": 500,
+      "lifetime": 10000,
+      "acc": 31.25
+    },
+    {
+      "sweep": "decay",
+      "name": "r4_te500_lt10000_run4",
+      "te": 500,
+      "lifetime": 10000,
+      "acc": 48.51
+    },
+    {
+      "sweep": "decay",
+      "name": "r64_te100_lt10000_run0",
+      "te": 100,
+      "lifetime": 10000,
+      "acc": 27.42
+    },
+    {
+      "sweep": "decay",
+      "name": "r64_te100_lt10000_run1",
+      "te": 100,
+      "lifetime": 10000,
+      "acc": 11.35
+    },
+    {
+      "sweep": "decay",
+      "name": "r64_te100_lt10000_run2",
+      "te": 100,
+      "lifetime": 10000,
+      "acc": 11.35
+    },
+    {
+      "sweep": "decay",
+      "name": "r64_te100_lt10000_run3",
+      "te": 100,
+      "lifetime": 10000,
+      "acc": 11.35
+    },
+    {
+      "sweep": "decay",
+      "name": "r64_te100_lt10000_run4",
+      "te": 100,
+      "lifetime": 10000,
+      "acc": 11.35
+    },
+    {
+      "sweep": "decay",
+      "name": "r64_te100_lt46505_run0",
+      "te": 100,
+      "lifetime": 46505,
+      "acc": 11.35
+    },
+    {
+      "sweep": "decay",
+      "name": "r64_te100_lt46505_run1",
+      "te": 100,
+      "lifetime": 46505,
+      "acc": 11.35
+    },
+    {
+      "sweep": "decay",
+      "name": "r64_te100_lt46505_run2",
+      "te": 100,
+      "lifetime": 46505,
+      "acc": 16.17
+    },
+    {
+      "sweep": "decay",
+      "name": "r64_te100_lt46505_run3",
+      "te": 100,
+      "lifetime": 46505,
+      "acc": 22.89
+    },
+    {
+      "sweep": "decay",
+      "name": "r64_te100_lt46505_run4",
+      "te": 100,
+      "lifetime": 46505,
+      "acc": 11.35
+    },
+    {
+      "sweep": "hybrid",
+      "name": "full_r4_te10_lt1000",
+      "te": 10,
+      "lifetime": 1000,
+      "acc": 18.41
+    },
+    {
+      "sweep": "hybrid",
+      "name": "full_r64_te50_lt1000",
+      "te": 50,
+      "lifetime": 1000,
+      "acc": 44.06
+    },
+    {
+      "sweep": "hybrid",
+      "name": "full_r64_te10_lt10000",
+      "te": 10,
+      "lifetime": 10000,
+      "acc": 13.44
+    },
+    {
+      "sweep": "hybrid",
+      "name": "full_r64_te50_lt10000",
+      "te": 50,
+      "lifetime": 10000,
+      "acc": 15.48
+    },
+    {
+      "sweep": "hybrid",
+      "name": "full_r32_te50_lt46505",
+      "te": 50,
+      "lifetime": 46505,
+      "acc": 16.47
+    },
+    {
+      "sweep": "hybrid",
+      "name": "full_r64_te10_lt46505",
+      "te": 10,
+      "lifetime": 46505,
+      "acc": 11.87
+    }
+  ],
+  "rerun_results": {
+    "description": "Re-run failed configs with nearby TE hyperparameters (lifetime=46505)",
+    "executed_at": "2026-02-05T14:37:00",
+    "configs": [
+      {
+        "rank": 4,
+        "te": 10,
+        "source_hp": "te=100",
+        "lr": 0.493706,
+        "tlr": 0.011245,
+        "results": [
+          96.18,
+          11.35,
+          11.35,
+          11.35,
+          11.35
+        ],
+        "best": 96.18,
+        "avg": 28.32,
+        "status": "unstable (1/5 success)"
+      },
+      {
+        "rank": 8,
+        "te": 10,
+        "source_hp": "te=100",
+        "lr": 0.493706,
+        "tlr": 0.011245,
+        "results": [
+          11.35,
+          11.35,
+          11.35,
+          11.35,
+          11.35
+        ],
+        "best": 11.35,
+        "avg": 11.35,
+        "status": "failed"
+      },
+      {
+        "rank": 8,
+        "te": 50,
+        "source_hp": "te=100",
+        "lr": 0.493706,
+        "tlr": 0.011245,
+        "results": [
+          95.77,
+          93.78,
+          95.9,
+          96.02,
+          95.46
+        ],
+        "best": 96.02,
+        "avg": 95.39,
+        "status": "SUCCESS - fixed!"
+      },
+      {
+        "rank": 64,
+        "te": 100,
+        "source_hp": "te=10",
+        "lr": 0.040615,
+        "tlr": 1.692439,
+        "results": [
+          11.35,
+          11.35,
+          11.35,
+          11.35,
+          11.35
+        ],
+        "best": 11.35,
+        "avg": 11.35,
+        "status": "failed"
+      }
+    ]
+  },
+  "updated_at": "2026-02-06T15:00:00",
+  "rerun_v2_results": {
+    "description": "Re-run failed configs with nearby TE hyperparameters from original HYPERPARAMETERS dict",
+    "executed_at": "2026-02-05T16:09:31.566079",
+    "lifetime": 46505,
+    "configs": [
+      {
+        "rank": 4,
+        "te": 10,
+        "source_hp": "te=1",
+        "lr": 0.089054,
+        "tlr": 0.001277,
+        "best": 96.77,
+        "avg": 96.6,
+        "status": "SUCCESS"
+      },
+      {
+        "rank": 4,
+        "te": 10,
+        "source_hp": "te=50",
+        "lr": 0.674107,
+        "tlr": 0.011775,
+        "best": 95.2,
+        "avg": 44.74,
+        "status": "UNSTABLE"
+      },
+      {
+        "rank": 8,
+        "te": 10,
+        "source_hp": "te=1",
+        "lr": 0.089054,
+        "tlr": 0.001277,
+        "best": 97.17,
+        "avg": 96.93,
+        "status": "SUCCESS"
+      },
+      {
+        "rank": 64,
+        "te": 100,
+        "source_hp": "te=50",
+        "lr": 0.008838,
+        "tlr": 0.008245,
+        "best": 94.61,
+        "avg": 94.56,
+        "status": "SUCCESS"
+      },
+      {
+        "rank": 64,
+        "te": 100,
+        "source_hp": "te=500",
+        "lr": 0.006316,
+        "tlr": 0.53314,
+        "best": 93.08,
+        "avg": 92.73,
+        "status": "SUCCESS"
+      }
+    ]
+  },
+  "rerun_v3_results": {
+    "description": "Full rerun of all failed hybrid configs (<90%) with 10 runs each, nearby TE hyperparameters",
+    "executed_at": "2026-02-05T17:42:00",
+    "completed_at": "2026-02-06T09:57:00",
+    "lifetime": 46505,
+    "runs_per_config": 10,
+    "configs": [
+      {
+        "rank": 4,
+        "te": 50,
+        "source_hp": "te=10",
+        "lr": 0.388981,
+        "tlr": 0.001048,
+        "best": 95.86,
+        "avg": 95.62,
+        "status": "SUCCESS"
+      },
+      {
+        "rank": 4,
+        "te": 50,
+        "source_hp": "te=100",
+        "lr": 0.341834,
+        "tlr": 0.003911,
+        "best": 96.18,
+        "avg": 95.8,
+        "status": "SUCCESS"
+      },
+      {
+        "rank": 16,
+        "te": 1,
+        "source_hp": "te=10",
+        "lr": 0.140737,
+        "tlr": 0.08573,
+        "best": 76.72,
+        "avg": 74.22,
+        "status": "FAILED"
+      },
+      {
+        "rank": 16,
+        "te": 50,
+        "source_hp": "te=10",
+        "lr": 0.140737,
+        "tlr": 0.08573,
+        "best": 17.03,
+        "avg": 13.24,
+        "status": "FAILED"
+      },
+      {
+        "rank": 16,
+        "te": 50,
+        "source_hp": "te=100",
+        "lr": 0.187206,
+        "tlr": 0.002161,
+        "best": 95.89,
+        "avg": 93.68,
+        "status": "SUCCESS"
+      },
+      {
+        "rank": 32,
+        "te": 1,
+        "source_hp": "te=10",
+        "lr": 0.169914,
+        "tlr": 0.001749,
+        "best": 89.64,
+        "avg": 89.11,
+        "status": "FAILED (<90)"
+      },
+      {
+        "rank": 32,
+        "te": 50,
+        "source_hp": "te=10",
+        "lr": 0.169914,
+        "tlr": 0.001749,
+        "best": 93.49,
+        "avg": 77.11,
+        "status": "UNSTABLE"
+      },
+      {
+        "rank": 32,
+        "te": 50,
+        "source_hp": "te=100",
+        "lr": 0.993416,
+        "tlr": 0.001219,
+        "best": 95.97,
+        "avg": 94.7,
+        "status": "SUCCESS"
+      },
+      {
+        "rank": 64,
+        "te": 1,
+        "source_hp": "te=500",
+        "lr": 0.252012,
+        "tlr": 0.001336,
+        "best": 89.85,
+        "avg": 89.09,
+        "status": "FAILED (<90)"
+      },
+      {
+        "rank": 64,
+        "te": 10,
+        "source_hp": "te=500",
+        "lr": 0.252012,
+        "tlr": 0.001336,
+        "best": 94.32,
+        "avg": 92.98,
+        "status": "SUCCESS"
+      },
+      {
+        "rank": 64,
+        "te": 50,
+        "source_hp": "te=500",
+        "lr": 0.252012,
+        "tlr": 0.001336,
+        "best": 92.15,
+        "avg": 42.56,
+        "status": "UNSTABLE"
+      },
+      {
+        "rank": 64,
+        "te": 100,
+        "source_hp": "te=500",
+        "lr": 0.252012,
+        "tlr": 0.001336,
+        "best": 95.78,
+        "avg": 92.82,
+        "status": "SUCCESS"
+      }
+    ],
+    "best_per_rank_updates": {
+      "16": "95.63 -> 95.89 (te=50, from te=100 HP)",
+      "32": "95.93 -> 95.97 (te=50, from te=100 HP)"
+    },
+    "still_failing": [
+      "r16/te1 (76.72%)",
+      "r32/te1 (89.64%)",
+      "r64/te1 (89.85%)"
+    ]
+  },
+  "reopt_updates": {
+    "timestamp": "2026-02-13T07:03:40.076788",
+    "updates": [
+      "decay r=1 TE=10: 90.13 -> 96.36%"
+    ],
+    "total_trials": 40
+  }
+}
