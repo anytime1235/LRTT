@@ -11,6 +11,7 @@ as rpucuda_lrtt_transfer_device.cu but implemented entirely in Python.
 """
 
 from typing import Optional, Tuple, Any, Dict
+import math
 import torch
 from torch import Tensor
 from torch.nn import Module
@@ -101,7 +102,7 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         self.transfer_every = getattr(self.lrtt_config, "transfer_every", 32)
         self.units_in_mbatch = getattr(self.lrtt_config, "units_in_mbatch", False)
         self.lora_alpha = getattr(self.lrtt_config, "lora_alpha", 1.0)
-        self.reinit_gain = getattr(self.lrtt_config, "reinit_gain", 0.1)
+        self.reinit_gain = getattr(self.lrtt_config, "reinit_gain", 1.0)
         self.correct_gradient_magnitudes = getattr(
             self.lrtt_config, "correct_gradient_magnitudes", False
         )
@@ -187,40 +188,51 @@ class LRTTSimulatorTile(SimulatorTile, Module):
 
             return update_copy
 
-        # Tile A: fastA [d_size, rank]
+        # Tile A/B creation: use mapping_ab from device config
+        from aihwkit.simulator.parameters.mapping import MappingParameter
         tile_class_a = get_tile_class(unit_devices[0])
         update_a = create_update_params(rpu_config.update, "a")
+        tile_class_b = get_tile_class(unit_devices[1])
+        update_b = create_update_params(rpu_config.update, "b")
+
+        mapping_ab = getattr(self.lrtt_config, 'mapping_ab', MappingParameter())
+
         rpu_config_a = SingleRPUConfig(
             device=unit_devices[0],
             forward=rpu_config.forward,
             backward=rpu_config.backward,
             update=update_a,
             tile_class=tile_class_a,
+            mapping=mapping_ab,
         )
         self.tile_a = rpu_config_a.tile_class(d_size, self.rank, rpu_config_a)
 
-        # Tile B: fastB [rank, x_size] (only rank rows needed for LoRA)
-        tile_class_b = get_tile_class(unit_devices[1])
-        update_b = create_update_params(rpu_config.update, "b")
         rpu_config_b = SingleRPUConfig(
             device=unit_devices[1],
             forward=rpu_config.forward,
             backward=rpu_config.backward,
             update=update_b,
             tile_class=tile_class_b,
+            mapping=mapping_ab,
         )
         self.tile_b = rpu_config_b.tile_class(self.rank, x_size, rpu_config_b)
 
-        # Tile C: visible [d_size, x_size] - uses base update params
+        # Tile C: visible [d_size, x_size] - use mapping_c from device config
         tile_class_c = get_tile_class(unit_devices[2])
         update_c = create_update_params(rpu_config.update, "c")
+        mapping_c = getattr(self.lrtt_config, 'mapping_c', MappingParameter(
+            weight_scaling_omega=1.0,
+            weight_scaling_columnwise=True,
+            learn_out_scaling=True,
+            out_scaling_columnwise=True,
+        ))
         rpu_config_c = SingleRPUConfig(
             device=unit_devices[2],
             forward=rpu_config.forward,
             backward=rpu_config.backward,
             update=update_c,
             tile_class=tile_class_c,
-            mapping=rpu_config.mapping,
+            mapping=mapping_c,
         )
         # Pass bias to tile_c for digital_bias support
         # When bias=True, tile_c will have digital_bias=True and create self.bias Parameter
@@ -228,9 +240,13 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             d_size, x_size, rpu_config_c, bias=self.bias
         )
 
-        # Freeze bias in tile_c (pretrained bias should not be trainable, same as C tile weights)
-        if hasattr(self.tile_c, 'bias') and self.tile_c.bias is not None:
-            self.tile_c.bias.requires_grad = False
+        # Freeze/unfreeze bias in tile_c based on config
+        # (C tile weights are already untrainable via update hooks)
+        # Note: out_scaling trainability is controlled by mapping_c.learn_out_scaling
+        _train_bias = getattr(self.lrtt_config, 'train_c_bias', False)
+        for name, param in self.tile_c.named_parameters():
+            if 'bias' in name:
+                param.requires_grad = _train_bias
 
         # Create LRTT controller with all parameters
         self.controller = LRTTController(
@@ -241,7 +257,6 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             x_size=x_size,
             rank=self.rank,
             transfer_lr=self.transfer_lr,
-            transfer_lr_scale=getattr(self.lrtt_config, "transfer_lr_scale", "none"),
             transfer_every=self.transfer_every,
             units_in_mbatch=self.units_in_mbatch,
             lora_alpha=self.lora_alpha,
@@ -257,6 +272,12 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             correct_gradient_magnitudes=self.correct_gradient_magnitudes,
             rank_chunk=self.rank_chunk,
             forward_inject=getattr(self.lrtt_config, "forward_inject", False),
+            dynamic_te=getattr(self.lrtt_config, "dynamic_te", False),
+            dynamic_te_power=getattr(self.lrtt_config, "dynamic_te_power", 1.0),
+            dynamic_te_min=getattr(self.lrtt_config, "dynamic_te_min", None),
+            dynamic_te_max=getattr(self.lrtt_config, "dynamic_te_max", None),
+            te_warmup_schedule=getattr(self.lrtt_config, "te_warmup_schedule", None),
+            te_warmup_steps=getattr(self.lrtt_config, "te_warmup_steps", 0),
             num_reads=getattr(self.lrtt_config, "num_reads", 1),
             multi_read_mode=getattr(self.lrtt_config, "multi_read_mode", "average"),
             update_mode=getattr(self.lrtt_config, "update_mode", "lora"),
@@ -322,6 +343,25 @@ class LRTTSimulatorTile(SimulatorTile, Module):
 
         When AnalogSGD calls update on individual tiles, we intercept
         and route through the controller for proper LRTT updates.
+
+        Two modes depending on forward_inject_enabled:
+
+        forward_inject=False (original):
+            All 3 tiles hooked. tile_a/tile_b → no-op, tile_c triggers
+            ab_weight_update() which manually computes XB=B·x, DA=A^T·d
+            and calls tile_a/tile_b._orig_update with lr_eff = lr*α.
+
+        forward_inject=True (autograd-driven):
+            Autograd already populates tile_a/tile_b AnalogContexts with
+            correct LoRA gradient components:
+              tile_a: x_input=g=B·x, d_input=α·d
+              tile_b: x_input=x,     d_input=α·A^T·d
+            However, α is baked into d_input (from chain rule through
+            y = y_c + α·y_ab). For faithful stochastic pulse simulation,
+            we must remove α from d and put it in lr instead:
+              tile_a: orig_update(g, d) with lr = lr_base * α
+              tile_b: orig_update(x, A^T·d) with lr = lr_base * α
+            tile_c → no-op (C is frozen).
         """
         # Store original update methods
         self.tile_a._orig_update = self.tile_a.update
@@ -331,6 +371,68 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         # Track if we've already handled this batch
         self._update_handled = False
 
+        if self.controller.forward_inject_enabled:
+            self._hook_tile_updates_fi()
+        else:
+            self._hook_tile_updates_nfi()
+
+    def _hook_tile_updates_fi(self) -> None:
+        """Hook setup for forward_inject=True.
+
+        tile_a/tile_b: rescale d_input (remove α), adjust lr (add α),
+                       then call orig_update for stochastic pulse update.
+        tile_c: no-op (C frozen), handle transfer counter.
+        """
+        ctrl = self.controller
+        alpha = ctrl.lora_alpha
+
+        def hooked_ab(tile, tile_name):
+            def update_wrapper(x_input, d_input, *args, **kwargs):
+                # Remove α from gradient, move it to learning rate
+                d_rescaled = d_input / alpha
+
+                # Compute lr_eff: same formula as _ab_weight_update_lora()
+                lr_base = tile.get_learning_rate()
+                if ctrl._is_hardware_mode():
+                    lr_eff = 1.0
+                else:
+                    lr_eff = lr_base * alpha
+                    if ctrl.correct_gradient_magnitudes:
+                        lr_eff /= math.sqrt(ctrl.rank)
+
+                tile.set_learning_rate(lr_eff)
+                tile._orig_update(x_input, d_rescaled, *args, **kwargs)
+                tile.set_learning_rate(lr_base)
+
+                # Track update count
+                if tile_name == "tile_a":
+                    ctrl.num_a_updates += 1
+                else:
+                    ctrl.num_b_updates += 1
+                return None
+            return update_wrapper
+
+        def hooked_c_noop(x_input, d_input, *args, **kwargs):
+            # C is frozen — no weight update
+            # Handle transfer counter and dynamic TE
+            lr = self.tile_c.get_learning_rate()
+            ctrl._update_dynamic_te(lr)
+            ctrl.transfer_counter += (
+                x_input.shape[0] if ctrl.units_in_mbatch else 1
+            )
+            if ctrl.should_transfer():
+                ctrl.ab_weight_transfer()
+            return None
+
+        self.tile_a.update = hooked_ab(self.tile_a, "tile_a")
+        self.tile_b.update = hooked_ab(self.tile_b, "tile_b")
+        self.tile_c.update = hooked_c_noop
+
+    def _hook_tile_updates_nfi(self) -> None:
+        """Hook setup for forward_inject=False (original behavior).
+
+        tile_a/tile_b → no-op, tile_c triggers ab_weight_update.
+        """
         def hooked_update(tile_name):
             def update_wrapper(x_input, d_input, *args, **kwargs):
                 # Prevent double updates - only handle once per batch
@@ -346,8 +448,8 @@ class LRTTSimulatorTile(SimulatorTile, Module):
 
                     # Route through controller for proper LRTT update
                     self.controller.ab_weight_update(
-                        x=x_input,  # This is the full [batch, x_size] input
-                        d=d_input,  # This is the full [batch, d_size] gradient
+                        x=x_input,
+                        d=d_input,
                         lr=lr,
                         in_trans=False,
                         out_trans=False,

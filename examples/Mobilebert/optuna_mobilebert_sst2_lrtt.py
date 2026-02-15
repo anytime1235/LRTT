@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
-"""Optuna hyperparameter sweep for MobileBERT + SQuAD with LRTT.
+"""Optuna hyperparameter sweep for MobileBERT + SST-2 with LRTT.
 
 Usage:
-    python optuna_mobilebert_squad_lrtt.py --n-trials 50
-    python optuna_mobilebert_squad_lrtt.py --visualize
-    python optuna_mobilebert_squad_lrtt.py --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 15 --warmup-steps 500 --transfer-method set --no-io-noise --lora-target qkv
+    python optuna_mobilebert_sst2_lrtt.py --n-trials 50
+    python optuna_mobilebert_sst2_lrtt.py --visualize
+    python optuna_mobilebert_sst2_lrtt.py --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 15 --warmup-steps 189 --transfer-method set --no-io-noise --lora-target qkv
 
 All flags:
-    python optuna_mobilebert_squad_lrtt.py \
+    python optuna_mobilebert_sst2_lrtt.py \
         --study-name <str>          # Study name (default: auto-generated)
         --n-trials <int>            # Number of Optuna trials (default: 50)
         --visualize                 # Visualize study results and exit
@@ -18,12 +18,12 @@ All flags:
         --reinit-mode <str>         # Fix reinit mode: standard | decay | hybrid (default: tune all)
         --batch-size <int>          # Batch size (default: 64)
         --epochs <int>              # Number of epochs (default: 15)
-        --warmup-steps <int>        # LR warmup steps (default: 0)
+        --warmup-steps <int>        # LR warmup steps (default: 189)
         --transfer-method <str>     # Transfer method: onehot | direct | set (default: onehot)
         --ab-device <str>           # A/B tile device: 6t1c | fp (default: 6t1c)
         --no-io-noise               # Disable IO out_noise (resolution kept)
         --lora-target <str>         # LoRA target: none | qonly | konly | vonly | qkv | ffn | all (default: qkv)
-        --head-layer <str>          # qa_outputs: train | freeze (default: train)
+        --head-layer <str>          # classifier: train | freeze (default: train)
         --no-transfer               # Disable LRTT transfer (A/B frozen, skip LRTT param sweep)
 
 Inline flags (edit directly in script):
@@ -38,12 +38,11 @@ Inline flags (edit directly in script):
     EVAL_SUBSET_SIZE = 0            # Evaluation data subset (0 = full)
 
 Enqueue
-
 python3 << 'EOF'                                                                                                                                                                                                                                                      
 import optuna                                                
 study = optuna.load_study(                                                                                                                                                                                                                                            
-study_name='mobilebert_sst2_lrtt_bs64_sgd_hybrid_nowd_nomom_nonest_set_noio_none',                                                                                                                                                                                
-storage='sqlite:///results/optuna_mobilebert_sst2_lrtt/optuna_mobilebert_sst2_lrtt_bs64_sgd_hybrid_nowd_nomom_nonest_set_noio_none.db')
+study_name='mobilebert_sst2_lrtt_bs64_sgd_hybrid_nowd_nomom_nonest_set_noio_qkv',                                                                                                                                                                                
+storage='sqlite:///results/optuna_mobilebert_sst2_lrtt/optuna_mobilebert_sst2_lrtt_bs64_sgd_hybrid_nowd_nomom_nonest_set_noio_qkv.db')
 study.enqueue_trial({
 'learning_rate': 0.2080749864869466,
 'transfer_lr': 0.010000000000000004,
@@ -59,13 +58,10 @@ EOF
 
 import os
 import sys
-import re
-import string
 import math
 import json
 import argparse
 import gc
-import collections
 
 import torch
 from torch import nn, no_grad, manual_seed
@@ -80,13 +76,12 @@ from optuna_integration import BoTorchSampler
 import matplotlib.pyplot as plt
 
 from transformers import (
-    AutoModelForQuestionAnswering,
+    AutoModelForSequenceClassification,
     AutoTokenizer,
     default_data_collator,
     set_seed,
 )
 from datasets import load_dataset
-import evaluate
 
 # aihwkit imports
 from aihwkit.nn.conversion import convert_to_analog
@@ -98,8 +93,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 from aihwkit.simulator.configs.lrtt_rpu_config import PythonLRTTRPUConfig
 from aihwkit.simulator.configs.lrtt_python import PythonLRTTDevice
 from aihwkit.simulator.parameters.mapping import MappingParameter
-
-from collections import Counter
 
 
 # =============================================================================
@@ -171,14 +164,14 @@ class ConfigAwareBoTorchSampler(BoTorchSampler):
 # Global Constants
 # =============================================================================
 
-DEFAULT_STUDY_NAME = "mobilebert_squad_lrtt_main"
+DEFAULT_STUDY_NAME = "mobilebert_sst2_lrtt_main"
 
 # Device
 USE_CUDA = torch.cuda.is_available()
 DEVICE = torch.device("cuda" if USE_CUDA else "cpu")
 
 # Paths
-RESULTS = os.path.join(os.getcwd(), "results", "optuna_mobilebert_squad_lrtt")
+RESULTS = os.path.join(os.getcwd(), "results", "optuna_mobilebert_sst2_lrtt")
 os.makedirs(RESULTS, exist_ok=True)
 
 # Reproducibility
@@ -186,7 +179,8 @@ SEED = 42
 
 # Model
 MODEL_NAME = "google/mobilebert-uncased"
-MAX_SEQ_LENGTH = 320
+MAX_SEQ_LENGTH = 128
+NUM_LABELS = 2  # SST-2: negative (0), positive (1)
 
 # Training defaults
 N_EPOCHS = 15
@@ -195,7 +189,7 @@ EVAL_BATCH_SIZE = 256
 EARLY_STOP_PATIENCE = 3
 
 # Scheduler
-WARMUP_STEPS = 500
+WARMUP_STEPS = 500  # warmup steps
 
 # Dynamic TE
 DYNAMIC_TE = False
@@ -216,7 +210,7 @@ IO_NOISE = True  # If False, disable out_noise (resolution kept)
 # - ffn: projection (attention.output) + FFN (intermediate, output, bottleneck)
 # - all: all encoder linear layers
 LORA_TARGET = "qkv"  # default, can be set via --lora-target
-HEAD_LAYER = "train"  # default, can be set via --head-layer (train | freeze) - qa_outputs for SQuAD
+HEAD_LAYER = "train"  # default, can be set via --head-layer (train | freeze) - classifier for SST-2
 LORA_TARGET_MODULES = {
     "none": [],  # Empty = no layers converted to LRTT (fully digital)
     "qonly": ["query"],  # Query only (24 layers)
@@ -426,19 +420,19 @@ def get_lrtt_target_module_names(lora_target):
     elif lora_target == "ffn":
         return ["dense"]  # All layers with "dense" in name (excludes qkv) (288 layers)
     elif lora_target == "all":
-        # All encoder linear layers (exclude embeddings, qa_outputs, embedding_transformation)
+        # All encoder linear layers (exclude embeddings, classifier, embedding_transformation)
         return None  # None means all encoder layers (360 layers)
     else:
         raise ValueError(f"Unknown lora_target: {lora_target}")
 
 
 def create_model(params):
-    """Create MobileBERT QA model with selective LRTT analog layers.
+    """Create MobileBERT classification model with selective LRTT analog layers.
 
     Architecture (follows paper's approach for efficiency):
         - LRTT Target layers (based on --lora-target) → LRTT Analog
         - Non-target Encoder layers → Digital FROZEN
-        - qa_outputs → Digital TRAINABLE (weight + bias)
+        - classifier → Digital TRAINABLE (weight + bias)
         - embedding_transformation → Digital FROZEN
         - Embeddings → Digital FROZEN
 
@@ -455,15 +449,17 @@ def create_model(params):
     """
     from aihwkit.nn import AnalogLinear
 
-    model = AutoModelForQuestionAnswering.from_pretrained(MODEL_NAME)
+    model = AutoModelForSequenceClassification.from_pretrained(
+        MODEL_NAME, num_labels=NUM_LABELS
+    )
 
     # Get LRTT target patterns
     lrtt_patterns = get_lrtt_target_module_names(LORA_TARGET)
 
     def is_lrtt_target(layer_name):
         """Check if layer should be converted to LRTT Analog."""
-        # qa_outputs is always digital
-        if "qa_outputs" in layer_name:
+        # classifier is always digital
+        if "classifier" in layer_name:
             return False
         # embedding_transformation: LRTT for "all" mode only
         if "embedding_transformation" in layer_name:
@@ -484,9 +480,9 @@ def create_model(params):
             # Use full path for exclude_modules (convert_to_analog requires exact match)
             exclude_modules.append(name)
 
-    # Exclude qa_outputs (always digital)
+    # Exclude classifier (always digital)
     # embedding_transformation: LRTT for "all" mode, digital frozen otherwise
-    exclude_modules.append("qa_outputs")
+    exclude_modules.append("classifier")
     if LORA_TARGET != "all":
         exclude_modules.append("mobilebert.embeddings.embedding_transformation")
     exclude_modules = list(set(exclude_modules))  # Remove duplicates
@@ -517,15 +513,17 @@ def create_model(params):
 
     # Step 2: Set requires_grad
     # - LRTT layers: A/B + out_scaling TRAINABLE, C + bias FROZEN
-    # - qa_outputs: TRAINABLE if HEAD_LAYER=="train", else FROZEN
+    # - classifier: TRAINABLE if HEAD_LAYER=="train", else FROZEN
     # - embedding_transformation: LRTT for "all" mode (A/B trainable, C frozen), digital frozen otherwise
     # - Everything else: FROZEN
     for name, param in model.named_parameters():
         if "tile_a" in name or "tile_b" in name:
+            # LRTT A/B tiles: TRAINABLE, but FROZEN if no_transfer (no point updating without transfer)
             param.requires_grad = not OPT_CONFIG['no_transfer']
         elif "tile_c" in name:
             pass  # Respect lrtt_tile.py settings (train_c_bias, mapping_c)
-        elif "qa_outputs" in name:
+        elif "classifier" in name:
+            # classifier: TRAINABLE or FROZEN based on setting
             param.requires_grad = (HEAD_LAYER == "train")
         elif "embedding_transformation" in name:
             param.requires_grad = False
@@ -544,269 +542,88 @@ def create_model(params):
 # =============================================================================
 
 def load_data(tokenizer):
-    """Load and tokenize SQuAD dataset."""
-    raw_datasets = load_dataset("squad")
+    """Load and tokenize SST-2 dataset."""
+    raw_datasets = load_dataset("glue", "sst2")
 
-    # Use full dataset if EVAL_SUBSET_SIZE == 0, otherwise subset
-    if EVAL_SUBSET_SIZE > 0:
-        eval_examples = raw_datasets["validation"].select(
-            range(min(EVAL_SUBSET_SIZE, len(raw_datasets["validation"])))
-        )
-    else:
-        eval_examples = raw_datasets["validation"]
-
-    def preprocess_train(examples):
-        questions = [q.strip() for q in examples["question"]]
-        inputs = tokenizer(
-            questions, examples["context"],
-            max_length=MAX_SEQ_LENGTH, truncation="only_second",
-            stride=128, return_overflowing_tokens=True,
-            return_offsets_mapping=True, padding="max_length",
+    def preprocess_function(examples):
+        return tokenizer(
+            examples["sentence"],
+            max_length=MAX_SEQ_LENGTH,
+            truncation=True,
+            padding="max_length",
         )
 
-        offset_mapping = inputs.pop("offset_mapping")
-        sample_map = inputs.pop("overflow_to_sample_mapping")
-        answers = examples["answers"]
-
-        start_positions = []
-        end_positions = []
-
-        for i, offset in enumerate(offset_mapping):
-            sample_idx = sample_map[i]
-            answer = answers[sample_idx]
-
-            if len(answer["answer_start"]) == 0:
-                start_positions.append(0)
-                end_positions.append(0)
-                continue
-
-            start_char = answer["answer_start"][0]
-            end_char = start_char + len(answer["text"][0])
-
-            sequence_ids = inputs.sequence_ids(i)
-
-            idx = 0
-            while sequence_ids[idx] != 1:
-                idx += 1
-            context_start = idx
-            while idx < len(sequence_ids) and sequence_ids[idx] == 1:
-                idx += 1
-            context_end = idx - 1
-
-            if offset[context_start][0] > end_char or offset[context_end][1] < start_char:
-                start_positions.append(0)
-                end_positions.append(0)
-            else:
-                idx = context_start
-                while idx <= context_end and offset[idx][0] <= start_char:
-                    idx += 1
-                start_positions.append(idx - 1)
-
-                idx = context_end
-                while idx >= context_start and offset[idx][1] >= end_char:
-                    idx -= 1
-                end_positions.append(idx + 1)
-
-        inputs["start_positions"] = start_positions
-        inputs["end_positions"] = end_positions
-        return inputs
-
-    def preprocess_eval(examples):
-        questions = [q.strip() for q in examples["question"]]
-        inputs = tokenizer(
-            questions, examples["context"],
-            max_length=MAX_SEQ_LENGTH, truncation="only_second",
-            stride=128, return_overflowing_tokens=True,
-            return_offsets_mapping=True, padding="max_length",
-        )
-
-        sample_map = inputs.pop("overflow_to_sample_mapping")
-        offset_mapping = inputs["offset_mapping"]
-
-        for i in range(len(inputs["input_ids"])):
-            sequence_ids = inputs.sequence_ids(i)
-            inputs["offset_mapping"][i] = [
-                o if sequence_ids[k] == 1 else None
-                for k, o in enumerate(offset_mapping[i])
-            ]
-
-        inputs["example_id"] = [
-            examples["id"][sample_map[i]] for i in range(len(inputs["input_ids"]))
-        ]
-
-        return inputs
-
+    # Tokenize datasets
     tokenized_train = raw_datasets["train"].map(
-        preprocess_train, batched=True,
-        remove_columns=raw_datasets["train"].column_names
+        preprocess_function, batched=True,
+        remove_columns=["sentence", "idx"]
     )
-    # Use full dataset if TRAIN_SUBSET_SIZE == 0, otherwise subset
+
+    tokenized_eval = raw_datasets["validation"].map(
+        preprocess_function, batched=True,
+        remove_columns=["sentence", "idx"]
+    )
+
+    # Use subset if specified
     if TRAIN_SUBSET_SIZE > 0:
-        train_subset = tokenized_train.shuffle(seed=SEED).select(
+        tokenized_train = tokenized_train.shuffle(seed=SEED).select(
             range(min(TRAIN_SUBSET_SIZE, len(tokenized_train)))
         )
     else:
-        train_subset = tokenized_train.shuffle(seed=SEED)
+        tokenized_train = tokenized_train.shuffle(seed=SEED)
 
-    tokenized_eval = eval_examples.map(
-        preprocess_eval, batched=True,
-        remove_columns=raw_datasets["validation"].column_names
-    )
+    if EVAL_SUBSET_SIZE > 0:
+        tokenized_eval = tokenized_eval.select(
+            range(min(EVAL_SUBSET_SIZE, len(tokenized_eval)))
+        )
+
+    # Rename "label" to "labels" for HuggingFace compatibility
+    tokenized_train = tokenized_train.rename_column("label", "labels")
+    tokenized_eval = tokenized_eval.rename_column("label", "labels")
 
     train_loader = DataLoader(
-        train_subset, batch_size=BATCH_SIZE, shuffle=True,
+        tokenized_train, batch_size=BATCH_SIZE, shuffle=True,
         collate_fn=default_data_collator,
         generator=torch.Generator().manual_seed(SEED)
     )
 
-    return train_loader, tokenized_eval, eval_examples
+    eval_loader = DataLoader(
+        tokenized_eval, batch_size=EVAL_BATCH_SIZE, shuffle=False,
+        collate_fn=default_data_collator
+    )
+
+    return train_loader, eval_loader
 
 
 # =============================================================================
 # Evaluation Functions
 # =============================================================================
 
-def normalize_answer(s):
-    def remove_articles(text):
-        return re.sub(r'\b(a|an|the)\b', ' ', text)
-
-    def white_space_fix(text):
-        return ' '.join(text.split())
-
-    def remove_punc(text):
-        exclude = set(string.punctuation)
-        return ''.join(ch for ch in text if ch not in exclude)
-
-    return white_space_fix(remove_articles(remove_punc(s.lower())))
-
-
-def compute_f1(prediction, ground_truth):
-    pred_tokens = normalize_answer(prediction).split()
-    truth_tokens = normalize_answer(ground_truth).split()
-
-    if len(pred_tokens) == 0 or len(truth_tokens) == 0:
-        return int(pred_tokens == truth_tokens)
-
-    common = Counter(pred_tokens) & Counter(truth_tokens)
-    num_same = sum(common.values())
-
-    if num_same == 0:
-        return 0.0
-
-    precision = num_same / len(pred_tokens)
-    recall = num_same / len(truth_tokens)
-    return 2 * precision * recall / (precision + recall)
-
-
-def compute_exact_match(prediction, ground_truth):
-    return float(normalize_answer(prediction) == normalize_answer(ground_truth))
-
-
-def postprocess_squad_predictions(
-    examples, features, all_start_logits, all_end_logits,
-    n_best_size=20, max_answer_length=30,
-):
-    example_id_to_index = {k: i for i, k in enumerate(examples["id"])}
-    features_per_example = collections.defaultdict(list)
-    for i, feature in enumerate(features):
-        features_per_example[example_id_to_index[feature["example_id"]]].append(i)
-
-    all_predictions = collections.OrderedDict()
-
-    for example_index, example in enumerate(examples):
-        feature_indices = features_per_example[example_index]
-        context = example["context"]
-
-        prelim_predictions = []
-
-        for feature_index in feature_indices:
-            start_logits = all_start_logits[feature_index]
-            end_logits = all_end_logits[feature_index]
-            offset_mapping = features[feature_index]["offset_mapping"]
-
-            start_indexes = np.argsort(start_logits)[-1: -n_best_size - 1: -1].tolist()
-            end_indexes = np.argsort(end_logits)[-1: -n_best_size - 1: -1].tolist()
-
-            for start_index in start_indexes:
-                for end_index in end_indexes:
-                    if (
-                        start_index >= len(offset_mapping)
-                        or end_index >= len(offset_mapping)
-                        or offset_mapping[start_index] is None
-                        or offset_mapping[end_index] is None
-                    ):
-                        continue
-                    if end_index < start_index or end_index - start_index + 1 > max_answer_length:
-                        continue
-
-                    prelim_predictions.append({
-                        "offsets": (offset_mapping[start_index][0], offset_mapping[end_index][1]),
-                        "score": start_logits[start_index] + end_logits[end_index],
-                    })
-
-        predictions = sorted(prelim_predictions, key=lambda x: x["score"], reverse=True)[:n_best_size]
-
-        if len(predictions) == 0:
-            all_predictions[example["id"]] = ""
-        else:
-            best_pred = predictions[0]
-            start_char, end_char = best_pred["offsets"]
-            all_predictions[example["id"]] = context[start_char:end_char]
-
-    return all_predictions
-
-
-def evaluate_model(model, eval_features, eval_examples, tokenizer):
-    """Evaluate SQuAD model. Returns (F1, EM)."""
+def evaluate_model(model, eval_loader):
+    """Evaluate SST-2 model. Returns accuracy."""
     model.eval()
 
-    all_start_logits = []
-    all_end_logits = []
-
-    def squad_eval_collate_fn(features):
-        offset_mappings = [f.pop("offset_mapping") for f in features]
-        example_ids = [f.pop("example_id") for f in features]
-        batch = default_data_collator(features)
-        batch["offset_mapping"] = offset_mappings
-        batch["example_id"] = example_ids
-        for i, f in enumerate(features):
-            f["offset_mapping"] = offset_mappings[i]
-            f["example_id"] = example_ids[i]
-        return batch
-
-    eval_loader = DataLoader(
-        eval_features, batch_size=EVAL_BATCH_SIZE, shuffle=False,
-        collate_fn=squad_eval_collate_fn
-    )
+    all_preds = []
+    all_labels = []
 
     with no_grad():
         for batch in eval_loader:
             input_ids = batch['input_ids'].to(DEVICE)
             attention_mask = batch['attention_mask'].to(DEVICE)
+            labels = batch['labels'].to(DEVICE)
 
             outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+            preds = torch.argmax(outputs.logits, dim=-1)
 
-            all_start_logits.append(outputs.start_logits.cpu().numpy())
-            all_end_logits.append(outputs.end_logits.cpu().numpy())
+            all_preds.extend(preds.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
 
     model.train()
 
-    all_start_logits = np.concatenate(all_start_logits, axis=0)
-    all_end_logits = np.concatenate(all_end_logits, axis=0)
+    # Compute accuracy
+    accuracy = sum(p == l for p, l in zip(all_preds, all_labels)) / len(all_labels) * 100.0
 
-    predictions = postprocess_squad_predictions(
-        eval_examples, eval_features,
-        all_start_logits, all_end_logits,
-        n_best_size=20, max_answer_length=30
-    )
-
-    formatted_predictions = [{"id": k, "prediction_text": v} for k, v in predictions.items()]
-    references = [{"id": ex["id"], "answers": ex["answers"]} for ex in eval_examples]
-
-    squad_metric = evaluate.load("squad")
-    results = squad_metric.compute(predictions=formatted_predictions, references=references)
-
-    return results["f1"], results["exact_match"]
+    return accuracy
 
 
 # =============================================================================
@@ -829,12 +646,12 @@ def get_linear_schedule_with_min_lr(optimizer, num_warmup_steps, num_training_st
 # Optuna Objective
 # =============================================================================
 
-def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
+def objective(trial, train_loader, eval_loader, tokenizer):
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 
     # Hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 1e-5, 1e0, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 6e-3, 2e1, log=True)
 
     # LRTT parameters: skip sweep if --no-transfer (A/B frozen, no transfer happens)
     if OPT_CONFIG['no_transfer']:
@@ -845,11 +662,11 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         lora_alpha = 1.0         # fixed (no effect)
         tau_sec = 0.0            # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 1e-2, 1e2, log=True)
-        transfer_every = trial.suggest_int('transfer_every', 10, 6400, log=True)
+        transfer_lr = trial.suggest_float('transfer_lr', 1e-5, 2e-2, log=True)
+        transfer_every = trial.suggest_int('transfer_every', 63, 32000, log=True)
         rank_exp = trial.suggest_int('rank_exp', 0, 5)
         rank = 2 ** rank_exp
-        lora_alpha = trial.suggest_float('lora_alpha', 1e-3, 1e3, log=True)
+        lora_alpha = trial.suggest_float('lora_alpha', 1e-5, 4e1, log=True)
         tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
 
     min_lr_rate = trial.suggest_float('min_lr_rate', 0.0, 0.0)
@@ -937,7 +754,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
             min_lr_rate=min_lr_rate,
         )
 
-        best_f1 = 0.0
+        best_acc = 0.0
         epochs_without_improvement = 0
 
         for epoch in range(1, N_EPOCHS + 1):
@@ -949,13 +766,12 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
             for batch in pbar:
                 input_ids = batch['input_ids'].to(DEVICE)
                 attention_mask = batch['attention_mask'].to(DEVICE)
-                start_positions = batch['start_positions'].to(DEVICE)
-                end_positions = batch['end_positions'].to(DEVICE)
+                labels = batch['labels'].to(DEVICE)
 
                 optimizer.zero_grad()
                 outputs = model(
                     input_ids=input_ids, attention_mask=attention_mask,
-                    start_positions=start_positions, end_positions=end_positions,
+                    labels=labels,
                 )
                 loss = outputs.loss
                 loss.backward()
@@ -969,11 +785,11 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
 
             train_loss = total_loss / num_batches if num_batches > 0 else 0.0
 
-            eval_f1, eval_em = evaluate_model(model, eval_features, eval_examples, tokenizer)
+            eval_acc = evaluate_model(model, eval_loader)
 
             improved = ""
-            if eval_f1 > best_f1:
-                best_f1 = eval_f1
+            if eval_acc > best_acc:
+                best_acc = eval_acc
                 epochs_without_improvement = 0
                 improved = " ★"
             else:
@@ -981,11 +797,11 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
 
             current_lr = optimizer.param_groups[0]['lr']
             tqdm.write(f"[Trial {trial.number}] Epoch {epoch:3d} | "
-                  f"F1: {eval_f1:6.2f}% | EM: {eval_em:6.2f}% | Best F1: {best_f1:6.2f}% | "
-                  f"Loss: {train_loss:.4f} | LR: {current_lr:.2e} | "
-                  f"No imp: {epochs_without_improvement}/{EARLY_STOP_PATIENCE}{improved}")
+                      f"Acc: {eval_acc:6.2f}% | Best Acc: {best_acc:6.2f}% | "
+                      f"Loss: {train_loss:.4f} | LR: {current_lr:.2e} | "
+                      f"No imp: {epochs_without_improvement}/{EARLY_STOP_PATIENCE}{improved}")
 
-            trial.report(best_f1, epoch)
+            trial.report(best_acc, epoch)
             trial.set_user_attr(f"train_loss_epoch_{epoch}", train_loss)
 
             if epochs_without_improvement >= EARLY_STOP_PATIENCE:
@@ -996,14 +812,14 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
                 tqdm.write(f"[Trial {trial.number}] Pruned at epoch {epoch}")
                 raise optuna.exceptions.TrialPruned()
 
-        print(f"\n[Trial {trial.number}] Finished - Best F1: {best_f1:.2f}%")
-        print(f"{'='*70}\n")
-        return best_f1
+        tqdm.write(f"\n[Trial {trial.number}] Finished - Best Acc: {best_acc:.2f}%")
+        tqdm.write(f"{'='*70}\n")
+        return best_acc
 
     except Exception as e:
         error_msg = str(e)[:500]
         trial.set_user_attr("error", error_msg)
-        print(f"[Trial {trial.number}] Error: {error_msg}")
+        tqdm.write(f"[Trial {trial.number}] Error: {error_msg}")
         raise
 
     finally:
@@ -1013,7 +829,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
             torch.cuda.synchronize()
-        print(f"[Trial {trial.number}] GPU cache cleared")
+        tqdm.write(f"[Trial {trial.number}] GPU cache cleared")
 
 
 # =============================================================================
@@ -1021,7 +837,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
 # =============================================================================
 
 def visualize_study(study, save_dir):
-    """Visualize optimization history, parameter importance, and LR vs F1."""
+    """Visualize optimization history, parameter importance, and LR vs Acc."""
     complete_trials = [t for t in study.trials if t.state == TrialState.COMPLETE]
     if not complete_trials:
         print("No completed trials to visualize.")
@@ -1030,15 +846,15 @@ def visualize_study(study, save_dir):
     fig, axes = plt.subplots(1, 3, figsize=(15, 5))
 
     trial_numbers = [t.number for t in complete_trials]
-    f1_scores = [t.value for t in complete_trials]
+    acc_scores = [t.value for t in complete_trials]
 
     # Optimization history
-    axes[0].scatter(trial_numbers, f1_scores, alpha=0.6)
+    axes[0].scatter(trial_numbers, acc_scores, alpha=0.6)
     axes[0].plot(trial_numbers,
-                 [max(f1_scores[:i+1]) for i in range(len(f1_scores))],
+                 [max(acc_scores[:i+1]) for i in range(len(acc_scores))],
                  'r-', linewidth=2, label='Best so far')
     axes[0].set_xlabel('Trial')
-    axes[0].set_ylabel('F1 (%)')
+    axes[0].set_ylabel('Accuracy (%)')
     axes[0].set_title('Optimization History')
     axes[0].legend()
     axes[0].grid(True, alpha=0.3)
@@ -1053,13 +869,13 @@ def visualize_study(study, save_dir):
         axes[1].text(0.5, 0.5, 'Not enough trials', ha='center', va='center',
                      transform=axes[1].transAxes)
 
-    # LR vs F1
+    # LR vs Acc
     lrs = [t.params.get('learning_rate', 1e-4) for t in complete_trials]
-    axes[2].scatter(lrs, f1_scores, alpha=0.6)
+    axes[2].scatter(lrs, acc_scores, alpha=0.6)
     axes[2].set_xscale('log')
     axes[2].set_xlabel('Learning Rate')
-    axes[2].set_ylabel('F1 (%)')
-    axes[2].set_title('Learning Rate vs F1')
+    axes[2].set_ylabel('Accuracy (%)')
+    axes[2].set_title('Learning Rate vs Accuracy')
     axes[2].grid(True, alpha=0.3)
 
     plt.tight_layout()
@@ -1076,8 +892,8 @@ def print_study_summary(study):
     complete_trials = [t for t in study.trials if t.state == TrialState.COMPLETE]
     print(f"Study: {study.study_name}, Trials: {len(study.trials)} ({len(complete_trials)} complete)")
     if complete_trials:
-        f1_scores = [t.value for t in complete_trials]
-        print(f"Best F1: {max(f1_scores):.2f}%, Mean F1: {sum(f1_scores)/len(f1_scores):.2f}%")
+        acc_scores = [t.value for t in complete_trials]
+        print(f"Best Acc: {max(acc_scores):.2f}%, Mean Acc: {sum(acc_scores)/len(acc_scores):.2f}%")
         print(f"Best params: {study.best_params}")
 
 
@@ -1088,7 +904,7 @@ def print_study_summary(study):
 def main():
     global BATCH_SIZE, N_EPOCHS, WARMUP_STEPS, TRANSFER_METHOD, AB_DEVICE, IO_NOISE, LORA_TARGET, HEAD_LAYER
 
-    parser = argparse.ArgumentParser(description="Optuna sweep for MobileBERT SQuAD LRTT")
+    parser = argparse.ArgumentParser(description="Optuna sweep for MobileBERT SST-2 LRTT")
     parser.add_argument('--study-name', type=str, default=None,
                         help='Study name (default: auto-generated based on config)')
     parser.add_argument('--n-trials', type=int, default=50)
@@ -1126,7 +942,7 @@ def main():
                         help='LoRA target: none, qonly, konly, vonly, qkv, ffn, all (default: qkv)')
     parser.add_argument('--head-layer', type=str, default=HEAD_LAYER,
                         choices=['train', 'freeze'],
-                        help='qa_outputs layer: train or freeze (default: train)')
+                        help='classifier layer: train or freeze (default: train)')
     args = parser.parse_args()
 
     # Update global config
@@ -1146,7 +962,7 @@ def main():
     OPT_CONFIG['no_transfer'] = args.no_transfer
 
     # Auto-generate study name based on config (includes batch size)
-    study_name = args.study_name or f"mobilebert_squad_lrtt_bs{BATCH_SIZE}_{get_study_name_suffix()}"
+    study_name = args.study_name or f"mobilebert_sst2_lrtt_bs{BATCH_SIZE}_{get_study_name_suffix()}"
 
     storage = f"sqlite:///{RESULTS}/optuna_{study_name}.db"
 
@@ -1158,8 +974,8 @@ def main():
 
     # Load data once (shared across all trials)
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-    train_loader, eval_features, eval_examples = load_data(tokenizer)
-    print(f"Train batches: {len(train_loader)}, Eval features: {len(eval_features)}")
+    train_loader, eval_loader = load_data(tokenizer)
+    print(f"Train batches: {len(train_loader)}, Eval batches: {len(eval_loader)}")
 
     study = optuna.create_study(
         study_name=study_name, storage=storage, direction="maximize",
@@ -1176,7 +992,7 @@ def main():
 
     try:
         study.optimize(
-            lambda trial: objective(trial, train_loader, eval_features, eval_examples, tokenizer),
+            lambda trial: objective(trial, train_loader, eval_loader, tokenizer),
             n_trials=args.n_trials,
             catch=(Exception,),
             show_progress_bar=False,
@@ -1203,7 +1019,7 @@ def main():
         best_params_file = os.path.join(RESULTS, f"best_params_{study_name}.json")
         with open(best_params_file, 'w') as f:
             json.dump({
-                "best_f1": study.best_value,
+                "best_acc": study.best_value,
                 "best_params": study.best_params,
             }, f, indent=2)
         print(f"Best params saved to: {best_params_file}")
