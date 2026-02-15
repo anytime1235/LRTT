@@ -4,12 +4,17 @@
 All layers frozen except head.Linear (64 -> 10, 650 params).
 Tests whether the classifier alone can learn from random features.
 
+Features:
+  - Patience-based early stopping (--patience, default 4)
+  - Optuna MedianPruner for cross-trial pruning
+
 Usage:
     python sweep_digital_head_only.py --n-trials 30 --epochs 30
 """
 
 import argparse
 import os
+import re
 import subprocess
 import sys
 import json
@@ -17,12 +22,14 @@ import csv
 
 import optuna
 from optuna.samplers import TPESampler
+from optuna.pruners import MedianPruner
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Sweep: digital, head-only trainable")
     parser.add_argument("--n-trials", type=int, default=30, help="Number of Optuna trials")
     parser.add_argument("--epochs", type=int, default=30, help="Epochs per trial")
+    parser.add_argument("--patience", type=int, default=4, help="Early stopping patience")
     parser.add_argument("--data-dir", type=str, default="/data/cifar10", help="Path to CIFAR-10")
     parser.add_argument("--model", type=str, default="mdmlp_patch4_lap2_dim64_depth8_32")
     parser.add_argument("--batch-size", type=int, default=128)
@@ -33,19 +40,27 @@ def parse_args():
     return parser.parse_args()
 
 
+def _parse_epoch_acc(line):
+    """Parse accuracy from a Test: line. Returns (epoch, acc) or None."""
+    m = re.search(r'Test:\s*\[\s*(\d+)/\d+\].*Acc@1:\s*[\d.]+\s*\(([\d.]+)\)', line)
+    if m:
+        return int(m.group(1)), float(m.group(2))
+    return None
+
+
 def objective(trial, args):
     """Train with only head.Linear unfrozen."""
 
     lr = trial.suggest_float("lr", 1e-4, 1.0, log=True)
 
-    # Trial output directory (train_analog.py creates it via get_outdir)
     exp_name = f"trial_{trial.number:04d}"
     exp_dir = os.path.join(args.output_dir, exp_name)
 
+    script_dir = os.path.dirname(os.path.abspath(__file__))
     cmd = [
-        sys.executable, os.path.join(os.path.dirname(__file__), "train_analog.py"),
+        sys.executable, os.path.join(script_dir, "train_analog.py"),
         args.data_dir,
-        "-c", os.path.join(os.path.dirname(__file__), "ymls", "cifar10_sgd.yml"),
+        "-c", os.path.join(script_dir, "ymls", "cifar10_sgd.yml"),
         "--model", args.model,
         "--freeze-mode", "head-only",
         "--epochs", str(args.epochs),
@@ -53,6 +68,7 @@ def objective(trial, args):
         "--warmup-epochs", "0",
         "--batch-size", str(args.batch_size),
         "--seed", str(args.seed),
+        "--patience", str(args.patience),
         "--output", args.output_dir,
         "--experiment", exp_name,
     ]
@@ -61,36 +77,40 @@ def objective(trial, args):
     print(f"[head-only] Trial {trial.number}: lr={lr:.5f}")
     print(f"{'='*60}\n")
 
+    os.makedirs(exp_dir, exist_ok=True)
+    best_acc = 0.0
+    last_epoch = -1
+
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)
+        proc = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, bufsize=1,
+        )
+        for line in proc.stdout:
+            line_s = line.rstrip()
+            if any(kw in line_s for kw in ["Test:", "*** Best", "Early stopping"]):
+                print(f"  [T{trial.number}] {line_s}")
+
+            parsed = _parse_epoch_acc(line_s)
+            if parsed:
+                epoch, acc = parsed
+                if epoch > last_epoch:
+                    last_epoch = epoch
+                    best_acc = max(best_acc, acc)
+                    trial.report(best_acc, step=epoch)
+                    if trial.should_prune():
+                        print(f"  [T{trial.number}] PRUNED by Optuna at epoch {epoch} (acc={best_acc:.2f}%)")
+                        proc.kill()
+                        proc.wait()
+                        raise optuna.TrialPruned()
+
+        proc.wait(timeout=3600)
     except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait()
         print(f"Trial {trial.number} timed out!")
         return 0.0
 
-    best_acc = _parse_best_acc(result.stdout, exp_dir)
-
-    trial_info = {
-        "trial": trial.number, "mode": "head-only",
-        "lr": lr,
-        "best_accuracy": best_acc,
-    }
-    os.makedirs(exp_dir, exist_ok=True)
-    with open(os.path.join(exp_dir, "trial_params.json"), "w") as f:
-        json.dump(trial_info, f, indent=2)
-
-    print(f"\nTrial {trial.number} complete: best_acc={best_acc:.2f}%")
-    trial.report(best_acc, step=args.epochs)
-    return best_acc
-
-
-def _parse_best_acc(stdout, exp_dir):
-    best_acc = 0.0
-    for line in stdout.split("\n"):
-        if "*** Best metric:" in line:
-            try:
-                best_acc = float(line.split("*** Best metric:")[1].split("(")[0].strip())
-            except (ValueError, IndexError):
-                pass
     summary_path = os.path.join(exp_dir, "summary.csv")
     if os.path.exists(summary_path):
         try:
@@ -100,6 +120,16 @@ def _parse_best_acc(stdout, exp_dir):
                         best_acc = max(best_acc, float(row["eval_top1"]))
         except Exception:
             pass
+
+    trial_info = {
+        "trial": trial.number, "mode": "head-only",
+        "lr": lr,
+        "best_accuracy": best_acc,
+    }
+    with open(os.path.join(exp_dir, "trial_params.json"), "w") as f:
+        json.dump(trial_info, f, indent=2)
+
+    print(f"\nTrial {trial.number} complete: best_acc={best_acc:.2f}%")
     return best_acc
 
 
@@ -108,9 +138,11 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
 
     sampler = TPESampler(seed=args.seed)
+    pruner = MedianPruner(n_startup_trials=5, n_warmup_steps=5)
     study = optuna.create_study(
         study_name=args.study_name, storage=args.storage,
-        direction="maximize", sampler=sampler, load_if_exists=True,
+        direction="maximize", sampler=sampler, pruner=pruner,
+        load_if_exists=True,
     )
 
     study.optimize(lambda trial: objective(trial, args), n_trials=args.n_trials)
@@ -141,7 +173,6 @@ def main():
         json.dump(results, f, indent=2)
     print(f"\nResults saved to: {results_path}")
 
-    # Save aggregated CSV
     csv_path = os.path.join(args.output_dir, "all_trials.csv")
     param_keys = list(study.best_params.keys()) if study.best_trial else []
     with open(csv_path, "w", newline="") as f:

@@ -151,16 +151,7 @@ class LRTTSimulatorTile(SimulatorTile, Module):
                 return base_update
 
             # Create a copy and apply tile-specific overrides
-            # We need to copy all fields manually
-            update_copy = UpdateParameters(
-                desired_bl=base_update.desired_bl,
-                pulse_type=base_update.pulse_type,
-                use_manual_scaling=base_update.use_manual_scaling,
-                manual_x_scaling=base_update.manual_x_scaling,
-                manual_d_scaling=base_update.manual_d_scaling,
-                update_bl_management=base_update.update_bl_management,
-                update_management=base_update.update_management,
-            )
+            update_copy = deepcopy(base_update)
 
             # Apply tile-specific overrides
             if tile_type == "a":
@@ -179,10 +170,11 @@ class LRTTSimulatorTile(SimulatorTile, Module):
                     update_copy.desired_bl = c_bl
                 # C tile uses set_weights (not pulse update), but needs valid scaling
                 # values for PulsedDevice config validation
-                update_copy.use_manual_scaling = False
-                if update_copy.manual_x_scaling is None:
+                if hasattr(update_copy, 'use_manual_scaling'):
+                    update_copy.use_manual_scaling = False
+                if hasattr(update_copy, 'manual_x_scaling') and getattr(update_copy, 'manual_x_scaling', None) is None:
                     update_copy.manual_x_scaling = 1.0
-                if update_copy.manual_d_scaling is None:
+                if hasattr(update_copy, 'manual_d_scaling') and getattr(update_copy, 'manual_d_scaling', None) is None:
                     update_copy.manual_d_scaling = 1.0
 
             return update_copy

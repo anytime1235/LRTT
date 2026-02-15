@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
-"""Optuna-based hyperparameter sweep for MDMLP + TikiTaka v1 on CIFAR-10.
+"""Optuna-based hyperparameter sweep for MDMLP + LRTT-ALL on CIFAR-10.
 
-TikiTaka v1 uses TransferCompound with 6T1C Fast + SoftBounds Slow tiles
-(same devices as LRTT).
+All layers (including stem.Linear and head.Linear) use LRTT rank=4.
+Only clayer layers remain digital (FloatingPointRPUConfig).
 
-Searches over: lr, transfer_lr, transfer_every, fast_lr.
+Search space:
+  - lr:             [0.02, 0.2]  (log)
+  - transfer_lr:    [0.001, 1.0] (log)
+  - transfer_every: categorical [1, 10, 100, 1000]
 
-Features:
-  - Patience-based early stopping (--patience, default 4)
-  - Optuna MedianPruner for cross-trial pruning
+Fixed: lrtt_rank=4, c_desired_bl=31, sched=none, --lrtt-all
 
 Usage:
-    python sweep_tikitaka_cifar10.py --n-trials 50 --epochs 50
+    python sweep_lrtt_all_bl31_10ep.py --n-trials 50 --epochs 10
 """
 
 import argparse
@@ -21,6 +22,8 @@ import subprocess
 import sys
 import json
 import csv
+import signal
+from datetime import datetime
 
 import optuna
 from optuna.samplers import TPESampler
@@ -28,19 +31,19 @@ from optuna.pruners import MedianPruner
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Optuna sweep for MDMLP + TikiTaka v1")
+    parser = argparse.ArgumentParser(description="Optuna sweep for MDMLP + LRTT-ALL (BL=31)")
     parser.add_argument("--n-trials", type=int, default=50, help="Number of Optuna trials")
-    parser.add_argument("--epochs", type=int, default=30, help="Epochs per trial")
-    parser.add_argument("--patience", type=int, default=4, help="Early stopping patience")
+    parser.add_argument("--epochs", type=int, default=10, help="Epochs per trial")
+    parser.add_argument("--patience", type=int, default=3, help="Early stopping patience")
     parser.add_argument("--data-dir", type=str, default="/data/cifar10", help="Path to CIFAR-10 data")
     parser.add_argument("--model", type=str, default="mdmlp_patch4_lap2_dim64_depth8_32",
                         help="Model name")
     parser.add_argument("--batch-size", type=int, default=128, help="Batch size")
-    parser.add_argument("--study-name", type=str, default="mdmlp_tikitaka_cifar10",
+    parser.add_argument("--study-name", type=str, default="mdmlp_lrtt_all_bl31_10ep",
                         help="Optuna study name")
     parser.add_argument("--storage", type=str, default=None,
                         help="Optuna storage URL (e.g., sqlite:///sweep.db). None=in-memory")
-    parser.add_argument("--output-dir", type=str, default="./output/sweep_tikitaka",
+    parser.add_argument("--output-dir", type=str, default="./output/sweep_lrtt_all_bl31_10ep",
                         help="Base output directory for trials")
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     return parser.parse_args()
@@ -55,13 +58,12 @@ def _parse_epoch_acc(line):
 
 
 def objective(trial, args):
-    """Optuna objective: run one MDMLP+TikiTaka training and return best val accuracy."""
+    """Optuna objective: run one MDMLP+LRTT-ALL training and return best val accuracy."""
 
-    # === Search space ===
-    lr = trial.suggest_float("lr", 1e-3, 0.1, log=True)
-    transfer_lr = trial.suggest_float("transfer_lr", 0.01, 10.0, log=True)
-    transfer_every = trial.suggest_categorical("transfer_every", [1, 10, 20, 100])
-    fast_lr = trial.suggest_float("fast_lr", 0.01, 10.0, log=True)
+    # === Search space (reinit=decay, decay_factor=1.0, c_desired_bl=31, --lrtt-all) ===
+    lr = trial.suggest_float("lr", 0.02, 0.2, log=True)
+    transfer_lr = trial.suggest_float("transfer_lr", 0.001, 1.0, log=True)
+    transfer_every = trial.suggest_categorical("transfer_every", [1, 10, 100, 1000])
 
     # Trial output directory
     exp_name = f"trial_{trial.number:04d}"
@@ -72,28 +74,34 @@ def objective(trial, args):
     cmd = [
         sys.executable, os.path.join(script_dir, "train_analog.py"),
         args.data_dir,
-        "-c", os.path.join(script_dir, "ymls", "cifar10_tikitaka.yml"),
+        "-c", os.path.join(script_dir, "ymls", "cifar10_analog.yml"),
         "--model", args.model,
         "--analog",
-        "--algo", "tikitaka",
         "--epochs", str(args.epochs),
         "--lr", str(lr),
+        "--lrtt-rank", "4",
         "--transfer-every", str(transfer_every),
         "--transfer-lr", str(transfer_lr),
-        "--fast-lr", str(fast_lr),
+        "--c-desired-bl", "31",
+        "--sched", "none",
         "--warmup-epochs", "0",
         "--batch-size", str(args.batch_size),
         "--seed", str(args.seed),
         "--validate-c-only",
         "--patience", str(args.patience),
+        "--lrtt-all",
         "--output", args.output_dir,
         "--experiment", exp_name,
     ]
 
+    # Compute transfers per epoch (~391 steps for CIFAR-10 with bs=128)
+    steps_per_epoch = 391
+    transfers_per_ep = steps_per_epoch // transfer_every
+
     # Run training subprocess
     print(f"\n{'='*60}")
-    print(f"Trial {trial.number}: lr={lr:.5f}, t_lr={transfer_lr:.4f}, "
-          f"te={transfer_every}, fast_lr={fast_lr:.4f}")
+    print(f"Trial {trial.number}: lr={lr:.5f}, t_lr={transfer_lr:.5f}, "
+          f"te={transfer_every}, transfers/ep~{transfers_per_ep}")
     print(f"{'='*60}\n")
 
     os.makedirs(exp_dir, exist_ok=True)
@@ -107,9 +115,11 @@ def objective(trial, args):
         )
         for line in proc.stdout:
             line_s = line.rstrip()
+            # Print key lines
             if any(kw in line_s for kw in ["Test:", "C-only", "*** Best", "Early stopping"]):
                 print(f"  [T{trial.number}] {line_s}")
 
+            # Parse epoch-level accuracy for Optuna pruning
             parsed = _parse_epoch_acc(line_s)
             if parsed:
                 epoch, acc = parsed
@@ -130,7 +140,7 @@ def objective(trial, args):
         print(f"Trial {trial.number} timed out!")
         return 0.0
 
-    # Fallback: parse from summary.csv
+    # Also parse from summary.csv as fallback
     summary_path = os.path.join(exp_dir, "summary.csv")
     if os.path.exists(summary_path):
         try:
@@ -144,11 +154,11 @@ def objective(trial, args):
     # Save trial params + result
     trial_info = {
         "trial": trial.number,
-        "algo": "tikitaka",
         "lr": lr,
         "transfer_lr": transfer_lr,
         "transfer_every": transfer_every,
-        "fast_lr": fast_lr,
+        "c_desired_bl": 31,
+        "lrtt_all": True,
         "best_accuracy": best_acc,
     }
     with open(os.path.join(exp_dir, "trial_params.json"), "w") as f:
@@ -162,8 +172,9 @@ def main():
     args = parse_args()
     os.makedirs(args.output_dir, exist_ok=True)
 
+    # Create Optuna study with MedianPruner
     sampler = TPESampler(seed=args.seed)
-    pruner = MedianPruner(n_startup_trials=5, n_warmup_steps=5)
+    pruner = MedianPruner(n_startup_trials=5, n_warmup_steps=3)
     study = optuna.create_study(
         study_name=args.study_name,
         storage=args.storage,
@@ -173,13 +184,18 @@ def main():
         load_if_exists=True,
     )
 
+    # Seed trial: best known params from trial_0011 (60.55% @30ep without --lrtt-all)
+    study.enqueue_trial({"lr": 0.0739, "transfer_lr": 0.0107, "transfer_every": 10})
+
+    # Run optimization
     study.optimize(
         lambda trial: objective(trial, args),
         n_trials=args.n_trials,
     )
 
+    # Print results
     print("\n" + "=" * 80)
-    print("TIKITAKA v1 SWEEP COMPLETE")
+    print("SWEEP COMPLETE")
     print("=" * 80)
 
     print(f"\nBest trial: {study.best_trial.number}")
@@ -191,7 +207,6 @@ def main():
     # Save results summary
     results_path = os.path.join(args.output_dir, "sweep_results.json")
     results = {
-        "algo": "tikitaka",
         "study_name": args.study_name,
         "n_trials": len(study.trials),
         "best_trial": study.best_trial.number,
@@ -211,6 +226,7 @@ def main():
         json.dump(results, f, indent=2)
     print(f"\nResults saved to: {results_path}")
 
+    # Save aggregated CSV
     csv_path = os.path.join(args.output_dir, "all_trials.csv")
     param_keys = list(study.best_params.keys()) if study.best_trial else []
     with open(csv_path, "w", newline="") as f:

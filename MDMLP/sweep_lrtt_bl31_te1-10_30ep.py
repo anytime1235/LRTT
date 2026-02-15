@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
-"""Optuna-based hyperparameter sweep for MDMLP + LRTT on CIFAR-10 with c_desired_bl=1.
+"""Optuna-based hyperparameter sweep for MDMLP + LRTT on CIFAR-10 with c_desired_bl=31.
 
-Same as sweep_lrtt_cifar10.py but adds --c-desired-bl 1 to apply BL=1
-only during transfer (C tile update). Normal gradient updates are unaffected.
+Same search space as BL=1 sweep but with BL=31 (default) for transfer.
 
-Searches over: lr, transfer_lr (transfer_every=300 fixed).
+Searches over: lr, transfer_lr, transfer_every.
 
 Usage:
-    python sweep_lrtt_bl1_te300_decay.py --n-trials 30 --epochs 10
-    python sweep_lrtt_bl1_te300_decay.py --n-trials 50 --epochs 50 --study-name full_bl1
+    python sweep_lrtt_bl31_te1-10_30ep.py --n-trials 100 --epochs 30
 """
 
 import argparse
@@ -27,7 +25,7 @@ from optuna.pruners import MedianPruner
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Optuna sweep for MDMLP + LRTT (BL=1 transfer)")
+    parser = argparse.ArgumentParser(description="Optuna sweep for MDMLP + LRTT (BL=31 transfer)")
     parser.add_argument("--n-trials", type=int, default=50, help="Number of Optuna trials")
     parser.add_argument("--epochs", type=int, default=30, help="Epochs per trial")
     parser.add_argument("--patience", type=int, default=4, help="Early stopping patience")
@@ -35,11 +33,11 @@ def parse_args():
     parser.add_argument("--model", type=str, default="mdmlp_patch4_lap2_dim64_depth8_32",
                         help="Model name")
     parser.add_argument("--batch-size", type=int, default=128, help="Batch size")
-    parser.add_argument("--study-name", type=str, default="mdmlp_lrtt_bl1_te300_decay",
+    parser.add_argument("--study-name", type=str, default="mdmlp_lrtt_bl31_te1-10_30ep",
                         help="Optuna study name")
     parser.add_argument("--storage", type=str, default=None,
                         help="Optuna storage URL (e.g., sqlite:///sweep.db). None=in-memory")
-    parser.add_argument("--output-dir", type=str, default="./output/sweep_bl1_te300_decay",
+    parser.add_argument("--output-dir", type=str, default="./output/sweep_bl31_te1-10_30ep",
                         help="Base output directory for trials")
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     return parser.parse_args()
@@ -56,7 +54,7 @@ def _parse_epoch_acc(line):
 def objective(trial, args):
     """Optuna objective: run one MDMLP+LRTT training and return best val accuracy."""
 
-    # === Search space (reinit=decay, decay_factor=1.0, c_desired_bl=1) ===
+    # === Search space (reinit=decay, decay_factor=1.0, c_desired_bl=31) ===
     lr = trial.suggest_float("lr", 1e-3, 0.1, log=True)
     transfer_lr = trial.suggest_float("transfer_lr", 0.01, 1.0, log=True)
     transfer_every = trial.suggest_int("transfer_every", 1, 10, log=True)
@@ -78,7 +76,7 @@ def objective(trial, args):
         "--lrtt-rank", "4",
         "--transfer-every", str(transfer_every),
         "--transfer-lr", str(transfer_lr),
-        "--c-desired-bl", "1",
+        "--c-desired-bl", "31",
         "--sched", "none",
         "--warmup-epochs", "0",
         "--batch-size", str(args.batch_size),
@@ -92,7 +90,7 @@ def objective(trial, args):
     # Run training subprocess
     print(f"\n{'='*60}")
     print(f"Trial {trial.number}: lr={lr:.5f}, t_lr={transfer_lr:.4f}, "
-          f"te={transfer_every}, c_desired_bl=1, transfers/ep~{391//transfer_every}")
+          f"te={transfer_every}, c_desired_bl=31, transfers/ep~{391//transfer_every}")
     print(f"{'='*60}\n")
 
     os.makedirs(exp_dir, exist_ok=True)
@@ -148,7 +146,7 @@ def objective(trial, args):
         "lr": lr,
         "transfer_lr": transfer_lr,
         "transfer_every": transfer_every,
-        "c_desired_bl": 1,
+        "c_desired_bl": 31,
         "best_accuracy": best_acc,
     }
     with open(os.path.join(exp_dir, "trial_params.json"), "w") as f:
