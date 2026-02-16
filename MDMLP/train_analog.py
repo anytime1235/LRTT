@@ -397,7 +397,7 @@ def create_lrtt_config(
     transfer_every: int,
     transfer_lr: float,
     lora_alpha: float = 1.0,
-    reinit_gain: float = 0.1,
+    reinit_gain: float = 1.0,
     c_desired_bl: int = None,
     reinit_mode: str = "decay",
     decay_factor: float = 1.0,
@@ -484,7 +484,7 @@ def create_lrtt_config(
     rpu_config.backward.out_noise = 0.0
 
     # Weight scaling for C tile
-    rpu_config.mapping.weight_scaling_omega = 1.0
+    rpu_config.mapping.weight_scaling_omega = 0.6
     rpu_config.mapping.weight_scaling_columnwise = True
     rpu_config.mapping.learn_out_scaling = True
     rpu_config.mapping.out_scaling_columnwise = True
