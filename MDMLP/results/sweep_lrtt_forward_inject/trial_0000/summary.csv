@@ -1,0 +1,17 @@
+epoch,train_loss,eval_loss,eval_top1,eval_top5
+0,nan,nan,10.0,50.0
+1,nan,nan,10.0,50.0
+2,nan,nan,10.0,50.0
+3,nan,nan,10.0,50.0
+4,nan,nan,10.0,50.0
+5,nan,nan,10.0,50.0
+6,nan,nan,10.0,50.0
+7,nan,nan,10.0,50.0
+8,nan,nan,10.0,50.0
+9,nan,nan,10.0,50.0
+10,nan,nan,10.0,50.0
+11,nan,nan,10.0,50.0
+12,nan,nan,10.0,50.0
+13,nan,nan,10.0,50.0
+14,nan,nan,10.0,50.0
+15,nan,nan,10.0,50.0

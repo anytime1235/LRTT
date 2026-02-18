@@ -167,6 +167,7 @@ cython_debug/
 
 # Large files - model weights and experiment logs
 *.pth
+*.pth.tar
 wandb/
 examples/wandb/
 examples/results/*
@@ -187,3 +188,8 @@ checkpoints/
 # Test outputs and results
 *_RESULTS/
 *.log
+
+# MDMLP results: allow CSV and log files for sweep tracking
+!MDMLP/results/**/*.csv
+!MDMLP/results/**/*.log
+!MDMLP/results/logs/*.log

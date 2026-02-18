@@ -1,0 +1,22 @@
+[I 2026-02-15 04:24:07,397] A new study created in memory with name: lrtt_te50_la0.1
+[I 2026-02-15 04:24:22,019] Trial 0 finished with value: 0.0 and parameters: {'lr': 0.08403604888695192, 'transfer_lr': 0.711447600934342}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:24:37,846] Trial 1 finished with value: 0.0 and parameters: {'lr': 0.13793493374058524, 'transfer_lr': 0.06251373574521749}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:24:54,675] Trial 2 finished with value: 0.0 and parameters: {'lr': 0.06207297859212557, 'transfer_lr': 0.0029375384576328283}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:25:12,294] Trial 3 finished with value: 0.0 and parameters: {'lr': 0.05419257949847529, 'transfer_lr': 0.39676050770529875}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:25:12,295] A new study created in memory with name: lrtt_te50_la0.5
+[I 2026-02-15 04:25:28,962] Trial 0 finished with value: 0.0 and parameters: {'lr': 0.08403604888695192, 'transfer_lr': 0.711447600934342}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:25:45,333] Trial 1 finished with value: 0.0 and parameters: {'lr': 0.13793493374058524, 'transfer_lr': 0.06251373574521749}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:26:03,685] Trial 2 finished with value: 0.0 and parameters: {'lr': 0.06207297859212557, 'transfer_lr': 0.0029375384576328283}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:26:20,617] Trial 3 finished with value: 0.0 and parameters: {'lr': 0.05419257949847529, 'transfer_lr': 0.39676050770529875}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:26:20,618] A new study created in memory with name: lrtt_te50_la1.0
+[I 2026-02-15 04:26:36,104] Trial 0 finished with value: 0.0 and parameters: {'lr': 0.08403604888695192, 'transfer_lr': 0.711447600934342}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:26:50,608] Trial 1 finished with value: 0.0 and parameters: {'lr': 0.13793493374058524, 'transfer_lr': 0.06251373574521749}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:27:04,116] Trial 2 finished with value: 0.0 and parameters: {'lr': 0.06207297859212557, 'transfer_lr': 0.0029375384576328283}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:27:18,798] Trial 3 finished with value: 0.0 and parameters: {'lr': 0.05419257949847529, 'transfer_lr': 0.39676050770529875}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:27:18,800] A new study created in memory with name: lrtt_te100_la0.1
+[I 2026-02-15 04:27:33,958] Trial 0 finished with value: 0.0 and parameters: {'lr': 0.08403604888695192, 'transfer_lr': 0.711447600934342}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:27:54,197] Trial 1 finished with value: 0.0 and parameters: {'lr': 0.13793493374058524, 'transfer_lr': 0.06251373574521749}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:28:10,403] Trial 2 finished with value: 0.0 and parameters: {'lr': 0.06207297859212557, 'transfer_lr': 0.0029375384576328283}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:28:26,152] Trial 3 finished with value: 0.0 and parameters: {'lr': 0.05419257949847529, 'transfer_lr': 0.39676050770529875}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:28:26,153] A new study created in memory with name: lrtt_te100_la0.5
+[I 2026-02-15 04:28:42,197] Trial 0 finished with value: 0.0 and parameters: {'lr': 0.08403604888695192, 'transfer_lr': 0.711447600934342}. Best is trial 0 with value: 0.0.
