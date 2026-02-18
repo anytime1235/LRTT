@@ -1,0 +1,150 @@
+{
+  "best": "te50_la0.01",
+  "best_accuracy": 64.95,
+  "all": {
+    "te50_la0.01": {
+      "transfer_every": 50,
+      "lora_alpha": 0.01,
+      "best_accuracy": 64.95,
+      "best_params": {
+        "lr": 0.13793493374058524,
+        "transfer_lr": 0.06251373574521749
+      }
+    },
+    "te50_la0.1": {
+      "transfer_every": 50,
+      "lora_alpha": 0.1,
+      "best_accuracy": 59.48,
+      "best_params": {
+        "lr": 0.08403604888695192,
+        "transfer_lr": 0.711447600934342
+      }
+    },
+    "te50_la0.5": {
+      "transfer_every": 50,
+      "lora_alpha": 0.5,
+      "best_accuracy": 0.0,
+      "best_params": {
+        "lr": 0.08403604888695192,
+        "transfer_lr": 0.711447600934342
+      }
+    },
+    "te50_la1.0": {
+      "transfer_every": 50,
+      "lora_alpha": 1.0,
+      "best_accuracy": 0.0,
+      "best_params": {
+        "lr": 0.08403604888695192,
+        "transfer_lr": 0.711447600934342
+      }
+    },
+    "te100_la0.01": {
+      "transfer_every": 100,
+      "lora_alpha": 0.01,
+      "best_accuracy": 0.0,
+      "best_params": {
+        "lr": 0.08403604888695192,
+        "transfer_lr": 0.711447600934342
+      }
+    },
+    "te100_la0.1": {
+      "transfer_every": 100,
+      "lora_alpha": 0.1,
+      "best_accuracy": 0.0,
+      "best_params": {
+        "lr": 0.08403604888695192,
+        "transfer_lr": 0.711447600934342
+      }
+    },
+    "te100_la0.5": {
+      "transfer_every": 100,
+      "lora_alpha": 0.5,
+      "best_accuracy": 0.0,
+      "best_params": {
+        "lr": 0.08403604888695192,
+        "transfer_lr": 0.711447600934342
+      }
+    },
+    "te100_la1.0": {
+      "transfer_every": 100,
+      "lora_alpha": 1.0,
+      "best_accuracy": 0.0,
+      "best_params": {
+        "lr": 0.08403604888695192,
+        "transfer_lr": 0.711447600934342
+      }
+    },
+    "te500_la0.01": {
+      "transfer_every": 500,
+      "lora_alpha": 0.01,
+      "best_accuracy": 0.0,
+      "best_params": {
+        "lr": 0.08403604888695192,
+        "transfer_lr": 0.711447600934342
+      }
+    },
+    "te500_la0.1": {
+      "transfer_every": 500,
+      "lora_alpha": 0.1,
+      "best_accuracy": 0.0,
+      "best_params": {
+        "lr": 0.08403604888695192,
+        "transfer_lr": 0.711447600934342
+      }
+    },
+    "te500_la0.5": {
+      "transfer_every": 500,
+      "lora_alpha": 0.5,
+      "best_accuracy": 0.0,
+      "best_params": {
+        "lr": 0.08403604888695192,
+        "transfer_lr": 0.711447600934342
+      }
+    },
+    "te500_la1.0": {
+      "transfer_every": 500,
+      "lora_alpha": 1.0,
+      "best_accuracy": 0.0,
+      "best_params": {
+        "lr": 0.08403604888695192,
+        "transfer_lr": 0.711447600934342
+      }
+    },
+    "te1000_la0.01": {
+      "transfer_every": 1000,
+      "lora_alpha": 0.01,
+      "best_accuracy": 0.0,
+      "best_params": {
+        "lr": 0.08403604888695192,
+        "transfer_lr": 0.711447600934342
+      }
+    },
+    "te1000_la0.1": {
+      "transfer_every": 1000,
+      "lora_alpha": 0.1,
+      "best_accuracy": 0.0,
+      "best_params": {
+        "lr": 0.08403604888695192,
+        "transfer_lr": 0.711447600934342
+      }
+    },
+    "te1000_la0.5": {
+      "transfer_every": 1000,
+      "lora_alpha": 0.5,
+      "best_accuracy": 0.0,
+      "best_params": {
+        "lr": 0.08403604888695192,
+        "transfer_lr": 0.711447600934342
+      }
+    },
+    "te1000_la1.0": {
+      "transfer_every": 1000,
+      "lora_alpha": 1.0,
+      "best_accuracy": 0.0,
+      "best_params": {
+        "lr": 0.08403604888695192,
+        "transfer_lr": 0.711447600934342
+      }
+    }
+  }
+}

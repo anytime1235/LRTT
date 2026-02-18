@@ -1,0 +1,10 @@
+TikiTaka ALL ANALOG Sweep with Early Stopping
+=============================================
+Total trials: 30
+Epochs: 10 (max)
+Early stopping patience: 3 epochs
+
+Best Trial: 2
+Best Accuracy: 45.51%
+
+Results saved in: /root/results/sweep_tikitaka_all_analog_v2

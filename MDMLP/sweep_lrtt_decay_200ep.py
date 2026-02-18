@@ -7,7 +7,7 @@ reinit_mode=decay, stem/head=FloatingPoint, cosine scheduler, early stopping.
 Matches TikiTaka configuration: 48 analog layers + 18 digital (stem+head+clayer).
 
 Usage:
-    python sweep_lrtt_decay_200ep.py --n-trials 40 --epochs 200 --patience 20
+    python sweep_lrtt_decay_200ep.py --n-trials 40 --epochs 200 --patience 10
 """
 
 import argparse
@@ -56,6 +56,7 @@ def run_trial(trial, args, transfer_every):
 
     lr = trial.suggest_float("lr", 0.05, 0.2, log=True)
     transfer_lr = trial.suggest_float("transfer_lr", 0.001, 1.0, log=True)
+    lora_alpha = trial.suggest_categorical("lora_alpha", [0.01, 0.1, 0.5, 1.0])
 
     exp_name = f"te{transfer_every}_trial_{trial.number:04d}"
     exp_dir = os.path.join(args.output_dir, exp_name)
@@ -67,6 +68,7 @@ def run_trial(trial, args, transfer_every):
         "-c", os.path.join(script_dir, "ymls", "cifar10_analog.yml"),
         "--model", args.model,
         "--analog",
+        "--algo", "lrtt",
         "--epochs", str(args.epochs),
         "--lr", str(lr),
         "--lrtt-rank", "4",
@@ -74,9 +76,12 @@ def run_trial(trial, args, transfer_every):
         "--transfer-lr", str(transfer_lr),
         "--c-desired-bl", "31",
         "--sched", "cosine",
-        "--warmup-epochs", "5",
+        "--warmup-epochs", "2",
+        "--cooldown-epochs", "0",
         "--batch-size", str(args.batch_size),
         "--seed", str(args.seed),
+        "--workers", "1",  # Minimal workers to avoid persistent_workers error
+        "--lora-alpha", str(lora_alpha),
         "--validate-c-only",
         "--patience", str(args.patience),
         # NO --lrtt-all: stem/head use FloatingPoint (matches TikiTaka: 48 analog + 18 digital)
@@ -91,8 +96,8 @@ def run_trial(trial, args, transfer_every):
 
     print(f"\n{'='*70}")
     print(f"Trial {trial.number} | te={transfer_every}, lr={lr:.5f}, t_lr={transfer_lr:.5f}, "
-          f"transfers/ep~{transfers_per_ep}")
-    print(f"reinit=decay, decay_factor={args.decay_factor}, stem/head=FloatingPoint, "
+          f"lora_alpha={lora_alpha}, transfers/ep~{transfers_per_ep}")
+    print(f"reinit=decay, decay_factor={args.decay_factor}, stem/head=FloatingPoint,"
           f"sched=cosine, patience={args.patience}")
     print(f"{'='*70}\n")
 
@@ -145,6 +150,7 @@ def run_trial(trial, args, transfer_every):
         "transfer_every": transfer_every,
         "lr": lr,
         "transfer_lr": transfer_lr,
+        "lora_alpha": lora_alpha,
         "reinit_mode": "decay",
         "lrtt_all": False,
         "stem_head": "FloatingPoint",
@@ -178,7 +184,7 @@ def main():
         print(f"# SWEEP: transfer_every = {te}  ({trials_per_te} trials)")
         print(f"{'#'*80}")
 
-        study_name = f"hybrid_200ep_te{te}"
+        study_name = f"lrtt_decay_200ep_te{te}"
         sampler = TPESampler(seed=args.seed)
         pruner = MedianPruner(n_startup_trials=3, n_warmup_steps=10)
 
@@ -192,6 +198,7 @@ def main():
         study.optimize(
             lambda trial: run_trial(trial, args, te),
             n_trials=trials_per_te,
+            n_jobs=1,  # Force sequential execution to avoid OOM
         )
 
         print(f"\n--- te={te} Best: trial {study.best_trial.number}, "
