@@ -596,13 +596,14 @@ def load_data(tokenizer):
 
     train_loader = DataLoader(
         train_dataset, batch_size=BATCH_SIZE // GRAD_ACCUM_STEPS, shuffle=True,
-        collate_fn=collator,
+        collate_fn=collator, num_workers=2, pin_memory=True,
         generator=torch.Generator().manual_seed(SEED)
     )
 
     eval_loader = DataLoader(
         eval_dataset, batch_size=EVAL_BATCH_SIZE, shuffle=False,
-        collate_fn=collator
+        collate_fn=collator,
+        num_workers=2, pin_memory=True
     )
 
     return train_loader, eval_loader
