@@ -412,7 +412,7 @@ def main():
     study.optimize(
         objective,
         n_trials=n_trials,
-        show_progress_bar=True,
+        show_progress_bar=False,
         gc_after_trial=True,
     )
 

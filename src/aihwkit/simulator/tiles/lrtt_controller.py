@@ -161,6 +161,9 @@ class LRTTController:
         self.ab_bl_mgmt = ab_bl_mgmt or {}
         self.transfer_bl_mgmt = transfer_bl_mgmt or {}
 
+        # Diagnostics (off by default for speed; fine scripts enable this)
+        self.enable_diagnostics: bool = False
+
         # Counters and state
         self.transfer_counter = 0
         self.num_a_updates = 0
@@ -174,6 +177,11 @@ class LRTTController:
         self._d_a_buffer: Optional[Tensor] = None
         self._pad_buffer_a: Optional[Tensor] = None
         self._pad_buffer_b: Optional[Tensor] = None
+
+        # Cached C tile bounds (set once on first transfer, immutable after d2d init)
+        self._c_bounds_cached: bool = False
+        self._c_max_bound: Optional[Tensor] = None  # None means no clipping needed
+        self._c_min_bound: Optional[Tensor] = None
 
         # Device info - infer from tiles if not provided
         if device is None:
@@ -528,6 +536,13 @@ class LRTTController:
         - "zero": B=0 (ensures ΔW=0 initially)
         """
         with torch.no_grad():
+            # Helper: set raw weights on inner tile directly (bypasses periphery)
+            def _set_raw(tile, w):
+                tile.tile.set_weights(w)
+
+            def _get_raw_gpu(tile):
+                return tile.tile.get_weights().to(self.device)
+
             if self.reinit_mode == "standard":
                 # A matrix: Use a_init_mode
                 if self.a_init_mode == "kaiming":
@@ -536,7 +551,7 @@ class LRTTController:
                     A_init *= self.reinit_gain
                 else:  # "zero"
                     A_init = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
-                self.tile_a.set_weights(A_init)
+                _set_raw(self.tile_a, A_init)
 
                 # B matrix: Use b_init_mode
                 if self.b_init_mode == "zero":
@@ -545,7 +560,7 @@ class LRTTController:
                     B_init = torch.empty(self.rank, self.x_size, device=self.device, dtype=self.dtype)
                     nn.init.kaiming_uniform_(B_init, a=math.sqrt(5))
                     B_init *= self.reinit_gain
-                self.tile_b.set_weights(B_init)
+                _set_raw(self.tile_b, B_init)
 
             elif self.reinit_mode == "decay":
                 # Decay mode: First time use a_init_mode for A, B=Kaiming
@@ -558,7 +573,7 @@ class LRTTController:
                         A_init *= self.reinit_gain
                     else:  # "zero"
                         A_init = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
-                    self.tile_a.set_weights(A_init)
+                    _set_raw(self.tile_a, A_init)
 
                     # B matrix: Use b_init_mode
                     if self.b_init_mode == "zero":
@@ -567,13 +582,13 @@ class LRTTController:
                         B_init = torch.empty(self.rank, self.x_size, device=self.device, dtype=self.dtype)
                         nn.init.kaiming_uniform_(B_init, a=math.sqrt(5))
                         B_init *= self.reinit_gain
-                    self.tile_b.set_weights(B_init)
+                    _set_raw(self.tile_b, B_init)
                 # else: decay is applied every step via apply_step_decay(), not at transfer time
 
             elif self.reinit_mode == "hybrid":
                 # A=0, B decayed or initialized
                 A_zeros = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
-                self.tile_a.set_weights(A_zeros)
+                _set_raw(self.tile_a, A_zeros)
 
                 if not self._tiles_initialized:
                     # First time: Use b_init_mode
@@ -583,53 +598,41 @@ class LRTTController:
                         B_init = torch.empty(self.rank, self.x_size, device=self.device, dtype=self.dtype)
                         nn.init.kaiming_uniform_(B_init, a=math.sqrt(5))
                         B_init *= self.reinit_gain
-                    self.tile_b.set_weights(B_init)
+                    _set_raw(self.tile_b, B_init)
                 elif self.decay_factor != 1.0:
                     # After transfer: Decay B (skip if decay_factor == 1.0)
-                    # Optimized: move to GPU for faster set_weights()
-                    B_weights = self.tile_b.get_weights()[0].to(self.device) * self.decay_factor
-                    self.tile_b.set_weights(B_weights)
+                    B_raw = _get_raw_gpu(self.tile_b) * self.decay_factor
+                    _set_raw(self.tile_b, B_raw)
                 # else: decay_factor == 1.0, no decay needed
 
             elif self.reinit_mode == "orthogonal_zero":
                 # B = Random Orthogonal (FROZEN), A = 0 after each transfer
-                # B @ B.T = I, so projection preserves gradient direction
                 A_zeros = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
-                self.tile_a.set_weights(A_zeros)
+                _set_raw(self.tile_a, A_zeros)
 
                 if not self._tiles_initialized:
-                    # Initialize B as random orthogonal matrix using QR decomposition
-                    # Generate random matrix and orthogonalize rows
                     random_matrix = torch.randn(self.rank, self.x_size, device=self.device, dtype=self.dtype)
-                    # QR decomposition: Q has orthonormal columns, so Q.T has orthonormal rows
-                    Q, R = torch.linalg.qr(random_matrix.t())  # [x_size, rank]
-                    B_orthogonal = Q.t()  # [rank, x_size] - rows are orthonormal
-                    # Scale to have reasonable magnitude
-                    B_orthogonal = B_orthogonal * math.sqrt(self.x_size / self.rank)
-                    self.tile_b.set_weights(B_orthogonal)
+                    Q, R = torch.linalg.qr(random_matrix.t())
+                    B_orthogonal = Q.t() * math.sqrt(self.x_size / self.rank)
+                    _set_raw(self.tile_b, B_orthogonal)
                     self._b_frozen = True
                 # else: B is frozen, don't change it
 
             elif self.reinit_mode == "orthogonal_decay":
                 # B = Random Orthogonal (FROZEN), A *= decay_factor after each transfer
-                # B @ B.T = I, so projection preserves gradient direction
                 if not self._tiles_initialized:
-                    # First time: Initialize A=0, B=orthogonal
                     A_zeros = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
-                    self.tile_a.set_weights(A_zeros)
+                    _set_raw(self.tile_a, A_zeros)
 
-                    # Initialize B as random orthogonal matrix using QR decomposition
                     random_matrix = torch.randn(self.rank, self.x_size, device=self.device, dtype=self.dtype)
-                    Q, R = torch.linalg.qr(random_matrix.t())  # [x_size, rank]
-                    B_orthogonal = Q.t()  # [rank, x_size] - rows are orthonormal
-                    B_orthogonal = B_orthogonal * math.sqrt(self.x_size / self.rank)
-                    self.tile_b.set_weights(B_orthogonal)
+                    Q, R = torch.linalg.qr(random_matrix.t())
+                    B_orthogonal = Q.t() * math.sqrt(self.x_size / self.rank)
+                    _set_raw(self.tile_b, B_orthogonal)
                     self._b_frozen = True
                 elif self.decay_factor != 1.0:
-                    # After transfer: Decay A, B is frozen (skip if decay_factor == 1.0)
-                    # Optimized: move to GPU for faster set_weights()
-                    A_weights = self.tile_a.get_weights()[0].to(self.device) * self.decay_factor
-                    self.tile_a.set_weights(A_weights)
+                    # After transfer: Decay A, B is frozen
+                    A_raw = _get_raw_gpu(self.tile_a) * self.decay_factor
+                    _set_raw(self.tile_a, A_raw)
                 # else: decay_factor == 1.0, no decay needed
 
             else:
@@ -701,7 +704,7 @@ class LRTTController:
         if out_trans:
             d = d.t()
 
-        # 1) Projections (analog path)
+        # 1) Projections (analog path — IO resolution controlled per-tile)
         with torch.no_grad():
             XB = self.tile_b.forward(x)     # [batch, rank] = B·X
             DA = self.tile_a.backward(d)    # [batch, rank] = A^T·D
@@ -1097,57 +1100,46 @@ class LRTTController:
                 print()
 
     def _ab_weight_transfer_set(self) -> None:
-        """Exact weight transfer using set_weights (no pulsed update noise).
+        """Deterministic FP transfer via tile.update() with NoneWithDevice.
 
-        This method directly computes C_new = C + transfer_lr * (A @ B)
-        and sets C weights exactly, bypassing pulsed update quantization.
-
-        Optimized: Performs computation on GPU and passes GPU tensor to set_weights()
-        for ~14x speedup vs CPU-based computation with CPU tensor.
+        C tile must be constructed with PulseType.NONE_WITH_DEVICE (set in
+        lrtt_tile.py create_update_params). This gives pure FP update with
+        device weight clipping, avoiding get_weights/set_weights CPU roundtrips.
         """
         with torch.no_grad():
-            # Get current weights and move to GPU for faster computation
-            # Key optimization: set_weights() is ~19x faster with GPU tensor than CPU tensor
-            A_weights = self.tile_a.get_weights()[0].to(self.device)  # [d_size, rank]
-            B_weights = self.tile_b.get_weights()[0].to(self.device)  # [rank, x_size]
-            C_weights = self.tile_c.get_weights()[0].to(self.device)  # [d_size, x_size]
+            # Read raw A, B weights and scale factors
+            A_raw = self.tile_a.tile.get_weights().to(self.device)
+            B_raw = self.tile_b.tile.get_weights().to(self.device)
+            alpha_a = self.tile_a.get_scales()
+            alpha_b = self.tile_b.get_scales()
+            alpha_c = self.tile_c.get_scales()
 
-            # Use only the LoRA rank portion
-            A_lr = A_weights[:, :self.rank]  # [d_size, rank]
-            B_lr = B_weights[:self.rank, :]  # [rank, x_size]
+            A_lr = A_raw[:, :self.rank]
+            if alpha_a is not None:
+                A_lr = A_lr * alpha_a.view(-1, 1)
+            B_lr = B_raw[:self.rank, :]
+            if alpha_b is not None:
+                B_lr = B_lr * alpha_b.view(-1, 1)
 
-            # Compute exact delta: transfer_lr * (A @ B) on GPU
-            delta = self.transfer_lr * (A_lr @ B_lr)  # [d_size, x_size]
+            if self.enable_diagnostics:
+                self.last_transfer_delta = (self.transfer_lr * (A_lr @ B_lr)).detach()
 
-            # Store for diagnostics (overwritten each transfer, not accumulated)
-            self.last_transfer_delta = delta.detach()
+            # Undo alpha_c so update writes correct raw delta
+            if alpha_c is not None:
+                A_adj = A_lr / alpha_c.view(-1, 1)
+            else:
+                A_adj = A_lr
 
-            # Compute new C weights on GPU
-            C_new = C_weights + delta
-
-            # Clip to per-element device bounds (respects d2d variation)
-            # FloatingPointDevice doesn't have hidden_parameters, so we need to handle that
-            try:
-                hidden_params = self.tile_c.tile.get_hidden_parameters()
-                if hidden_params is not None and len(hidden_params) >= 2:
-                    max_bound = hidden_params[0]  # [d_size, x_size]
-                    min_bound = hidden_params[1]  # [d_size, x_size]
-                    # Ensure bounds are on same device
-                    if max_bound.device != C_new.device:
-                        max_bound = max_bound.to(C_new.device)
-                        min_bound = min_bound.to(C_new.device)
-                    C_new = torch.clamp(C_new, min_bound, max_bound)
-                # else: FloatingPointDevice - no clipping needed (infinite precision)
-            except (AttributeError, IndexError, RuntimeError):
-                # FloatingPointDevice or other device without hidden_parameters
-                # No clipping needed for floating point
-                pass
-
-            # Set weights directly with GPU tensor (much faster than CPU tensor)
-            C_before_set = self.tile_c.get_weights()[0].to(C_new.device)
-            self.tile_c.set_weights(C_new, None)
-            C_after_set = self.tile_c.get_weights()[0].to(C_new.device)
-            self.last_actual_delta = (C_after_set - C_before_set).detach()
+            # PWU: W += -lr * d^T @ x  →  we want W += +lr * A_adj @ B_lr
+            # So pass d = -A_adj^T, x = B_lr
+            old_lr = self.tile_c.tile.get_learning_rate()
+            self.tile_c.tile.set_learning_rate(abs(self.transfer_lr))
+            self.tile_c.tile.update(
+                B_lr.contiguous(),
+                (-A_adj).t().contiguous(),
+                False, False, False, False,
+            )
+            self.tile_c.tile.set_learning_rate(old_lr)
 
         self.num_transfers += 1
         self.transfer_counter = 0

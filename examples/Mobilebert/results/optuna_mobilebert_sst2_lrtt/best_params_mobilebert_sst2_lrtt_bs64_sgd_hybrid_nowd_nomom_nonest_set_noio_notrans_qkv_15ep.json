@@ -1,0 +1,7 @@
+{
+  "best_acc": 86.12385321100918,
+  "best_params": {
+    "learning_rate": 2.0835292867420994,
+    "min_lr_rate": 0.0
+  }
+}

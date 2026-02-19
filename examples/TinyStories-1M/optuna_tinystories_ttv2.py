@@ -693,17 +693,49 @@ def objective(trial):
         return best_perplexity
 
     finally:
-        if 'optimizer' in dir():
-            del optimizer
+        # Delete training loop variables that hold GPU references
+        # Python for-loop variables persist in function scope
+        try:
+            del outputs
+        except NameError:
+            pass
+        try:
+            del batch
+        except NameError:
+            pass
+        try:
+            del input_ids
+        except NameError:
+            pass
+        try:
+            del attention_mask
+        except NameError:
+            pass
+        try:
+            del labels
+        except NameError:
+            pass
+        try:
+            del batch_idx
+        except NameError:
+            pass
+        try:
+            del epoch
+        except NameError:
+            pass
+        # Delete in reverse dependency order: scheduler → optimizer → model
+        # optimizer holds references to analog tiles via param_groups
         if 'scheduler' in dir():
             del scheduler
+        if 'optimizer' in dir():
+            del optimizer
         if model is not None:
             del model
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
             torch.cuda.synchronize()
-        print(f"[Trial {trial.number}] GPU cache cleared")
+        tqdm.write(f"[Trial {trial.number}] GPU cache cleared")
 
 
 def visualize_study(study, save_dir):
@@ -939,7 +971,7 @@ def main():
                 print(f"[Trial {trial.number}] Could not delete: {e}")
 
     study.optimize(objective, n_trials=args.n_trials, timeout=args.timeout,
-                   catch=(Exception,), show_progress_bar=True,
+                   catch=(Exception,), show_progress_bar=False,
                    callbacks=[delete_failed_trial_callback])
 
     print_study_summary(study)

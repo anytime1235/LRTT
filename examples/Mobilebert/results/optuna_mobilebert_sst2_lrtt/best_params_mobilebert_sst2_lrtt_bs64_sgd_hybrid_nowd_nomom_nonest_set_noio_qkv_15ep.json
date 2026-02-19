@@ -1,0 +1,12 @@
+{
+  "best_acc": 88.18807339449542,
+  "best_params": {
+    "learning_rate": 0.9348960119904873,
+    "transfer_lr": 4.706173285862282e-05,
+    "transfer_every": 1092,
+    "rank_exp": 5,
+    "lora_alpha": 0.11465313432104135,
+    "tau_sec": 0.0,
+    "min_lr_rate": 0.0
+  }
+}

@@ -191,6 +191,10 @@ class PythonLRTTDevice(_PrintableMixin):
     # === Advanced Parameters ===
     units_in_mbatch: bool = False
     """If True, transfer_every counts samples; if False, counts steps."""
+
+    no_adc_ab_projection: bool = False
+    """If True, remove ADC/DAC quantization between A/B projections.
+    B output and A backward output pass through at full precision."""
     
     correct_gradient_magnitudes: bool = False
     """If True, scale learning rate by sqrt(rank) for gradient correction."""

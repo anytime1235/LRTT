@@ -4,7 +4,7 @@
 Usage:
     python optuna_mobilebert_sst2_lrtt.py --n-trials 50
     python optuna_mobilebert_sst2_lrtt.py --visualize
-    python optuna_mobilebert_sst2_lrtt.py --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 15 --warmup-steps 189 --transfer-method set --no-io-noise --lora-target qkv
+    python optuna_mobilebert_sst2_lrtt.py --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 15 --warmup-steps 500 --transfer-method set --no-io-noise --lora-target qkv
 
 All flags:
     python optuna_mobilebert_sst2_lrtt.py \
@@ -25,6 +25,9 @@ All flags:
         --lora-target <str>         # LoRA target: none | qonly | konly | vonly | qkv | ffn | all (default: qkv)
         --head-layer <str>          # classifier: train | freeze (default: train)
         --no-transfer               # Disable LRTT transfer (A/B frozen, skip LRTT param sweep)
+        --no-adc-ab-proj            # Remove ADC/DAC between A/B projections (full precision)
+        --encoder-analog            # Non-LRTT encoder layers: frozen analog instead of digital
+
 
 Inline flags (edit directly in script):
     DYNAMIC_TE = False              # Enable dynamic transfer every
@@ -78,7 +81,7 @@ import matplotlib.pyplot as plt
 from transformers import (
     AutoModelForSequenceClassification,
     AutoTokenizer,
-    default_data_collator,
+    DataCollatorWithPadding,
     set_seed,
 )
 from datasets import load_dataset
@@ -86,7 +89,11 @@ from datasets import load_dataset
 # aihwkit imports
 from aihwkit.nn.conversion import convert_to_analog
 from aihwkit.optim import AnalogSGD, AnalogAdam
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+import lrtt_grad_accum_patch  # noqa: F401  — per-micro-batch tile.update + LRTT A/B snapshot
+
 from aihwkit.simulator.configs.devices import LinearStepDevice, SoftBoundsDevice, FloatingPointDevice
+from aihwkit.simulator.configs import SingleRPUConfig
 
 # LRTT config imports (direct imports to avoid __init__.py dependency issues)
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
@@ -185,6 +192,7 @@ NUM_LABELS = 2  # SST-2: negative (0), positive (1)
 # Training defaults
 N_EPOCHS = 15
 BATCH_SIZE = 64
+GRAD_ACCUM_STEPS = 1
 EVAL_BATCH_SIZE = 256
 EARLY_STOP_PATIENCE = 3
 
@@ -203,6 +211,7 @@ DECAY_FACTOR = 1.0
 TRANSFER_METHOD = "onehot"  # "onehot", "direct", or "set"
 AB_DEVICE = "6t1c"  # "6t1c" or "fp"
 IO_NOISE = True  # If False, disable out_noise (resolution kept)
+ENCODER_ANALOG = False  # If True, non-LRTT encoder layers become frozen analog instead of digital
 
 # LoRA target options: which layers have trainable A/B tiles
 # - none: no LRTT layers (fully digital baseline)
@@ -233,6 +242,7 @@ OPT_CONFIG = {
     'tune_nesterov': False,  # nesterov = False (fixed)
     'reinit_mode': None,    # None = tune, or 'standard'/'decay'/'hybrid' = fixed
     'no_transfer': False,   # If True, disable transfer (transfer_every = inf)
+    'no_adc_ab_proj': False,  # If True, remove ADC/DAC between A/B projections
 }
 
 
@@ -265,12 +275,21 @@ def get_study_name_suffix():
     if OPT_CONFIG['no_transfer']:
         suffix += "_notrans"
 
+    if OPT_CONFIG.get('no_adc_ab_proj', False):
+        suffix += "_noadc"
+
+    if ENCODER_ANALOG:
+        suffix += "_encanalog"
+
     # Add lora target (always include for clarity)
     suffix += f"_{LORA_TARGET}"
 
     # Add head_layer if frozen (not default)
     if HEAD_LAYER == "freeze":
         suffix += "_headfreeze"
+
+    # Add epoch count
+    suffix += f"_{N_EPOCHS}ep"
 
     return suffix
 
@@ -327,10 +346,10 @@ def _create_ab_device(tau_sec=0.0):
     )
 
 
-def _create_c_device():
+def _create_c_device(dw_min=0.001):
     """Create noise-free SoftBoundsDevice for C tile."""
     return SoftBoundsDevice(
-        dw_min=0.001,
+        dw_min=dw_min,
         w_max=1.0,
         w_min=-1.0,
         dw_min_dtod=0.0,
@@ -344,10 +363,27 @@ def _create_c_device():
     )
 
 
-def create_lrtt_config(rank, transfer_every, transfer_lr, lora_alpha, reinit_mode, tau_sec=0.0):
+def create_frozen_analog_config(lrtt_config):
+    """Create analog config for non-LRTT encoder layers (frozen analog).
+
+    Derived directly from LRTT config's C tile settings (device, mapping, IO).
+    Any change to the LRTT C tile config is automatically reflected here.
+    """
+    from copy import deepcopy
+    rpu_config = SingleRPUConfig(
+        device=deepcopy(lrtt_config.device.unit_cell_devices[2]),
+    )
+    rpu_config.mapping = deepcopy(lrtt_config.device.mapping_c)
+    rpu_config.forward = deepcopy(lrtt_config.forward)
+    rpu_config.backward = deepcopy(lrtt_config.backward)
+    return rpu_config
+
+
+def create_lrtt_config(rank, transfer_every, transfer_lr, lora_alpha, reinit_mode, tau_sec=0.0,
+                       c_dw_min=0.001, c_desired_bl=None, out_noise=0.0, ab_weight_scaling_omega=0.0):
     """Create LRTT RPU configuration for analog layers."""
     ab_device = _create_ab_device(tau_sec=tau_sec)
-    c_device = _create_c_device()
+    c_device = _create_c_device(dw_min=c_dw_min)
 
     te = transfer_every
     device_config = PythonLRTTDevice(
@@ -360,7 +396,7 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, lora_alpha, reinit_mod
         unit_cell_devices=[ab_device, ab_device, c_device],
         train_c_bias=False,        # C tile bias frozen
         mapping_ab=MappingParameter(
-            weight_scaling_omega=0.0,
+            weight_scaling_omega=ab_weight_scaling_omega,
             learn_out_scaling=False,
         ),
         mapping_c=MappingParameter(
@@ -376,6 +412,9 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, lora_alpha, reinit_mod
     device_config.update_mode = "lora"
     device_config.a_init_mode = "zero"
     device_config.forward_inject = False
+    device_config.no_adc_ab_projection = OPT_CONFIG.get('no_adc_ab_proj', False)
+    if c_desired_bl is not None:
+        device_config.c_desired_bl = c_desired_bl
 
     # Dynamic TE
     device_config.dynamic_te = DYNAMIC_TE
@@ -386,9 +425,8 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, lora_alpha, reinit_mod
 
     rpu_config = PythonLRTTRPUConfig(device=device_config)
 
-    # Set IO noise to 0.0 (per spec)
-    rpu_config.forward.out_noise = 0.0
-    rpu_config.backward.out_noise = 0.0
+    rpu_config.forward.out_noise = out_noise
+    rpu_config.backward.out_noise = out_noise
 
     return rpu_config
 
@@ -461,9 +499,9 @@ def create_model(params):
         # classifier is always digital
         if "classifier" in layer_name:
             return False
-        # embedding_transformation: LRTT for "all" mode only
+        # embedding_transformation: always digital frozen
         if "embedding_transformation" in layer_name:
-            return (LORA_TARGET == "all")
+            return False
         # Must be in encoder for other layers
         if "encoder" not in layer_name:
             return False
@@ -480,11 +518,9 @@ def create_model(params):
             # Use full path for exclude_modules (convert_to_analog requires exact match)
             exclude_modules.append(name)
 
-    # Exclude classifier (always digital)
-    # embedding_transformation: LRTT for "all" mode, digital frozen otherwise
+    # Exclude classifier and embedding_transformation (always digital)
     exclude_modules.append("classifier")
-    if LORA_TARGET != "all":
-        exclude_modules.append("mobilebert.embeddings.embedding_transformation")
+    exclude_modules.append("mobilebert.embeddings.embedding_transformation")
     exclude_modules = list(set(exclude_modules))  # Remove duplicates
 
     # Step 1: Convert only LRTT target layers to LRTT Analog (skip if none mode)
@@ -500,6 +536,10 @@ def create_model(params):
             lora_alpha=params["lora_alpha"],
             reinit_mode=params["reinit_mode"],
             tau_sec=params["tau_sec"],
+            c_dw_min=params["c_dw_min"],
+            c_desired_bl=params["c_desired_bl"],
+            out_noise=params["out_noise"],
+            ab_weight_scaling_omega=params["ab_weight_scaling_omega"],
         )
 
         # Convert to analog with exclusions (only LRTT targets get converted)
@@ -507,14 +547,44 @@ def create_model(params):
 
         # Count analog layers
         analog_count = sum(1 for m in model.modules() if isinstance(m, AnalogLinear))
+
+    # Step 1.5: Convert remaining encoder layers to frozen analog (if enabled)
+    # Already-converted LRTT layers (AnalogLinear) are naturally skipped by convert_to_analog
+    frozen_analog_count = 0
+    if ENCODER_ANALOG and LORA_TARGET not in ("none", "all"):
+        # Collect existing tile IDs (LRTT sub-tiles) before frozen conversion
+        existing_tile_ids = set()
+        for m in model.modules():
+            if isinstance(m, AnalogLinear):
+                for tile in m.analog_tiles():
+                    existing_tile_ids.add(id(tile))
+
+        frozen_config = create_frozen_analog_config(lrtt_config)
+        frozen_exclude = ["classifier", "mobilebert.embeddings.embedding_transformation"]
+        model = convert_to_analog(model, frozen_config, exclude_modules=frozen_exclude)
+        frozen_analog_count = sum(1 for m in model.modules() if isinstance(m, AnalogLinear)) - analog_count
+
+        # Hook frozen analog tile updates to no-op (prevent optimizer from modifying weights).
+        # AnalogSGD/Adam calls tile.update() on ALL analog tiles unconditionally;
+        # LRTT tiles are already hooked in lrtt_tile.py, but frozen analog tiles need this.
+        def _frozen_noop_update(x_input, d_input, *args, **kwargs):
+            return None
+        for m in model.modules():
+            if isinstance(m, AnalogLinear):
+                for tile in m.analog_tiles():
+                    if id(tile) not in existing_tile_ids:
+                        tile.update = _frozen_noop_update
+
     total_params = sum(p.numel() for p in model.parameters())
     trainable_before = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"  LRTT Analog layers: {analog_count}, Total params: {total_params:,}, Trainable (before grad set): {trainable_before:,}")
+    print(f"  LRTT Analog layers: {analog_count}, Frozen analog layers: {frozen_analog_count}")
+    print(f"  Total params: {total_params:,}, Trainable (before grad set): {trainable_before:,}")
 
     # Step 2: Set requires_grad
     # - LRTT layers: A/B + out_scaling TRAINABLE, C + bias FROZEN
+    # - Frozen analog: out_scaling TRAINABLE (same as C tile), weights FROZEN
     # - classifier: TRAINABLE if HEAD_LAYER=="train", else FROZEN
-    # - embedding_transformation: LRTT for "all" mode (A/B trainable, C frozen), digital frozen otherwise
+    # - embedding_transformation: always digital frozen
     # - Everything else: FROZEN
     for name, param in model.named_parameters():
         if "tile_a" in name or "tile_b" in name:
@@ -522,6 +592,8 @@ def create_model(params):
             param.requires_grad = not OPT_CONFIG['no_transfer']
         elif "tile_c" in name:
             pass  # Respect lrtt_tile.py settings (train_c_bias, mapping_c)
+        elif "out_scaling_alpha" in name:
+            pass  # Frozen analog out_scaling: TRAINABLE (same as C tile)
         elif "classifier" in name:
             # classifier: TRAINABLE or FROZEN based on setting
             param.requires_grad = (HEAD_LAYER == "train")
@@ -534,7 +606,16 @@ def create_model(params):
     print(f"  Trainable (after grad set): {trainable_after:,}")
     print(f"  LoRA target: {LORA_TARGET} -> {lrtt_patterns if lrtt_patterns else 'all encoder layers'}")
 
-    return model.to(DEVICE)
+    try:
+        return model.to(DEVICE)
+    except Exception:
+        # If .to(DEVICE) fails (e.g. CUBLAS/OOM), partially-transferred model
+        # must be explicitly deleted to free GPU memory from tiles that DID transfer
+        del model
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        raise
 
 
 # =============================================================================
@@ -550,7 +631,7 @@ def load_data(tokenizer):
             examples["sentence"],
             max_length=MAX_SEQ_LENGTH,
             truncation=True,
-            padding="max_length",
+            padding=False,
         )
 
     # Tokenize datasets
@@ -581,15 +662,16 @@ def load_data(tokenizer):
     tokenized_train = tokenized_train.rename_column("label", "labels")
     tokenized_eval = tokenized_eval.rename_column("label", "labels")
 
+    collator = DataCollatorWithPadding(tokenizer)
     train_loader = DataLoader(
-        tokenized_train, batch_size=BATCH_SIZE, shuffle=True,
-        collate_fn=default_data_collator,
+        tokenized_train, batch_size=BATCH_SIZE // GRAD_ACCUM_STEPS, shuffle=True,
+        collate_fn=collator,
         generator=torch.Generator().manual_seed(SEED)
     )
 
     eval_loader = DataLoader(
         tokenized_eval, batch_size=EVAL_BATCH_SIZE, shuffle=False,
-        collate_fn=default_data_collator
+        collate_fn=collator
     )
 
     return train_loader, eval_loader
@@ -651,7 +733,7 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         torch.cuda.empty_cache()
 
     # Hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 6e-3, 2e1, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 3e-2, 2e1, log=True)
 
     # LRTT parameters: skip sweep if --no-transfer (A/B frozen, no transfer happens)
     if OPT_CONFIG['no_transfer']:
@@ -662,12 +744,24 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         lora_alpha = 1.0         # fixed (no effect)
         tau_sec = 0.0            # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 1e-5, 2e-2, log=True)
-        transfer_every = trial.suggest_int('transfer_every', 63, 32000, log=True)
+        transfer_lr = trial.suggest_float('transfer_lr', 4e-6, 8e-3, log=True)
+        transfer_every = trial.suggest_int('transfer_every', 63, 35000, log=True)
         rank_exp = trial.suggest_int('rank_exp', 0, 5)
         rank = 2 ** rank_exp
-        lora_alpha = trial.suggest_float('lora_alpha', 1e-5, 4e1, log=True)
+        lora_alpha = trial.suggest_float('lora_alpha', 6e-5, 2e1, log=True)
         tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
+
+    # C tile pulsed transfer params (only meaningful for onehot/direct)
+    if TRANSFER_METHOD in ("onehot", "direct") and not OPT_CONFIG['no_transfer']:
+        c_dw_min = trial.suggest_float('c_dw_min', 0.001, 0.001)
+        c_desired_bl = trial.suggest_int('c_desired_bl', 31, 31)
+    else:
+        c_dw_min = 0.001   # default (unused for "set")
+        c_desired_bl = None
+
+    # IO / mapping params
+    out_noise = trial.suggest_float('out_noise', 0.0, 0.0)
+    ab_weight_scaling_omega = trial.suggest_float('ab_weight_scaling_omega', 0.0, 0.0)
 
     min_lr_rate = trial.suggest_float('min_lr_rate', 0.0, 0.0)
 
@@ -705,6 +799,10 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         "lora_alpha": lora_alpha,
         "reinit_mode": reinit_mode,
         "tau_sec": tau_sec,
+        "c_dw_min": c_dw_min,
+        "c_desired_bl": c_desired_bl,
+        "out_noise": out_noise,
+        "ab_weight_scaling_omega": ab_weight_scaling_omega,
     }
 
     print(f"\n{'='*70}")
@@ -714,6 +812,8 @@ def objective(trial, train_loader, eval_loader, tokenizer):
     print(f"  lora_alpha={lora_alpha:.4f}, lr={learning_rate:.2e}, wd={weight_decay:.2e}")
     print(f"  momentum={momentum:.2f}, nesterov={nesterov}, reinit_mode={reinit_mode}")
     print(f"  tau_sec={tau_sec:.1f}, optimizer={optimizer_name}, min_lr_rate={min_lr_rate:.4f}")
+    if TRANSFER_METHOD in ("onehot", "direct") and not OPT_CONFIG['no_transfer']:
+        print(f"  c_dw_min={c_dw_min:.4e}, c_desired_bl={c_desired_bl}")
     print(f"{'='*70}")
 
     model = None
@@ -746,7 +846,7 @@ def objective(trial, train_loader, eval_loader, tokenizer):
                 )
             optimizer.regroup_param_groups()
 
-        num_training_steps = len(train_loader) * N_EPOCHS
+        num_training_steps = len(train_loader) * N_EPOCHS // GRAD_ACCUM_STEPS
         scheduler = get_linear_schedule_with_min_lr(
             optimizer,
             num_warmup_steps=WARMUP_STEPS,
@@ -763,25 +863,28 @@ def objective(trial, train_loader, eval_loader, tokenizer):
             num_batches = 0
 
             pbar = tqdm(train_loader, desc=f"Trial {trial.number} Ep{epoch}", leave=False)
-            for batch in pbar:
+            optimizer.zero_grad()
+            for micro_step, batch in enumerate(pbar):
                 input_ids = batch['input_ids'].to(DEVICE)
                 attention_mask = batch['attention_mask'].to(DEVICE)
                 labels = batch['labels'].to(DEVICE)
 
-                optimizer.zero_grad()
                 outputs = model(
                     input_ids=input_ids, attention_mask=attention_mask,
                     labels=labels,
                 )
-                loss = outputs.loss
+                loss = outputs.loss / GRAD_ACCUM_STEPS
                 loss.backward()
-                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-                optimizer.step()
-                scheduler.step()
 
-                total_loss += loss.item()
+                if (micro_step + 1) % GRAD_ACCUM_STEPS == 0:
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                    optimizer.step()
+                    scheduler.step()
+                    optimizer.zero_grad()
+
+                total_loss += loss.item() * GRAD_ACCUM_STEPS
                 num_batches += 1
-                pbar.set_postfix(loss=f"{loss.item():.4f}")
+                pbar.set_postfix(loss=f"{loss.item() * GRAD_ACCUM_STEPS:.4f}")
 
             train_loss = total_loss / num_batches if num_batches > 0 else 0.0
 
@@ -823,13 +926,52 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         raise
 
     finally:
+        # Delete ALL local vars holding GPU refs or model refs
+        # outputs/loss hold comp graph refs blocking C++ destructor
+        try:
+            del outputs
+        except NameError:
+            pass
+        try:
+            del loss
+        except NameError:
+            pass
+        try:
+            del pbar
+        except NameError:
+            pass
+        try:
+            del batch
+        except NameError:
+            pass
+        try:
+            del input_ids
+        except NameError:
+            pass
+        try:
+            del attention_mask
+        except NameError:
+            pass
+        try:
+            del labels
+        except NameError:
+            pass
+        # Reverse dependency order: scheduler -> optimizer -> model
+        try:
+            del scheduler
+        except NameError:
+            pass
+        try:
+            del optimizer
+        except NameError:
+            pass
         if model is not None:
             del model
         gc.collect()
+        gc.collect()  # Second pass for cyclic refs
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
             torch.cuda.synchronize()
-        tqdm.write(f"[Trial {trial.number}] GPU cache cleared")
 
 
 # =============================================================================
@@ -902,7 +1044,7 @@ def print_study_summary(study):
 # =============================================================================
 
 def main():
-    global BATCH_SIZE, N_EPOCHS, WARMUP_STEPS, TRANSFER_METHOD, AB_DEVICE, IO_NOISE, LORA_TARGET, HEAD_LAYER
+    global BATCH_SIZE, GRAD_ACCUM_STEPS, N_EPOCHS, WARMUP_STEPS, TRANSFER_METHOD, AB_DEVICE, IO_NOISE, LORA_TARGET, HEAD_LAYER, ENCODER_ANALOG, _oom_retry_pending
 
     parser = argparse.ArgumentParser(description="Optuna sweep for MobileBERT SST-2 LRTT")
     parser.add_argument('--study-name', type=str, default=None,
@@ -923,6 +1065,8 @@ def main():
                         help='Fix reinit mode (default: tune all three)')
     parser.add_argument('--batch-size', type=int, default=32,
                         help='Batch size (default: 32)')
+    parser.add_argument('--grad-accum-steps', type=int, default=1,
+                        help='Gradient accumulation steps (default: 1)')
     parser.add_argument('--epochs', type=int, default=N_EPOCHS,
                         help=f'Number of epochs (default: {N_EPOCHS})')
     parser.add_argument('--warmup-steps', type=int, default=WARMUP_STEPS,
@@ -937,16 +1081,21 @@ def main():
                         help='Disable IO out_noise (resolution kept)')
     parser.add_argument('--no-transfer', action='store_true',
                         help='Disable transfer (set transfer_every to infinity)')
+    parser.add_argument('--no-adc-ab-proj', action='store_true',
+                        help='Use digital matmul for A/B projections (no ADC/DAC between B and A)')
     parser.add_argument('--lora-target', type=str, default=LORA_TARGET,
                         choices=['none', 'qonly', 'konly', 'vonly', 'qkv', 'ffn', 'all'],
                         help='LoRA target: none, qonly, konly, vonly, qkv, ffn, all (default: qkv)')
     parser.add_argument('--head-layer', type=str, default=HEAD_LAYER,
                         choices=['train', 'freeze'],
                         help='classifier layer: train or freeze (default: train)')
+    parser.add_argument('--encoder-analog', action='store_true', default=ENCODER_ANALOG,
+                        help='Convert non-LRTT encoder layers to frozen analog (default: digital)')
     args = parser.parse_args()
 
     # Update global config
     BATCH_SIZE = args.batch_size
+    GRAD_ACCUM_STEPS = args.grad_accum_steps
     N_EPOCHS = args.epochs
     WARMUP_STEPS = args.warmup_steps
     TRANSFER_METHOD = args.transfer_method
@@ -960,6 +1109,8 @@ def main():
     OPT_CONFIG['tune_momentum'] = not args.no_momentum
     OPT_CONFIG['tune_nesterov'] = not args.no_nesterov
     OPT_CONFIG['no_transfer'] = args.no_transfer
+    OPT_CONFIG['no_adc_ab_proj'] = args.no_adc_ab_proj
+    ENCODER_ANALOG = args.encoder_analog
 
     # Auto-generate study name based on config (includes batch size)
     study_name = args.study_name or f"mobilebert_sst2_lrtt_bs{BATCH_SIZE}_{get_study_name_suffix()}"
@@ -971,6 +1122,21 @@ def main():
         print_study_summary(study)
         visualize_study(study, RESULTS)
         return
+
+    # Check for OOM retry file (from previous OOM restart)
+    retry_file = os.path.join(RESULTS, f"_oom_retry_{study_name}.json")
+    retry_info = None
+    if os.path.exists(retry_file):
+        with open(retry_file) as f:
+            retry_info = json.load(f)
+        os.remove(retry_file)  # Delete immediately so it won't persist across manual reruns
+        # Delete the OOM trial from DB so retry gets the same trial number
+        db_path = storage.replace("sqlite:///", "")
+        _delete_trial_from_db(db_path, study_name, retry_info["trial_number"])
+        GRAD_ACCUM_STEPS = retry_info["grad_accum_steps"]
+        _oom_retry_pending = True
+        print(f"[OOM Retry] Deleted trial {retry_info['trial_number']}, "
+              f"GRAD_ACCUM_STEPS={GRAD_ACCUM_STEPS}, micro_bs={BATCH_SIZE // GRAD_ACCUM_STEPS}")
 
     # Load data once (shared across all trials)
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
@@ -984,11 +1150,23 @@ def main():
         load_if_exists=True,
     )
 
+    # Enqueue retry trial if OOM retry pending
+    if retry_info is not None:
+        study.enqueue_trial(retry_info["trial_params"])
+
     print(f"\nStudy: {study_name}, Device: {DEVICE}, New trials: {args.n_trials}")
 
     # Run trials with OOM recovery via process restart
     target_total = len(study.trials) + args.n_trials
-    completed_before = len(study.trials)
+
+    def _restart_with_remaining(remaining):
+        """Replace --n-trials in argv and restart process."""
+        new_argv = list(sys.argv)
+        for i, arg in enumerate(new_argv):
+            if arg == '--n-trials' and i + 1 < len(new_argv):
+                new_argv[i + 1] = str(remaining)
+                break
+        os.execv(sys.executable, [sys.executable] + new_argv)
 
     try:
         study.optimize(
@@ -999,16 +1177,16 @@ def main():
             callbacks=[_oom_restart_callback],
         )
     except _OOMRestart:
+        # +1 because the OOM trial will be deleted from DB on restart
+        remaining = max(1, target_total - len(study.trials) + 1)
+        print(f"\n[OOM Recovery] Restarting process for {remaining} remaining trials...")
+        _restart_with_remaining(remaining)
+    except _OOMRetryDone:
+        # Retry succeeded, restart to reset GRAD_ACCUM_STEPS to default
         remaining = target_total - len(study.trials)
         if remaining > 0:
-            print(f"\n[OOM Recovery] Restarting process for {remaining} remaining trials...")
-            # Replace --n-trials in argv with remaining count
-            new_argv = list(sys.argv)
-            for i, arg in enumerate(new_argv):
-                if arg == '--n-trials' and i + 1 < len(new_argv):
-                    new_argv[i + 1] = str(remaining)
-                    break
-            os.execv(sys.executable, [sys.executable] + new_argv)
+            print(f"\n[OOM Recovery] Restarting with default GRAD_ACCUM for {remaining} remaining trials...")
+            _restart_with_remaining(remaining)
 
     print_study_summary(study)
     visualize_study(study, RESULTS)
@@ -1046,13 +1224,73 @@ class _OOMRestart(Exception):
     pass
 
 
+class _OOMRetryDone(Exception):
+    """Raised after OOM retry trial to restart with default GRAD_ACCUM_STEPS."""
+    pass
+
+
+_oom_retry_pending = False
+
+
+def _delete_trial_from_db(db_path, study_name, trial_number):
+    """Delete a trial from the Optuna SQLite DB so it doesn't appear in history."""
+    import sqlite3
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    c.execute(
+        "SELECT trial_id FROM trials WHERE study_id = "
+        "(SELECT study_id FROM studies WHERE study_name = ?) AND number = ?",
+        (study_name, trial_number),
+    )
+    row = c.fetchone()
+    if row:
+        trial_id = row[0]
+        for table in ["trial_values", "trial_params", "trial_user_attributes",
+                      "trial_system_attributes", "trial_intermediate_values",
+                      "trial_heartbeats"]:
+            try:
+                c.execute(f"DELETE FROM {table} WHERE trial_id = ?", (trial_id,))
+            except Exception:
+                pass  # Table might not exist in this Optuna version
+        c.execute("DELETE FROM trials WHERE trial_id = ?", (trial_id,))
+        conn.commit()
+    conn.close()
+
+
 def _oom_restart_callback(study, trial):
-    """Optuna callback: if trial failed with OOM/CUBLAS, raise to restart process."""
+    """Optuna callback: on OOM, save retry file and restart process."""
+    global _oom_retry_pending
+
     if trial.state == TrialState.FAIL:
         err = trial.user_attrs.get("error", "")
         if "out of memory" in err.lower() or "cublas" in err.lower():
-            print(f"\n[OOM Recovery] Trial {trial.number} failed with CUDA error, will restart process.")
+            new_grad_accum = GRAD_ACCUM_STEPS * 2
+            micro_bs = BATCH_SIZE // new_grad_accum
+            if micro_bs < 1:
+                print(f"\n[OOM Recovery] Cannot reduce micro-batch below 1 "
+                      f"(BATCH_SIZE={BATCH_SIZE}, GRAD_ACCUM would be {new_grad_accum}). "
+                      f"Skipping retry.")
+                return
+
+            retry_file = os.path.join(RESULTS, f"_oom_retry_{study.study_name}.json")
+            retry_info = {
+                "trial_params": dict(trial.params),
+                "trial_number": trial.number,
+                "grad_accum_steps": new_grad_accum,
+            }
+            with open(retry_file, 'w') as f:
+                json.dump(retry_info, f, indent=2)
+
+            print(f"\n[OOM Recovery] Trial {trial.number} OOM. "
+                  f"Will restart with GRAD_ACCUM_STEPS={new_grad_accum}, micro_bs={micro_bs}.")
             raise _OOMRestart()
+
+    # After retry trial completes, restart to reset GRAD_ACCUM_STEPS to default
+    if _oom_retry_pending:
+        _oom_retry_pending = False
+        print(f"\n[OOM Recovery] Retry trial {trial.number} done (state={trial.state.name}). "
+              f"Restarting with default GRAD_ACCUM.")
+        raise _OOMRetryDone()
 
 
 if __name__ == "__main__":

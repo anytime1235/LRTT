@@ -145,9 +145,11 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             c_bl = getattr(self.lrtt_config, "c_desired_bl", None)
 
             # Check if any tile-specific config is set
+            transfer_method = getattr(self.lrtt_config, 'transfer_method', 'direct')
+            c_needs_nwd = (tile_type == "c" and transfer_method == "set")
             has_tile_specific = any(x is not None for x in [a_x, a_d, b_x, b_d, c_bl])
 
-            if not has_tile_specific:
+            if not has_tile_specific and not c_needs_nwd:
                 # No tile-specific config, use base update params
                 return base_update
 
@@ -186,6 +188,12 @@ class LRTTSimulatorTile(SimulatorTile, Module):
                 if update_copy.manual_d_scaling is None:
                     update_copy.manual_d_scaling = 1.0
 
+                # For "set" transfer: use NoneWithDevice for deterministic FP
+                # update with weight clipping (must be set at construction time)
+                if c_needs_nwd:
+                    from aihwkit.simulator.parameters.enums import PulseType
+                    update_copy.pulse_type = PulseType.NONE_WITH_DEVICE
+
             return update_copy
 
         # Tile A/B creation: use mapping_ab from device config
@@ -197,19 +205,33 @@ class LRTTSimulatorTile(SimulatorTile, Module):
 
         mapping_ab = getattr(self.lrtt_config, 'mapping_ab', MappingParameter())
 
+        # A/B tile IO: optionally remove ADC/DAC between B and A projections
+        from copy import deepcopy
+        no_adc_ab_proj = getattr(self.lrtt_config, 'no_adc_ab_projection', False)
+
+        backward_a = rpu_config.backward
+        if no_adc_ab_proj:
+            backward_a = deepcopy(rpu_config.backward)
+            backward_a.out_res = -1  # Remove ADC at A backward output (between A and B)
+
         rpu_config_a = SingleRPUConfig(
             device=unit_devices[0],
             forward=rpu_config.forward,
-            backward=rpu_config.backward,
+            backward=backward_a,
             update=update_a,
             tile_class=tile_class_a,
             mapping=mapping_ab,
         )
         self.tile_a = rpu_config_a.tile_class(d_size, self.rank, rpu_config_a)
 
+        forward_b = rpu_config.forward
+        if no_adc_ab_proj:
+            forward_b = deepcopy(rpu_config.forward)
+            forward_b.out_res = -1  # Remove ADC at B forward output
+
         rpu_config_b = SingleRPUConfig(
             device=unit_devices[1],
-            forward=rpu_config.forward,
+            forward=forward_b,
             backward=rpu_config.backward,
             update=update_b,
             tile_class=tile_class_b,

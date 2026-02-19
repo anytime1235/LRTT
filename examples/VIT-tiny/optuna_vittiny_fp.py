@@ -406,6 +406,23 @@ def objective(trial):
         return best_accuracy
 
     finally:
+        # Delete training loop variables that hold references to model/tensors
+        try:
+            del outputs
+        except NameError:
+            pass
+        try:
+            del loss
+        except NameError:
+            pass
+        try:
+            del images
+        except NameError:
+            pass
+        try:
+            del labels
+        except NameError:
+            pass
         if 'optimizer' in dir():
             del optimizer
         if 'scheduler' in dir():
@@ -619,7 +636,7 @@ def main():
                 print(f"[Trial {trial.number}] Could not delete: {e}")
 
     study.optimize(objective, n_trials=args.n_trials, timeout=args.timeout,
-                   catch=(Exception,), show_progress_bar=True,
+                   catch=(Exception,), show_progress_bar=False,
                    callbacks=[delete_failed_trial_callback])
 
     print_study_summary(study)

@@ -347,10 +347,25 @@ def objective(trial):
         return best_accuracy
 
     finally:
-        if 'optimizer' in dir():
-            del optimizer
+        # Delete training loop variables that hold references to model/tensors
+        try:
+            del loss
+        except NameError:
+            pass
+        try:
+            del images
+        except NameError:
+            pass
+        try:
+            del labels
+        except NameError:
+            pass
+        # Delete in reverse dependency order: scheduler -> optimizer -> model
+        # optimizer holds references to analog tiles via param_groups
         if 'scheduler' in dir():
             del scheduler
+        if 'optimizer' in dir():
+            del optimizer
         if model is not None:
             del model
         gc.collect()
@@ -433,7 +448,7 @@ def main():
 
     print(f"\nStudy: {study_name}, Device: {DEVICE}, New trials: {args.n_trials}")
 
-    study.optimize(objective, n_trials=args.n_trials, catch=(Exception,), show_progress_bar=True)
+    study.optimize(objective, n_trials=args.n_trials, catch=(Exception,), show_progress_bar=False)
 
     if study.best_trial:
         with open(os.path.join(RESULTS, f"best_params_{study_name}.json"), 'w') as f:

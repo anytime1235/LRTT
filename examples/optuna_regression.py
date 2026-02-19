@@ -373,7 +373,7 @@ def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True,
         lambda trial: objective(trial, search_space),
         n_trials=n_trials,
         n_jobs=actual_n_jobs,
-        show_progress_bar=True,
+        show_progress_bar=False,
         callbacks=[print_callback]
     )
 
