@@ -263,7 +263,7 @@ def create_lrtt_config():
         mapping_c=MappingParameter(
             weight_scaling_omega=1.0,
             weight_scaling_columnwise=True,
-            learn_out_scaling=False,
+            learn_out_scaling=True,
             out_scaling_columnwise=True,
         ),
     )
