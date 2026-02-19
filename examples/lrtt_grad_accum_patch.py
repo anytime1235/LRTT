@@ -220,11 +220,15 @@ def _step_mem_opt(self, closure=None, **kwargs):
                     controller._update_dynamic_te(lr)  # advances by +1
 
                     # transfer_counter:
-                    # - units_in_mbatch=True: sum of group batch_sizes across
-                    #   the loop is correct (equals total batch over all depths).
+                    # - units_in_mbatch=True: loop added entries_per_fwd * micro_bs
+                    #   per group (depth-inflated). Actual unique samples per step
+                    #   = total / entries_per_fwd.
                     # - units_in_mbatch=False: each call added +1, should be +1
                     #   per optimizer step.
-                    if not controller.units_in_mbatch:
+                    if controller.units_in_mbatch:
+                        inflated = controller.transfer_counter - counter_before
+                        controller.transfer_counter = counter_before + inflated // entries_per_fwd
+                    else:
                         controller.transfer_counter = counter_before + 1
 
                     # Check transfer once after all groups processed
