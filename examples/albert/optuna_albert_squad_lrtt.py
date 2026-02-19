@@ -939,7 +939,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
     else:
         transfer_lr = trial.suggest_float('transfer_lr', 4e-7, 8e-2, log=True)
         transfer_every = trial.suggest_int('transfer_every', 63, 35000, log=True)
-        rank_exp = trial.suggest_int('rank_exp', 0, 5)
+        rank_exp = trial.suggest_int('rank_exp', 0, 7)
         rank = 2 ** rank_exp
         lora_alpha = trial.suggest_float('lora_alpha', 6e-6, 2e2, log=True)
         tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
