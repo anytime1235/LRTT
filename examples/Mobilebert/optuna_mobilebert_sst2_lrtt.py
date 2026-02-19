@@ -665,14 +665,14 @@ def load_data(tokenizer):
     collator = DataCollatorWithPadding(tokenizer)
     train_loader = DataLoader(
         tokenized_train, batch_size=BATCH_SIZE // GRAD_ACCUM_STEPS, shuffle=True,
-        collate_fn=collator, num_workers=2, pin_memory=True,
+        collate_fn=collator, num_workers=2,
         generator=torch.Generator().manual_seed(SEED)
     )
 
     eval_loader = DataLoader(
         tokenized_eval, batch_size=EVAL_BATCH_SIZE, shuffle=False,
         collate_fn=collator,
-        num_workers=2, pin_memory=True
+        num_workers=2
     )
 
     return train_loader, eval_loader

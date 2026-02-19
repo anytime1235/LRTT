@@ -734,7 +734,7 @@ def load_data(tokenizer):
     collator = DataCollatorWithPadding(tokenizer)
     train_loader = DataLoader(
         train_subset, batch_size=BATCH_SIZE // GRAD_ACCUM_STEPS, shuffle=True,
-        collate_fn=collator, num_workers=2, pin_memory=True,
+        collate_fn=collator, num_workers=2,
         generator=torch.Generator().manual_seed(SEED)
     )
 
@@ -859,7 +859,7 @@ def evaluate_model(model, eval_features, eval_examples, tokenizer):
     eval_loader = DataLoader(
         eval_features, batch_size=EVAL_BATCH_SIZE, shuffle=False,
         collate_fn=squad_eval_collate_fn,
-        num_workers=2, pin_memory=True
+        num_workers=2
     )
 
     with no_grad():
