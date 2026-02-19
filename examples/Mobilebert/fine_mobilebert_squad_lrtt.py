@@ -702,7 +702,8 @@ def evaluate_model(model, eval_features, eval_examples, tokenizer):
     all_start_logits = []
     all_end_logits = []
 
-    collator = DataCollatorWithPadding(tokenizer)
+    # Pad to max_length so all batches produce same-sized logits for np.concatenate
+    collator = DataCollatorWithPadding(tokenizer, padding="max_length", max_length=MAX_SEQ_LENGTH)
 
     def squad_eval_collate_fn(features):
         offset_mappings = [f.pop("offset_mapping") for f in features]
