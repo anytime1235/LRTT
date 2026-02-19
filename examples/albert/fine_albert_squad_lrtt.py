@@ -1051,13 +1051,13 @@ def main():
             "lrtt_rank": LRTT_RANK, "transfer_every": TRANSFER_EVERY,
             "transfer_lr": TRANSFER_LR, "lora_alpha": LORA_ALPHA,
             "reinit_mode": REINIT_MODE, "reinit_gain": REINIT_GAIN,
-            "ab_device": AB_DEVICE, "c_device": C_DEVICE, "tau_sec": TAU_SEC,
+            "tau_sec": TAU_SEC,
             "dynamic_te": DYNAMIC_TE, "te_warmup_steps": TE_WARMUP_STEPS,
             "epochs": N_EPOCHS, "batch_size": BATCH_SIZE,
             "learning_rate": LEARNING_RATE, "weight_decay": WEIGHT_DECAY,
             "optimizer": OPTIMIZER, "warmup_steps": WARMUP_STEPS,
             "min_lr_rate": MIN_LR_RATE, "seed": SEED,
-            "target_modules": TARGET_MODULES,
+            "lora_target": LORA_TARGET,
         }
     )
 
