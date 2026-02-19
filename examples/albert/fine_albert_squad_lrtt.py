@@ -1014,6 +1014,7 @@ def create_optimizer(model):
                 model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY
             )
         optimizer.regroup_param_groups()
+        optimizer._grad_accum_steps = GRAD_ACCUM_STEPS
 
     return optimizer
 
