@@ -2,41 +2,42 @@
 
 LRTT (Low-Rank Tiled Training) 실험 환경 설정 가이드입니다.
 
-**테스트 완료 환경:** Python 3.10, Ubuntu Linux, CUDA 12.1
+**테스트 완료 환경:** Python 3.10, Ubuntu 22.04, CUDA 12.1
 
 ---
 
 ## Part 1: CUDA 버전 설치 (GPU 사용)
 
-### 1.1 conda 환경 생성 + CUDA 빌드 도구 설치
+### 1.1 시스템 빌드 의존성 + CUDA Toolkit 설치
 
-`conda-forge` 채널에서 `cuda-version=12.1`을 지정하면 모든 CUDA 패키지가 12.1로 통일됩니다.
+NVIDIA 드라이버가 설치되어 있어야 합니다 (`nvidia-smi`로 확인).
 
 ```bash
-conda create --prefix /path/to/venv -y -c conda-forge \
-  python=3.10 \
-  cuda-version=12.1 \
-  cuda-nvcc \
-  cuda-cudart-dev \
-  cuda-cccl \
-  libcublas-dev \
-  libcurand-dev \
-  openblas \
-  gxx_linux-64=12.4.0 gcc_linux-64=12.4.0
-conda activate /path/to/venv
+# 빌드 도구 + OpenBLAS
+apt update
+apt install -y build-essential cmake python3-venv python3-dev libopenblas-dev wget
+
+# NVIDIA CUDA 12.1 Toolkit (이미 nvcc가 있으면 건너뛰기: nvcc --version)
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
+dpkg -i cuda-keyring_1.1-1_all.deb
+apt update
+apt install -y cuda-toolkit-12-1
+export PATH=/usr/local/cuda-12.1/bin:$PATH
+export LD_LIBRARY_PATH=/usr/local/cuda-12.1/lib64:$LD_LIBRARY_PATH
 ```
 
-> **주의**: nvidia 채널이 아닌 **conda-forge** 채널을 사용해야 합니다. nvidia 채널은 메타패키지만 12.1이고 플랫폼 패키지가 13.x로 설치되는 문제가 있습니다.
+> **확인**: `nvcc --version`으로 CUDA 12.1이 출력되어야 합니다.
 >
-> apt 환경인 경우: `sudo apt install -y build-essential cmake python3-venv python3-dev libopenblas-dev nvidia-cuda-toolkit`
+> 이미 CUDA toolkit이 설치된 환경(Docker GPU 이미지, 클라우드 인스턴스 등)에서는 apt install cuda-toolkit 단계를 건너뛰면 됩니다.
 
-### 1.2 PyTorch 및 빌드 도구 설치
+### 1.2 uv, PyTorch 및 빌드 도구 설치
 
 ```bash
-pip install --upgrade pip wheel setuptools
-pip install torch==2.3.1+cu121 torchvision==0.18.1+cu121 \
+pip install uv
+uv pip install --system --upgrade pip wheel setuptools
+uv pip install --system torch==2.3.1+cu121 torchvision==0.18.1+cu121 \
     --index-url https://download.pytorch.org/whl/cu121
-pip install scikit-build pybind11 cmake mypy
+uv pip install --system scikit-build pybind11 cmake mypy
 ```
 
 > 다른 GPU는 하단 [GPU 아키텍처 참고](#gpu-아키텍처-참고) 표에서 PyTorch 버전 확인.
@@ -48,17 +49,17 @@ cd /path/to/LRTT_vit
 rm -rf _skbuild build
 
 export GPU_ARCH=$(nvidia-smi --query-gpu=compute_cap -i 0 --format=csv,noheader | tr -d '.')
-export CPATH=$CONDA_PREFIX/targets/x86_64-linux/include:$CPATH
-export LIBRARY_PATH=$CONDA_PREFIX/targets/x86_64-linux/lib:$LIBRARY_PATH
 export CMAKE_ARGS="-DRPU_CUDA_ARCHITECTURES=$GPU_ARCH -DCMAKE_CUDA_ARCHITECTURES=$GPU_ARCH"
 USE_CUDA=1 pip install -e .
 USE_CUDA=1 python setup.py build_ext --inplace
 ```
 
+> **참고**: editable 빌드(`pip install -e .`)는 C++ 확장 빌드를 포함하므로 uv 대신 pip을 사용합니다.
+
 ### 1.4 Python 의존성 설치
 
 ```bash
-pip install transformers==4.47.1 datasets==4.5.0 evaluate==0.4.6 \
+uv pip install --system transformers==4.47.1 datasets==4.5.0 evaluate==0.4.6 \
     optuna==4.7.0 optuna-integration==4.7.0 botorch==0.16.1 wandb==0.24.1 accelerate==1.12.0 \
     scipy==1.15.3 scikit-learn==1.7.2 matplotlib==3.10.8 pandas==2.3.3 \
     numpy==2.2.6 safetensors==0.7.0 tokenizers==0.21.4 \
@@ -87,14 +88,14 @@ print('aihwkit + LRTT OK!')
 
 ```bash
 # 사전 요구사항
-sudo apt install -y build-essential cmake python3-venv python3-dev libopenblas-dev
+apt update
+apt install -y build-essential cmake python3-venv python3-dev libopenblas-dev
 
-# 가상환경 + PyTorch
-conda create --prefix /path/to/venv_cpu python=3.10 openblas -y -c conda-forge
-conda activate /path/to/venv_cpu
-pip install --upgrade pip wheel setuptools
-pip install torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cpu
-pip install scikit-build pybind11 cmake mypy
+# uv + PyTorch + 빌드 도구
+pip install uv
+uv pip install --system --upgrade pip wheel setuptools
+uv pip install --system torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cpu
+uv pip install --system scikit-build pybind11 cmake mypy
 
 # 빌드
 cd /path/to/LRTT_vit
@@ -103,7 +104,7 @@ USE_CUDA=0 pip install -e .
 USE_CUDA=0 python setup.py build_ext --inplace
 
 # 의존성
-pip install transformers==4.47.1 datasets==4.5.0 evaluate==0.4.6 \
+uv pip install --system transformers==4.47.1 datasets==4.5.0 evaluate==0.4.6 \
     optuna==4.7.0 optuna-integration==4.7.0 botorch==0.16.1 wandb==0.24.1 accelerate==1.12.0 \
     scipy==1.15.3 scikit-learn==1.7.2
 ```
@@ -116,33 +117,31 @@ pip install transformers==4.47.1 datasets==4.5.0 evaluate==0.4.6 \
 
 ### CUDA 12.1 (권장)
 
+CUDA toolkit이 이미 설치된 환경 기준입니다.
+
 ```bash
-conda create --prefix /path/to/venv -y -c conda-forge \
-  python=3.10 cuda-version=12.1 cuda-nvcc cuda-cudart-dev cuda-cccl \
-  libcublas-dev libcurand-dev openblas gxx_linux-64=12.4.0 gcc_linux-64=12.4.0 && \
-conda activate /path/to/venv && \
-pip install --upgrade pip wheel setuptools scikit-build pybind11 cmake mypy && \
-pip install torch==2.3.1+cu121 torchvision==0.18.1+cu121 --index-url https://download.pytorch.org/whl/cu121 && \
+apt update && apt install -y build-essential cmake python3-venv python3-dev libopenblas-dev && \
+pip install uv && \
+uv pip install --system --upgrade pip wheel setuptools scikit-build pybind11 cmake mypy && \
+uv pip install --system torch==2.3.1+cu121 torchvision==0.18.1+cu121 --index-url https://download.pytorch.org/whl/cu121 && \
 cd /path/to/LRTT_vit && rm -rf _skbuild build && \
 export GPU_ARCH=$(nvidia-smi --query-gpu=compute_cap -i 0 --format=csv,noheader | tr -d '.') && \
-export CPATH=$CONDA_PREFIX/targets/x86_64-linux/include:$CPATH && \
-export LIBRARY_PATH=$CONDA_PREFIX/targets/x86_64-linux/lib:$LIBRARY_PATH && \
 export CMAKE_ARGS="-DRPU_CUDA_ARCHITECTURES=$GPU_ARCH -DCMAKE_CUDA_ARCHITECTURES=$GPU_ARCH" && \
 USE_CUDA=1 pip install -e . && \
 USE_CUDA=1 python setup.py build_ext --inplace && \
-pip install transformers==4.47.1 datasets==4.5.0 evaluate==0.4.6 optuna==4.7.0 optuna-integration==4.7.0 botorch==0.16.1 wandb==0.24.1 accelerate==1.12.0 scipy==1.15.3 scikit-learn==1.7.2 matplotlib==3.10.8 pandas==2.3.3 numpy==2.2.6 safetensors==0.7.0 tokenizers==0.21.4 huggingface_hub==0.36.2 tqdm==4.67.2
+uv pip install --system transformers==4.47.1 datasets==4.5.0 evaluate==0.4.6 optuna==4.7.0 optuna-integration==4.7.0 botorch==0.16.1 wandb==0.24.1 accelerate==1.12.0 scipy==1.15.3 scikit-learn==1.7.2 matplotlib==3.10.8 pandas==2.3.3 numpy==2.2.6 safetensors==0.7.0 tokenizers==0.21.4 huggingface_hub==0.36.2 tqdm==4.67.2
 ```
 
 ### CPU 버전
 
 ```bash
-conda create --prefix /path/to/venv_cpu python=3.10 openblas -y -c conda-forge && \
-conda activate /path/to/venv_cpu && \
-pip install --upgrade pip wheel setuptools scikit-build pybind11 cmake mypy && \
-pip install torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cpu && \
+apt update && apt install -y build-essential cmake python3-venv python3-dev libopenblas-dev && \
+pip install uv && \
+uv pip install --system --upgrade pip wheel setuptools scikit-build pybind11 cmake mypy && \
+uv pip install --system torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cpu && \
 cd /path/to/LRTT_vit && rm -rf _skbuild build && \
 USE_CUDA=0 pip install -e . && USE_CUDA=0 python setup.py build_ext --inplace && \
-pip install transformers==4.47.1 datasets==4.5.0 evaluate==0.4.6 optuna==4.7.0 optuna-integration==4.7.0 botorch==0.16.1 wandb==0.24.1 accelerate==1.12.0 scipy==1.15.3 scikit-learn==1.7.2
+uv pip install --system transformers==4.47.1 datasets==4.5.0 evaluate==0.4.6 optuna==4.7.0 optuna-integration==4.7.0 botorch==0.16.1 wandb==0.24.1 accelerate==1.12.0 scipy==1.15.3 scikit-learn==1.7.2
 ```
 
 ---
@@ -153,12 +152,12 @@ pip install transformers==4.47.1 datasets==4.5.0 evaluate==0.4.6 optuna==4.7.0 o
 
 | GPU 시리즈 | 아키텍처 | GPU_ARCH | PyTorch 설치 명령어 |
 |-----------|---------|----------|-------------------|
-| H100, H200 | Hopper | 90 | `pip install torch==2.3.1+cu121 torchvision==0.18.1+cu121 --index-url https://download.pytorch.org/whl/cu121` |
-| RTX 40xx, L40 | Ada Lovelace | 89 | `pip install torch==2.3.1+cu121 torchvision==0.18.1+cu121 --index-url https://download.pytorch.org/whl/cu121` |
-| A100, A30 | Ampere | 80 | `pip install torch==2.3.1+cu121 torchvision==0.18.1+cu121 --index-url https://download.pytorch.org/whl/cu121` |
-| RTX 30xx | Ampere | 86 | `pip install torch==2.3.1+cu121 torchvision==0.18.1+cu121 --index-url https://download.pytorch.org/whl/cu121` |
-| V100 | Volta | 70 | `pip install torch==2.3.1+cu118 torchvision==0.18.1+cu118 --index-url https://download.pytorch.org/whl/cu118` |
-| RTX 20xx | Turing | 75 | `pip install torch==2.3.1+cu118 torchvision==0.18.1+cu118 --index-url https://download.pytorch.org/whl/cu118` |
+| H100, H200 | Hopper | 90 | `uv pip install --system torch==2.3.1+cu121 torchvision==0.18.1+cu121 --index-url https://download.pytorch.org/whl/cu121` |
+| RTX 40xx, L40 | Ada Lovelace | 89 | `uv pip install --system torch==2.3.1+cu121 torchvision==0.18.1+cu121 --index-url https://download.pytorch.org/whl/cu121` |
+| A100, A30 | Ampere | 80 | `uv pip install --system torch==2.3.1+cu121 torchvision==0.18.1+cu121 --index-url https://download.pytorch.org/whl/cu121` |
+| RTX 30xx | Ampere | 86 | `uv pip install --system torch==2.3.1+cu121 torchvision==0.18.1+cu121 --index-url https://download.pytorch.org/whl/cu121` |
+| V100 | Volta | 70 | `uv pip install --system torch==2.3.1+cu118 torchvision==0.18.1+cu118 --index-url https://download.pytorch.org/whl/cu118` |
+| RTX 20xx | Turing | 75 | `uv pip install --system torch==2.3.1+cu118 torchvision==0.18.1+cu118 --index-url https://download.pytorch.org/whl/cu118` |
 
 ---
 
@@ -211,15 +210,11 @@ LRTT_vit/
 | tokenizers | 0.21.4 | |
 | huggingface_hub | 0.36.2 | |
 | tqdm | 4.67.2 | |
+| uv | - | 빠른 패키지 설치 |
 | scikit-build | - | 빌드용 |
 | pybind11 | - | 빌드용 |
 | cmake | - | 빌드용 |
 | mypy | - | 빌드용 |
-| cuda-version | 12.1 | conda-forge, 버전 핀 |
-| cuda-nvcc | 12.1 | conda-forge, 빌드용 |
-| cuda-cudart-dev | 12.1 | conda-forge, 빌드용 |
-| cuda-cccl | 12.1 | conda-forge, CUDA C++ 헤더 |
-| libcublas-dev | 12.1 | conda-forge, 빌드용 |
-| libcurand-dev | 12.1 | conda-forge, 빌드용 |
-| openblas | - | conda-forge, BLAS 라이브러리 |
-| gcc/g++ | 12.4.0 | conda-forge, 빌드용 |
+| libopenblas-dev | - | apt, BLAS 라이브러리 |
+| build-essential | - | apt, GCC/G++ 컴파일러 |
+| cuda-toolkit-12-1 | 12.1 | apt (NVIDIA repo), CUDA 없을 때만 |
