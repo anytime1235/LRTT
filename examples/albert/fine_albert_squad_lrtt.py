@@ -452,6 +452,7 @@ def create_model():
                 for tile in m.analog_tiles():
                     if id(tile) not in existing_tile_ids:
                         tile.update = _frozen_noop_update
+                        tile._frozen_analog = True
 
     total_params = sum(p.numel() for p in model.parameters())
     trainable_before = sum(p.numel() for p in model.parameters() if p.requires_grad)

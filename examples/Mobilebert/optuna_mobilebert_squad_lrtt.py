@@ -599,6 +599,7 @@ def create_model(params):
                 for tile in m.analog_tiles():
                     if id(tile) not in existing_tile_ids:
                         tile.update = _frozen_noop_update
+                        tile._frozen_analog = True
 
     total_params = sum(p.numel() for p in model.parameters())
     trainable_before = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -1362,13 +1363,24 @@ def main():
     initial_complete = sum(1 for t in study.trials if t.state == TrialState.COMPLETE)
 
     def _restart_with_remaining(remaining):
-        """Replace --n-trials in argv and restart process."""
+        """execv to thin wrapper (no CUDA) that spawns child + forwards Ctrl+C."""
         new_argv = list(sys.argv)
         for i, arg in enumerate(new_argv):
             if arg == '--n-trials' and i + 1 < len(new_argv):
                 new_argv[i + 1] = str(remaining)
                 break
-        os.execv(sys.executable, [sys.executable] + new_argv)
+        child_cmd = [sys.executable] + new_argv
+        wrapper = (
+            'import subprocess,signal,sys\n'
+            f'p=subprocess.Popen({child_cmd!r})\n'
+            'def _fwd(s,f):\n'
+            ' try: p.send_signal(s)\n'
+            ' except: pass\n'
+            'signal.signal(signal.SIGINT,_fwd)\n'
+            'sys.exit(p.wait())\n'
+        )
+        os.execv(sys.executable, [sys.executable, '-c', wrapper])
+        os._exit(proc.wait())
 
     try:
         study.optimize(
