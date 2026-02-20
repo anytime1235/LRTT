@@ -284,19 +284,30 @@ def _create_c_device(dw_min=C_DW_MIN):
     )
 
 
-def create_frozen_analog_config(lrtt_config):
+def create_frozen_analog_config(lrtt_config=None, out_noise=0.0):
     """Create analog config for non-LRTT encoder layers (frozen analog).
 
-    Derived directly from LRTT config's C tile settings (device, mapping, IO).
-    Any change to the LRTT C tile config is automatically reflected here.
+    If lrtt_config is provided, derived from its C tile settings.
+    Otherwise, creates a standalone config with default C tile settings.
     """
     from copy import deepcopy
-    rpu_config = SingleRPUConfig(
-        device=deepcopy(lrtt_config.device.unit_cell_devices[2]),
-    )
-    rpu_config.mapping = deepcopy(lrtt_config.device.mapping_c)
-    rpu_config.forward = deepcopy(lrtt_config.forward)
-    rpu_config.backward = deepcopy(lrtt_config.backward)
+    if lrtt_config is not None:
+        rpu_config = SingleRPUConfig(
+            device=deepcopy(lrtt_config.device.unit_cell_devices[2]),
+        )
+        rpu_config.mapping = deepcopy(lrtt_config.device.mapping_c)
+        rpu_config.forward = deepcopy(lrtt_config.forward)
+        rpu_config.backward = deepcopy(lrtt_config.backward)
+    else:
+        rpu_config = SingleRPUConfig(device=_create_c_device())
+        rpu_config.mapping = MappingParameter(
+            weight_scaling_omega=1.0,
+            weight_scaling_columnwise=True,
+            learn_out_scaling=True,
+            out_scaling_columnwise=True,
+        )
+        rpu_config.forward.out_noise = out_noise
+        rpu_config.backward.out_noise = out_noise
     return rpu_config
 
 
@@ -475,7 +486,7 @@ def create_model():
 
     # Step 1.5: Convert remaining encoder layers to frozen analog (if enabled)
     frozen_analog_count = 0
-    if ENCODER_ANALOG and LORA_TARGET not in ("none", "all"):
+    if ENCODER_ANALOG and LORA_TARGET != "all":
         # Collect existing tile IDs (LRTT sub-tiles) before frozen conversion
         existing_tile_ids = set()
         for m in model.modules():
@@ -483,7 +494,9 @@ def create_model():
                 for tile in m.analog_tiles():
                     existing_tile_ids.add(id(tile))
 
-        frozen_config = create_frozen_analog_config(lrtt_config)
+        frozen_config = create_frozen_analog_config(
+            lrtt_config if LORA_TARGET != "none" else None,
+        )
         frozen_exclude = ["classifier", "albert.encoder.embedding_hidden_mapping_in", "albert.pooler"]
         model = convert_to_analog(model, frozen_config, exclude_modules=frozen_exclude)
         frozen_analog_count = count_analog_layers(model) - num_analog
