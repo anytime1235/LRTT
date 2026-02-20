@@ -51,7 +51,7 @@
 {"op_code": 4, "worker_id": "0ad3e8fa-a067-44aa-82c7-20f40e1a3c1c-140737350539072", "study_id": 0, "datetime_start": "2026-02-20T21:39:51.987399"}
 {"op_code": 4, "worker_id": "585ef11e-fb4a-42a2-a370-9b0efa56feb4-140737350539072", "study_id": 0, "datetime_start": "2026-02-20T21:42:47.009251"}
 {"op_code": 4, "worker_id": "2901db9f-4c57-4c6c-a36a-21d3215aaadb-140737350539072", "study_id": 0, "datetime_start": "2026-02-20T22:05:54.956550"}
-{"op_code": 4, "worker_id": "merged_from_db", "trial_id": 0, "state": 0}
+{"op_code": 4, "worker_id": "merged_from_db", "trial_id": 0, "state": 0, "study_id": 0}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 0, "param_name": "learning_rate", "param_value_internal": 0.14939430321528002, "distribution": {"name": "FloatDistribution", "attributes": {"step": null, "low": 0.003, "high": 10.0, "log": true}}}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 0, "param_name": "transfer_lr", "param_value_internal": 0.006096461133939871, "distribution": {"name": "FloatDistribution", "attributes": {"step": null, "low": 4e-07, "high": 0.08, "log": true}}}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 0, "param_name": "transfer_every", "param_value_internal": 25140.0, "distribution": {"name": "IntDistribution", "attributes": {"log": true, "step": 1, "low": 48, "high": 35000}}}
@@ -67,7 +67,7 @@
 {"op_code": 7, "worker_id": "merged_from_db", "trial_id": 0, "step": 4, "intermediate_value": 84.03666279219934}
 {"op_code": 7, "worker_id": "merged_from_db", "trial_id": 0, "step": 5, "intermediate_value": 84.12461238419421}
 {"op_code": 6, "worker_id": "merged_from_db", "trial_id": 0, "state": 1, "values": [84.12461238419421], "datetime_complete": ""}
-{"op_code": 4, "worker_id": "merged_from_db", "trial_id": 1, "state": 0}
+{"op_code": 4, "worker_id": "merged_from_db", "trial_id": 1, "state": 0, "study_id": 0}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 1, "param_name": "learning_rate", "param_value_internal": 4.7358649161277855, "distribution": {"name": "FloatDistribution", "attributes": {"step": null, "low": 0.003, "high": 10.0, "log": true}}}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 1, "param_name": "transfer_lr", "param_value_internal": 1.5928632330010554e-05, "distribution": {"name": "FloatDistribution", "attributes": {"step": null, "low": 4e-07, "high": 0.08, "log": true}}}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 1, "param_name": "transfer_every", "param_value_internal": 262.0, "distribution": {"name": "IntDistribution", "attributes": {"log": true, "step": 1, "low": 48, "high": 35000}}}
@@ -83,7 +83,7 @@
 {"op_code": 7, "worker_id": "merged_from_db", "trial_id": 1, "step": 4, "intermediate_value": 6.705855883855563}
 {"op_code": 7, "worker_id": "merged_from_db", "trial_id": 1, "step": 5, "intermediate_value": 6.705855883855563}
 {"op_code": 6, "worker_id": "merged_from_db", "trial_id": 1, "state": 1, "values": [6.705855883855563], "datetime_complete": ""}
-{"op_code": 4, "worker_id": "merged_from_db", "trial_id": 2, "state": 0}
+{"op_code": 4, "worker_id": "merged_from_db", "trial_id": 2, "state": 0, "study_id": 0}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 2, "param_name": "learning_rate", "param_value_internal": 0.05299792461819387, "distribution": {"name": "FloatDistribution", "attributes": {"step": null, "low": 0.003, "high": 10.0, "log": true}}}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 2, "param_name": "transfer_lr", "param_value_internal": 0.00020917557215301743, "distribution": {"name": "FloatDistribution", "attributes": {"step": null, "low": 4e-07, "high": 0.08, "log": true}}}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 2, "param_name": "transfer_every", "param_value_internal": 1076.0, "distribution": {"name": "IntDistribution", "attributes": {"log": true, "step": 1, "low": 48, "high": 35000}}}
@@ -99,7 +99,7 @@
 {"op_code": 7, "worker_id": "merged_from_db", "trial_id": 2, "step": 4, "intermediate_value": 80.43503389064246}
 {"op_code": 7, "worker_id": "merged_from_db", "trial_id": 2, "step": 5, "intermediate_value": 80.91181015307798}
 {"op_code": 6, "worker_id": "merged_from_db", "trial_id": 2, "state": 1, "values": [80.91181015307798], "datetime_complete": ""}
-{"op_code": 4, "worker_id": "merged_from_db", "trial_id": 3, "state": 0}
+{"op_code": 4, "worker_id": "merged_from_db", "trial_id": 3, "state": 0, "study_id": 0}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 3, "param_name": "learning_rate", "param_value_internal": 0.007876992973010264, "distribution": {"name": "FloatDistribution", "attributes": {"step": null, "low": 0.003, "high": 10.0, "log": true}}}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 3, "param_name": "transfer_lr", "param_value_internal": 0.05130646696408604, "distribution": {"name": "FloatDistribution", "attributes": {"step": null, "low": 4e-07, "high": 0.08, "log": true}}}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 3, "param_name": "transfer_every", "param_value_internal": 374.0, "distribution": {"name": "IntDistribution", "attributes": {"log": true, "step": 1, "low": 48, "high": 35000}}}
@@ -115,7 +115,7 @@
 {"op_code": 7, "worker_id": "merged_from_db", "trial_id": 3, "step": 4, "intermediate_value": 65.68419458713556}
 {"op_code": 7, "worker_id": "merged_from_db", "trial_id": 3, "step": 5, "intermediate_value": 65.99061506097712}
 {"op_code": 6, "worker_id": "merged_from_db", "trial_id": 3, "state": 1, "values": [65.99061506097712], "datetime_complete": ""}
-{"op_code": 4, "worker_id": "merged_from_db", "trial_id": 4, "state": 0}
+{"op_code": 4, "worker_id": "merged_from_db", "trial_id": 4, "state": 0, "study_id": 0}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 4, "param_name": "learning_rate", "param_value_internal": 0.007837355042879184, "distribution": {"name": "FloatDistribution", "attributes": {"step": null, "low": 0.003, "high": 10.0, "log": true}}}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 4, "param_name": "transfer_lr", "param_value_internal": 1.904674136503116e-05, "distribution": {"name": "FloatDistribution", "attributes": {"step": null, "low": 4e-07, "high": 0.08, "log": true}}}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 4, "param_name": "transfer_every", "param_value_internal": 429.0, "distribution": {"name": "IntDistribution", "attributes": {"log": true, "step": 1, "low": 48, "high": 35000}}}
@@ -131,7 +131,7 @@
 {"op_code": 7, "worker_id": "merged_from_db", "trial_id": 4, "step": 4, "intermediate_value": 64.8365933507757}
 {"op_code": 7, "worker_id": "merged_from_db", "trial_id": 4, "step": 5, "intermediate_value": 65.30934674816439}
 {"op_code": 6, "worker_id": "merged_from_db", "trial_id": 4, "state": 1, "values": [65.30934674816439], "datetime_complete": ""}
-{"op_code": 4, "worker_id": "merged_from_db", "trial_id": 5, "state": 0}
+{"op_code": 4, "worker_id": "merged_from_db", "trial_id": 5, "state": 0, "study_id": 0}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 5, "param_name": "learning_rate", "param_value_internal": 2.480731291583764, "distribution": {"name": "FloatDistribution", "attributes": {"step": null, "low": 0.003, "high": 10.0, "log": true}}}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 5, "param_name": "transfer_lr", "param_value_internal": 0.007610765367202395, "distribution": {"name": "FloatDistribution", "attributes": {"step": null, "low": 4e-07, "high": 0.08, "log": true}}}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 5, "param_name": "transfer_every", "param_value_internal": 486.0, "distribution": {"name": "IntDistribution", "attributes": {"log": true, "step": 1, "low": 48, "high": 35000}}}
@@ -147,7 +147,7 @@
 {"op_code": 7, "worker_id": "merged_from_db", "trial_id": 5, "step": 4, "intermediate_value": 72.53614826515367}
 {"op_code": 7, "worker_id": "merged_from_db", "trial_id": 5, "step": 5, "intermediate_value": 73.0100161629566}
 {"op_code": 6, "worker_id": "merged_from_db", "trial_id": 5, "state": 1, "values": [73.0100161629566], "datetime_complete": ""}
-{"op_code": 4, "worker_id": "merged_from_db", "trial_id": 6, "state": 0}
+{"op_code": 4, "worker_id": "merged_from_db", "trial_id": 6, "state": 0, "study_id": 0}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 6, "param_name": "learning_rate", "param_value_internal": 0.05837142795698206, "distribution": {"name": "FloatDistribution", "attributes": {"step": null, "low": 0.003, "high": 10.0, "log": true}}}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 6, "param_name": "transfer_lr", "param_value_internal": 0.005558669017648892, "distribution": {"name": "FloatDistribution", "attributes": {"step": null, "low": 4e-07, "high": 0.08, "log": true}}}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 6, "param_name": "transfer_every", "param_value_internal": 6071.0, "distribution": {"name": "IntDistribution", "attributes": {"log": true, "step": 1, "low": 48, "high": 35000}}}
@@ -163,7 +163,7 @@
 {"op_code": 7, "worker_id": "merged_from_db", "trial_id": 6, "step": 4, "intermediate_value": 81.94046175801518}
 {"op_code": 7, "worker_id": "merged_from_db", "trial_id": 6, "step": 5, "intermediate_value": 82.38541414194164}
 {"op_code": 6, "worker_id": "merged_from_db", "trial_id": 6, "state": 1, "values": [82.38541414194164], "datetime_complete": ""}
-{"op_code": 4, "worker_id": "merged_from_db", "trial_id": 7, "state": 0}
+{"op_code": 4, "worker_id": "merged_from_db", "trial_id": 7, "state": 0, "study_id": 0}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 7, "param_name": "learning_rate", "param_value_internal": 0.0035609680185889267, "distribution": {"name": "FloatDistribution", "attributes": {"step": null, "low": 0.003, "high": 10.0, "log": true}}}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 7, "param_name": "transfer_lr", "param_value_internal": 0.0004137168648909182, "distribution": {"name": "FloatDistribution", "attributes": {"step": null, "low": 4e-07, "high": 0.08, "log": true}}}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 7, "param_name": "transfer_every", "param_value_internal": 1003.0, "distribution": {"name": "IntDistribution", "attributes": {"log": true, "step": 1, "low": 48, "high": 35000}}}
@@ -179,7 +179,7 @@
 {"op_code": 7, "worker_id": "merged_from_db", "trial_id": 7, "step": 4, "intermediate_value": 41.249293802130474}
 {"op_code": 7, "worker_id": "merged_from_db", "trial_id": 7, "step": 5, "intermediate_value": 42.94615604116738}
 {"op_code": 6, "worker_id": "merged_from_db", "trial_id": 7, "state": 1, "values": [42.94615604116738], "datetime_complete": ""}
-{"op_code": 4, "worker_id": "merged_from_db", "trial_id": 8, "state": 0}
+{"op_code": 4, "worker_id": "merged_from_db", "trial_id": 8, "state": 0, "study_id": 0}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 8, "param_name": "learning_rate", "param_value_internal": 0.836806433346527, "distribution": {"name": "FloatDistribution", "attributes": {"step": null, "low": 0.003, "high": 10.0, "log": true}}}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 8, "param_name": "transfer_lr", "param_value_internal": 0.00012274885221331307, "distribution": {"name": "FloatDistribution", "attributes": {"step": null, "low": 4e-07, "high": 0.08, "log": true}}}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 8, "param_name": "transfer_every", "param_value_internal": 2898.0, "distribution": {"name": "IntDistribution", "attributes": {"log": true, "step": 1, "low": 48, "high": 35000}}}
@@ -195,7 +195,7 @@
 {"op_code": 7, "worker_id": "merged_from_db", "trial_id": 8, "step": 4, "intermediate_value": 86.12211281946416}
 {"op_code": 7, "worker_id": "merged_from_db", "trial_id": 8, "step": 5, "intermediate_value": 86.5269000405209}
 {"op_code": 6, "worker_id": "merged_from_db", "trial_id": 8, "state": 1, "values": [86.5269000405209], "datetime_complete": ""}
-{"op_code": 4, "worker_id": "merged_from_db", "trial_id": 9, "state": 0}
+{"op_code": 4, "worker_id": "merged_from_db", "trial_id": 9, "state": 0, "study_id": 0}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 9, "param_name": "learning_rate", "param_value_internal": 0.00681246519788633, "distribution": {"name": "FloatDistribution", "attributes": {"step": null, "low": 0.003, "high": 10.0, "log": true}}}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 9, "param_name": "transfer_lr", "param_value_internal": 3.778023924576285e-06, "distribution": {"name": "FloatDistribution", "attributes": {"step": null, "low": 4e-07, "high": 0.08, "log": true}}}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 9, "param_name": "transfer_every", "param_value_internal": 1276.0, "distribution": {"name": "IntDistribution", "attributes": {"log": true, "step": 1, "low": 48, "high": 35000}}}
@@ -211,7 +211,7 @@
 {"op_code": 7, "worker_id": "merged_from_db", "trial_id": 9, "step": 4, "intermediate_value": 61.035357606581805}
 {"op_code": 7, "worker_id": "merged_from_db", "trial_id": 9, "step": 5, "intermediate_value": 62.14543903842446}
 {"op_code": 6, "worker_id": "merged_from_db", "trial_id": 9, "state": 1, "values": [62.14543903842446], "datetime_complete": ""}
-{"op_code": 4, "worker_id": "merged_from_db", "trial_id": 10, "state": 0}
+{"op_code": 4, "worker_id": "merged_from_db", "trial_id": 10, "state": 0, "study_id": 0}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 10, "param_name": "learning_rate", "param_value_internal": 0.05123619194470563, "distribution": {"name": "FloatDistribution", "attributes": {"step": null, "low": 0.003, "high": 10.0, "log": true}}}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 10, "param_name": "transfer_lr", "param_value_internal": 0.0021692527720522953, "distribution": {"name": "FloatDistribution", "attributes": {"step": null, "low": 4e-07, "high": 0.08, "log": true}}}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 10, "param_name": "transfer_every", "param_value_internal": 113.0, "distribution": {"name": "IntDistribution", "attributes": {"log": true, "step": 1, "low": 48, "high": 35000}}}
@@ -227,7 +227,7 @@
 {"op_code": 7, "worker_id": "merged_from_db", "trial_id": 10, "step": 4, "intermediate_value": 81.68851473363895}
 {"op_code": 7, "worker_id": "merged_from_db", "trial_id": 10, "step": 5, "intermediate_value": 82.061423176398}
 {"op_code": 6, "worker_id": "merged_from_db", "trial_id": 10, "state": 1, "values": [82.061423176398], "datetime_complete": ""}
-{"op_code": 4, "worker_id": "merged_from_db", "trial_id": 11, "state": 0}
+{"op_code": 4, "worker_id": "merged_from_db", "trial_id": 11, "state": 0, "study_id": 0}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 11, "param_name": "learning_rate", "param_value_internal": 0.17539294561998559, "distribution": {"name": "FloatDistribution", "attributes": {"step": null, "low": 0.003, "high": 10.0, "log": true}}}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 11, "param_name": "transfer_lr", "param_value_internal": 0.009087411237738582, "distribution": {"name": "FloatDistribution", "attributes": {"step": null, "low": 4e-07, "high": 0.08, "log": true}}}
 {"op_code": 5, "worker_id": "merged_from_db", "trial_id": 11, "param_name": "transfer_every", "param_value_internal": 78.0, "distribution": {"name": "IntDistribution", "attributes": {"log": true, "step": 1, "low": 48, "high": 35000}}}
