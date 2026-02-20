@@ -398,9 +398,6 @@ def create_frozen_analog_config(lrtt_config=None, out_noise=0.0):
         )
         rpu_config.forward.out_noise = out_noise
         rpu_config.backward.out_noise = out_noise
-    # Disable subtile splitting to match LRTT C tile behavior (single tile, no TileModuleArray)
-    rpu_config.mapping.max_input_size = 0
-    rpu_config.mapping.max_output_size = 0
     return rpu_config
 
 
@@ -602,12 +599,45 @@ def create_model(params):
         # LRTT tiles are already hooked in lrtt_tile.py, but frozen analog tiles need this.
         def _frozen_noop_update(x_input, d_input, *args, **kwargs):
             return None
+
+        # Bypass AnalogFunction.apply() for frozen tiles to avoid activation/gradient
+        # saving overhead. AnalogFunction saves input 3x (autograd ctx, analog_input list,
+        # analog_grad_output list) for weight updates that never happen on frozen tiles.
+        # This custom Function matches LRTT C tile behavior (direct tile call).
+        import types
+        class _FrozenAnalogFwd(torch.autograd.Function):
+            @staticmethod
+            @no_grad()
+            def forward(ctx, analog_tile, x_input, is_test):
+                ctx.analog_tile = analog_tile
+                ctx.saved_analog_tensors = [x_input]
+                out = analog_tile.joint_forward(x_input, is_test, ctx)
+                ctx.save_for_backward(*ctx.saved_analog_tensors)
+                ctx.saved_analog_tensors = []
+                return out
+            @staticmethod
+            @no_grad()
+            def backward(ctx, grad_output):
+                ctx.saved_analog_tensors = list(ctx.saved_tensors)
+                grad_input = ctx.analog_tile.backward(grad_output, ctx)
+                ctx.saved_analog_tensors = []
+                return None, grad_input, None
+
+        def _frozen_analog_forward(self, x_input, tensor_view=None):
+            out = _FrozenAnalogFwd.apply(self, x_input, not self.training)
+            if tensor_view is None:
+                tensor_view = self.get_tensor_view(out.dim())
+            out = self.apply_out_scaling(out, tensor_view)
+            if self.digital_bias:
+                return out + self.bias.view(*tensor_view)
+            return out
+
         for m in model.modules():
             if isinstance(m, AnalogLinear):
                 for tile in m.analog_tiles():
                     if id(tile) not in existing_tile_ids:
                         tile.update = _frozen_noop_update
-                        tile._frozen_analog = True
+                        tile.forward = types.MethodType(_frozen_analog_forward, tile)
 
     total_params = sum(p.numel() for p in model.parameters())
     trainable_before = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -1037,8 +1067,8 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
 
         model = create_model(params)
 
-        if LORA_TARGET == "none":
-            # None mode: use standard PyTorch optimizers
+        if LORA_TARGET == "none" and not ENCODER_ANALOG:
+            # None mode (no analog tiles): use standard PyTorch optimizers
             if optimizer_name == "AnalogSGD":
                 optimizer = torch.optim.SGD(
                     model.parameters(), lr=learning_rate,
@@ -1049,7 +1079,8 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
                     model.parameters(), lr=learning_rate, weight_decay=weight_decay,
                 )
         else:
-            # LRTT modes: use Analog optimizers
+            # Analog optimizers: required for LRTT tiles and frozen analog tiles
+            # (AnalogSGD/Adam calls analog_ctx.reset() to prevent memory leak)
             if optimizer_name == "AnalogSGD":
                 optimizer = AnalogSGD(
                     model.parameters(), lr=learning_rate,

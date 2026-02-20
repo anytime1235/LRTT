@@ -36,8 +36,7 @@ class AnalogFunction(Function):
         ctx.analog_ctx = analog_ctx
         ctx.analog_tile = analog_tile
         ctx.shared_weights = None
-        ctx.frozen_analog = getattr(analog_tile, '_frozen_analog', False)
-        ctx.saved_analog_tensors = [input_.new_empty(0) if ctx.frozen_analog else input_]
+        ctx.saved_analog_tensors = [input_]
         runtime = analog_tile.get_runtime()
 
         use_indexed = analog_ctx.use_indexed
@@ -54,7 +53,7 @@ class AnalogFunction(Function):
         else:
             out = analog_tile.joint_forward(input_, is_test, ctx)
 
-        if not ctx.frozen_analog and runtime.offload_input:
+        if runtime.offload_input:
             ctx.saved_analog_tensors[0] = ctx.saved_analog_tensors[0].cpu()
 
         ctx.save_for_backward(*ctx.saved_analog_tensors)
@@ -87,10 +86,7 @@ class AnalogFunction(Function):
         else:
             grad_input = analog_tile.backward(grad_output, ctx)
 
-        if ctx.frozen_analog:
-            # Frozen analog: skip activation/gradient storage (no weight updates)
-            pass
-        elif analog_ctx.use_torch_update:
+        if analog_ctx.use_torch_update:
             if runtime.offload_input:
                 input_ = input_.to(analog_tile.device)
 
