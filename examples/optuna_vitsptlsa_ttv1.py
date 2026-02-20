@@ -45,7 +45,24 @@ from tqdm import tqdm
 
 import optuna
 from optuna.trial import TrialState
+from optuna_integration import BoTorchSampler
 import matplotlib.pyplot as plt
+
+
+class SGDOnlyBoTorchSampler(BoTorchSampler):
+    """BoTorchSampler that forces optimizer to 'AnalogSGD'."""
+
+    def sample_relative(self, study, trial, search_space):
+        params = super().sample_relative(study, trial, search_space)
+        if 'optimizer' in params:
+            params['optimizer'] = 'AnalogSGD'
+        return params
+
+    def sample_independent(self, study, trial, param_name, param_distribution):
+        if param_name == 'optimizer':
+            return 'AnalogSGD'
+        return super().sample_independent(study, trial, param_name, param_distribution)
+
 
 # Default study name for persistence
 DEFAULT_STUDY_NAME = "vitsptlsa_ttv1_main"
@@ -386,10 +403,10 @@ def objective(trial):
         torch.cuda.empty_cache()
 
     # Hyperparameters to tune
-    transfer_every = trial.suggest_int('transfer_every', 1, 800000, log=True)
-    learning_rate = trial.suggest_float('learning_rate', 1e-5, 1e0, log=True)
+    transfer_every = trial.suggest_int('transfer_every', 1, 30000, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 1e-5, 1e-1, log=True)
     batch_size = trial.suggest_int('batch_size', 8, 8)
-    weight_decay = trial.suggest_float('weight_decay', 1e-6, 1e-1, log=True)
+    weight_decay = trial.suggest_float('weight_decay', 1e-6, 1e-2, log=True)
     optimizer_name = trial.suggest_categorical('optimizer', ['AnalogAdam', 'AnalogSGD'])
 
     max_epochs = 2000
@@ -426,9 +443,9 @@ def objective(trial):
         if optimizer_name == "AnalogAdam":
             optimizer = AnalogAdam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
         else:
-            optimizer = AnalogSGD(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=weight_decay, nesterov=True)
+            optimizer = AnalogSGD(model.parameters(), lr=learning_rate)
         optimizer.regroup_param_groups(model)
-        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
+        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=3)
         criterion = nn.CrossEntropyLoss()
 
         best_accuracy = 0
@@ -641,6 +658,7 @@ def main():
         study_name=study_name,
         storage=storage,
         direction="maximize",
+        sampler=SGDOnlyBoTorchSampler(),
         pruner=optuna.pruners.NopPruner(),
         load_if_exists=True,
     )

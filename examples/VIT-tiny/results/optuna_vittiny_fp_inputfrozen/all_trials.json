@@ -1,0 +1,561 @@
+{
+  "study_name": "vittiny_fp_inputfrozen_bs128_sgd_nowd_nomom",
+  "n_trials": 50,
+  "best_trial": 44,
+  "best_value": 55.75,
+  "best_params": {
+    "learning_rate": 0.40838722357748763
+  },
+  "trials": [
+    {
+      "number": 0,
+      "state": "COMPLETE",
+      "value": 31.72,
+      "params": {
+        "learning_rate": 0.00022006908854450567
+      },
+      "datetime_start": "2026-02-08T15:02:30.049030",
+      "datetime_complete": "2026-02-08T15:14:15.715125",
+      "duration_seconds": 705.666095
+    },
+    {
+      "number": 1,
+      "state": "COMPLETE",
+      "value": 33.99,
+      "params": {
+        "learning_rate": 0.0004815883204094685
+      },
+      "datetime_start": "2026-02-08T15:14:15.789404",
+      "datetime_complete": "2026-02-08T15:25:52.612444",
+      "duration_seconds": 696.82304
+    },
+    {
+      "number": 2,
+      "state": "COMPLETE",
+      "value": 25.32,
+      "params": {
+        "learning_rate": 1.4168946627267557e-05
+      },
+      "datetime_start": "2026-02-08T15:25:52.677736",
+      "datetime_complete": "2026-02-08T15:38:13.610533",
+      "duration_seconds": 740.932797
+    },
+    {
+      "number": 3,
+      "state": "COMPLETE",
+      "value": 27.69,
+      "params": {
+        "learning_rate": 1.9537453417259392e-05
+      },
+      "datetime_start": "2026-02-08T15:38:13.648720",
+      "datetime_complete": "2026-02-08T16:02:57.759197",
+      "duration_seconds": 1484.110477
+    },
+    {
+      "number": 4,
+      "state": "COMPLETE",
+      "value": 54.07,
+      "params": {
+        "learning_rate": 0.5328587170097588
+      },
+      "datetime_start": "2026-02-08T16:02:57.797133",
+      "datetime_complete": "2026-02-08T16:06:59.273458",
+      "duration_seconds": 241.476325
+    },
+    {
+      "number": 5,
+      "state": "COMPLETE",
+      "value": 52.08,
+      "params": {
+        "learning_rate": 0.06612903143129079
+      },
+      "datetime_start": "2026-02-08T16:06:59.310882",
+      "datetime_complete": "2026-02-08T16:13:02.457989",
+      "duration_seconds": 363.147107
+    },
+    {
+      "number": 6,
+      "state": "COMPLETE",
+      "value": 27.72,
+      "params": {
+        "learning_rate": 2.5257491230878564e-05
+      },
+      "datetime_start": "2026-02-08T16:13:02.481203",
+      "datetime_complete": "2026-02-08T16:33:33.850770",
+      "duration_seconds": 1231.369567
+    },
+    {
+      "number": 7,
+      "state": "COMPLETE",
+      "value": 52.77,
+      "params": {
+        "learning_rate": 0.09563112519466768
+      },
+      "datetime_start": "2026-02-08T16:33:33.893857",
+      "datetime_complete": "2026-02-08T16:39:07.558803",
+      "duration_seconds": 333.664946
+    },
+    {
+      "number": 8,
+      "state": "COMPLETE",
+      "value": 30.84,
+      "params": {
+        "learning_rate": 0.00014682795393125157
+      },
+      "datetime_start": "2026-02-08T16:39:07.587103",
+      "datetime_complete": "2026-02-08T16:50:10.568861",
+      "duration_seconds": 662.981758
+    },
+    {
+      "number": 9,
+      "state": "COMPLETE",
+      "value": 27.7,
+      "params": {
+        "learning_rate": 2.296518369334261e-05
+      },
+      "datetime_start": "2026-02-08T16:50:10.601467",
+      "datetime_complete": "2026-02-08T17:11:40.098121",
+      "duration_seconds": 1289.496654
+    },
+    {
+      "number": 10,
+      "state": "COMPLETE",
+      "value": 53.81,
+      "params": {
+        "learning_rate": 0.6994511017504338
+      },
+      "datetime_start": "2026-02-08T17:11:40.136471",
+      "datetime_complete": "2026-02-08T17:15:57.706584",
+      "duration_seconds": 257.570113
+    },
+    {
+      "number": 11,
+      "state": "COMPLETE",
+      "value": 55.6,
+      "params": {
+        "learning_rate": 0.465377317037192
+      },
+      "datetime_start": "2026-02-08T17:15:57.738810",
+      "datetime_complete": "2026-02-08T17:20:31.483540",
+      "duration_seconds": 273.74473
+    },
+    {
+      "number": 12,
+      "state": "COMPLETE",
+      "value": 10.0,
+      "params": {
+        "learning_rate": 0.9999999999999999
+      },
+      "datetime_start": "2026-02-08T17:20:31.538192",
+      "datetime_complete": "2026-02-08T17:21:22.301487",
+      "duration_seconds": 50.763295
+    },
+    {
+      "number": 13,
+      "state": "COMPLETE",
+      "value": 55.2,
+      "params": {
+        "learning_rate": 0.35635143778572337
+      },
+      "datetime_start": "2026-02-08T17:21:22.324572",
+      "datetime_complete": "2026-02-08T17:27:36.930921",
+      "duration_seconds": 374.606349
+    },
+    {
+      "number": 14,
+      "state": "COMPLETE",
+      "value": 55.4,
+      "params": {
+        "learning_rate": 0.40110314039128625
+      },
+      "datetime_start": "2026-02-08T17:27:36.969365",
+      "datetime_complete": "2026-02-08T17:32:03.714906",
+      "duration_seconds": 266.745541
+    },
+    {
+      "number": 15,
+      "state": "COMPLETE",
+      "value": 52.44,
+      "params": {
+        "learning_rate": 0.07997970705206685
+      },
+      "datetime_start": "2026-02-08T17:32:03.744449",
+      "datetime_complete": "2026-02-08T17:37:34.708494",
+      "duration_seconds": 330.964045
+    },
+    {
+      "number": 16,
+      "state": "COMPLETE",
+      "value": 53.79,
+      "params": {
+        "learning_rate": 0.14615924847136658
+      },
+      "datetime_start": "2026-02-08T17:37:34.746275",
+      "datetime_complete": "2026-02-08T17:43:13.566604",
+      "duration_seconds": 338.820329
+    },
+    {
+      "number": 17,
+      "state": "COMPLETE",
+      "value": 54.35,
+      "params": {
+        "learning_rate": 0.2089050678630407
+      },
+      "datetime_start": "2026-02-08T17:43:13.599789",
+      "datetime_complete": "2026-02-08T17:49:07.552997",
+      "duration_seconds": 353.953208
+    },
+    {
+      "number": 18,
+      "state": "COMPLETE",
+      "value": 53.25,
+      "params": {
+        "learning_rate": 0.13590368302402064
+      },
+      "datetime_start": "2026-02-08T17:49:07.580320",
+      "datetime_complete": "2026-02-08T17:53:34.349710",
+      "duration_seconds": 266.76939
+    },
+    {
+      "number": 19,
+      "state": "COMPLETE",
+      "value": 50.57,
+      "params": {
+        "learning_rate": 0.040306879799129204
+      },
+      "datetime_start": "2026-02-08T17:53:34.382555",
+      "datetime_complete": "2026-02-08T17:58:11.422311",
+      "duration_seconds": 277.039756
+    },
+    {
+      "number": 20,
+      "state": "COMPLETE",
+      "value": 48.75,
+      "params": {
+        "learning_rate": 0.02585667754987753
+      },
+      "datetime_start": "2026-02-08T17:58:11.442929",
+      "datetime_complete": "2026-02-08T18:02:52.705354",
+      "duration_seconds": 281.262425
+    },
+    {
+      "number": 21,
+      "state": "COMPLETE",
+      "value": 46.7,
+      "params": {
+        "learning_rate": 0.015882581665272927
+      },
+      "datetime_start": "2026-02-08T18:02:52.728158",
+      "datetime_complete": "2026-02-08T18:07:35.776416",
+      "duration_seconds": 283.048258
+    },
+    {
+      "number": 22,
+      "state": "COMPLETE",
+      "value": 48.76,
+      "params": {
+        "learning_rate": 0.00935985803515821
+      },
+      "datetime_start": "2026-02-08T18:07:35.802677",
+      "datetime_complete": "2026-02-08T18:18:05.325025",
+      "duration_seconds": 629.522348
+    },
+    {
+      "number": 23,
+      "state": "COMPLETE",
+      "value": 47.96,
+      "params": {
+        "learning_rate": 0.005979347885104663
+      },
+      "datetime_start": "2026-02-08T18:18:05.346282",
+      "datetime_complete": "2026-02-08T18:32:00.198628",
+      "duration_seconds": 834.852346
+    },
+    {
+      "number": 24,
+      "state": "COMPLETE",
+      "value": 46.28,
+      "params": {
+        "learning_rate": 0.0035696692166244295
+      },
+      "datetime_start": "2026-02-08T18:32:00.224077",
+      "datetime_complete": "2026-02-08T18:48:33.807102",
+      "duration_seconds": 993.583025
+    },
+    {
+      "number": 25,
+      "state": "COMPLETE",
+      "value": 42.7,
+      "params": {
+        "learning_rate": 0.002070128740334865
+      },
+      "datetime_start": "2026-02-08T18:48:33.847536",
+      "datetime_complete": "2026-02-08T19:05:20.538622",
+      "duration_seconds": 1006.691086
+    },
+    {
+      "number": 26,
+      "state": "COMPLETE",
+      "value": 55.45,
+      "params": {
+        "learning_rate": 0.6187078731481331
+      },
+      "datetime_start": "2026-02-08T19:05:20.569270",
+      "datetime_complete": "2026-02-08T19:09:56.112406",
+      "duration_seconds": 275.543136
+    },
+    {
+      "number": 27,
+      "state": "COMPLETE",
+      "value": 37.43,
+      "params": {
+        "learning_rate": 0.0011139197777792027
+      },
+      "datetime_start": "2026-02-08T19:09:56.134922",
+      "datetime_complete": "2026-02-08T19:22:28.198567",
+      "duration_seconds": 752.063645
+    },
+    {
+      "number": 28,
+      "state": "COMPLETE",
+      "value": 30.8,
+      "params": {
+        "learning_rate": 6.325988477488144e-05
+      },
+      "datetime_start": "2026-02-08T19:22:28.238780",
+      "datetime_complete": "2026-02-08T19:45:32.702339",
+      "duration_seconds": 1384.463559
+    },
+    {
+      "number": 29,
+      "state": "COMPLETE",
+      "value": 53.4,
+      "params": {
+        "learning_rate": 0.17768053478846957
+      },
+      "datetime_start": "2026-02-08T19:45:32.745571",
+      "datetime_complete": "2026-02-08T19:49:33.660805",
+      "duration_seconds": 240.915234
+    },
+    {
+      "number": 30,
+      "state": "COMPLETE",
+      "value": 54.06,
+      "params": {
+        "learning_rate": 0.2663413918893566
+      },
+      "datetime_start": "2026-02-08T19:49:33.682832",
+      "datetime_complete": "2026-02-08T19:53:16.569184",
+      "duration_seconds": 222.886352
+    },
+    {
+      "number": 31,
+      "state": "COMPLETE",
+      "value": 55.44,
+      "params": {
+        "learning_rate": 0.4015183310094104
+      },
+      "datetime_start": "2026-02-08T19:53:16.602884",
+      "datetime_complete": "2026-02-08T19:57:28.648074",
+      "duration_seconds": 252.04519
+    },
+    {
+      "number": 32,
+      "state": "COMPLETE",
+      "value": 55.54,
+      "params": {
+        "learning_rate": 0.6236667255277009
+      },
+      "datetime_start": "2026-02-08T19:57:28.684777",
+      "datetime_complete": "2026-02-08T20:01:55.245350",
+      "duration_seconds": 266.560573
+    },
+    {
+      "number": 33,
+      "state": "COMPLETE",
+      "value": 55.47,
+      "params": {
+        "learning_rate": 0.4050937029786451
+      },
+      "datetime_start": "2026-02-08T20:01:55.280929",
+      "datetime_complete": "2026-02-08T20:06:44.193892",
+      "duration_seconds": 288.912963
+    },
+    {
+      "number": 34,
+      "state": "COMPLETE",
+      "value": 47.55,
+      "params": {
+        "learning_rate": 0.012034015840293925
+      },
+      "datetime_start": "2026-02-08T20:06:44.228944",
+      "datetime_complete": "2026-02-08T20:14:09.645692",
+      "duration_seconds": 445.416748
+    },
+    {
+      "number": 35,
+      "state": "COMPLETE",
+      "value": 55.23,
+      "params": {
+        "learning_rate": 0.6259395962886187
+      },
+      "datetime_start": "2026-02-08T20:14:09.686745",
+      "datetime_complete": "2026-02-08T20:17:48.508376",
+      "duration_seconds": 218.821631
+    },
+    {
+      "number": 36,
+      "state": "COMPLETE",
+      "value": 55.41,
+      "params": {
+        "learning_rate": 0.40690419773712655
+      },
+      "datetime_start": "2026-02-08T20:17:48.532420",
+      "datetime_complete": "2026-02-08T20:21:54.406840",
+      "duration_seconds": 245.87442
+    },
+    {
+      "number": 37,
+      "state": "COMPLETE",
+      "value": 36.54,
+      "params": {
+        "learning_rate": 0.0007437190331632333
+      },
+      "datetime_start": "2026-02-08T20:21:54.442501",
+      "datetime_complete": "2026-02-08T20:36:13.350388",
+      "duration_seconds": 858.907887
+    },
+    {
+      "number": 38,
+      "state": "COMPLETE",
+      "value": 55.4,
+      "params": {
+        "learning_rate": 0.4069069944526406
+      },
+      "datetime_start": "2026-02-08T20:36:13.386201",
+      "datetime_complete": "2026-02-08T20:40:17.783761",
+      "duration_seconds": 244.39756
+    },
+    {
+      "number": 39,
+      "state": "COMPLETE",
+      "value": 45.71,
+      "params": {
+        "learning_rate": 0.004608194430104077
+      },
+      "datetime_start": "2026-02-08T20:40:17.822938",
+      "datetime_complete": "2026-02-08T20:52:35.794651",
+      "duration_seconds": 737.971713
+    },
+    {
+      "number": 40,
+      "state": "COMPLETE",
+      "value": 55.37,
+      "params": {
+        "learning_rate": 0.4062870469274386
+      },
+      "datetime_start": "2026-02-08T20:52:35.827071",
+      "datetime_complete": "2026-02-08T20:56:42.896989",
+      "duration_seconds": 247.069918
+    },
+    {
+      "number": 41,
+      "state": "COMPLETE",
+      "value": 51.26,
+      "params": {
+        "learning_rate": 0.050349197189263194
+      },
+      "datetime_start": "2026-02-08T20:56:42.917245",
+      "datetime_complete": "2026-02-08T21:01:24.730407",
+      "duration_seconds": 281.813162
+    },
+    {
+      "number": 42,
+      "state": "COMPLETE",
+      "value": 55.07,
+      "params": {
+        "learning_rate": 0.6270872167283839
+      },
+      "datetime_start": "2026-02-08T21:01:24.760536",
+      "datetime_complete": "2026-02-08T21:05:29.771832",
+      "duration_seconds": 245.011296
+    },
+    {
+      "number": 43,
+      "state": "COMPLETE",
+      "value": 55.57,
+      "params": {
+        "learning_rate": 0.40730354744783476
+      },
+      "datetime_start": "2026-02-08T21:05:29.797543",
+      "datetime_complete": "2026-02-08T21:09:34.433943",
+      "duration_seconds": 244.6364
+    },
+    {
+      "number": 44,
+      "state": "COMPLETE",
+      "value": 55.75,
+      "params": {
+        "learning_rate": 0.40838722357748763
+      },
+      "datetime_start": "2026-02-08T21:09:34.460376",
+      "datetime_complete": "2026-02-08T21:14:49.945027",
+      "duration_seconds": 315.484651
+    },
+    {
+      "number": 45,
+      "state": "COMPLETE",
+      "value": 30.82,
+      "params": {
+        "learning_rate": 9.604600998669177e-05
+      },
+      "datetime_start": "2026-02-08T21:14:49.981737",
+      "datetime_complete": "2026-02-08T21:30:14.275750",
+      "duration_seconds": 924.294013
+    },
+    {
+      "number": 46,
+      "state": "COMPLETE",
+      "value": 33.78,
+      "params": {
+        "learning_rate": 0.00032765988220556186
+      },
+      "datetime_start": "2026-02-08T21:30:14.308679",
+      "datetime_complete": "2026-02-08T21:45:01.811118",
+      "duration_seconds": 887.502439
+    },
+    {
+      "number": 47,
+      "state": "COMPLETE",
+      "value": 29.02,
+      "params": {
+        "learning_rate": 4.2907143727273384e-05
+      },
+      "datetime_start": "2026-02-08T21:45:01.857957",
+      "datetime_complete": "2026-02-08T22:03:21.738983",
+      "duration_seconds": 1099.881026
+    },
+    {
+      "number": 48,
+      "state": "COMPLETE",
+      "value": 39.96,
+      "params": {
+        "learning_rate": 0.0026789744398770113
+      },
+      "datetime_start": "2026-02-08T22:03:21.800892",
+      "datetime_complete": "2026-02-08T22:11:52.965754",
+      "duration_seconds": 511.164862
+    },
+    {
+      "number": 49,
+      "state": "COMPLETE",
+      "value": 37.25,
+      "params": {
+        "learning_rate": 0.0015420247901929219
+      },
+      "datetime_start": "2026-02-08T22:11:53.004734",
+      "datetime_complete": "2026-02-08T22:20:24.255812",
+      "duration_seconds": 511.251078
+    }
+  ]
+}

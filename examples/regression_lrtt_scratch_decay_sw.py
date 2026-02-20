@@ -80,7 +80,7 @@ class ScratchExperimentConfig:
     # Note: lrtt_lr is computed from hardware parameters below (see lrtt_lr property)
     lrtt_epochs = 2000
     lrtt_batch_size = 1
-    lrtt_patience = 7  # Allow a bit more training than fine-tuning
+    lrtt_patience = 10  # Allow a bit more training than fine-tuning
     lrtt_grad_clip = 2.0  # Conservative clipping
 
     # LRTT configuration

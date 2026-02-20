@@ -61,11 +61,12 @@ WEIGHT_PATH = os.path.join(RESULTS, "cifar10_vitsptlsa_lrtt_scratch_model_weight
 SEED = 1
 N_EPOCHS = 40  # Paper: 40 epochs
 BATCH_SIZE = 8  # Paper: batch size 8
-LEARNING_RATE = 1e-4  # Initial LR (will be reduced on plateau)
+LEARNING_RATE = 0.0009856  # Initial LR (will be reduced on plateau)
 LR_REDUCTION_FACTOR = 0.1  # Paper: reduce LR by 0.1 on plateau
-LR_PATIENCE = 5  # Patience for ReduceLROnPlateau
-WEIGHT_DECAY = 5e-5
-OPTIMIZER = "AnalogAdam"  # "AnalogSGD", "AnalogAdam"
+LR_PATIENCE = 3  # Patience for ReduceLROnPlateau
+EARLY_STOP_PATIENCE = 10  # Stop if no improvement for N epochs
+WEIGHT_DECAY = 0.001003
+OPTIMIZER = "AnalogSGD"  # "AnalogSGD", "AnalogAdam"
 N_CLASSES = 10
 NUM_WORKERS = 4  # WSL에서는 0이 가장 빠름
 IMAGE_SIZE = 32  # CIFAR-10 native size (no resize for this model)
@@ -81,8 +82,8 @@ DROPOUT = 0.0  # Dropout rate
 
 # LRTT configuration parameters
 LRTT_RANK = 8
-TRANSFER_EVERY = 1000
-LORA_ALPHA = 2.0
+TRANSFER_EVERY = 826
+LORA_ALPHA = 1.708
 TRANSFER_LR = LORA_ALPHA
 TRANSFER_LR_SCALE = 1.0  # Scaling factor for transfer_lr (effective = transfer_lr * scale)
 REINIT_MODE = "decay"  # "standard", "decay", "hybrid", "orthogonal_zero", "orthogonal_decay"
@@ -644,10 +645,7 @@ def create_optimizer(model, learning_rate, weight_decay):
     if OPTIMIZER == "AnalogSGD":
         optimizer = AnalogSGD(
             model.parameters(),
-            lr=learning_rate,
-            momentum=0.9,
-            weight_decay=weight_decay,
-            nesterov=True
+            lr=learning_rate
         )
     elif OPTIMIZER == "AnalogAdam":
         optimizer = AnalogAdam(
@@ -795,11 +793,13 @@ def main():
 
     best_accuracy = 0
     best_epoch = 0
+    epochs_without_improvement = 0
     epoch_history = []  # Track epoch-wise results for plotting
 
     print(f"\n{'='*60}")
-    print(f"Starting training: {N_EPOCHS} epochs, batch_size={BATCH_SIZE}")
+    print(f"Starting training: {N_EPOCHS} epochs (max), batch_size={BATCH_SIZE}")
     print(f"LR schedule: ReduceLROnPlateau (factor={LR_REDUCTION_FACTOR}, patience={LR_PATIENCE})")
+    print(f"Early stopping: patience={EARLY_STOP_PATIENCE}")
     print(f"No image augmentation (as per paper)")
     print(f"{'='*60}\n")
 
@@ -876,18 +876,27 @@ def main():
             "learning_rate": current_lr,
         })
 
-        # Track best accuracy
+        # Track best accuracy and early stopping
         if val_accuracy > best_accuracy:
             best_accuracy = val_accuracy
             best_epoch = epoch
+            epochs_without_improvement = 0
             save(model.state_dict(), WEIGHT_PATH)
+        else:
+            epochs_without_improvement += 1
 
         epoch_pbar.set_postfix({
             'Train': f'{train_acc:.2f}%',
             'Val': f'{val_accuracy:.2f}%',
             'Best': f'{best_accuracy:.2f}%',
-            'LR': f'{current_lr:.2e}'
+            'LR': f'{current_lr:.2e}',
+            'NoImp': f'{epochs_without_improvement}/{EARLY_STOP_PATIENCE}'
         })
+
+        # Early stopping
+        if epochs_without_improvement >= EARLY_STOP_PATIENCE:
+            tqdm.write(f"Early stopping at epoch {epoch + 1} (no improvement for {EARLY_STOP_PATIENCE} epochs)")
+            break
 
         # Print progress every 5 epochs
         if (epoch + 1) % 5 == 0:
