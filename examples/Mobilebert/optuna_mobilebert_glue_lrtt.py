@@ -1244,7 +1244,7 @@ def main():
     print(f"Study: {study_name}, Device: {DEVICE}, New trials: {args.n_trials}")
 
     # Run trials with OOM recovery via process restart
-    target_total = len(study.trials) + args.n_trials
+    initial_complete = sum(1 for t in study.trials if t.state == TrialState.COMPLETE)
 
     def _restart_with_remaining(remaining):
         new_argv = list(sys.argv)
@@ -1264,11 +1264,13 @@ def main():
             callbacks=[_oom_restart_callback],
         )
     except _OOMRestart:
-        remaining = max(1, target_total - len(study.trials))
+        current_complete = sum(1 for t in study.trials if t.state == TrialState.COMPLETE)
+        remaining = max(1, args.n_trials - (current_complete - initial_complete))
         _restart_with_remaining(remaining)
     except _OOMRetryDone:
         # Retry succeeded, restart to reset GRAD_ACCUM_STEPS to default
-        remaining = target_total - len(study.trials)
+        current_complete = sum(1 for t in study.trials if t.state == TrialState.COMPLETE)
+        remaining = args.n_trials - (current_complete - initial_complete)
         if remaining > 0:
             _restart_with_remaining(remaining)
 
