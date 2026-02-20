@@ -43,10 +43,12 @@ Inline flags (edit directly in script):
 Enqueue
 
 python3 << 'EOF'                                                                                                                                                                                                                                                      
-import optuna                                                
-study = optuna.load_study(                                                                                                                                                                                                                                            
-study_name='mobilebert_sst2_lrtt_bs64_sgd_hybrid_nowd_nomom_nonest_set_noio_none',                                                                                                                                                                                
-storage='sqlite:///results/optuna_mobilebert_sst2_lrtt/optuna_mobilebert_sst2_lrtt_bs64_sgd_hybrid_nowd_nomom_nonest_set_noio_none.db')
+import optuna
+from optuna.storages import JournalStorage
+from optuna.storages.journal import JournalFileBackend
+study = optuna.load_study(
+study_name='mobilebert_sst2_lrtt_bs64_sgd_hybrid_nowd_nomom_nonest_set_noio_none',
+storage=JournalStorage(JournalFileBackend('results/optuna_mobilebert_sst2_lrtt/optuna_mobilebert_sst2_lrtt_bs64_sgd_hybrid_nowd_nomom_nonest_set_noio_none.log')))
 study.enqueue_trial({
 'learning_rate': 0.2080749864869466,
 'transfer_lr': 0.010000000000000004,
@@ -79,6 +81,8 @@ import numpy as np
 
 import optuna
 from optuna.trial import TrialState
+from optuna.storages import JournalStorage
+from optuna.storages.journal import JournalFileBackend
 from optuna_integration import BoTorchSampler
 import matplotlib.pyplot as plt
 
@@ -1299,7 +1303,7 @@ def main():
     # Auto-generate study name based on config (includes batch size)
     study_name = args.study_name or f"mobilebert_squad_lrtt_bs{BATCH_SIZE}_{get_study_name_suffix()}"
 
-    storage = f"sqlite:///{RESULTS}/optuna_{study_name}.db"
+    storage = JournalStorage(JournalFileBackend(f"{RESULTS}/optuna_{study_name}.log"))
 
     if args.visualize:
         study = optuna.load_study(study_name=study_name, storage=storage)
@@ -1314,12 +1318,9 @@ def main():
         with open(retry_file) as f:
             retry_info = json.load(f)
         os.remove(retry_file)  # Delete immediately so it won't persist across manual reruns
-        # Delete the OOM trial from DB so retry gets the same trial number
-        db_path = storage.replace("sqlite:///", "")
-        _delete_trial_from_db(db_path, study_name, retry_info["trial_number"])
         GRAD_ACCUM_STEPS = retry_info["grad_accum_steps"]
         _oom_retry_pending = True
-        print(f"[OOM Retry] Deleted trial {retry_info['trial_number']}, "
+        print(f"[OOM Retry] Retrying trial {retry_info['trial_number']}, "
               f"GRAD_ACCUM_STEPS={GRAD_ACCUM_STEPS}, micro_bs={BATCH_SIZE // GRAD_ACCUM_STEPS}")
 
     # Load data once (shared across all trials)
@@ -1361,7 +1362,6 @@ def main():
             callbacks=[_oom_restart_callback],
         )
     except _OOMRestart:
-        # +1 because the OOM trial will be deleted from DB on restart
         remaining = max(1, target_total - len(study.trials) + 1)
         print(f"\n[OOM Recovery] Restarting process for {remaining} remaining trials...")
         _restart_with_remaining(remaining)
@@ -1414,31 +1414,6 @@ class _OOMRetryDone(Exception):
 
 
 _oom_retry_pending = False
-
-
-def _delete_trial_from_db(db_path, study_name, trial_number):
-    """Delete a trial from the Optuna SQLite DB so it doesn't appear in history."""
-    import sqlite3
-    conn = sqlite3.connect(db_path)
-    c = conn.cursor()
-    c.execute(
-        "SELECT trial_id FROM trials WHERE study_id = "
-        "(SELECT study_id FROM studies WHERE study_name = ?) AND number = ?",
-        (study_name, trial_number),
-    )
-    row = c.fetchone()
-    if row:
-        trial_id = row[0]
-        for table in ["trial_values", "trial_params", "trial_user_attributes",
-                      "trial_system_attributes", "trial_intermediate_values",
-                      "trial_heartbeats"]:
-            try:
-                c.execute(f"DELETE FROM {table} WHERE trial_id = ?", (trial_id,))
-            except Exception:
-                pass  # Table might not exist in this Optuna version
-        c.execute("DELETE FROM trials WHERE trial_id = ?", (trial_id,))
-        conn.commit()
-    conn.close()
 
 
 def _oom_restart_callback(study, trial):
