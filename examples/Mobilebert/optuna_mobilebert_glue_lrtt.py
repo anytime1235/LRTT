@@ -1264,7 +1264,7 @@ def main():
             callbacks=[_oom_restart_callback],
         )
     except _OOMRestart:
-        remaining = max(1, target_total - len(study.trials) + 1)
+        remaining = max(1, target_total - len(study.trials))
         _restart_with_remaining(remaining)
     except _OOMRetryDone:
         # Retry succeeded, restart to reset GRAD_ACCUM_STEPS to default
