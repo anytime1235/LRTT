@@ -1,0 +1,408 @@
+[I 2026-02-15 03:53:32,631] A new study created in memory with name: hybrid_200ep_te50
+[I 2026-02-15 03:53:48,002] Trial 0 finished with value: 0.0 and parameters: {'lr': 0.08403604888695192, 'transfer_lr': 0.711447600934342}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 03:54:02,603] Trial 1 finished with value: 0.0 and parameters: {'lr': 0.13793493374058524, 'transfer_lr': 0.06251373574521749}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 03:54:17,197] Trial 2 finished with value: 0.0 and parameters: {'lr': 0.06207297859212557, 'transfer_lr': 0.0029375384576328283}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 03:54:32,394] Trial 3 finished with value: 0.0 and parameters: {'lr': 0.05419257949847529, 'transfer_lr': 0.39676050770529875}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 03:54:47,850] Trial 4 finished with value: 0.0 and parameters: {'lr': 0.11504753106625047, 'transfer_lr': 0.13311216080736885}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 03:55:03,161] Trial 5 finished with value: 0.0 and parameters: {'lr': 0.05144736127521129, 'transfer_lr': 0.8123245085588685}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 03:55:19,458] Trial 6 finished with value: 0.0 and parameters: {'lr': 0.15854421990210388, 'transfer_lr': 0.004335281794951566}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 03:55:37,232] Trial 7 finished with value: 0.0 and parameters: {'lr': 0.06433385005697079, 'transfer_lr': 0.0035498788321965025}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 03:55:53,454] Trial 8 finished with value: 0.0 and parameters: {'lr': 0.07623283773417665, 'transfer_lr': 0.03752055855124281}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 03:56:09,501] Trial 9 finished with value: 0.0 and parameters: {'lr': 0.09099694632498756, 'transfer_lr': 0.007476312062252299}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 03:56:09,504] A new study created in memory with name: hybrid_200ep_te100
+[I 2026-02-15 03:56:26,116] Trial 0 finished with value: 0.0 and parameters: {'lr': 0.08403604888695192, 'transfer_lr': 0.711447600934342}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 03:56:42,918] Trial 1 finished with value: 0.0 and parameters: {'lr': 0.13793493374058524, 'transfer_lr': 0.06251373574521749}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 03:56:58,740] Trial 2 finished with value: 0.0 and parameters: {'lr': 0.06207297859212557, 'transfer_lr': 0.0029375384576328283}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 03:57:15,730] Trial 3 finished with value: 0.0 and parameters: {'lr': 0.05419257949847529, 'transfer_lr': 0.39676050770529875}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 03:57:34,302] Trial 4 finished with value: 0.0 and parameters: {'lr': 0.11504753106625047, 'transfer_lr': 0.13311216080736885}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 03:57:52,218] Trial 5 finished with value: 0.0 and parameters: {'lr': 0.05144736127521129, 'transfer_lr': 0.8123245085588685}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 03:58:11,924] Trial 6 finished with value: 0.0 and parameters: {'lr': 0.15854421990210388, 'transfer_lr': 0.004335281794951566}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 03:58:30,763] Trial 7 finished with value: 0.0 and parameters: {'lr': 0.06433385005697079, 'transfer_lr': 0.0035498788321965025}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 03:58:47,155] Trial 8 finished with value: 0.0 and parameters: {'lr': 0.07623283773417665, 'transfer_lr': 0.03752055855124281}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 03:59:02,504] Trial 9 finished with value: 0.0 and parameters: {'lr': 0.09099694632498756, 'transfer_lr': 0.007476312062252299}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 03:59:02,505] A new study created in memory with name: hybrid_200ep_te500
+
+################################################################################
+# SWEEP: transfer_every = 50  (10 trials)
+################################################################################
+
+======================================================================
+Trial 0 | te=50, lr=0.08404, t_lr=0.71145, transfers/ep~7
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 0 (te=50) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 1 | te=50, lr=0.13793, t_lr=0.06251, transfers/ep~7
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 1 (te=50) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 2 | te=50, lr=0.06207, t_lr=0.00294, transfers/ep~7
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 2 (te=50) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 3 | te=50, lr=0.05419, t_lr=0.39676, transfers/ep~7
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 3 (te=50) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 4 | te=50, lr=0.11505, t_lr=0.13311, transfers/ep~7
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 4 (te=50) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 5 | te=50, lr=0.05145, t_lr=0.81232, transfers/ep~7
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 5 (te=50) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 6 | te=50, lr=0.15854, t_lr=0.00434, transfers/ep~7
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 6 (te=50) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 7 | te=50, lr=0.06433, t_lr=0.00355, transfers/ep~7
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 7 (te=50) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 8 | te=50, lr=0.07623, t_lr=0.03752, transfers/ep~7
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 8 (te=50) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 9 | te=50, lr=0.09100, t_lr=0.00748, transfers/ep~7
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 9 (te=50) complete: best_acc=0.00% (stopped at epoch -1)
+
+--- te=50 Best: trial 0, acc=0.00%, params={'lr': 0.08403604888695192, 'transfer_lr': 0.711447600934342}
+    (reinit=decay, stem/head=FloatingPoint, 48 analog layers)
+
+################################################################################
+# SWEEP: transfer_every = 100  (10 trials)
+################################################################################
+
+======================================================================
+Trial 0 | te=100, lr=0.08404, t_lr=0.71145, transfers/ep~3
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 0 (te=100) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 1 | te=100, lr=0.13793, t_lr=0.06251, transfers/ep~3
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 1 (te=100) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 2 | te=100, lr=0.06207, t_lr=0.00294, transfers/ep~3
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 2 (te=100) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 3 | te=100, lr=0.05419, t_lr=0.39676, transfers/ep~3
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 3 (te=100) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 4 | te=100, lr=0.11505, t_lr=0.13311, transfers/ep~3
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 4 (te=100) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 5 | te=100, lr=0.05145, t_lr=0.81232, transfers/ep~3
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 5 (te=100) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 6 | te=100, lr=0.15854, t_lr=0.00434, transfers/ep~3
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 6 (te=100) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 7 | te=100, lr=0.06433, t_lr=0.00355, transfers/ep~3
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 7 (te=100) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 8 | te=100, lr=0.07623, t_lr=0.03752, transfers/ep~3
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 8 (te=100) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 9 | te=100, lr=0.09100, t_lr=0.00748, transfers/ep~3
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 9 (te=100) complete: best_acc=0.00% (stopped at epoch -1)
+
+--- te=100 Best: trial 0, acc=0.00%, params={'lr': 0.08403604888695192, 'transfer_lr': 0.711447600934342}
+    (reinit=decay, stem/head=FloatingPoint, 48 analog layers)
+
+################################################################################
+# SWEEP: transfer_every = 500  (10 trials)
+################################################################################
+
+======================================================================
+Trial 0 | te=500, lr=0.08404, t_lr=0.71145, transfers/ep~1/2ep
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+[I 2026-02-15 03:59:18,174] Trial 0 finished with value: 0.0 and parameters: {'lr': 0.08403604888695192, 'transfer_lr': 0.711447600934342}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 03:59:33,272] Trial 1 finished with value: 0.0 and parameters: {'lr': 0.13793493374058524, 'transfer_lr': 0.06251373574521749}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 03:59:47,707] Trial 2 finished with value: 0.0 and parameters: {'lr': 0.06207297859212557, 'transfer_lr': 0.0029375384576328283}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:00:03,533] Trial 3 finished with value: 0.0 and parameters: {'lr': 0.05419257949847529, 'transfer_lr': 0.39676050770529875}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:00:20,097] Trial 4 finished with value: 0.0 and parameters: {'lr': 0.11504753106625047, 'transfer_lr': 0.13311216080736885}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:00:36,123] Trial 5 finished with value: 0.0 and parameters: {'lr': 0.05144736127521129, 'transfer_lr': 0.8123245085588685}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:00:50,465] Trial 6 finished with value: 0.0 and parameters: {'lr': 0.15854421990210388, 'transfer_lr': 0.004335281794951566}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:01:03,552] Trial 7 finished with value: 0.0 and parameters: {'lr': 0.06433385005697079, 'transfer_lr': 0.0035498788321965025}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:01:18,258] Trial 8 finished with value: 0.0 and parameters: {'lr': 0.07623283773417665, 'transfer_lr': 0.03752055855124281}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:01:32,334] Trial 9 finished with value: 0.0 and parameters: {'lr': 0.09099694632498756, 'transfer_lr': 0.007476312062252299}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:01:32,337] A new study created in memory with name: hybrid_200ep_te1000
+[I 2026-02-15 04:01:46,533] Trial 0 finished with value: 0.0 and parameters: {'lr': 0.08403604888695192, 'transfer_lr': 0.711447600934342}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:02:02,345] Trial 1 finished with value: 0.0 and parameters: {'lr': 0.13793493374058524, 'transfer_lr': 0.06251373574521749}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:02:17,592] Trial 2 finished with value: 0.0 and parameters: {'lr': 0.06207297859212557, 'transfer_lr': 0.0029375384576328283}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:02:32,584] Trial 3 finished with value: 0.0 and parameters: {'lr': 0.05419257949847529, 'transfer_lr': 0.39676050770529875}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:02:48,574] Trial 4 finished with value: 0.0 and parameters: {'lr': 0.11504753106625047, 'transfer_lr': 0.13311216080736885}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:03:03,052] Trial 5 finished with value: 0.0 and parameters: {'lr': 0.05144736127521129, 'transfer_lr': 0.8123245085588685}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:03:18,942] Trial 6 finished with value: 0.0 and parameters: {'lr': 0.15854421990210388, 'transfer_lr': 0.004335281794951566}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:03:34,548] Trial 7 finished with value: 0.0 and parameters: {'lr': 0.06433385005697079, 'transfer_lr': 0.0035498788321965025}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:03:50,482] Trial 8 finished with value: 0.0 and parameters: {'lr': 0.07623283773417665, 'transfer_lr': 0.03752055855124281}. Best is trial 0 with value: 0.0.
+[I 2026-02-15 04:04:06,850] Trial 9 finished with value: 0.0 and parameters: {'lr': 0.09099694632498756, 'transfer_lr': 0.007476312062252299}. Best is trial 0 with value: 0.0.
+======================================================================
+
+
+Trial 0 (te=500) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 1 | te=500, lr=0.13793, t_lr=0.06251, transfers/ep~1/2ep
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 1 (te=500) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 2 | te=500, lr=0.06207, t_lr=0.00294, transfers/ep~1/2ep
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 2 (te=500) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 3 | te=500, lr=0.05419, t_lr=0.39676, transfers/ep~1/2ep
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 3 (te=500) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 4 | te=500, lr=0.11505, t_lr=0.13311, transfers/ep~1/2ep
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 4 (te=500) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 5 | te=500, lr=0.05145, t_lr=0.81232, transfers/ep~1/2ep
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 5 (te=500) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 6 | te=500, lr=0.15854, t_lr=0.00434, transfers/ep~1/2ep
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 6 (te=500) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 7 | te=500, lr=0.06433, t_lr=0.00355, transfers/ep~1/2ep
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 7 (te=500) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 8 | te=500, lr=0.07623, t_lr=0.03752, transfers/ep~1/2ep
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 8 (te=500) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 9 | te=500, lr=0.09100, t_lr=0.00748, transfers/ep~1/2ep
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 9 (te=500) complete: best_acc=0.00% (stopped at epoch -1)
+
+--- te=500 Best: trial 0, acc=0.00%, params={'lr': 0.08403604888695192, 'transfer_lr': 0.711447600934342}
+    (reinit=decay, stem/head=FloatingPoint, 48 analog layers)
+
+################################################################################
+# SWEEP: transfer_every = 1000  (10 trials)
+################################################################################
+
+======================================================================
+Trial 0 | te=1000, lr=0.08404, t_lr=0.71145, transfers/ep~1/3ep
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 0 (te=1000) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 1 | te=1000, lr=0.13793, t_lr=0.06251, transfers/ep~1/3ep
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 1 (te=1000) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 2 | te=1000, lr=0.06207, t_lr=0.00294, transfers/ep~1/3ep
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 2 (te=1000) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 3 | te=1000, lr=0.05419, t_lr=0.39676, transfers/ep~1/3ep
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 3 (te=1000) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 4 | te=1000, lr=0.11505, t_lr=0.13311, transfers/ep~1/3ep
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 4 (te=1000) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 5 | te=1000, lr=0.05145, t_lr=0.81232, transfers/ep~1/3ep
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 5 (te=1000) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 6 | te=1000, lr=0.15854, t_lr=0.00434, transfers/ep~1/3ep
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 6 (te=1000) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 7 | te=1000, lr=0.06433, t_lr=0.00355, transfers/ep~1/3ep
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 7 (te=1000) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 8 | te=1000, lr=0.07623, t_lr=0.03752, transfers/ep~1/3ep
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 8 (te=1000) complete: best_acc=0.00% (stopped at epoch -1)
+
+======================================================================
+Trial 9 | te=1000, lr=0.09100, t_lr=0.00748, transfers/ep~1/3ep
+reinit=decay, decay_factor=1.0, stem/head=FloatingPoint, sched=cosine, patience=10
+======================================================================
+
+
+Trial 9 (te=1000) complete: best_acc=0.00% (stopped at epoch -1)
+
+--- te=1000 Best: trial 0, acc=0.00%, params={'lr': 0.08403604888695192, 'transfer_lr': 0.711447600934342}
+    (reinit=decay, stem/head=FloatingPoint, 48 analog layers)
+
+================================================================================
+SWEEP COMPLETE - SUMMARY
+================================================================================
+  te=  50: best_acc=0.00%  lr=0.08404  t_lr=0.71145
+  te= 100: best_acc=0.00%  lr=0.08404  t_lr=0.71145
+  te= 500: best_acc=0.00%  lr=0.08404  t_lr=0.71145
+  te=1000: best_acc=0.00%  lr=0.08404  t_lr=0.71145
+
+Best overall: te=None, acc=0.00%
+Traceback (most recent call last):
+  File "/root/LRTT/MDMLP/sweep_lrtt_decay_200ep.py", line 262, in <module>
+    main()
+  File "/root/LRTT/MDMLP/sweep_lrtt_decay_200ep.py", line 254, in main
+    "params": all_results[best_overall_te]["best_params"],
+KeyError: None

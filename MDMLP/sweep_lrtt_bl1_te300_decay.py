@@ -58,8 +58,8 @@ def objective(trial, args):
 
     # === Search space (reinit=decay, decay_factor=1.0, c_desired_bl=1) ===
     lr = trial.suggest_float("lr", 1e-3, 0.1, log=True)
-    transfer_lr = trial.suggest_float("transfer_lr", 0.01, 10.0, log=True)
-    transfer_every = trial.suggest_int("transfer_every", 1, 100, log=True)
+    transfer_lr = trial.suggest_float("transfer_lr", 0.01, 1.0, log=True)
+    transfer_every = trial.suggest_int("transfer_every", 1, 10, log=True)
 
     # Trial output directory
     exp_name = f"trial_{trial.number:04d}"
@@ -175,7 +175,8 @@ def main():
     )
 
     # Enqueue best known params from te300_decay sweep (best 52.12%) adapted for new space
-    study.enqueue_trial({"lr": 0.0869, "transfer_lr": 0.0103, "transfer_every": 100})
+    # Best from previous sweep: te=1, lr=0.016, t_lr=0.03 (42.47% @10ep)
+    study.enqueue_trial({"lr": 0.0158, "transfer_lr": 0.029, "transfer_every": 1})
 
     # Run optimization
     study.optimize(

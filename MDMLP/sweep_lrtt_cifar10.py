@@ -5,6 +5,10 @@ Searches over: lr, transfer_lr, transfer_every, rank(1-3).
 Each trial runs train_analog.py for a configured number of epochs and
 reports the best validation accuracy to Optuna.
 
+Features:
+  - Patience-based early stopping (--patience, default 4)
+  - Optuna MedianPruner for cross-trial pruning
+
 Usage:
     python sweep_lrtt_cifar10.py --n-trials 50 --epochs 50
     python sweep_lrtt_cifar10.py --n-trials 100 --epochs 200 --study-name full_sweep
@@ -12,20 +16,24 @@ Usage:
 
 import argparse
 import os
+import re
 import subprocess
 import sys
 import json
 import csv
+import signal
 from datetime import datetime
 
 import optuna
 from optuna.samplers import TPESampler
+from optuna.pruners import MedianPruner
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Optuna sweep for MDMLP + LRTT")
     parser.add_argument("--n-trials", type=int, default=50, help="Number of Optuna trials")
     parser.add_argument("--epochs", type=int, default=30, help="Epochs per trial")
+    parser.add_argument("--patience", type=int, default=4, help="Early stopping patience")
     parser.add_argument("--data-dir", type=str, default="/data/cifar10", help="Path to CIFAR-10 data")
     parser.add_argument("--model", type=str, default="mdmlp_patch4_lap2_dim64_depth8_32",
                         help="Model name")
@@ -40,23 +48,33 @@ def parse_args():
     return parser.parse_args()
 
 
+def _parse_epoch_acc(line):
+    """Parse accuracy from a Test: line. Returns (epoch, acc) or None."""
+    # Match: Test: [ 5/30]  ... Acc@1: 45.3300 (45.3300) ...
+    m = re.search(r'Test:\s*\[\s*(\d+)/\d+\].*Acc@1:\s*[\d.]+\s*\(([\d.]+)\)', line)
+    if m:
+        return int(m.group(1)), float(m.group(2))
+    return None
+
+
 def objective(trial, args):
     """Optuna objective: run one MDMLP+LRTT training and return best val accuracy."""
 
-    # === Search space ===
+    # === Search space (te=10, reinit=decay, decay_factor=1.0, out_noise=0, lifetime=0) ===
     lr = trial.suggest_float("lr", 1e-3, 0.1, log=True)
-    transfer_lr = trial.suggest_float("transfer_lr", 1e-3, 10.0, log=True)
-    transfer_every = trial.suggest_categorical("transfer_every", [1, 10, 100, 1000])
+    transfer_lr = trial.suggest_float("transfer_lr", 0.01, 2.0, log=True)
+    transfer_every = 300  # fixed (~1 transfer per epoch)
 
     # Trial output directory (train_analog.py creates it via get_outdir)
     exp_name = f"trial_{trial.number:04d}"
     exp_dir = os.path.join(args.output_dir, exp_name)
 
     # Build command
+    script_dir = os.path.dirname(os.path.abspath(__file__))
     cmd = [
-        sys.executable, os.path.join(os.path.dirname(__file__), "train_analog.py"),
+        sys.executable, os.path.join(script_dir, "train_analog.py"),
         args.data_dir,
-        "-c", os.path.join(os.path.dirname(__file__), "ymls", "cifar10_analog.yml"),
+        "-c", os.path.join(script_dir, "ymls", "cifar10_analog.yml"),
         "--model", args.model,
         "--analog",
         "--epochs", str(args.epochs),
@@ -64,10 +82,12 @@ def objective(trial, args):
         "--lrtt-rank", "4",
         "--transfer-every", str(transfer_every),
         "--transfer-lr", str(transfer_lr),
+        "--sched", "none",
         "--warmup-epochs", "0",
         "--batch-size", str(args.batch_size),
         "--seed", str(args.seed),
         "--validate-c-only",
+        "--patience", str(args.patience),
         "--output", args.output_dir,
         "--experiment", exp_name,
     ]
@@ -78,36 +98,50 @@ def objective(trial, args):
           f"te={transfer_every}")
     print(f"{'='*60}\n")
 
+    os.makedirs(exp_dir, exist_ok=True)
+    best_acc = 0.0
+    last_epoch = -1
+
     try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=7200,  # 2 hour timeout per trial
+        proc = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, bufsize=1,
         )
+        for line in proc.stdout:
+            line_s = line.rstrip()
+            # Print key lines
+            if any(kw in line_s for kw in ["Test:", "C-only", "*** Best", "Early stopping"]):
+                print(f"  [T{trial.number}] {line_s}")
+
+            # Parse epoch-level accuracy for Optuna pruning
+            parsed = _parse_epoch_acc(line_s)
+            if parsed:
+                epoch, acc = parsed
+                if epoch > last_epoch:
+                    last_epoch = epoch
+                    best_acc = max(best_acc, acc)
+                    trial.report(best_acc, step=epoch)
+                    if trial.should_prune():
+                        print(f"  [T{trial.number}] PRUNED by Optuna at epoch {epoch} (acc={best_acc:.2f}%)")
+                        proc.kill()
+                        proc.wait()
+                        raise optuna.TrialPruned()
+
+        proc.wait(timeout=7200)
     except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait()
         print(f"Trial {trial.number} timed out!")
         return 0.0
 
-    # Parse best accuracy from output
-    best_acc = 0.0
-    for line in result.stdout.split("\n"):
-        if "*** Best metric:" in line:
-            try:
-                best_acc = float(line.split("*** Best metric:")[1].split("(")[0].strip())
-            except (ValueError, IndexError):
-                pass
-
-    # Also try parsing from summary.csv
+    # Also parse from summary.csv as fallback
     summary_path = os.path.join(exp_dir, "summary.csv")
     if os.path.exists(summary_path):
         try:
             with open(summary_path, "r") as f:
-                reader = csv.DictReader(f)
-                for row in reader:
+                for row in csv.DictReader(f):
                     if "eval_top1" in row:
-                        acc = float(row["eval_top1"])
-                        best_acc = max(best_acc, acc)
+                        best_acc = max(best_acc, float(row["eval_top1"]))
         except Exception:
             pass
 
@@ -119,15 +153,10 @@ def objective(trial, args):
         "transfer_every": transfer_every,
         "best_accuracy": best_acc,
     }
-    os.makedirs(exp_dir, exist_ok=True)
     with open(os.path.join(exp_dir, "trial_params.json"), "w") as f:
         json.dump(trial_info, f, indent=2)
 
     print(f"\nTrial {trial.number} complete: best_acc={best_acc:.2f}%")
-
-    # Report to Optuna for pruning
-    trial.report(best_acc, step=args.epochs)
-
     return best_acc
 
 
@@ -135,15 +164,20 @@ def main():
     args = parse_args()
     os.makedirs(args.output_dir, exist_ok=True)
 
-    # Create Optuna study
+    # Create Optuna study with MedianPruner
     sampler = TPESampler(seed=args.seed)
+    pruner = MedianPruner(n_startup_trials=5, n_warmup_steps=5)
     study = optuna.create_study(
         study_name=args.study_name,
         storage=args.storage,
         direction="maximize",
         sampler=sampler,
+        pruner=pruner,
         load_if_exists=True,
     )
+
+    # Enqueue best known params from previous sweeps as first trial
+    study.enqueue_trial({"lr": 0.0291, "transfer_lr": 0.2385})
 
     # Run optimization
     study.optimize(

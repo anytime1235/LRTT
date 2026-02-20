@@ -1,0 +1,9 @@
+{
+  "trial": 1,
+  "transfer_every": 500,
+  "lora_alpha": 1.0,
+  "lr": 0.13793493374058524,
+  "transfer_lr": 0.06251373574521749,
+  "best_accuracy": 0.0,
+  "stopped_epoch": -1
+}

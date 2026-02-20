@@ -1,0 +1,60 @@
+{
+  "te50_la0.5": {
+    "best_acc": 12.59,
+    "trials": [
+      {
+        "trial_num": 0,
+        "lr": 0.08404,
+        "transfer_lr": 0.71145,
+        "accuracy": 12.59
+      },
+      {
+        "trial_num": 1,
+        "lr": 0.13793,
+        "transfer_lr": 0.06251,
+        "accuracy": 0.0
+      },
+      {
+        "trial_num": 2,
+        "lr": 0.06207,
+        "transfer_lr": 0.00294,
+        "accuracy": 0.0
+      },
+      {
+        "trial_num": 3,
+        "lr": 0.05419,
+        "transfer_lr": 0.39676,
+        "accuracy": 0.0
+      }
+    ]
+  },
+  "te100_la0.01": {
+    "best_acc": 12.59,
+    "trials": [
+      {
+        "trial_num": 0,
+        "lr": 0.08404,
+        "transfer_lr": 0.71145,
+        "accuracy": 12.59
+      },
+      {
+        "trial_num": 1,
+        "lr": 0.13793,
+        "transfer_lr": 0.06251,
+        "accuracy": 0.0
+      },
+      {
+        "trial_num": 2,
+        "lr": 0.06207,
+        "transfer_lr": 0.00294,
+        "accuracy": 0.0
+      },
+      {
+        "trial_num": 3,
+        "lr": 0.05419,
+        "transfer_lr": 0.39676,
+        "accuracy": 0.0
+      }
+    ]
+  }
+}

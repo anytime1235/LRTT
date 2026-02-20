@@ -1,0 +1,167 @@
+{
+  "config": {
+    "rank": 4,
+    "te": 100,
+    "lifetime": 46505,
+    "lr": 0.3418,
+    "tlr": 0.00391,
+    "epochs": 1,
+    "batch_size": 64
+  },
+  "epoch_summaries": [
+    {
+      "epoch": 1,
+      "n_transfers": 9,
+      "a_norm": {
+        "mean": 14.982436603969997,
+        "max": 20.279945373535156,
+        "min": 11.274622917175293
+      },
+      "b_norm": {
+        "mean": 18.305726475185818,
+        "max": 31.06325912475586,
+        "min": 14.385225296020508
+      },
+      "ab_magnitude": {
+        "mean": 0.9610647790961795,
+        "max": 1.6976203918457031,
+        "min": 0.47239765524864197
+      },
+      "c_norm": {
+        "mean": 9.496676233079699,
+        "max": 9.670692443847656,
+        "min": 9.236324310302734
+      },
+      "delta_c_norm": {
+        "mean": 1.0965826776292589,
+        "max": 1.872423768043518,
+        "min": 0.6316887140274048
+      },
+      "delta_ratio": {
+        "mean": 1.1625311116617993,
+        "max": 1.3371969716803982,
+        "min": 1.0987737449728394
+      },
+      "unchanged_elem_ratio": {
+        "mean": 0.3954806807968352,
+        "max": 0.5203433632850647,
+        "min": 0.05836455523967743
+      },
+      "val_acc": 89.71,
+      "best_acc": 89.71
+    }
+  ],
+  "all_transfers": [
+    {
+      "epoch": 1,
+      "batch_idx": 99,
+      "layer_name": "0.analog_module",
+      "a_norm": 20.279945373535156,
+      "b_norm": 31.06325912475586,
+      "ab_magnitude": 1.6976203918457031,
+      "c_norm": 9.236324310302734,
+      "delta_c_norm": 1.872423768043518,
+      "delta_ratio": 1.1029696491850947,
+      "unchanged_elem_ratio": 0.05836455523967743
+    },
+    {
+      "epoch": 1,
+      "batch_idx": 199,
+      "layer_name": "0.analog_module",
+      "a_norm": 11.57261848449707,
+      "b_norm": 15.831231117248535,
+      "ab_magnitude": 0.47239765524864197,
+      "c_norm": 9.403190612792969,
+      "delta_c_norm": 0.6316887140274048,
+      "delta_ratio": 1.3371969716803982,
+      "unchanged_elem_ratio": 0.4421984553337097
+    },
+    {
+      "epoch": 1,
+      "batch_idx": 299,
+      "layer_name": "0.analog_module",
+      "a_norm": 11.274622917175293,
+      "b_norm": 15.906118392944336,
+      "ab_magnitude": 0.6363953948020935,
+      "c_norm": 9.413751602172852,
+      "delta_c_norm": 0.7537765502929688,
+      "delta_ratio": 1.1844468964571602,
+      "unchanged_elem_ratio": 0.5203433632850647
+    },
+    {
+      "epoch": 1,
+      "batch_idx": 399,
+      "layer_name": "0.analog_module",
+      "a_norm": 15.863792419433594,
+      "b_norm": 18.06621742248535,
+      "ab_magnitude": 1.0666720867156982,
+      "c_norm": 9.436368942260742,
+      "delta_c_norm": 1.172031283378601,
+      "delta_ratio": 1.0987737449728394,
+      "unchanged_elem_ratio": 0.39409777522087097
+    },
+    {
+      "epoch": 1,
+      "batch_idx": 499,
+      "layer_name": "0.analog_module",
+      "a_norm": 13.97446060180664,
+      "b_norm": 17.18357276916504,
+      "ab_magnitude": 0.8866998553276062,
+      "c_norm": 9.498876571655273,
+      "delta_c_norm": 0.9938451647758484,
+      "delta_ratio": 1.1208360515731173,
+      "unchanged_elem_ratio": 0.4578683078289032
+    },
+    {
+      "epoch": 1,
+      "batch_idx": 599,
+      "layer_name": "0.analog_module",
+      "a_norm": 17.973718643188477,
+      "b_norm": 19.15410614013672,
+      "ab_magnitude": 1.2952229976654053,
+      "c_norm": 9.543691635131836,
+      "delta_c_norm": 1.43099844455719,
+      "delta_ratio": 1.104827853687369,
+      "unchanged_elem_ratio": 0.3537099361419678
+    },
+    {
+      "epoch": 1,
+      "batch_idx": 699,
+      "layer_name": "0.analog_module",
+      "a_norm": 17.629623413085938,
+      "b_norm": 18.65484619140625,
+      "ab_magnitude": 1.2264702320098877,
+      "c_norm": 9.609258651733398,
+      "delta_c_norm": 1.380545735359192,
+      "delta_ratio": 1.1256251471320358,
+      "unchanged_elem_ratio": 0.32181718945503235
+    },
+    {
+      "epoch": 1,
+      "batch_idx": 799,
+      "layer_name": "0.analog_module",
+      "a_norm": 12.756134033203125,
+      "b_norm": 14.385225296020508,
+      "ab_magnitude": 0.6596673727035522,
+      "c_norm": 9.657931327819824,
+      "delta_c_norm": 0.7829853892326355,
+      "delta_ratio": 1.1869396935969139,
+      "unchanged_elem_ratio": 0.5104482173919678
+    },
+    {
+      "epoch": 1,
+      "batch_idx": 899,
+      "layer_name": "0.analog_module",
+      "a_norm": 13.517013549804688,
+      "b_norm": 14.506961822509766,
+      "ab_magnitude": 0.7084370255470276,
+      "c_norm": 9.670692443847656,
+      "delta_c_norm": 0.8509490489959717,
+      "delta_ratio": 1.2011639966712664,
+      "unchanged_elem_ratio": 0.5004783272743225
+    }
+  ],
+  "final_acc": 89.71,
+  "best_acc": 89.71,
+  "total_transfers": 9
+}

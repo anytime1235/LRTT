@@ -1,0 +1,17 @@
+{
+  "trial": 2,
+  "transfer_every": 100,
+  "lr": 0.15854421990210388,
+  "transfer_lr": 0.004335281794951566,
+  "lora_alpha": 1.0,
+  "reinit_mode": "decay",
+  "lrtt_all": false,
+  "stem_head": "FloatingPoint",
+  "analog_layers": 48,
+  "decay_factor": 1.0,
+  "sched": "cosine",
+  "epochs": 50,
+  "patience": 5,
+  "best_accuracy": 0.0,
+  "stopped_epoch": -1
+}

@@ -353,6 +353,9 @@ parser.add_argument('--no-auto-scale', action='store_true', default=False,
                     help='TTv2 disable auto scaling')
 parser.add_argument('--c-desired-bl', type=int, default=None,
                     help='Desired BL for C tile transfer (default: None=use global)')
+parser.add_argument('--lrtt-all', action='store_true', default=False,
+                    help='Apply LRTT to ALL layers including stem.Linear and head.Linear '
+                         '(default: False, stem/head use FloatingPoint)')
 
 # ==================== Freeze Arguments (digital mode) ====================
 parser.add_argument('--freeze-mode', type=str, default='none',
@@ -363,6 +366,11 @@ parser.add_argument('--freeze-mode', type=str, default='none',
                          'stem-head (freeze everything except stem.Linear + head.Linear)')
 parser.add_argument('--patience', type=int, default=0, metavar='N',
                     help='Early stopping patience (0=disabled). Stop if no improvement for N epochs.')
+parser.add_argument('--reinit-mode', type=str, default='decay',
+                    choices=['standard', 'decay', 'hybrid', 'orthogonal_zero', 'orthogonal_decay'],
+                    help='LRTT reinit strategy after transfer (default: decay)')
+parser.add_argument('--decay-factor', type=float, default=1.0,
+                    help='Decay factor for decay/hybrid reinit modes (default: 1.0)')
 
 
 def _parse_args():
@@ -389,8 +397,10 @@ def create_lrtt_config(
     transfer_every: int,
     transfer_lr: float,
     lora_alpha: float = 1.0,
-    reinit_gain: float = 0.1,
+    reinit_gain: float = 1.0,
     c_desired_bl: int = None,
+    reinit_mode: str = "decay",
+    decay_factor: float = 1.0,
 ):
     """Create LRTT config matching sweep_lrtt_squad_rank8.py (dtod0 version).
 
@@ -454,8 +464,8 @@ def create_lrtt_config(
         transfer_every=transfer_every,
         lora_alpha=lora_alpha,
         reinit_gain=reinit_gain,
-        reinit_mode="decay",
-        decay_factor=1.0,
+        reinit_mode=reinit_mode,
+        decay_factor=decay_factor,
         unit_cell_devices=[ab_device, ab_device, c_device],
     )
     device_config.transfer_lr = transfer_lr
@@ -474,7 +484,7 @@ def create_lrtt_config(
     rpu_config.backward.out_noise = 0.0
 
     # Weight scaling for C tile
-    rpu_config.mapping.weight_scaling_omega = 1.0
+    rpu_config.mapping.weight_scaling_omega = 0.6
     rpu_config.mapping.weight_scaling_columnwise = True
     rpu_config.mapping.learn_out_scaling = True
     rpu_config.mapping.out_scaling_columnwise = True
@@ -704,6 +714,8 @@ def convert_model_to_analog(model, args):
             transfer_lr=args.transfer_lr,
             lora_alpha=args.lora_alpha,
             c_desired_bl=args.c_desired_bl,
+            reinit_mode=args.reinit_mode,
+            decay_factor=args.decay_factor,
         )
         algo_name = f"LRTT (rank={args.lrtt_rank})"
     elif algo == 'tikitaka':
@@ -730,19 +742,24 @@ def convert_model_to_analog(model, args):
         raise ValueError(f"Unknown algo: {algo}")
 
     # Modules to exclude from analog (use FloatingPoint instead):
-    # - stem.Linear, head.Linear: input/output projection
     # - All clayer.dense1/dense2: min dim=3, too small for analog (72 params total)
-    exclude_set = {"stem.Linear", "head.Linear"}
+    # - stem.Linear, head.Linear: excluded by default, included with --lrtt-all
+    lrtt_all = getattr(args, 'lrtt_all', False)
+    exclude_set = set()
+    if not lrtt_all:
+        exclude_set.update({"stem.Linear", "head.Linear"})
     for d in range(8):  # depth=8
         exclude_set.add(f"blocks.MDLayer{d}.clayer.dense1")
         exclude_set.add(f"blocks.MDLayer{d}.clayer.dense2")
 
+    if lrtt_all:
+        _logger.info(f"LRTT-ALL mode: stem.Linear and head.Linear will use {algo_name}")
     _logger.info(f"Digital layers (FloatingPointRPUConfig): {len(exclude_set)} layers")
-    _logger.info(f"  stem.Linear, head.Linear + 16 clayer layers")
+    _logger.info(f"  {'clayer layers only' if lrtt_all else 'stem.Linear, head.Linear + 16 clayer layers'}")
 
-    # Remove bias from layers that will become LRTT (only needed for LRTT)
-    if algo == 'lrtt':
-        remove_bias_from_lrtt_layers(model, exclude_set)
+    # Keep bias for LRTT layers — digital_bias=True (default) handles it
+    # if algo == 'lrtt':
+    #     remove_bias_from_lrtt_layers(model, exclude_set)
 
     def specific_rpu_config_fun(module_name, module, rpu_config):
         """Assign FloatingPointRPUConfig for excluded layers."""
