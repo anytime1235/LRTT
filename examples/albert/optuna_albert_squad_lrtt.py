@@ -398,6 +398,9 @@ def create_frozen_analog_config(lrtt_config=None, out_noise=0.0):
         )
         rpu_config.forward.out_noise = out_noise
         rpu_config.backward.out_noise = out_noise
+    # Disable subtile splitting to match LRTT C tile behavior (single tile, no TileModuleArray)
+    rpu_config.mapping.max_input_size = 0
+    rpu_config.mapping.max_output_size = 0
     return rpu_config
 
 
