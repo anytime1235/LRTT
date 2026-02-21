@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Optuna hyperparameter sweep for ALBERT + GLUE with LRTT.
 
-Supported GLUE tasks: cola, sst2, mrpc, qqp, mnli, qnli, rte, stsb
+Supported GLUE tasks: cola, sst2, mrpc, qqp, mnli, qnli, rte, stsb, wnli
 
 Usage:
     python optuna_albert_glue_lrtt.py --task sst2 --n-trials 50
@@ -147,11 +147,12 @@ TASK_TO_KEYS = {
     "rte": ("sentence1", "sentence2"),
     "sst2": ("sentence", None),
     "stsb": ("sentence1", "sentence2"),
+    "wnli": ("sentence1", "sentence2"),
 }
 
 TASK_TO_NUM_LABELS = {
     "cola": 2, "sst2": 2, "mrpc": 2, "qqp": 2,
-    "mnli": 3, "qnli": 2, "rte": 2, "stsb": 1,
+    "mnli": 3, "qnli": 2, "rte": 2, "stsb": 1, "wnli": 2,
 }
 
 TASK_TO_METRIC = {
@@ -163,11 +164,12 @@ TASK_TO_METRIC = {
     "qnli": "accuracy",
     "rte": "accuracy",
     "stsb": "spearmanr",
+    "wnli": "accuracy",
 }
 
 TASK_TO_MAX_SEQ_LENGTH = {
     "cola": 128, "sst2": 128, "mrpc": 128, "qqp": 128,
-    "mnli": 128, "qnli": 128, "rte": 256, "stsb": 128,
+    "mnli": 128, "qnli": 128, "rte": 256, "stsb": 128, "wnli": 128,
 }
 
 

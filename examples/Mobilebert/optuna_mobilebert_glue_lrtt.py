@@ -1,30 +1,31 @@
 # -*- coding: utf-8 -*-
 """Optuna hyperparameter sweep for MobileBERT + GLUE with LRTT.
 
-Supported GLUE tasks: cola, sst2, mrpc, qqp, mnli, qnli, rte, stsb
+Supported GLUE tasks: cola, sst2, mrpc, qqp, mnli, qnli, rte, stsb, wnli
 
 Usage:
     python optuna_mobilebert_glue_lrtt.py --task sst2 --n-trials 50
     python optuna_mobilebert_glue_lrtt.py --task mrpc --n-trials 50
     python optuna_mobilebert_glue_lrtt.py --task sst2 --visualize
 
-  python optuna_mobilebert_glue_lrtt.py --task wnli --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 3 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo 
+python optuna_mobilebert_glue_lrtt.py --task wnli --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 3 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
 
-    python optuna_mobilebert_glue_lrtt.py --task rte --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 10 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo
 
-      python optuna_mobilebert_glue_lrtt.py --task mrpc --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 15 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo
+python optuna_mobilebert_glue_lrtt.py --task rte --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 10 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
 
-  python optuna_mobilebert_glue_lrtt.py --task stsb --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 23 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo
+python optuna_mobilebert_glue_lrtt.py --task mrpc --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 15 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
+
+python optuna_mobilebert_glue_lrtt.py --task stsb --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 23 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
   
-    python optuna_mobilebert_glue_lrtt.py --task cola --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 34 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo   
+python optuna_mobilebert_glue_lrtt.py --task cola --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 34 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
     
-  python optuna_mobilebert_glue_lrtt.py --task sst2 --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 264 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo      
+python optuna_mobilebert_glue_lrtt.py --task sst2 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 264 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
   
-  python optuna_mobilebert_glue_lrtt.py --task qnli --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 410 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo
+python optuna_mobilebert_glue_lrtt.py --task qnli --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 410 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
                                                                                                                                                                                                                                              
-  python optuna_mobilebert_glue_lrtt.py --task qqp --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 1422 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo
+python optuna_mobilebert_glue_lrtt.py --task qqp --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 1422 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
   
-  python optuna_mobilebert_glue_lrtt.py --task mnli --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 1534 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo
+python optuna_mobilebert_glue_lrtt.py --task mnli --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 1534 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
 
 All flags:
     python optuna_mobilebert_glue_lrtt.py \
@@ -144,11 +145,12 @@ TASK_TO_KEYS = {
     "rte": ("sentence1", "sentence2"),
     "sst2": ("sentence", None),
     "stsb": ("sentence1", "sentence2"),
+    "wnli": ("sentence1", "sentence2"),
 }
 
 TASK_TO_NUM_LABELS = {
     "cola": 2, "sst2": 2, "mrpc": 2, "qqp": 2,
-    "mnli": 3, "qnli": 2, "rte": 2, "stsb": 1,
+    "mnli": 3, "qnli": 2, "rte": 2, "stsb": 1, "wnli": 2,
 }
 
 TASK_TO_METRIC = {
@@ -160,6 +162,7 @@ TASK_TO_METRIC = {
     "qnli": "accuracy",
     "rte": "accuracy",
     "stsb": "spearmanr",
+    "wnli": "accuracy",
 }
 
 
