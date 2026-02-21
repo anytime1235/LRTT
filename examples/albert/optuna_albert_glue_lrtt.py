@@ -8,6 +8,9 @@ Usage:
     python optuna_albert_glue_lrtt.py --task mrpc --n-trials 50
     python optuna_albert_glue_lrtt.py --task sst2 --visualize
     python optuna_albert_glue_lrtt.py --task sst2 --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 393 --transfer-method set --no-io-noise --lora-target qkv
+    python optuna_albert_glue_lrtt.py --task cola --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --lora-target all
+    python optuna_albert_glue_lrtt.py --task stsb --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 360 --transfer-method set --no-io-noise --lora-target all
+    python optuna_albert_glue_lrtt.py --task cola --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --lora-target none --encoder-analog
 
     python optuna_albert_glue_lrtt.py --task cola --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --lora-target all
     python optuna_albert_glue_lrtt.py --task cola --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --lora-target none --encoder-analog
@@ -257,7 +260,7 @@ NUM_LABELS = 2  # Will be set dynamically based on TASK_NAME
 N_EPOCHS = 15
 BATCH_SIZE = 64
 GRAD_ACCUM_STEPS = 1
-EVAL_BATCH_SIZE = 256
+EVAL_BATCH_SIZE = 64
 EARLY_STOP_PATIENCE = 3
 
 # Scheduler
@@ -877,7 +880,7 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         torch.cuda.empty_cache()
 
     # Hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 3e-2, 2e1, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 3e-3, 1e1, log=True)
 
     # LRTT parameters: skip sweep if --no-transfer (A/B frozen, no transfer happens)
     if OPT_CONFIG['no_transfer']:
@@ -888,11 +891,11 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         lora_alpha = 1.0         # fixed (no effect)
         tau_sec = 0.0            # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 4e-6, 8e-3, log=True)
-        transfer_every = trial.suggest_int('transfer_every', 63, 35000, log=True)
-        rank_exp = trial.suggest_int('rank_exp', 0, 5)
+        transfer_lr = trial.suggest_float('transfer_lr', 4e-7, 8e-2, log=True)
+        transfer_every = trial.suggest_int('transfer_every', 16, 35000, log=True)
+        rank_exp = trial.suggest_int('rank_exp', 0, 7)
         rank = 2 ** rank_exp
-        lora_alpha = trial.suggest_float('lora_alpha', 6e-5, 2e1, log=True)
+        lora_alpha = trial.suggest_float('lora_alpha', 6e-6, 2e1, log=True)
         tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
 
     # C tile pulsed transfer params (only meaningful for onehot/direct)
