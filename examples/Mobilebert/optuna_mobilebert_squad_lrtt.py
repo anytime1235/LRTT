@@ -22,11 +22,14 @@ All flags:
         --transfer-method <str>     # Transfer method: onehot | direct | set (default: onehot)
         --ab-device <str>           # A/B tile device: 6t1c | fp (default: 6t1c)
         --no-io-noise               # Disable IO out_noise (resolution kept)
-        --lora-target <str>         # LoRA target: none | qonly | konly | vonly | qkv | ffn | all (default: qkv)
+        --lora-target <str>         # LoRA target: none | qonly | konly | vonly | qkv | qkvo | ffn | dense | allnobn | all (default: qkv)
         --head-layer <str>          # qa_outputs: train | freeze (default: train)
         --no-transfer               # Disable LRTT transfer (A/B frozen, skip LRTT param sweep)
         --no-adc-ab-proj            # Remove ADC/DAC between A/B projections (full precision)
+        --no-learn-out-scaling      # Disable trainable out_scaling on C tile
         --encoder-analog            # Non-LRTT encoder layers: frozen analog instead of digital
+        --embedding-analog          # Embedding projection: frozen analog instead of digital
+        --head-analog               # Classifier/qa_outputs: frozen analog instead of digital
 
 
 Inline flags (edit directly in script):
@@ -223,6 +226,8 @@ TRANSFER_METHOD = "onehot"  # "onehot", "direct", or "set"
 AB_DEVICE = "6t1c"  # "6t1c" or "fp"
 IO_NOISE = True  # If False, disable out_noise (resolution kept)
 ENCODER_ANALOG = False  # If True, non-LRTT encoder layers become frozen analog instead of digital
+EMBEDDING_ANALOG = False  # If True, embedding projection → frozen analog instead of digital
+HEAD_ANALOG = False  # If True, qa_outputs → frozen analog instead of digital
 
 # LoRA target options: which layers have trainable A/B tiles
 # - none: no LRTT layers (fully digital baseline)
@@ -237,7 +242,10 @@ LORA_TARGET_MODULES = {
     "konly": ["key"],  # Key only (24 layers)
     "vonly": ["value"],  # Value only (24 layers)
     "qkv": ["query", "key", "value"],  # Q/K/V (72 layers)
-    "ffn": ["dense"],  # All layers with "dense" (excludes qkv) (288 layers)
+    "qkvo": ["query", "key", "value", "attention.output"],  # Q/K/V + attention output (96 layers)
+    "ffn": (["intermediate", "output.dense", "ffn"], ["attention"]),  # FFN only (192 layers)
+    "dense": ["dense"],  # All layers with "dense" (excludes qkv) (288 layers)
+    "allnobn": (None, ["bottleneck"]),  # All encoder minus bottleneck (288 layers)
     "all": None,  # None means all encoder layers (no filtering) (360 layers)
 }
 
@@ -254,6 +262,7 @@ OPT_CONFIG = {
     'reinit_mode': None,    # None = tune, or 'standard'/'decay'/'hybrid' = fixed
     'no_transfer': False,   # If True, disable transfer (transfer_every = inf)
     'no_adc_ab_proj': False,  # If True, remove ADC/DAC between A/B projections
+    'learn_out_scaling': True,  # If True, C tile out_scaling is trainable
 }
 
 
@@ -289,8 +298,16 @@ def get_study_name_suffix():
     if OPT_CONFIG.get('no_adc_ab_proj', False):
         suffix += "_noadc"
 
+    if not OPT_CONFIG.get('learn_out_scaling', True):
+        suffix += "_noos"
+
     if ENCODER_ANALOG:
         suffix += "_encanalog"
+
+    if EMBEDDING_ANALOG:
+        suffix += "_embedanalog"
+    if HEAD_ANALOG:
+        suffix += "_headanalog"
 
     # Add lora target (always include for clarity)
     suffix += f"_{LORA_TARGET}"
@@ -393,7 +410,7 @@ def create_frozen_analog_config(lrtt_config=None, out_noise=0.0):
         rpu_config.mapping = MappingParameter(
             weight_scaling_omega=1.0,
             weight_scaling_columnwise=True,
-            learn_out_scaling=True,
+            learn_out_scaling=OPT_CONFIG.get('learn_out_scaling', True),
             out_scaling_columnwise=True,
         )
         rpu_config.forward.out_noise = out_noise
@@ -424,7 +441,7 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, lora_alpha, reinit_mod
         mapping_c=MappingParameter(
             weight_scaling_omega=1.0,
             weight_scaling_columnwise=True,
-            learn_out_scaling=True,
+            learn_out_scaling=OPT_CONFIG.get('learn_out_scaling', True),
             out_scaling_columnwise=True,
         ),
     )
@@ -477,8 +494,14 @@ def get_lrtt_target_module_names(lora_target):
         return ["value"]  # Value only (24 layers)
     elif lora_target == "qkv":
         return ["query", "key", "value"]  # Q/K/V (72 layers)
+    elif lora_target == "qkvo":
+        return ["query", "key", "value", "attention.output"]  # Q/K/V + attention output (96 layers)
     elif lora_target == "ffn":
+        return (["intermediate", "output.dense", "ffn"], ["attention"])  # FFN only (192 layers)
+    elif lora_target == "dense":
         return ["dense"]  # All layers with "dense" in name (excludes qkv) (288 layers)
+    elif lora_target == "allnobn":
+        return (None, ["bottleneck"])  # All encoder minus bottleneck (288 layers)
     elif lora_target == "all":
         # All encoder linear layers (exclude embeddings, qa_outputs, embedding_transformation)
         return None  # None means all encoder layers (360 layers)
@@ -528,6 +551,10 @@ def create_model(params):
         # If lrtt_patterns is None (all mode), all encoder layers are targets
         if lrtt_patterns is None:
             return True
+        if isinstance(lrtt_patterns, tuple):
+            include, exclude = lrtt_patterns
+            included = True if include is None else any(p in layer_name for p in include)
+            return included and not any(p in layer_name for p in exclude)
         return any(p in layer_name for p in lrtt_patterns)
 
     # Build exclude list: all layers that should NOT be converted to LRTT
@@ -571,7 +598,8 @@ def create_model(params):
     # Step 1.5: Convert remaining encoder layers to frozen analog (if enabled)
     # Already-converted LRTT layers (AnalogLinear) are naturally skipped by convert_to_analog
     frozen_analog_count = 0
-    if ENCODER_ANALOG and LORA_TARGET != "all":
+    any_frozen_analog = (ENCODER_ANALOG and LORA_TARGET != "all") or EMBEDDING_ANALOG or HEAD_ANALOG
+    if any_frozen_analog:
         # Collect existing tile IDs (LRTT sub-tiles) before frozen conversion
         existing_tile_ids = set()
         for m in model.modules():
@@ -583,7 +611,15 @@ def create_model(params):
             lrtt_config if LORA_TARGET != "none" else None,
             out_noise=params.get("out_noise", 0.0),
         )
-        frozen_exclude = ["qa_outputs", "mobilebert.embeddings.embedding_transformation"]
+        frozen_exclude = []
+        if not EMBEDDING_ANALOG:
+            frozen_exclude.append("mobilebert.embeddings.embedding_transformation")
+        if not HEAD_ANALOG:
+            frozen_exclude.append("qa_outputs")
+        if not ENCODER_ANALOG or LORA_TARGET == "all":
+            for name in all_linear_names:
+                if "encoder" in name and "embedding_transformation" not in name:
+                    frozen_exclude.append(name)
         model = convert_to_analog(model, frozen_config, exclude_modules=frozen_exclude)
         frozen_analog_count = sum(1 for m in model.modules() if isinstance(m, AnalogLinear)) - analog_count
 
@@ -625,10 +661,13 @@ def create_model(params):
                 return out + self.bias.view(*tensor_view)
             return out
 
-        for m in model.modules():
+        for mod_name, m in model.named_modules():
             if isinstance(m, AnalogLinear):
                 for tile in m.analog_tiles():
                     if id(tile) not in existing_tile_ids:
+                        # Head analog tiles remain trainable (weight + bias)
+                        if HEAD_ANALOG and "qa_outputs" in mod_name:
+                            continue
                         tile.update = _frozen_noop_update
                         tile.forward = types.MethodType(_frozen_analog_forward, tile)
 
@@ -1057,7 +1096,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
 
         model = create_model(params)
 
-        if LORA_TARGET == "none" and not ENCODER_ANALOG:
+        if LORA_TARGET == "none" and not ENCODER_ANALOG and not EMBEDDING_ANALOG and not HEAD_ANALOG:
             # None mode (no analog tiles): use standard PyTorch optimizers
             if optimizer_name == "AnalogSGD":
                 optimizer = torch.optim.SGD(
@@ -1282,7 +1321,7 @@ def print_study_summary(study):
 # =============================================================================
 
 def main():
-    global BATCH_SIZE, GRAD_ACCUM_STEPS, N_EPOCHS, WARMUP_STEPS, TRANSFER_METHOD, AB_DEVICE, IO_NOISE, LORA_TARGET, HEAD_LAYER, ENCODER_ANALOG, _oom_retry_pending
+    global BATCH_SIZE, GRAD_ACCUM_STEPS, N_EPOCHS, WARMUP_STEPS, TRANSFER_METHOD, AB_DEVICE, IO_NOISE, LORA_TARGET, HEAD_LAYER, ENCODER_ANALOG, EMBEDDING_ANALOG, HEAD_ANALOG, _oom_retry_pending
 
     parser = argparse.ArgumentParser(description="Optuna sweep for MobileBERT SQuAD LRTT")
     parser.add_argument('--study-name', type=str, default=None,
@@ -1322,13 +1361,19 @@ def main():
     parser.add_argument('--no-adc-ab-proj', action='store_true',
                         help='Use digital matmul for A/B projections (no ADC/DAC between B and A)')
     parser.add_argument('--lora-target', type=str, default=LORA_TARGET,
-                        choices=['none', 'qonly', 'konly', 'vonly', 'qkv', 'ffn', 'all'],
-                        help='LoRA target: none, qonly, konly, vonly, qkv, ffn, all (default: qkv)')
+                        choices=['none', 'qonly', 'konly', 'vonly', 'qkv', 'qkvo', 'ffn', 'dense', 'allnobn', 'all'],
+                        help='LoRA target: none, qonly, konly, vonly, qkv, qkvo, ffn, dense, allnobn, all (default: qkv)')
     parser.add_argument('--head-layer', type=str, default=HEAD_LAYER,
                         choices=['train', 'freeze'],
                         help='qa_outputs layer: train or freeze (default: train)')
     parser.add_argument('--encoder-analog', action='store_true', default=ENCODER_ANALOG,
                         help='Convert non-LRTT encoder layers to frozen analog (default: digital)')
+    parser.add_argument('--embedding-analog', action='store_true', default=EMBEDDING_ANALOG,
+                        help='Convert embedding projection to frozen analog (default: digital)')
+    parser.add_argument('--head-analog', action='store_true', default=HEAD_ANALOG,
+                        help='Convert qa_outputs to frozen analog (default: digital)')
+    parser.add_argument('--no-learn-out-scaling', action='store_true',
+                        help='Disable trainable out_scaling on C tile')
     args = parser.parse_args()
 
     # Update global config
@@ -1348,7 +1393,10 @@ def main():
     OPT_CONFIG['tune_nesterov'] = not args.no_nesterov
     OPT_CONFIG['no_transfer'] = args.no_transfer
     OPT_CONFIG['no_adc_ab_proj'] = args.no_adc_ab_proj
+    OPT_CONFIG['learn_out_scaling'] = not args.no_learn_out_scaling
     ENCODER_ANALOG = args.encoder_analog
+    EMBEDDING_ANALOG = args.embedding_analog
+    HEAD_ANALOG = args.head_analog
 
     # Auto-generate study name based on config (includes batch size)
     study_name = args.study_name or f"mobilebert_squad_lrtt_bs{BATCH_SIZE}_{get_study_name_suffix()}"
