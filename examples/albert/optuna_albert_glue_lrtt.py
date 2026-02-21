@@ -266,6 +266,8 @@ BATCH_SIZE = 64
 GRAD_ACCUM_STEPS = 1
 EVAL_BATCH_SIZE = 64
 EARLY_STOP_PATIENCE = 3
+VAL_LOSS_EARLY_STOP_PATIENCE = 2  # Stop if val loss doesn't improve for this many epochs
+VAL_LOSS_THRESHOLD = 8.0  # Once val loss drops below this, rely on metric-based early stop only
 
 # Scheduler
 WARMUP_STEPS = 500  # warmup steps
@@ -839,12 +841,14 @@ def load_data(tokenizer):
 # =============================================================================
 
 def evaluate_model(model, eval_loader):
-    """Evaluate GLUE model. Returns metric value (task-specific, scaled to %)."""
+    """Evaluate GLUE model. Returns (metric_value, val_loss)."""
     model.eval()
 
     is_regression = (TASK_NAME == "stsb")
     all_preds = []
     all_labels = []
+    total_val_loss = 0.0
+    num_val_batches = 0
 
     with no_grad():
         for batch in eval_loader:
@@ -852,7 +856,9 @@ def evaluate_model(model, eval_loader):
             attention_mask = batch['attention_mask'].to(DEVICE)
             labels = batch['labels'].to(DEVICE)
 
-            outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+            outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
+            total_val_loss += outputs.loss.item()
+            num_val_batches += 1
 
             if is_regression:
                 preds = outputs.logits.squeeze()
@@ -864,6 +870,8 @@ def evaluate_model(model, eval_loader):
                 all_labels.extend(labels.cpu().numpy())
 
     model.train()
+
+    val_loss = total_val_loss / num_val_batches if num_val_batches > 0 else float('inf')
 
     # Compute task-specific metric
     metric_name = TASK_TO_METRIC[TASK_NAME]
@@ -879,7 +887,7 @@ def evaluate_model(model, eval_loader):
         from scipy.stats import spearmanr
         metric_value = spearmanr(all_preds, all_labels)[0] * 100.0
 
-    return metric_value
+    return metric_value, val_loss
 
 
 # =============================================================================
@@ -1032,6 +1040,8 @@ def objective(trial, train_loader, eval_loader, tokenizer):
 
         best_acc = 0.0
         epochs_without_improvement = 0
+        best_val_loss = float('inf')
+        val_loss_no_improvement = 0
 
         for epoch in range(1, N_EPOCHS + 1):
             model.train()
@@ -1064,7 +1074,7 @@ def objective(trial, train_loader, eval_loader, tokenizer):
 
             train_loss = total_loss / num_batches if num_batches > 0 else 0.0
 
-            eval_acc = evaluate_model(model, eval_loader)
+            eval_acc, val_loss = evaluate_model(model, eval_loader)
 
             improved = ""
             if eval_acc > best_acc:
@@ -1074,17 +1084,31 @@ def objective(trial, train_loader, eval_loader, tokenizer):
             else:
                 epochs_without_improvement += 1
 
+            val_loss_improved = ""
+            if val_loss < best_val_loss:
+                best_val_loss = val_loss
+                val_loss_no_improvement = 0
+                val_loss_improved = " ↓"
+            else:
+                val_loss_no_improvement += 1
+
             metric_name = TASK_TO_METRIC[TASK_NAME]
             current_lr = optimizer.param_groups[0]['lr']
             tqdm.write(f"[Trial {trial.number}] Epoch {epoch:3d} | "
                       f"{metric_name}: {eval_acc:6.2f}% | Best: {best_acc:6.2f}% | "
-                      f"Loss: {train_loss:.4f} | LR: {current_lr:.2e} | "
+                      f"Train loss: {train_loss:.4f} | Val loss: {val_loss:.4f}{val_loss_improved} | LR: {current_lr:.2e} | "
                       f"No imp: {epochs_without_improvement}/{EARLY_STOP_PATIENCE}{improved}")
 
             trial.report(best_acc, epoch)
             trial.set_user_attr(f"train_loss_epoch_{epoch}", train_loss)
+            trial.set_user_attr(f"val_loss_epoch_{epoch}", val_loss)
 
-            if epochs_without_improvement >= EARLY_STOP_PATIENCE:
+            if best_val_loss > VAL_LOSS_THRESHOLD and val_loss_no_improvement >= VAL_LOSS_EARLY_STOP_PATIENCE:
+                tqdm.write(f"[Trial {trial.number}] Val loss early stop at epoch {epoch} "
+                          f"(val_loss={val_loss:.4f} > {VAL_LOSS_THRESHOLD}, no improvement for {val_loss_no_improvement} epochs)")
+                break
+
+            if best_val_loss <= VAL_LOSS_THRESHOLD and epochs_without_improvement >= EARLY_STOP_PATIENCE:
                 tqdm.write(f"[Trial {trial.number}] Early stopping at epoch {epoch}")
                 break
 

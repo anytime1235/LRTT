@@ -209,6 +209,8 @@ BATCH_SIZE = 64
 GRAD_ACCUM_STEPS = 1
 EVAL_BATCH_SIZE = 64
 EARLY_STOP_PATIENCE = 3
+TRAIN_LOSS_EARLY_STOP_PATIENCE = 2  # Stop if train loss doesn't improve for this many epochs
+TRAIN_LOSS_THRESHOLD = 8.0  # Once train loss drops below this, rely on metric-based early stop only
 
 # Scheduler
 WARMUP_STEPS = 500
@@ -1130,6 +1132,8 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
 
         best_f1 = 0.0
         epochs_without_improvement = 0
+        best_train_loss = float('inf')
+        train_loss_no_improvement = 0
 
         for epoch in range(1, N_EPOCHS + 1):
             model.train()
@@ -1173,16 +1177,29 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
             else:
                 epochs_without_improvement += 1
 
+            train_loss_improved = ""
+            if train_loss < best_train_loss:
+                best_train_loss = train_loss
+                train_loss_no_improvement = 0
+                train_loss_improved = " ↓"
+            else:
+                train_loss_no_improvement += 1
+
             current_lr = optimizer.param_groups[0]['lr']
             tqdm.write(f"[Trial {trial.number}] Epoch {epoch:3d} | "
                   f"F1: {eval_f1:6.2f}% | EM: {eval_em:6.2f}% | Best F1: {best_f1:6.2f}% | "
-                  f"Loss: {train_loss:.4f} | LR: {current_lr:.2e} | "
+                  f"Train loss: {train_loss:.4f}{train_loss_improved} | LR: {current_lr:.2e} | "
                   f"No imp: {epochs_without_improvement}/{EARLY_STOP_PATIENCE}{improved}")
 
             trial.report(best_f1, epoch)
             trial.set_user_attr(f"train_loss_epoch_{epoch}", train_loss)
 
-            if epochs_without_improvement >= EARLY_STOP_PATIENCE:
+            if best_train_loss > TRAIN_LOSS_THRESHOLD and train_loss_no_improvement >= TRAIN_LOSS_EARLY_STOP_PATIENCE:
+                tqdm.write(f"[Trial {trial.number}] Train loss early stop at epoch {epoch} "
+                          f"(train_loss={train_loss:.4f} > {TRAIN_LOSS_THRESHOLD}, no improvement for {train_loss_no_improvement} epochs)")
+                break
+
+            if best_train_loss <= TRAIN_LOSS_THRESHOLD and epochs_without_improvement >= EARLY_STOP_PATIENCE:
                 tqdm.write(f"[Trial {trial.number}] Early stopping at epoch {epoch}")
                 break
 

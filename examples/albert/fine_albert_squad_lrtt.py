@@ -108,6 +108,8 @@ EVAL_BATCH_SIZE = 256
 LEARNING_RATE = 0.00362
 WEIGHT_DECAY = 0.0
 EARLY_STOP_PATIENCE = 3
+TRAIN_LOSS_EARLY_STOP_PATIENCE = 2  # Stop if train loss doesn't improve for this many epochs
+TRAIN_LOSS_THRESHOLD = 8.0  # Once train loss drops below this, rely on metric-based early stop only
 
 # Scheduler
 WARMUP_STEPS =500
@@ -1215,6 +1217,8 @@ def main():
     best_f1 = init_f1
     best_epoch = 0
     epochs_without_improvement = 0
+    best_train_loss = float('inf')
+    train_loss_no_improvement = 0
     global_step = 0
 
     print(f"\nStarting training: {N_EPOCHS} epochs (max), early stopping patience={EARLY_STOP_PATIENCE}")
@@ -1337,14 +1341,27 @@ def main():
         else:
             epochs_without_improvement += 1
 
+        train_loss_improved = ""
+        if train_loss < best_train_loss:
+            best_train_loss = train_loss
+            train_loss_no_improvement = 0
+            train_loss_improved = " ↓"
+        else:
+            train_loss_no_improvement += 1
+
         tqdm.write(
-            f"Epoch {epoch}: Train Loss {train_loss:.4f} | "
+            f"Epoch {epoch}: Train loss: {train_loss:.4f}{train_loss_improved} | "
             f"F1 {eval_f1:.2f}% | EM {eval_em:.2f}% | "
             f"Best F1 {best_f1:.2f}% | LR {current_lr:.2e} | "
             f"No imp: {epochs_without_improvement}/{EARLY_STOP_PATIENCE}"
         )
 
-        if epochs_without_improvement >= EARLY_STOP_PATIENCE:
+        if best_train_loss > TRAIN_LOSS_THRESHOLD and train_loss_no_improvement >= TRAIN_LOSS_EARLY_STOP_PATIENCE:
+            tqdm.write(f"Train loss early stop at epoch {epoch} "
+                       f"(train_loss={train_loss:.4f} > {TRAIN_LOSS_THRESHOLD}, no improvement for {train_loss_no_improvement} epochs)")
+            break
+
+        if best_train_loss <= TRAIN_LOSS_THRESHOLD and epochs_without_improvement >= EARLY_STOP_PATIENCE:
             tqdm.write(f"Early stopping at epoch {epoch}")
             break
 
