@@ -63,6 +63,7 @@ EOF
 """
 
 import os
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import sys
 import re
 import string
@@ -1045,7 +1046,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
     print(f"Trial {trial.number} Starting")
     print(f"{'='*70}")
     print(f"  rank={rank}, transfer_every={transfer_every}, transfer_lr={transfer_lr:.4e}")
-    print(f"  lora_alpha={lora_alpha:.4f}, lr={learning_rate:.2e}, wd={weight_decay:.2e}")
+    print(f"  lora_alpha={lora_alpha:.2e}, lr={learning_rate:.2e}, wd={weight_decay:.2e}")
     print(f"  momentum={momentum:.2f}, nesterov={nesterov}, reinit_mode={reinit_mode}")
     print(f"  tau_sec={tau_sec:.1f}, optimizer={optimizer_name}, min_lr_rate={min_lr_rate:.4f}")
     print(f"{'='*70}")

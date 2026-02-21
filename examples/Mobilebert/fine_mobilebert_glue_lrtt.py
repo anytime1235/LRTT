@@ -38,6 +38,7 @@ Inline flags (edit directly in script):
 """
 
 import os
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import sys
 import math
 import gc

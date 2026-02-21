@@ -654,7 +654,7 @@ def objective(trial):
     print(f"\n{'='*70}")
     print(f"Trial {trial.number} Starting (LRTT)")
     print(f"{'='*70}")
-    print(f"  rank={rank}, transfer_every={transfer_every} (actual={transfer_every*grad_accum_steps}), lora_alpha={lora_alpha:.4f}")
+    print(f"  rank={rank}, transfer_every={transfer_every} (actual={transfer_every*grad_accum_steps}), lora_alpha={lora_alpha:.2e}")
     print(f"  transfer_lr_scale={transfer_lr_scale:.4f}, tau_sec={tau_sec:.1f}, reinit_mode={reinit_mode}")
     print(f"  optimizer={opt_type}, lr={learning_rate:.2e}, wd={weight_decay:.2e}")
     print(f"  momentum={momentum:.2f}, nesterov={nesterov}")

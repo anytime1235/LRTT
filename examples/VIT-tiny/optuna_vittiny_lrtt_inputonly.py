@@ -370,7 +370,7 @@ def objective(trial):
     print(f"\n{'='*70}")
     print(f"Trial {trial.number} Starting (LRTT Input Only)")
     print(f"{'='*70}")
-    print(f"  rank={rank}, transfer_every={transfer_every}, lora_alpha={lora_alpha:.4f}")
+    print(f"  rank={rank}, transfer_every={transfer_every}, lora_alpha={lora_alpha:.2e}")
     print(f"  transfer_lr_scale={transfer_lr_scale:.4f}, lr={learning_rate:.2e}, wd={weight_decay:.2e}")
     print(f"  tau_sec={tau_sec:.1f}, reinit_mode={reinit_mode}, optimizer={optimizer_name}")
     print(f"  batch_size={batch_size}")

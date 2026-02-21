@@ -9,6 +9,24 @@ Usage:
     python optuna_albert_glue_lrtt.py --task sst2 --visualize
     python optuna_albert_glue_lrtt.py --task sst2 --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 393 --transfer-method set --no-io-noise --lora-target qkv
 
+    python optuna_albert_glue_lrtt.py --task cola --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --lora-target all
+    python optuna_albert_glue_lrtt.py --task cola --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --lora-target none --encoder-analog
+    python optuna_albert_glue_lrtt.py --task stsb --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 360 --transfer-method set --no-io-noise --lora-target all
+    python optuna_albert_glue_lrtt.py --task stsb --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 360 --transfer-method set --no-io-noise --lora-target none --encoder-analog
+    python optuna_albert_glue_lrtt.py --task sst2 --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 20 --warmup-steps 2094 --transfer-method set --no-io-noise --lora-target all
+    python optuna_albert_glue_lrtt.py --task sst2 --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 20 --warmup-steps 2094 --transfer-method set --no-io-noise --lora-target none --encoder-analog
+    python optuna_albert_glue_lrtt.py --task mnli --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 4 --warmup-steps 1000 --transfer-method set --no-io-noise --lora-target all
+    python optuna_albert_glue_lrtt.py --task mnli --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 4 --warmup-steps 1000 --transfer-method set --no-io-noise --lora-target none --encoder-analog
+    python optuna_albert_glue_lrtt.py --task qnli --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 3312 --transfer-method set --no-io-noise --lora-target all
+    python optuna_albert_glue_lrtt.py --task qnli --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 3312 --transfer-method set --no-io-noise --lora-target none --encoder-analog
+    python optuna_albert_glue_lrtt.py --task qqp --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 10 --warmup-steps 1400 --transfer-method set --no-io-noise --lora-target all
+    python optuna_albert_glue_lrtt.py --task qqp --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 10 --warmup-steps 1400 --transfer-method set --no-io-noise --lora-target none --encoder-analog
+    python optuna_albert_glue_lrtt.py --task rte --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 80 --transfer-method set --no-io-noise --lora-target all
+    python optuna_albert_glue_lrtt.py --task rte --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 80 --transfer-method set --no-io-noise --lora-target none --encoder-analog
+    python optuna_albert_glue_lrtt.py --task mrpc --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 14 --warmup-steps 80 --transfer-method set --no-io-noise --lora-target all
+    python optuna_albert_glue_lrtt.py --task mrpc --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 14 --warmup-steps 80 --transfer-method set --no-io-noise --lora-target none --encoder-analog
+    
+
 All flags:
     python optuna_albert_glue_lrtt.py \
         --task <str>                # GLUE task (default: sst2)
@@ -66,6 +84,7 @@ EOF
 """
 
 import os
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import sys
 import math
 import json
@@ -934,7 +953,7 @@ def objective(trial, train_loader, eval_loader, tokenizer):
     print(f"Trial {trial.number} Starting")
     print(f"{'='*70}")
     print(f"  rank={rank}, transfer_every={transfer_every}, transfer_lr={transfer_lr:.4e}")
-    print(f"  lora_alpha={lora_alpha:.4f}, lr={learning_rate:.2e}, wd={weight_decay:.2e}")
+    print(f"  lora_alpha={lora_alpha:.2e}, lr={learning_rate:.2e}, wd={weight_decay:.2e}")
     print(f"  momentum={momentum:.2f}, nesterov={nesterov}, reinit_mode={reinit_mode}")
     print(f"  tau_sec={tau_sec:.1f}, optimizer={optimizer_name}, min_lr_rate={min_lr_rate:.4f}")
     if TRANSFER_METHOD in ("onehot", "direct") and not OPT_CONFIG['no_transfer']:

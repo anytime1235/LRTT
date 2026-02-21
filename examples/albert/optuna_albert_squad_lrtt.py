@@ -63,6 +63,7 @@ EOF
 """
 
 import os
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import sys
 import re
 import string
@@ -980,7 +981,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         torch.cuda.empty_cache()
 
     # Hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 3e-3, 1e1, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 3e-2, 7e0, log=True)
 
     # LRTT parameters: skip sweep if --no-transfer (A/B frozen, no transfer happens)
     if OPT_CONFIG['no_transfer']:
@@ -991,11 +992,11 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         lora_alpha = 1.0         # fixed (no effect)
         tau_sec = 0.0            # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 4e-7, 8e-2, log=True)
-        transfer_every = trial.suggest_int('transfer_every', 48, 35000, log=True)
+        transfer_lr = trial.suggest_float('transfer_lr', 2e-6, 3e-1, log=True)
+        transfer_every = trial.suggest_int('transfer_every', 48, 24000, log=True)
         rank_exp = trial.suggest_int('rank_exp', 0, 7)
         rank = 2 ** rank_exp
-        lora_alpha = trial.suggest_float('lora_alpha', 6e-6, 2e1, log=True)
+        lora_alpha = trial.suggest_float('lora_alpha', 1e-4, 3e1, log=True)
         tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
 
     # C tile pulsed transfer params (only meaningful for onehot/direct)
@@ -1056,7 +1057,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
     print(f"Trial {trial.number} Starting")
     print(f"{'='*70}")
     print(f"  rank={rank}, transfer_every={transfer_every}, transfer_lr={transfer_lr:.4e}")
-    print(f"  lora_alpha={lora_alpha:.4f}, lr={learning_rate:.2e}, wd={weight_decay:.2e}")
+    print(f"  lora_alpha={lora_alpha:.2e}, lr={learning_rate:.2e}, wd={weight_decay:.2e}")
     print(f"  momentum={momentum:.2f}, nesterov={nesterov}, reinit_mode={reinit_mode}")
     print(f"  tau_sec={tau_sec:.1f}, optimizer={optimizer_name}, min_lr_rate={min_lr_rate:.4f}")
     print(f"{'='*70}")
