@@ -1143,9 +1143,28 @@ class TileWithPeriphery(BaseTile, SimulatorTileWrapper):
             torch.Tensor: ``[N, in_size]`` tensor. If ``in_trans`` is set, transposed.
         """
         d_input = self.pre_backward(d_input, 0 if self.out_trans else d_input.dim() - 1, ctx)
-        d_output = self.tile.backward(  # type: ignore
-            d_input, self.analog_bias, self.out_trans, self.in_trans, self.non_blocking
-        )
+
+        # Gradient scaling to prevent clipping at C++ backward.inp_bound=1.0.
+        # Set backward_inp_bound_override on the tile instance to enable:
+        #   > 1.0: effective bound (scale so max fits within this bound)
+        #   0: auto-scale (normalize to [-1,1] range, scale back after)
+        #   1.0 or unset: standard behavior (no scaling, C++ clips at 1.0)
+        bib = getattr(self, 'backward_inp_bound_override', 1.0)
+        if bib != 1.0:
+            max_abs = d_input.abs().max()
+            if bib == 0:
+                scale = max_abs.clamp(min=1.0)
+            else:
+                scale = (max_abs / bib).clamp(min=1.0)
+            d_output = self.tile.backward(  # type: ignore
+                d_input / scale, self.analog_bias, self.out_trans, self.in_trans, self.non_blocking
+            )
+            d_output = d_output * scale
+        else:
+            d_output = self.tile.backward(  # type: ignore
+                d_input, self.analog_bias, self.out_trans, self.in_trans, self.non_blocking
+            )
+
         return self.post_backward(d_output, 0 if self.in_trans else d_output.dim() - 1, ctx)
 
     def pre_update(

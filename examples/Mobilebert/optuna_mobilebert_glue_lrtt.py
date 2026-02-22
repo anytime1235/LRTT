@@ -276,8 +276,6 @@ BATCH_SIZE = 64
 GRAD_ACCUM_STEPS = 1
 EVAL_BATCH_SIZE = 256
 EARLY_STOP_PATIENCE = 3
-VAL_LOSS_EARLY_STOP_PATIENCE = 2  # Stop if val loss doesn't improve for this many epochs
-VAL_LOSS_THRESHOLD = 8.0  # Once val loss drops below this, rely on metric-based early stop only
 
 # Scheduler
 WARMUP_STEPS = 500  # warmup steps
@@ -297,6 +295,7 @@ IO_NOISE = True  # If False, disable out_noise (resolution kept)
 ENCODER_ANALOG = False  # If True, non-LRTT encoder layers become frozen analog instead of digital
 EMBEDDING_ANALOG = False  # If True, embedding projection → frozen analog instead of digital
 HEAD_ANALOG = False  # If True, classifier → frozen analog instead of digital
+BACKWARD_INP_BOUND = 1.0  # Backward pass input bound (default 1.0; increase to prevent gradient clipping)
 
 # LoRA target options: which layers have trainable A/B tiles
 # - none: no LRTT layers (fully digital baseline)
@@ -377,6 +376,9 @@ def get_study_name_suffix():
         suffix += "_embedanalog"
     if HEAD_ANALOG:
         suffix += "_headanalog"
+
+    if BACKWARD_INP_BOUND != 1.0:
+        suffix += f"_bib{BACKWARD_INP_BOUND:g}"
 
     # Add lora target (always include for clarity)
     suffix += f"_{LORA_TARGET}"
@@ -663,6 +665,13 @@ def create_model(params):
         # Convert to analog with exclusions (only LRTT targets get converted)
         model = convert_to_analog(model, lrtt_config, exclude_modules=exclude_modules)
 
+        # Set backward_inp_bound on LRTT tiles (gradient scaling for C tile backward)
+        if BACKWARD_INP_BOUND != 1.0:
+            from aihwkit.simulator.tiles.lrtt_tile import LRTTSimulatorTile
+            for m in model.modules():
+                if isinstance(m, LRTTSimulatorTile):
+                    m.backward_inp_bound = BACKWARD_INP_BOUND
+
         # Count analog layers
         analog_count = sum(1 for m in model.modules() if isinstance(m, AnalogLinear))
 
@@ -852,14 +861,12 @@ def load_data(tokenizer):
 # =============================================================================
 
 def evaluate_model(model, eval_loader):
-    """Evaluate GLUE model. Returns (metric_value, val_loss)."""
+    """Evaluate GLUE model. Returns metric value (task-specific, scaled to %)."""
     model.eval()
 
     is_regression = (TASK_NAME == "stsb")
     all_preds = []
     all_labels = []
-    total_val_loss = 0.0
-    num_val_batches = 0
 
     with no_grad():
         for batch in eval_loader:
@@ -867,9 +874,7 @@ def evaluate_model(model, eval_loader):
             attention_mask = batch['attention_mask'].to(DEVICE)
             labels = batch['labels'].to(DEVICE)
 
-            outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
-            total_val_loss += outputs.loss.item()
-            num_val_batches += 1
+            outputs = model(input_ids=input_ids, attention_mask=attention_mask)
 
             if is_regression:
                 preds = outputs.logits.squeeze()
@@ -881,8 +886,6 @@ def evaluate_model(model, eval_loader):
                 all_labels.extend(labels.cpu().numpy())
 
     model.train()
-
-    val_loss = total_val_loss / num_val_batches if num_val_batches > 0 else float('inf')
 
     # Compute task-specific metric
     metric_name = TASK_TO_METRIC[TASK_NAME]
@@ -898,7 +901,7 @@ def evaluate_model(model, eval_loader):
         from scipy.stats import spearmanr
         metric_value = spearmanr(all_preds, all_labels)[0] * 100.0
 
-    return metric_value, val_loss
+    return metric_value
 
 
 # =============================================================================
@@ -937,11 +940,11 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         lora_alpha = 1.0         # fixed (no effect)
         tau_sec = 0.0            # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 1e-4, 1e2, log=True)
+        transfer_lr = trial.suggest_float('transfer_lr', 1e-5, 1e2, log=True)
         transfer_every = trial.suggest_int('transfer_every', 64, 32000, log=True)
         rank_exp = trial.suggest_int('rank_exp', 0, 5)
         rank = 2 ** rank_exp
-        lora_alpha = trial.suggest_float('lora_alpha', 1e-4, 1e2, log=True)
+        lora_alpha = trial.suggest_float('lora_alpha', 1e-5, 1e2, log=True)
         tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
 
     # C tile pulsed transfer params (only meaningful for onehot/direct)
@@ -1050,9 +1053,7 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         )
 
         best_acc = 0.0
-        best_val_loss = float('inf')
         epochs_without_improvement = 0
-        val_loss_no_improvement = 0
 
         for epoch in range(1, N_EPOCHS + 1):
             model.train()
@@ -1085,9 +1086,8 @@ def objective(trial, train_loader, eval_loader, tokenizer):
 
             train_loss = total_loss / num_batches if num_batches > 0 else 0.0
 
-            eval_acc, val_loss = evaluate_model(model, eval_loader)
+            eval_acc = evaluate_model(model, eval_loader)
 
-            # Track metric improvement
             improved = ""
             if eval_acc > best_acc:
                 best_acc = eval_acc
@@ -1096,35 +1096,17 @@ def objective(trial, train_loader, eval_loader, tokenizer):
             else:
                 epochs_without_improvement += 1
 
-            # Track val loss improvement
-            val_loss_improved = ""
-            if val_loss < best_val_loss:
-                best_val_loss = val_loss
-                val_loss_no_improvement = 0
-                val_loss_improved = " ↓"
-            else:
-                val_loss_no_improvement += 1
-
             metric_name = TASK_TO_METRIC[TASK_NAME]
             current_lr = optimizer.param_groups[0]['lr']
             tqdm.write(f"[Trial {trial.number}] Epoch {epoch:3d} | "
                       f"{metric_name}: {eval_acc:6.2f}% | Best: {best_acc:6.2f}% | "
-                      f"Train loss: {train_loss:.4f} | Val loss: {val_loss:.4f}{val_loss_improved} | "
-                      f"LR: {current_lr:.2e} | "
-                      f"No imp: {epochs_without_improvement}/{EARLY_STOP_PATIENCE}")
+                      f"Loss: {train_loss:.4f} | LR: {current_lr:.2e} | "
+                      f"No imp: {epochs_without_improvement}/{EARLY_STOP_PATIENCE}{improved}")
 
             trial.report(best_acc, epoch)
             trial.set_user_attr(f"train_loss_epoch_{epoch}", train_loss)
-            trial.set_user_attr(f"val_loss_epoch_{epoch}", val_loss)
 
-            # Val loss early stop: if loss is still high and not improving, stop early
-            if best_val_loss > VAL_LOSS_THRESHOLD and val_loss_no_improvement >= VAL_LOSS_EARLY_STOP_PATIENCE:
-                tqdm.write(f"[Trial {trial.number}] Val loss early stop at epoch {epoch} "
-                          f"(val_loss={val_loss:.4f} > {VAL_LOSS_THRESHOLD}, no improvement for {val_loss_no_improvement} epochs)")
-                break
-
-            # Metric early stop (only when loss has stabilized)
-            if best_val_loss <= VAL_LOSS_THRESHOLD and epochs_without_improvement >= EARLY_STOP_PATIENCE:
+            if epochs_without_improvement >= EARLY_STOP_PATIENCE:
                 tqdm.write(f"[Trial {trial.number}] Early stopping at epoch {epoch}")
                 break
 
@@ -1264,7 +1246,7 @@ def print_study_summary(study):
 # =============================================================================
 
 def main():
-    global TASK_NAME, NUM_LABELS, BATCH_SIZE, GRAD_ACCUM_STEPS, N_EPOCHS, WARMUP_STEPS, TRANSFER_METHOD, AB_DEVICE, IO_NOISE, LORA_TARGET, HEAD_LAYER, ENCODER_ANALOG, EMBEDDING_ANALOG, HEAD_ANALOG
+    global TASK_NAME, NUM_LABELS, BATCH_SIZE, GRAD_ACCUM_STEPS, N_EPOCHS, WARMUP_STEPS, TRANSFER_METHOD, AB_DEVICE, IO_NOISE, LORA_TARGET, HEAD_LAYER, ENCODER_ANALOG, EMBEDDING_ANALOG, HEAD_ANALOG, BACKWARD_INP_BOUND
 
     parser = argparse.ArgumentParser(description="Optuna sweep for MobileBERT GLUE LRTT")
     parser.add_argument('--task', type=str, default='sst2',
@@ -1318,6 +1300,8 @@ def main():
                         help='Convert embedding projection to frozen analog (default: digital)')
     parser.add_argument('--head-analog', action='store_true', default=HEAD_ANALOG,
                         help='Convert classifier to frozen analog (default: digital)')
+    parser.add_argument('--backward-inp-bound', type=float, default=BACKWARD_INP_BOUND,
+                        help=f'Backward pass input bound for analog layers (default: {BACKWARD_INP_BOUND})')
     parser.add_argument('--no-learn-out-scaling', action='store_true',
                         help='Disable trainable out_scaling on C tile')
     args = parser.parse_args()
@@ -1346,6 +1330,7 @@ def main():
     ENCODER_ANALOG = args.encoder_analog
     EMBEDDING_ANALOG = args.embedding_analog
     HEAD_ANALOG = args.head_analog
+    BACKWARD_INP_BOUND = args.backward_inp_bound
 
     # Per-task results directory
     RESULTS = os.path.join(os.getcwd(), "results", f"optuna_mobilebert_{TASK_NAME}_lrtt")

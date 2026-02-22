@@ -4,7 +4,7 @@
 Usage:
     python optuna_mobilebert_squad_lrtt.py --n-trials 50
     python optuna_mobilebert_squad_lrtt.py --visualize
-    python optuna_mobilebert_squad_lrtt.py --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 353 --transfer-method set --no-io-noise --lora-target qkv
+    python optuna_mobilebert_squad_lrtt.py --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 48 --epochs 5 --warmup-steps 365 --transfer-method set --no-io-noise --lora-target qkvo --encoder-analog --embedding-analog --head-analog
 
 All flags:
     python optuna_mobilebert_squad_lrtt.py \
@@ -201,7 +201,7 @@ SEED = 42
 
 # Model
 MODEL_NAME = "google/mobilebert-uncased"
-MAX_SEQ_LENGTH = 320
+MAX_SEQ_LENGTH = 384
 
 # Training defaults
 N_EPOCHS = 15
@@ -1011,7 +1011,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         torch.cuda.empty_cache()
 
     # Hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 3e-2, 2e1, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 1e-3, 1e1, log=True)
 
     # LRTT parameters: skip sweep if --no-transfer (A/B frozen, no transfer happens)
     if OPT_CONFIG['no_transfer']:
@@ -1022,11 +1022,11 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         lora_alpha = 1.0         # fixed (no effect)
         tau_sec = 0.0            # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 4e-6, 8e-3, log=True)
-        transfer_every = trial.suggest_int('transfer_every', 63, 35000, log=True)
+        transfer_lr = trial.suggest_float('transfer_lr', 1e-5, 1e2, log=True)
+        transfer_every = trial.suggest_int('transfer_every', 48, 24000, log=True)
         rank_exp = trial.suggest_int('rank_exp', 0, 5)
         rank = 2 ** rank_exp
-        lora_alpha = trial.suggest_float('lora_alpha', 6e-5, 2e1, log=True)
+        lora_alpha = trial.suggest_float('lora_alpha', 1e-5, 1e2, log=True)
         tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
 
     # C tile pulsed transfer params (only meaningful for onehot/direct)

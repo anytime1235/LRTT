@@ -12,22 +12,22 @@ Usage:
     python optuna_albert_glue_lrtt.py --task stsb --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 360 --transfer-method set --no-io-noise --lora-target all
     python optuna_albert_glue_lrtt.py --task cola --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --lora-target none --encoder-analog
 
-    python optuna_albert_glue_lrtt.py --task cola --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --lora-target qkvo --no-learn-out-scaling
-    python optuna_albert_glue_lrtt.py --task cola --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --lora-target qkvo --no-learn-out-scaling --no-transfer
-    python optuna_albert_glue_lrtt.py --task stsb --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 360 --transfer-method set --no-io-noise --lora-target qkvo --no-learn-out-scaling
-    python optuna_albert_glue_lrtt.py --task stsb --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 360 --transfer-method set --no-io-noise --lora-target qkvo --no-learn-out-scaling --no-transfer
-    python optuna_albert_glue_lrtt.py --task sst2 --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 20 --warmup-steps 2094 --transfer-method set --no-io-noise --lora-target qkvo --no-learn-out-scaling
-    python optuna_albert_glue_lrtt.py --task sst2 --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 20 --warmup-steps 2094 --transfer-method set --no-io-noise --lora-target qkvo --no-learn-out-scaling --no-transfer
-    python optuna_albert_glue_lrtt.py --task mnli --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 4 --warmup-steps 1000 --transfer-method set --no-io-noise --lora-target qkvo --no-learn-out-scaling
-    python optuna_albert_glue_lrtt.py --task mnli --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 4 --warmup-steps 1000 --transfer-method set --no-io-noise --lora-target qkvo --no-learn-out-scaling --no-transfer
-    python optuna_albert_glue_lrtt.py --task qnli --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 3312 --transfer-method set --no-io-noise --lora-target qkvo --no-learn-out-scaling
-    python optuna_albert_glue_lrtt.py --task qnli --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 3312 --transfer-method set --no-io-noise --lora-target qkvo --no-learn-out-scaling --no-transfer
-    python optuna_albert_glue_lrtt.py --task qqp --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 10 --warmup-steps 1400 --transfer-method set --no-io-noise --lora-target qkvo --no-learn-out-scaling
-    python optuna_albert_glue_lrtt.py --task qqp --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 10 --warmup-steps 1400 --transfer-method set --no-io-noise --lora-target qkvo --no-learn-out-scaling --no-transfer
-    python optuna_albert_glue_lrtt.py --task rte --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 80 --transfer-method set --no-io-noise --lora-target qkvo --no-learn-out-scaling
-    python optuna_albert_glue_lrtt.py --task rte --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 80 --transfer-method set --no-io-noise --lora-target qkvo --no-learn-out-scaling --no-transfer
-    python optuna_albert_glue_lrtt.py --task mrpc --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 14 --warmup-steps 80 --transfer-method set --no-io-noise --lora-target qkvo --no-learn-out-scaling
-    python optuna_albert_glue_lrtt.py --task mrpc --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 14 --warmup-steps 80 --transfer-method set --no-io-noise --lora-target qkvo --no-learn-out-scaling --no-transfer
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task cola --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog  --lora-target qkvo --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task cola --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target none --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task stsb --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 360 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task stsb --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 360 --transfer-method set --encoder-analog --embedding-analog --head-analog  --no-io-noise --lora-target none --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task sst2 --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 20 --warmup-steps 2094 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task sst2 --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 20 --warmup-steps 2094 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target none --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task mnli --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 4 --warmup-steps 1000 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task mnli --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 4 --warmup-steps 1000 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target none --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task qnli --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 3312 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task qnli --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 3312 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target none --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task qqp --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 10 --warmup-steps 1400 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task qqp --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 10 --warmup-steps 1400 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target none --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task rte --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 80 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task rte --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 80 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target none --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task mrpc --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 14 --warmup-steps 80 --transfer-method set --no-io-noise--encoder-analog --embedding-analog --head-analog --lora-target qkvo --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task mrpc --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 14 --warmup-steps 80 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target none --no-learn-out-scaling
 
 All flags:
     python optuna_albert_glue_lrtt.py \
@@ -926,11 +926,11 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         lora_alpha = 1.0         # fixed (no effect)
         tau_sec = 0.0            # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 4e-7, 8e-2, log=True)
-        transfer_every = trial.suggest_int('transfer_every', 16, 35000, log=True)
+        transfer_lr = trial.suggest_float('transfer_lr', 4e-7, 1e1, log=True)
+        transfer_every = trial.suggest_int('transfer_every', 16, 32000, log=True)
         rank_exp = trial.suggest_int('rank_exp', 0, 7)
         rank = 2 ** rank_exp
-        lora_alpha = trial.suggest_float('lora_alpha', 6e-6, 2e1, log=True)
+        lora_alpha = trial.suggest_float('lora_alpha', 6e-6, 1e1, log=True)
         tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
 
     # C tile pulsed transfer params (only meaningful for onehot/direct)
@@ -1249,7 +1249,7 @@ def print_study_summary(study):
 # =============================================================================
 
 def main():
-    global TASK_NAME, NUM_LABELS, MAX_SEQ_LENGTH, BATCH_SIZE, GRAD_ACCUM_STEPS, N_EPOCHS, WARMUP_STEPS, TRANSFER_METHOD, AB_DEVICE, IO_NOISE, LORA_TARGET, HEAD_LAYER, ENCODER_ANALOG, EMBEDDING_ANALOG, HEAD_ANALOG
+    global TASK_NAME, NUM_LABELS, MAX_SEQ_LENGTH, BATCH_SIZE, GRAD_ACCUM_STEPS, N_EPOCHS, WARMUP_STEPS, TRANSFER_METHOD, AB_DEVICE, IO_NOISE, LORA_TARGET, HEAD_LAYER, ENCODER_ANALOG, EMBEDDING_ANALOG, HEAD_ANALOG, RESULTS, _oom_retry_pending
 
     parser = argparse.ArgumentParser(description="Optuna sweep for ALBERT GLUE LRTT")
     parser.add_argument('--task', type=str, default='sst2',
@@ -1308,7 +1308,6 @@ def main():
     args = parser.parse_args()
 
     # Update global config
-    global RESULTS, GRAD_ACCUM_STEPS, _oom_retry_pending, EMBEDDING_ANALOG, HEAD_ANALOG
     TASK_NAME = args.task
     NUM_LABELS = TASK_TO_NUM_LABELS[TASK_NAME]
     MAX_SEQ_LENGTH = TASK_TO_MAX_SEQ_LENGTH[TASK_NAME]
