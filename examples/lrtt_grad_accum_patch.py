@@ -92,7 +92,9 @@ def _ab_update_with_snapshot(self, x, d, lr, in_trans=False, out_trans=False):
         self.num_b_updates += 1
 
     self._update_dynamic_te(lr)
-    self.transfer_counter += (x.shape[0] if self.units_in_mbatch else 1)
+    m_batch = x.shape[0]
+    self._last_m_batch = m_batch
+    self.transfer_counter += m_batch
 
 
 LRTTController._ab_weight_update_lora = _ab_update_with_snapshot
@@ -220,16 +222,11 @@ def _step_mem_opt(self, closure=None, **kwargs):
                     controller._update_dynamic_te(lr)  # advances by +1
 
                     # transfer_counter:
-                    # - units_in_mbatch=True: loop added entries_per_fwd * micro_bs
-                    #   per group (depth-inflated). Actual unique samples per step
-                    #   = total / entries_per_fwd.
-                    # - units_in_mbatch=False: each call added +1, should be +1
-                    #   per optimizer step.
-                    if controller.units_in_mbatch:
-                        inflated = controller.transfer_counter - counter_before
-                        controller.transfer_counter = counter_before + inflated // entries_per_fwd
-                    else:
-                        controller.transfer_counter = counter_before + 1
+                    # Counter always += m_batch per call (TikiTaka convention).
+                    # Loop called ab_weight_update N times with depth-inflated
+                    # entries_per_fwd groups. Correct to 1 batch worth.
+                    inflated = controller.transfer_counter - counter_before
+                    controller.transfer_counter = counter_before + inflated // entries_per_fwd
 
                     # Check transfer once after all groups processed
                     if controller.should_transfer():

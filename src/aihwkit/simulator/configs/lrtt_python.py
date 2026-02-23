@@ -33,7 +33,8 @@ class PythonLRTTDevice(_PrintableMixin):
     """LoRA rank dimension r. Must be > 0 and <= min(d_size, x_size)."""
     
     transfer_every: int = 32
-    """Transfer frequency: every N steps (or samples if units_in_mbatch=True)."""
+    """Transfer frequency: every N mini-batches (if units_in_mbatch=True)
+    or every N mat-vec operations (if units_in_mbatch=False)."""
     
     transfer_lr: float = 1.0
     """Transfer learning rate scalar applied during A⊗B -> visible transfer."""
@@ -190,7 +191,9 @@ class PythonLRTTDevice(_PrintableMixin):
 
     # === Advanced Parameters ===
     units_in_mbatch: bool = False
-    """If True, transfer_every counts samples; if False, counts steps."""
+    """If True, transfer_every is in mini-batch units (TE=1 → every batch).
+    If False, transfer_every is in mat-vec units (TE=1 → every sample).
+    Matches TikiTaka convention."""
 
     no_adc_ab_projection: bool = False
     """If True, remove ADC/DAC quantization between A/B projections.

@@ -166,6 +166,7 @@ class LRTTController:
 
         # Counters and state
         self.transfer_counter = 0
+        self._last_m_batch = 1  # Last mini-batch size (for units_in_mbatch)
         self.num_a_updates = 0
         self.num_b_updates = 0
         self.num_transfers = 0
@@ -760,8 +761,10 @@ class LRTTController:
         # 5) Dynamic TE update (before counter check)
         self._update_dynamic_te(lr)
 
-        # 6) Counter
-        self.transfer_counter += (x.shape[0] if self.units_in_mbatch else 1)
+        # 6) Counter (always += m_batch, matching TikiTaka convention)
+        m_batch = x.shape[0]
+        self._last_m_batch = m_batch
+        self.transfer_counter += m_batch
 
     def _ab_weight_update_reconstruction(
         self,
@@ -844,8 +847,10 @@ class LRTTController:
         # 6) Dynamic TE update (before counter check)
         self._update_dynamic_te(lr)
 
-        # 7) Counter
-        self.transfer_counter += (x.shape[0] if self.units_in_mbatch else 1)
+        # 7) Counter (always += m_batch, matching TikiTaka convention)
+        m_batch = x.shape[0]
+        self._last_m_batch = m_batch
+        self.transfer_counter += m_batch
 
     def _apply_reconstruction_stabilizer(self, lr_rec: float) -> None:
         """Apply stabilizer terms for reconstruction update.
@@ -1811,8 +1816,17 @@ class LRTTController:
         self.transfer_every = max(self.transfer_every, te_proposed)
 
     def should_transfer(self) -> bool:
-        """Check if transfer should occur based on counter and schedule."""
-        return self.transfer_counter >= self.transfer_every
+        """Check if transfer should occur based on counter and schedule.
+
+        Matches TikiTaka convention for units_in_mbatch:
+        - units_in_mbatch=True:  TE is in mini-batch units (TE=1 → every batch)
+        - units_in_mbatch=False: TE is in mat-vec units (TE=1 → every sample)
+        Counter always increments by m_batch.
+        """
+        effective_te = self.transfer_every
+        if self.units_in_mbatch:
+            effective_te = self.transfer_every * self._last_m_batch
+        return self.transfer_counter >= effective_te
 
     def reset_transfer_counter(self) -> None:
         """Reset transfer counter (called after transfer)."""

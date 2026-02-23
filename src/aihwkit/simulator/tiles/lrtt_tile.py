@@ -439,9 +439,9 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             # Handle transfer counter and dynamic TE
             lr = self.tile_c.get_learning_rate()
             ctrl._update_dynamic_te(lr)
-            ctrl.transfer_counter += (
-                x_input.shape[0] if ctrl.units_in_mbatch else 1
-            )
+            m_batch = x_input.shape[0]
+            ctrl._last_m_batch = m_batch
+            ctrl.transfer_counter += m_batch
             if ctrl.should_transfer():
                 ctrl.ab_weight_transfer()
             return None
