@@ -844,7 +844,7 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         tau_sec = 0.0            # fixed
     else:
         transfer_lr = trial.suggest_float('transfer_lr', 4e-6, 8e-3, log=True)
-        transfer_every = trial.suggest_int('transfer_every', 63, 35000, log=True)
+        transfer_every = trial.suggest_int('transfer_every', 1, 500, log=True)
         rank_exp = trial.suggest_int('rank_exp', 0, 5)
         rank = 2 ** rank_exp
         lora_alpha = trial.suggest_float('lora_alpha', 6e-5, 2e1, log=True)

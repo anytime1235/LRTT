@@ -1,49 +1,36 @@
 # -*- coding: utf-8 -*-
-"""Optuna hyperparameter sweep for MobileBERT + GLUE with LRTT.
+"""Optuna hyperparameter sweep for ALBERT + GLUE with LRTT.
 
 Supported GLUE tasks: cola, sst2, mrpc, qqp, mnli, qnli, rte, stsb, wnli
 
 Usage:
-    python optuna_mobilebert_glue_lrtt.py --task sst2 --n-trials 50
-    python optuna_mobilebert_glue_lrtt.py --task mrpc --n-trials 50
-    python optuna_mobilebert_glue_lrtt.py --task sst2 --visualize
+    python optuna_albert_glue_lrtt.py --task sst2 --n-trials 50
+    python optuna_albert_glue_lrtt.py --task mrpc --n-trials 50
+    python optuna_albert_glue_lrtt.py --task sst2 --visualize
+    python optuna_albert_glue_lrtt.py --task sst2 --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 393 --transfer-method set --no-io-noise --lora-target qkv
+    python optuna_albert_glue_lrtt.py --task cola --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --lora-target all
+    python optuna_albert_glue_lrtt.py --task stsb --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 360 --transfer-method set --no-io-noise --lora-target all
+    python optuna_albert_glue_lrtt.py --task cola --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --lora-target none --encoder-analog
 
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task rte --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 80 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
-
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task mrpc --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 14 --warmup-steps 80 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
-
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task stsb --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 360 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
-  
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task cola --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
-    
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task sst2 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 20 --warmup-steps 2094 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
-  
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task qnli --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 3312 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
-                                                                                                                                                                                                                                             
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task qqp --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 10 --warmup-steps 1400 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
-  
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task mnli --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 4 --warmup-steps 1000 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
-
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task rte --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 80 --transfer-method set --no-io-noise --lora-target qkvo
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task rte --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 80 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task mrpc --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 14 --warmup-steps 80 --transfer-method set --no-io-noise --lora-target qkvo
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task mrpc --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 14 --warmup-steps 80 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task stsb --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 360 --transfer-method set --no-io-noise --lora-target qkvo
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task stsb --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 360 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task cola --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --lora-target qkvo
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task cola --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task sst2 --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 20 --warmup-steps 2094 --transfer-method set --no-io-noise --lora-target qkvo
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task sst2 --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 20 --warmup-steps 2094 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task qnli --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 3312 --transfer-method set --no-io-noise --lora-target qkvo
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task qnli --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 3312 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task qqp --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 10 --warmup-steps 1400 --transfer-method set --no-io-noise --lora-target qkvo
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task qqp --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 10 --warmup-steps 1400 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task mnli --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 4 --warmup-steps 1000 --transfer-method set --no-io-noise --lora-target qkvo
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task mnli --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 4 --warmup-steps 1000 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
-
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task cola --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog  --lora-target qkvo --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task cola --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target none --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task stsb --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 360 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task stsb --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 360 --transfer-method set --encoder-analog --embedding-analog --head-analog  --no-io-noise --lora-target none --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task sst2 --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 20 --warmup-steps 2094 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task sst2 --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 20 --warmup-steps 2094 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target none --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task mnli --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 4 --warmup-steps 1000 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task mnli --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 4 --warmup-steps 1000 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target none --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task qnli --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 3312 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task qnli --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 3312 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target none --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task qqp --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 10 --warmup-steps 1400 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task qqp --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 10 --warmup-steps 1400 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target none --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task rte --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 80 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task rte --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 80 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target none --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task mrpc --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 14 --warmup-steps 80 --transfer-method set --no-io-noise--encoder-analog --embedding-analog --head-analog --lora-target qkvo --no-learn-out-scaling
+   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task mrpc --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 14 --warmup-steps 80 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target none --no-learn-out-scaling
 
 All flags:
-    python optuna_mobilebert_glue_lrtt.py \
+    python optuna_albert_glue_lrtt.py \
         --task <str>                # GLUE task (default: sst2)
         --study-name <str>          # Study name (default: auto-generated)
         --n-trials <int>            # Number of Optuna trials (default: 50)
@@ -59,14 +46,14 @@ All flags:
         --transfer-method <str>     # Transfer method: onehot | direct | set (default: onehot)
         --ab-device <str>           # A/B tile device: 6t1c | fp (default: 6t1c)
         --no-io-noise               # Disable IO out_noise (resolution kept)
-        --lora-target <str>         # LoRA target: none | qonly | konly | vonly | qkv | qkvo | ffn | dense | allnobn | all (default: qkv)
+        --lora-target <str>         # LoRA target: none | qonly | konly | vonly | qkv | qkvo | ffn | all (default: qkv)
         --head-layer <str>          # classifier: train | freeze (default: train)
         --no-transfer               # Disable LRTT transfer (A/B frozen, skip LRTT param sweep)
         --no-adc-ab-proj            # Remove ADC/DAC between A/B projections (full precision)
         --no-learn-out-scaling      # Disable trainable out_scaling on C tile
         --encoder-analog            # Non-LRTT encoder layers: frozen analog instead of digital
         --embedding-analog          # Embedding projection: frozen analog instead of digital
-        --head-analog               # Classifier: frozen analog instead of digital
+        --head-analog               # Classifier/qa_outputs: frozen analog instead of digital
 
 
 Inline flags (edit directly in script):
@@ -86,8 +73,8 @@ import optuna
 from optuna.storages import JournalStorage
 from optuna.storages.journal import JournalFileBackend
 study = optuna.load_study(
-    study_name='mobilebert_sst2_lrtt_bs64_sgd_hybrid_nowd_nomom_nonest_set_noio_qkv',
-    storage=JournalStorage(JournalFileBackend('results/optuna_mobilebert_sst2_lrtt/optuna_mobilebert_sst2_lrtt_bs64_sgd_hybrid_nowd_nomom_nonest_set_noio_qkv.log')))
+    study_name='albert_sst2_lrtt_bs64_sgd_hybrid_nowd_nomom_nonest_set_noio_qkv',
+    storage=JournalStorage(JournalFileBackend('results/optuna_albert_sst2_lrtt/optuna_albert_sst2_lrtt_bs64_sgd_hybrid_nowd_nomom_nonest_set_noio_qkv.log')))
 study.enqueue_trial({
     'learning_rate': 0.2080749864869466,
     'transfer_lr': 0.010000000000000004,
@@ -180,6 +167,11 @@ TASK_TO_METRIC = {
     "wnli": "accuracy",
 }
 
+TASK_TO_MAX_SEQ_LENGTH = {
+    "cola": 128, "sst2": 128, "mrpc": 128, "qqp": 128,
+    "mnli": 128, "qnli": 128, "rte": 256, "stsb": 128, "wnli": 128,
+}
+
 
 # =============================================================================
 # ConfigAwareBoTorchSampler with Periodic Exploration
@@ -258,21 +250,26 @@ USE_CUDA = torch.cuda.is_available()
 DEVICE = torch.device("cuda" if USE_CUDA else "cpu")
 
 # Paths
-RESULTS = os.path.join(os.getcwd(), "results", "optuna_mobilebert_glue_lrtt")  # Updated per-task in main()
+RESULTS = os.path.join(os.getcwd(), "results", "optuna_albert_glue_lrtt")  # Updated per-task in main()
+
+# 2-stage training: save/load digital params
+SAVE_DIGITAL = None   # Path to save digital params (LayerNorm, classifier, out_scaling) after training
+LOAD_DIGITAL = None   # Path to load pre-trained digital params before training
+FREEZE_CLASSIFIER = False  # If True, freeze classifier during training (Stage 2)
 
 # Reproducibility
 SEED = 42
 
 # Model
-MODEL_NAME = "google/mobilebert-uncased"
-MAX_SEQ_LENGTH = 128
+MODEL_NAME = "albert/albert-base-v2"
+MAX_SEQ_LENGTH = 128  # Updated per-task in main()
 NUM_LABELS = 2  # Will be set dynamically based on TASK_NAME
 
 # Training defaults
 N_EPOCHS = 15
 BATCH_SIZE = 64
 GRAD_ACCUM_STEPS = 1
-EVAL_BATCH_SIZE = 256
+EVAL_BATCH_SIZE = 64
 EARLY_STOP_PATIENCE = 3
 VAL_LOSS_EARLY_STOP_PATIENCE = 2  # Stop if val loss doesn't improve for this many epochs
 VAL_LOSS_THRESHOLD = 8.0  # Once val loss drops below this, rely on metric-based early stop only
@@ -295,26 +292,23 @@ IO_NOISE = True  # If False, disable out_noise (resolution kept)
 ENCODER_ANALOG = False  # If True, non-LRTT encoder layers become frozen analog instead of digital
 EMBEDDING_ANALOG = False  # If True, embedding projection → frozen analog instead of digital
 HEAD_ANALOG = False  # If True, classifier → frozen analog instead of digital
-BACKWARD_INP_BOUND = 1.0  # Backward pass input bound (default 1.0; increase to prevent gradient clipping)
 
 # LoRA target options: which layers have trainable A/B tiles
 # - none: no LRTT layers (fully digital baseline)
 # - qkv: only query, key, value
-# - ffn: projection (attention.output) + FFN (intermediate, output, bottleneck)
+# - ffn: attention.dense + ffn + ffn_output
 # - all: all encoder linear layers
 LORA_TARGET = "qkv"  # default, can be set via --lora-target
 HEAD_LAYER = "train"  # default, can be set via --head-layer (train | freeze)
 LORA_TARGET_MODULES = {
     "none": [],  # Empty = no layers converted to LRTT (fully digital)
-    "qonly": ["query"],  # Query only (24 layers)
-    "konly": ["key"],  # Key only (24 layers)
-    "vonly": ["value"],  # Value only (24 layers)
-    "qkv": ["query", "key", "value"],  # Q/K/V (72 layers)
-    "qkvo": ["query", "key", "value", "attention.output"],  # Q/K/V + attention output (96 layers)
-    "ffn": (["intermediate", "output.dense", "ffn"], ["attention"]),  # FFN only (192 layers)
-    "dense": ["dense"],  # All layers with "dense" (excludes qkv) (288 layers)
-    "allnobn": (None, ["bottleneck"]),  # All encoder minus bottleneck (288 layers)
-    "all": None,  # None means all encoder layers (no filtering) (360 layers)
+    "qonly": ["query"],  # Query only (1 shared layer)
+    "konly": ["key"],  # Key only (1 shared layer)
+    "vonly": ["value"],  # Value only (1 shared layer)
+    "qkv": ["query", "key", "value"],  # Q/K/V (3 shared layers)
+    "qkvo": ["query", "key", "value", "attention.dense"],  # Q/K/V + attention output (4 shared layers)
+    "ffn": ["ffn"],  # FFN layers only: ffn + ffn_output (2 in shared group)
+    "all": None,  # None means all encoder layers (no filtering) (~6 shared layers)
 }
 
 # Data subset sizes (0 = use full dataset)
@@ -377,15 +371,17 @@ def get_study_name_suffix():
     if HEAD_ANALOG:
         suffix += "_headanalog"
 
-    if BACKWARD_INP_BOUND != 1.0:
-        suffix += f"_bib{BACKWARD_INP_BOUND:g}"
-
     # Add lora target (always include for clarity)
     suffix += f"_{LORA_TARGET}"
 
     # Add head_layer if frozen (not default)
     if HEAD_LAYER == "freeze":
         suffix += "_headfreeze"
+
+    if LOAD_DIGITAL:
+        suffix += "_pretrained"
+    if FREEZE_CLASSIFIER:
+        suffix += "_clsfreeze"
 
     # Add epoch count
     suffix += f"_{N_EPOCHS}ep"
@@ -558,36 +554,33 @@ def get_lrtt_target_module_names(lora_target):
     if lora_target == "none":
         return []  # Empty = no layers converted to LRTT (fully digital baseline)
     elif lora_target == "qonly":
-        return ["query"]  # Query only (24 layers)
+        return ["query"]  # Query only (1 shared layer)
     elif lora_target == "konly":
-        return ["key"]  # Key only (24 layers)
+        return ["key"]  # Key only (1 shared layer)
     elif lora_target == "vonly":
-        return ["value"]  # Value only (24 layers)
+        return ["value"]  # Value only (1 shared layer)
     elif lora_target == "qkv":
-        return ["query", "key", "value"]  # Q/K/V (72 layers)
+        return ["query", "key", "value"]  # Q/K/V (3 shared layers)
     elif lora_target == "qkvo":
-        return ["query", "key", "value", "attention.output"]  # Q/K/V + attention output (96 layers)
+        return ["query", "key", "value", "attention.dense"]  # Q/K/V + attention output (4 shared layers)
     elif lora_target == "ffn":
-        return (["intermediate", "output.dense", "ffn"], ["attention"])  # FFN only (192 layers)
-    elif lora_target == "dense":
-        return ["dense"]  # All layers with "dense" in name (excludes qkv) (288 layers)
-    elif lora_target == "allnobn":
-        return (None, ["bottleneck"])  # All encoder minus bottleneck (288 layers)
+        return ["ffn"]  # ffn + ffn_output (2 shared layers)
     elif lora_target == "all":
-        # All encoder linear layers (exclude embeddings, classifier, embedding_transformation)
-        return None  # None means all encoder layers (360 layers)
+        # All encoder linear layers (exclude embeddings, classifier, embedding_hidden_mapping_in)
+        return None  # None means all encoder layers (~6 shared layers)
     else:
         raise ValueError(f"Unknown lora_target: {lora_target}")
 
 
 def create_model(params):
-    """Create MobileBERT classification model with selective LRTT analog layers.
+    """Create ALBERT classification model with selective LRTT analog layers.
 
     Architecture (follows paper's approach for efficiency):
         - LRTT Target layers (based on --lora-target) → LRTT Analog
         - Non-target Encoder layers → Digital FROZEN
         - classifier → Digital TRAINABLE (weight + bias)
-        - embedding_transformation → Digital FROZEN
+        - embedding_hidden_mapping_in → Digital FROZEN
+        - pooler → Digital FROZEN
         - Embeddings → Digital FROZEN
 
     LoRA Target Options (--lora-target):
@@ -615,8 +608,11 @@ def create_model(params):
         # classifier is always digital
         if "classifier" in layer_name:
             return False
-        # embedding_transformation: always digital frozen
-        if "embedding_transformation" in layer_name:
+        # embedding_hidden_mapping_in: always digital frozen (ALBERT's embedding projection)
+        if "embedding_hidden_mapping_in" in layer_name:
+            return False
+        # pooler: always digital frozen
+        if "pooler" in layer_name:
             return False
         # Must be in encoder for other layers
         if "encoder" not in layer_name:
@@ -624,10 +620,6 @@ def create_model(params):
         # If lrtt_patterns is None (all mode), all encoder layers are targets
         if lrtt_patterns is None:
             return True
-        if isinstance(lrtt_patterns, tuple):
-            include, exclude = lrtt_patterns
-            included = True if include is None else any(p in layer_name for p in include)
-            return included and not any(p in layer_name for p in exclude)
         return any(p in layer_name for p in lrtt_patterns)
 
     # Build exclude list: all layers that should NOT be converted to LRTT
@@ -638,9 +630,10 @@ def create_model(params):
             # Use full path for exclude_modules (convert_to_analog requires exact match)
             exclude_modules.append(name)
 
-    # Exclude classifier and embedding_transformation (always digital)
+    # Exclude classifier, embedding_hidden_mapping_in, and pooler (always digital)
     exclude_modules.append("classifier")
-    exclude_modules.append("mobilebert.embeddings.embedding_transformation")
+    exclude_modules.append("albert.encoder.embedding_hidden_mapping_in")
+    exclude_modules.append("albert.pooler")
     exclude_modules = list(set(exclude_modules))  # Remove duplicates
 
     # Step 1: Convert only LRTT target layers to LRTT Analog (skip if none mode)
@@ -665,13 +658,6 @@ def create_model(params):
         # Convert to analog with exclusions (only LRTT targets get converted)
         model = convert_to_analog(model, lrtt_config, exclude_modules=exclude_modules)
 
-        # Set backward gradient scaling on LRTT C tiles (periphery level)
-        if BACKWARD_INP_BOUND != 1.0:
-            from aihwkit.simulator.tiles.lrtt_tile import LRTTSimulatorTile
-            for m in model.modules():
-                if isinstance(m, LRTTSimulatorTile):
-                    m.tile_c.backward_inp_bound_override = BACKWARD_INP_BOUND
-
         # Count analog layers
         analog_count = sum(1 for m in model.modules() if isinstance(m, AnalogLinear))
 
@@ -691,14 +677,14 @@ def create_model(params):
             lrtt_config if LORA_TARGET != "none" else None,
             out_noise=params.get("out_noise", 0.0),
         )
-        frozen_exclude = []
+        frozen_exclude = ["albert.pooler"]
         if not EMBEDDING_ANALOG:
-            frozen_exclude.append("mobilebert.embeddings.embedding_transformation")
+            frozen_exclude.append("albert.encoder.embedding_hidden_mapping_in")
         if not HEAD_ANALOG:
             frozen_exclude.append("classifier")
         if not ENCODER_ANALOG or LORA_TARGET == "all":
             for name in all_linear_names:
-                if "encoder" in name and "embedding_transformation" not in name:
+                if "encoder" in name and "embedding_hidden_mapping_in" not in name:
                     frozen_exclude.append(name)
         model = convert_to_analog(model, frozen_config, exclude_modules=frozen_exclude)
         frozen_analog_count = sum(1 for m in model.modules() if isinstance(m, AnalogLinear)) - analog_count
@@ -747,13 +733,9 @@ def create_model(params):
                     if id(tile) not in existing_tile_ids:
                         # Head analog tiles remain trainable (weight + bias)
                         if HEAD_ANALOG and "classifier" in mod_name:
-                            if BACKWARD_INP_BOUND != 1.0:
-                                tile.backward_inp_bound_override = BACKWARD_INP_BOUND
                             continue
                         tile.update = _frozen_noop_update
                         tile.forward = types.MethodType(_frozen_analog_forward, tile)
-                        if BACKWARD_INP_BOUND != 1.0:
-                            tile.backward_inp_bound_override = BACKWARD_INP_BOUND
 
     total_params = sum(p.numel() for p in model.parameters())
     trainable_before = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -764,7 +746,8 @@ def create_model(params):
     # - LRTT layers: A/B + out_scaling TRAINABLE, C + bias FROZEN
     # - Frozen analog: out_scaling TRAINABLE (same as C tile), weights FROZEN
     # - classifier: TRAINABLE if HEAD_LAYER=="train", else FROZEN
-    # - embedding_transformation: always digital frozen
+    # - embedding_hidden_mapping_in: always digital frozen
+    # - pooler: always digital frozen
     # - Everything else: FROZEN
     for name, param in model.named_parameters():
         if "tile_a" in name or "tile_b" in name:
@@ -777,7 +760,9 @@ def create_model(params):
         elif "classifier" in name:
             # classifier: TRAINABLE or FROZEN based on setting
             param.requires_grad = (HEAD_LAYER == "train")
-        elif "embedding_transformation" in name:
+        elif "embedding_hidden_mapping_in" in name:
+            param.requires_grad = False
+        elif "pooler" in name:
             param.requires_grad = False
         else:
             param.requires_grad = False
@@ -796,6 +781,75 @@ def create_model(params):
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         raise
+
+
+# =============================================================================
+# Digital Params Save/Load (2-stage training)
+# =============================================================================
+
+def save_digital_params(model, path):
+    """Save digital params (LayerNorm, classifier, out_scaling_alpha) to .pt file.
+
+    These are the params that benefit from digital pre-training (Stage 1).
+    """
+    digital_state = {}
+    for name, param in model.named_parameters():
+        # LayerNorm params (weight + bias)
+        if "LayerNorm" in name:
+            digital_state[name] = param.detach().cpu().clone()
+        # classifier head (task-specific)
+        elif "classifier" in name:
+            digital_state[name] = param.detach().cpu().clone()
+        # out_scaling_alpha (C tile or frozen analog out_scaling)
+        elif "out_scaling_alpha" in name:
+            digital_state[name] = param.detach().cpu().clone()
+
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    torch.save(digital_state, path)
+    print(f"  [Save Digital] Saved {len(digital_state)} params to {path}")
+    for k, v in digital_state.items():
+        print(f"    {k}: {v.shape}")
+
+
+def load_digital_params(model, path):
+    """Load pre-trained digital params into model state_dict.
+
+    Matches by key name and shape. Skips mismatched keys with warning.
+    """
+    raw = torch.load(path, map_location="cpu", weights_only=True)
+    # Support both formats:
+    #   - stage1_digital.pt: {"key": tensor, ...}
+    #   - classifier_ckpt:   {"state_dict": {"key": tensor, ...}, "task": ..., ...}
+    digital_state = raw.get("state_dict", raw) if isinstance(raw, dict) else raw
+    model_state = model.state_dict()
+
+    loaded = 0
+    skipped = 0
+    for key, saved_tensor in digital_state.items():
+        target_key = key
+        # Key mapping: SingleRPUConfig → LRTT (PythonLRTTRPUConfig)
+        # SingleRPU: ...array.X.Y.out_scaling_alpha
+        # LRTT:      ...array.X.Y.tile_c.out_scaling_alpha
+        if target_key not in model_state and "out_scaling_alpha" in key and ".tile_c." not in key:
+            target_key = key.replace(".out_scaling_alpha", ".tile_c.out_scaling_alpha")
+
+        if target_key in model_state:
+            if model_state[target_key].shape == saved_tensor.shape:
+                model_state[target_key].copy_(saved_tensor)
+                loaded += 1
+                if target_key != key:
+                    print(f"  [Load Digital] Mapped {key} -> {target_key}")
+            else:
+                print(f"  [Load Digital] Shape mismatch for {target_key}: "
+                      f"model={model_state[target_key].shape}, saved={saved_tensor.shape} -> SKIP")
+                skipped += 1
+        else:
+            print(f"  [Load Digital] Key not found in model: {key} -> SKIP")
+            skipped += 1
+
+    # Load the modified state_dict back
+    model.load_state_dict(model_state)
+    print(f"  [Load Digital] Loaded {loaded} params from {path} (skipped {skipped})")
 
 
 # =============================================================================
@@ -845,6 +899,7 @@ def load_data(tokenizer):
         )
 
     collator = DataCollatorWithPadding(tokenizer)
+
     train_loader = DataLoader(
         train_dataset, batch_size=BATCH_SIZE // GRAD_ACCUM_STEPS, shuffle=True,
         collate_fn=collator, num_workers=2,
@@ -939,7 +994,7 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         torch.cuda.empty_cache()
 
     # Hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 1e-6, 1e-2, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 1e-4, 1e1, log=True)
 
     # LRTT parameters: skip sweep if --no-transfer (A/B frozen, no transfer happens)
     if OPT_CONFIG['no_transfer']:
@@ -950,11 +1005,11 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         lora_alpha = 1.0         # fixed (no effect)
         tau_sec = 0.0            # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 1e-5, 1e2, log=True)
+        transfer_lr = trial.suggest_float('transfer_lr', 1e-5, 1e1, log=True)
         transfer_every = trial.suggest_int('transfer_every', 1, 500, log=True)
-        rank_exp = trial.suggest_int('rank_exp', 0, 5)
+        rank_exp = trial.suggest_int('rank_exp', 0, 7)
         rank = 2 ** rank_exp
-        lora_alpha = trial.suggest_float('lora_alpha', 1e-5, 1e2, log=True)
+        lora_alpha = trial.suggest_float('lora_alpha', 1e-5, 1e1, log=True)
         tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
 
     # C tile pulsed transfer params (only meaningful for onehot/direct)
@@ -1027,6 +1082,19 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         set_seed(SEED)
 
         model = create_model(params)
+
+        # 2-stage: load pre-trained digital params (Stage 2)
+        if LOAD_DIGITAL:
+            load_digital_params(model, LOAD_DIGITAL)
+
+        # 2-stage: freeze classifier (Stage 2)
+        if FREEZE_CLASSIFIER:
+            for name, param in model.named_parameters():
+                if "classifier" in name:
+                    param.requires_grad = False
+            frozen_cls = sum(1 for n, p in model.named_parameters()
+                            if "classifier" in n and not p.requires_grad)
+            print(f"  [Freeze Classifier] Froze {frozen_cls} classifier params")
 
         if LORA_TARGET == "none" and not ENCODER_ANALOG and not EMBEDDING_ANALOG and not HEAD_ANALOG:
             # None mode (no analog tiles): use standard PyTorch optimizers
@@ -1142,6 +1210,11 @@ def objective(trial, train_loader, eval_loader, tokenizer):
 
         tqdm.write(f"\n[Trial {trial.number}] Finished - Best {metric_name}: {best_acc:.2f}%")
         tqdm.write(f"{'='*70}\n")
+
+        # 2-stage: save digital params after training (Stage 1)
+        if SAVE_DIGITAL:
+            save_digital_params(model, SAVE_DIGITAL)
+
         return best_acc
 
     except Exception as e:
@@ -1197,6 +1270,7 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
             torch.cuda.synchronize()
+
 
 # =============================================================================
 # Visualization
@@ -1272,9 +1346,9 @@ def print_study_summary(study):
 # =============================================================================
 
 def main():
-    global TASK_NAME, NUM_LABELS, BATCH_SIZE, GRAD_ACCUM_STEPS, N_EPOCHS, WARMUP_STEPS, TRANSFER_METHOD, AB_DEVICE, IO_NOISE, LORA_TARGET, HEAD_LAYER, ENCODER_ANALOG, EMBEDDING_ANALOG, HEAD_ANALOG, BACKWARD_INP_BOUND
+    global TASK_NAME, NUM_LABELS, MAX_SEQ_LENGTH, BATCH_SIZE, GRAD_ACCUM_STEPS, N_EPOCHS, WARMUP_STEPS, TRANSFER_METHOD, AB_DEVICE, IO_NOISE, LORA_TARGET, HEAD_LAYER, ENCODER_ANALOG, EMBEDDING_ANALOG, HEAD_ANALOG, RESULTS, _oom_retry_pending, SAVE_DIGITAL, LOAD_DIGITAL, FREEZE_CLASSIFIER
 
-    parser = argparse.ArgumentParser(description="Optuna sweep for MobileBERT GLUE LRTT")
+    parser = argparse.ArgumentParser(description="Optuna sweep for ALBERT GLUE LRTT")
     parser.add_argument('--task', type=str, default='sst2',
                         choices=list(TASK_TO_KEYS.keys()),
                         help='GLUE task name (default: sst2)')
@@ -1315,8 +1389,8 @@ def main():
     parser.add_argument('--no-adc-ab-proj', action='store_true',
                         help='Use digital matmul for A/B projections (no ADC/DAC between B and A)')
     parser.add_argument('--lora-target', type=str, default=LORA_TARGET,
-                        choices=['none', 'qonly', 'konly', 'vonly', 'qkv', 'qkvo', 'ffn', 'dense', 'allnobn', 'all'],
-                        help='LoRA target: none, qonly, konly, vonly, qkv, qkvo, ffn, dense, allnobn, all (default: qkv)')
+                        choices=['none', 'qonly', 'konly', 'vonly', 'qkv', 'qkvo', 'ffn', 'all'],
+                        help='LoRA target: none, qonly, konly, vonly, qkv, qkvo, ffn, all (default: qkv)')
     parser.add_argument('--head-layer', type=str, default=HEAD_LAYER,
                         choices=['train', 'freeze'],
                         help='classifier layer: train or freeze (default: train)')
@@ -1326,16 +1400,20 @@ def main():
                         help='Convert embedding projection to frozen analog (default: digital)')
     parser.add_argument('--head-analog', action='store_true', default=HEAD_ANALOG,
                         help='Convert classifier to frozen analog (default: digital)')
-    parser.add_argument('--backward-inp-bound', type=float, default=BACKWARD_INP_BOUND,
-                        help=f'Backward pass input bound for analog layers (default: {BACKWARD_INP_BOUND})')
     parser.add_argument('--no-learn-out-scaling', action='store_true',
                         help='Disable trainable out_scaling on C tile')
+    parser.add_argument('--save-digital', type=str, default=None,
+                        help='Save digital params (LayerNorm, classifier, out_scaling) after training')
+    parser.add_argument('--load-digital', type=str, default=None,
+                        help='Load pre-trained digital params before training')
+    parser.add_argument('--freeze-classifier', action='store_true',
+                        help='Freeze classifier during training')
     args = parser.parse_args()
 
     # Update global config
-    global RESULTS, GRAD_ACCUM_STEPS, _oom_retry_pending
     TASK_NAME = args.task
     NUM_LABELS = TASK_TO_NUM_LABELS[TASK_NAME]
+    MAX_SEQ_LENGTH = TASK_TO_MAX_SEQ_LENGTH[TASK_NAME]
     BATCH_SIZE = args.batch_size
     GRAD_ACCUM_STEPS = args.grad_accum_steps
     N_EPOCHS = args.epochs
@@ -1356,16 +1434,24 @@ def main():
     ENCODER_ANALOG = args.encoder_analog
     EMBEDDING_ANALOG = args.embedding_analog
     HEAD_ANALOG = args.head_analog
-    BACKWARD_INP_BOUND = args.backward_inp_bound
+    SAVE_DIGITAL = args.save_digital
+    LOAD_DIGITAL = args.load_digital
+    FREEZE_CLASSIFIER = args.freeze_classifier
 
     # Per-task results directory
-    RESULTS = os.path.join(os.getcwd(), "results", f"optuna_mobilebert_{TASK_NAME}_lrtt")
+    RESULTS = os.path.join(os.getcwd(), "results", f"optuna_albert_{TASK_NAME}_lrtt")
     os.makedirs(RESULTS, exist_ok=True)
 
-    # Auto-generate study name: mobilebert_{TASK_NAME}_lrtt_bs{BS}_{suffix}
-    study_name = args.study_name or f"mobilebert_{TASK_NAME}_lrtt_bs{BATCH_SIZE}_{get_study_name_suffix()}"
+    # Auto-generate study name: albert_{TASK_NAME}_lrtt_bs{BS}_{suffix}
+    study_name = args.study_name or f"albert_{TASK_NAME}_lrtt_bs{BATCH_SIZE}_{get_study_name_suffix()}"
 
     storage = JournalStorage(JournalFileBackend(f"{RESULTS}/optuna_{study_name}.log"))
+
+    if args.visualize:
+        study = optuna.load_study(study_name=study_name, storage=storage)
+        print_study_summary(study)
+        visualize_study(study, RESULTS)
+        return
 
     # Check for OOM retry file (from previous OOM restart)
     retry_file = os.path.join(RESULTS, f"_oom_retry_{study_name}.json")
@@ -1379,12 +1465,6 @@ def main():
         print(f"[OOM Retry] Retrying trial {retry_info['trial_number']}, "
               f"GRAD_ACCUM_STEPS={GRAD_ACCUM_STEPS}, micro_bs={BATCH_SIZE // GRAD_ACCUM_STEPS}")
 
-    if args.visualize:
-        study = optuna.load_study(study_name=study_name, storage=storage)
-        print_study_summary(study)
-        visualize_study(study, RESULTS)
-        return
-
     # Load data once (shared across all trials)
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
     train_loader, eval_loader = load_data(tokenizer)
@@ -1397,7 +1477,7 @@ def main():
         load_if_exists=True,
     )
 
-    # Enqueue OOM retry trial if pending
+    # Enqueue retry trial if OOM retry pending
     if retry_info is not None:
         study.enqueue_trial(retry_info["trial_params"])
 
@@ -1414,7 +1494,6 @@ def main():
             if arg == '--n-trials' and i + 1 < len(new_argv):
                 new_argv[i + 1] = str(remaining)
                 break
-        print(f"\n[OOM Recovery] Restarting process for {remaining} remaining trials...")
         child_cmd = [sys.executable] + new_argv
         wrapper = (
             'import subprocess,signal,sys\n'
@@ -1438,12 +1517,14 @@ def main():
     except _OOMRestart:
         current_complete = sum(1 for t in study.trials if t.state == TrialState.COMPLETE)
         remaining = max(1, args.n_trials - (current_complete - initial_complete))
+        print(f"\n[OOM Recovery] Restarting process for {remaining} remaining trials...")
         _restart_with_remaining(remaining)
     except _OOMRetryDone:
         # Retry succeeded, restart to reset GRAD_ACCUM_STEPS to default
         current_complete = sum(1 for t in study.trials if t.state == TrialState.COMPLETE)
         remaining = args.n_trials - (current_complete - initial_complete)
         if remaining > 0:
+            print(f"\n[OOM Recovery] Restarting with default GRAD_ACCUM for {remaining} remaining trials...")
             _restart_with_remaining(remaining)
 
     print_study_summary(study)

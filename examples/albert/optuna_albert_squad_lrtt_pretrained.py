@@ -1,50 +1,13 @@
 # -*- coding: utf-8 -*-
-"""Optuna hyperparameter sweep for MobileBERT + GLUE with LRTT.
-
-Supported GLUE tasks: cola, sst2, mrpc, qqp, mnli, qnli, rte, stsb, wnli
+"""Optuna hyperparameter sweep for ALBERT + SQuAD with LRTT.
 
 Usage:
-    python optuna_mobilebert_glue_lrtt.py --task sst2 --n-trials 50
-    python optuna_mobilebert_glue_lrtt.py --task mrpc --n-trials 50
-    python optuna_mobilebert_glue_lrtt.py --task sst2 --visualize
-
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task rte --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 80 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
-
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task mrpc --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 14 --warmup-steps 80 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
-
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task stsb --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 360 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
-  
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task cola --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
-    
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task sst2 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 20 --warmup-steps 2094 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
-  
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task qnli --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 3312 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
-                                                                                                                                                                                                                                             
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task qqp --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 10 --warmup-steps 1400 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
-  
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task mnli --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 4 --warmup-steps 1000 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
-
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task rte --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 80 --transfer-method set --no-io-noise --lora-target qkvo
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task rte --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 80 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task mrpc --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 14 --warmup-steps 80 --transfer-method set --no-io-noise --lora-target qkvo
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task mrpc --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 14 --warmup-steps 80 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task stsb --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 360 --transfer-method set --no-io-noise --lora-target qkvo
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task stsb --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 360 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task cola --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --lora-target qkvo
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task cola --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task sst2 --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 20 --warmup-steps 2094 --transfer-method set --no-io-noise --lora-target qkvo
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task sst2 --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 20 --warmup-steps 2094 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task qnli --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 3312 --transfer-method set --no-io-noise --lora-target qkvo
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task qnli --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 3312 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task qqp --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 10 --warmup-steps 1400 --transfer-method set --no-io-noise --lora-target qkvo
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task qqp --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 10 --warmup-steps 1400 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task mnli --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 4 --warmup-steps 1000 --transfer-method set --no-io-noise --lora-target qkvo
-HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task mnli --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 4 --warmup-steps 1000 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
-
+    python optuna_albert_squad_lrtt.py --n-trials 50
+    python optuna_albert_squad_lrtt.py --visualize
+    python optuna_albert_squad_lrtt.py --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 48 --epochs 5 --warmup-steps 365 --transfer-method set --no-io-noise --lora-target all
 
 All flags:
-    python optuna_mobilebert_glue_lrtt.py \
-        --task <str>                # GLUE task (default: sst2)
+    python optuna_albert_squad_lrtt.py \
         --study-name <str>          # Study name (default: auto-generated)
         --n-trials <int>            # Number of Optuna trials (default: 50)
         --visualize                 # Visualize study results and exit
@@ -55,18 +18,18 @@ All flags:
         --reinit-mode <str>         # Fix reinit mode: standard | decay | hybrid (default: tune all)
         --batch-size <int>          # Batch size (default: 64)
         --epochs <int>              # Number of epochs (default: 15)
-        --warmup-steps <int>        # LR warmup steps (default: 189)
+        --warmup-steps <int>        # LR warmup steps (default: 0)
         --transfer-method <str>     # Transfer method: onehot | direct | set (default: onehot)
         --ab-device <str>           # A/B tile device: 6t1c | fp (default: 6t1c)
         --no-io-noise               # Disable IO out_noise (resolution kept)
-        --lora-target <str>         # LoRA target: none | qonly | konly | vonly | qkv | qkvo | ffn | dense | allnobn | all (default: qkv)
-        --head-layer <str>          # classifier: train | freeze (default: train)
+        --lora-target <str>         # LoRA target: none | qonly | konly | vonly | qkv | qkvo | ffn | all (default: qkv)
+        --head-layer <str>          # qa_outputs: train | freeze (default: train)
         --no-transfer               # Disable LRTT transfer (A/B frozen, skip LRTT param sweep)
         --no-adc-ab-proj            # Remove ADC/DAC between A/B projections (full precision)
         --no-learn-out-scaling      # Disable trainable out_scaling on C tile
         --encoder-analog            # Non-LRTT encoder layers: frozen analog instead of digital
         --embedding-analog          # Embedding projection: frozen analog instead of digital
-        --head-analog               # Classifier: frozen analog instead of digital
+        --head-analog               # Classifier/qa_outputs: frozen analog instead of digital
 
 
 Inline flags (edit directly in script):
@@ -80,34 +43,38 @@ Inline flags (edit directly in script):
     TRAIN_SUBSET_SIZE = 0           # Training data subset (0 = full)
     EVAL_SUBSET_SIZE = 0            # Evaluation data subset (0 = full)
 
-Enqueue example:
-python3 << 'EOF'
+Enqueue
+
+python3 << 'EOF'                                                                                                                                                                                                                                                      
 import optuna
 from optuna.storages import JournalStorage
 from optuna.storages.journal import JournalFileBackend
 study = optuna.load_study(
-    study_name='mobilebert_sst2_lrtt_bs64_sgd_hybrid_nowd_nomom_nonest_set_noio_qkv',
-    storage=JournalStorage(JournalFileBackend('results/optuna_mobilebert_sst2_lrtt/optuna_mobilebert_sst2_lrtt_bs64_sgd_hybrid_nowd_nomom_nonest_set_noio_qkv.log')))
+study_name='albert_sst2_lrtt_bs64_sgd_hybrid_nowd_nomom_nonest_set_noio_none',
+storage=JournalStorage(JournalFileBackend('results/optuna_albert_sst2_lrtt/optuna_albert_sst2_lrtt_bs64_sgd_hybrid_nowd_nomom_nonest_set_noio_none.log')))
 study.enqueue_trial({
-    'learning_rate': 0.2080749864869466,
-    'transfer_lr': 0.010000000000000004,
-    'transfer_every': 16210,
-    'rank_exp': 1,
-    'lora_alpha': 0.41139594231202437,
-    'tau_sec': 0.0,
-    'min_lr_rate': 0.0})
+'learning_rate': 0.2080749864869466,
+'transfer_lr': 0.010000000000000004,
+'transfer_every': 16210,
+'rank_exp': 1,
+'lora_alpha': 0.41139594231202437,
+'tau_sec': 0.0,
+'min_lr_rate': 0.0})
 print('Enqueued!')
 EOF
-
+  
 """
 
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import sys
+import re
+import string
 import math
 import json
 import argparse
 import gc
+import collections
 
 import torch
 from torch import nn, no_grad, manual_seed
@@ -124,12 +91,13 @@ from optuna_integration import BoTorchSampler
 import matplotlib.pyplot as plt
 
 from transformers import (
-    AutoModelForSequenceClassification,
+    AutoModelForQuestionAnswering,
     AutoTokenizer,
     DataCollatorWithPadding,
     set_seed,
 )
 from datasets import load_dataset
+import evaluate
 
 # aihwkit imports
 from aihwkit.nn.conversion import convert_to_analog
@@ -146,39 +114,7 @@ from aihwkit.simulator.configs.lrtt_rpu_config import PythonLRTTRPUConfig
 from aihwkit.simulator.configs.lrtt_python import PythonLRTTDevice
 from aihwkit.simulator.parameters.mapping import MappingParameter
 
-
-# =============================================================================
-# GLUE Task Configurations
-# =============================================================================
-
-TASK_TO_KEYS = {
-    "cola": ("sentence", None),
-    "mnli": ("premise", "hypothesis"),
-    "mrpc": ("sentence1", "sentence2"),
-    "qnli": ("question", "sentence"),
-    "qqp": ("question1", "question2"),
-    "rte": ("sentence1", "sentence2"),
-    "sst2": ("sentence", None),
-    "stsb": ("sentence1", "sentence2"),
-    "wnli": ("sentence1", "sentence2"),
-}
-
-TASK_TO_NUM_LABELS = {
-    "cola": 2, "sst2": 2, "mrpc": 2, "qqp": 2,
-    "mnli": 3, "qnli": 2, "rte": 2, "stsb": 1, "wnli": 2,
-}
-
-TASK_TO_METRIC = {
-    "cola": "matthews_correlation",
-    "sst2": "accuracy",
-    "mrpc": "f1",
-    "qqp": "f1",
-    "mnli": "accuracy",
-    "qnli": "accuracy",
-    "rte": "accuracy",
-    "stsb": "spearmanr",
-    "wnli": "accuracy",
-}
+from collections import Counter
 
 
 # =============================================================================
@@ -250,35 +186,34 @@ class ConfigAwareBoTorchSampler(BoTorchSampler):
 # Global Constants
 # =============================================================================
 
-# GLUE task (will be set by argparse)
-TASK_NAME = "sst2"
+DEFAULT_STUDY_NAME = "albert_squad_lrtt_main"
 
 # Device
 USE_CUDA = torch.cuda.is_available()
 DEVICE = torch.device("cuda" if USE_CUDA else "cpu")
 
 # Paths
-RESULTS = os.path.join(os.getcwd(), "results", "optuna_mobilebert_glue_lrtt")  # Updated per-task in main()
+RESULTS = os.path.join(os.getcwd(), "results", "optuna_albert_squad_lrtt")
+os.makedirs(RESULTS, exist_ok=True)
 
 # Reproducibility
 SEED = 42
 
 # Model
-MODEL_NAME = "google/mobilebert-uncased"
-MAX_SEQ_LENGTH = 128
-NUM_LABELS = 2  # Will be set dynamically based on TASK_NAME
+MODEL_NAME = "albert/albert-base-v2"
+MAX_SEQ_LENGTH = 384
 
 # Training defaults
 N_EPOCHS = 15
 BATCH_SIZE = 64
 GRAD_ACCUM_STEPS = 1
-EVAL_BATCH_SIZE = 256
+EVAL_BATCH_SIZE = 64
 EARLY_STOP_PATIENCE = 3
-VAL_LOSS_EARLY_STOP_PATIENCE = 2  # Stop if val loss doesn't improve for this many epochs
-VAL_LOSS_THRESHOLD = 8.0  # Once val loss drops below this, rely on metric-based early stop only
+TRAIN_LOSS_EARLY_STOP_PATIENCE = 2  # Stop if train loss doesn't improve for this many epochs
+TRAIN_LOSS_THRESHOLD = 8.0  # Once train loss drops below this, rely on metric-based early stop only
 
 # Scheduler
-WARMUP_STEPS = 500  # warmup steps
+WARMUP_STEPS = 500
 
 # Dynamic TE
 DYNAMIC_TE = False
@@ -294,27 +229,29 @@ AB_DEVICE = "6t1c"  # "6t1c" or "fp"
 IO_NOISE = True  # If False, disable out_noise (resolution kept)
 ENCODER_ANALOG = False  # If True, non-LRTT encoder layers become frozen analog instead of digital
 EMBEDDING_ANALOG = False  # If True, embedding projection → frozen analog instead of digital
-HEAD_ANALOG = False  # If True, classifier → frozen analog instead of digital
-BACKWARD_INP_BOUND = 1.0  # Backward pass input bound (default 1.0; increase to prevent gradient clipping)
+HEAD_ANALOG = False  # If True, qa_outputs → frozen analog instead of digital
+
+# 2-stage training: save/load digital params
+SAVE_DIGITAL = None   # Path to save digital params (LayerNorm, qa_outputs, out_scaling) after training
+LOAD_DIGITAL = None   # Path to load pre-trained digital params before training
+FREEZE_CLASSIFIER = False  # If True, freeze qa_outputs during training (Stage 2)
 
 # LoRA target options: which layers have trainable A/B tiles
 # - none: no LRTT layers (fully digital baseline)
 # - qkv: only query, key, value
-# - ffn: projection (attention.output) + FFN (intermediate, output, bottleneck)
+# - ffn: attention.dense + ffn + ffn_output
 # - all: all encoder linear layers
 LORA_TARGET = "qkv"  # default, can be set via --lora-target
-HEAD_LAYER = "train"  # default, can be set via --head-layer (train | freeze)
+HEAD_LAYER = "train"  # default, can be set via --head-layer (train | freeze) - qa_outputs for SQuAD
 LORA_TARGET_MODULES = {
     "none": [],  # Empty = no layers converted to LRTT (fully digital)
-    "qonly": ["query"],  # Query only (24 layers)
-    "konly": ["key"],  # Key only (24 layers)
-    "vonly": ["value"],  # Value only (24 layers)
-    "qkv": ["query", "key", "value"],  # Q/K/V (72 layers)
-    "qkvo": ["query", "key", "value", "attention.output"],  # Q/K/V + attention output (96 layers)
-    "ffn": (["intermediate", "output.dense", "ffn"], ["attention"]),  # FFN only (192 layers)
-    "dense": ["dense"],  # All layers with "dense" (excludes qkv) (288 layers)
-    "allnobn": (None, ["bottleneck"]),  # All encoder minus bottleneck (288 layers)
-    "all": None,  # None means all encoder layers (no filtering) (360 layers)
+    "qonly": ["query"],  # Query only (1 shared layer)
+    "konly": ["key"],  # Key only (1 shared layer)
+    "vonly": ["value"],  # Value only (1 shared layer)
+    "qkv": ["query", "key", "value"],  # Q/K/V (3 shared layers)
+    "qkvo": ["query", "key", "value", "attention.dense"],  # Q/K/V + attention output (4 shared layers)
+    "ffn": ["ffn"],  # FFN layers only: ffn + ffn_output (2 in shared group)
+    "all": None,  # None means all encoder layers (no filtering) (~6 shared layers)
 }
 
 # Data subset sizes (0 = use full dataset)
@@ -377,15 +314,17 @@ def get_study_name_suffix():
     if HEAD_ANALOG:
         suffix += "_headanalog"
 
-    if BACKWARD_INP_BOUND != 1.0:
-        suffix += f"_bib{BACKWARD_INP_BOUND:g}"
-
     # Add lora target (always include for clarity)
     suffix += f"_{LORA_TARGET}"
 
     # Add head_layer if frozen (not default)
     if HEAD_LAYER == "freeze":
         suffix += "_headfreeze"
+
+    if LOAD_DIGITAL:
+        suffix += "_pretrained"
+    if FREEZE_CLASSIFIER:
+        suffix += "_clsfreeze"
 
     # Add epoch count
     suffix += f"_{N_EPOCHS}ep"
@@ -558,36 +497,33 @@ def get_lrtt_target_module_names(lora_target):
     if lora_target == "none":
         return []  # Empty = no layers converted to LRTT (fully digital baseline)
     elif lora_target == "qonly":
-        return ["query"]  # Query only (24 layers)
+        return ["query"]  # Query only (1 shared layer)
     elif lora_target == "konly":
-        return ["key"]  # Key only (24 layers)
+        return ["key"]  # Key only (1 shared layer)
     elif lora_target == "vonly":
-        return ["value"]  # Value only (24 layers)
+        return ["value"]  # Value only (1 shared layer)
     elif lora_target == "qkv":
-        return ["query", "key", "value"]  # Q/K/V (72 layers)
+        return ["query", "key", "value"]  # Q/K/V (3 shared layers)
     elif lora_target == "qkvo":
-        return ["query", "key", "value", "attention.output"]  # Q/K/V + attention output (96 layers)
+        return ["query", "key", "value", "attention.dense"]  # Q/K/V + attention output (4 shared layers)
     elif lora_target == "ffn":
-        return (["intermediate", "output.dense", "ffn"], ["attention"])  # FFN only (192 layers)
-    elif lora_target == "dense":
-        return ["dense"]  # All layers with "dense" in name (excludes qkv) (288 layers)
-    elif lora_target == "allnobn":
-        return (None, ["bottleneck"])  # All encoder minus bottleneck (288 layers)
+        return ["ffn"]  # ffn + ffn_output (2 shared layers)
     elif lora_target == "all":
-        # All encoder linear layers (exclude embeddings, classifier, embedding_transformation)
-        return None  # None means all encoder layers (360 layers)
+        # All encoder linear layers (exclude embeddings, qa_outputs, embedding_hidden_mapping_in)
+        return None  # None means all encoder layers (~6 shared layers)
     else:
         raise ValueError(f"Unknown lora_target: {lora_target}")
 
 
 def create_model(params):
-    """Create MobileBERT classification model with selective LRTT analog layers.
+    """Create ALBERT QA model with selective LRTT analog layers.
 
     Architecture (follows paper's approach for efficiency):
         - LRTT Target layers (based on --lora-target) → LRTT Analog
         - Non-target Encoder layers → Digital FROZEN
-        - classifier → Digital TRAINABLE (weight + bias)
-        - embedding_transformation → Digital FROZEN
+        - qa_outputs → Digital TRAINABLE (weight + bias)
+        - embedding_hidden_mapping_in → Digital FROZEN
+        - pooler → Digital FROZEN
         - Embeddings → Digital FROZEN
 
     LoRA Target Options (--lora-target):
@@ -603,20 +539,21 @@ def create_model(params):
     """
     from aihwkit.nn import AnalogLinear
 
-    model = AutoModelForSequenceClassification.from_pretrained(
-        MODEL_NAME, num_labels=NUM_LABELS
-    )
+    model = AutoModelForQuestionAnswering.from_pretrained(MODEL_NAME)
 
     # Get LRTT target patterns
     lrtt_patterns = get_lrtt_target_module_names(LORA_TARGET)
 
     def is_lrtt_target(layer_name):
         """Check if layer should be converted to LRTT Analog."""
-        # classifier is always digital
-        if "classifier" in layer_name:
+        # qa_outputs is always digital
+        if "qa_outputs" in layer_name:
             return False
-        # embedding_transformation: always digital frozen
-        if "embedding_transformation" in layer_name:
+        # embedding_hidden_mapping_in: always digital frozen (ALBERT's embedding projection)
+        if "embedding_hidden_mapping_in" in layer_name:
+            return False
+        # pooler: always digital frozen
+        if "pooler" in layer_name:
             return False
         # Must be in encoder for other layers
         if "encoder" not in layer_name:
@@ -624,10 +561,6 @@ def create_model(params):
         # If lrtt_patterns is None (all mode), all encoder layers are targets
         if lrtt_patterns is None:
             return True
-        if isinstance(lrtt_patterns, tuple):
-            include, exclude = lrtt_patterns
-            included = True if include is None else any(p in layer_name for p in include)
-            return included and not any(p in layer_name for p in exclude)
         return any(p in layer_name for p in lrtt_patterns)
 
     # Build exclude list: all layers that should NOT be converted to LRTT
@@ -638,9 +571,10 @@ def create_model(params):
             # Use full path for exclude_modules (convert_to_analog requires exact match)
             exclude_modules.append(name)
 
-    # Exclude classifier and embedding_transformation (always digital)
-    exclude_modules.append("classifier")
-    exclude_modules.append("mobilebert.embeddings.embedding_transformation")
+    # Exclude qa_outputs, embedding_hidden_mapping_in, and pooler (always digital)
+    exclude_modules.append("qa_outputs")
+    exclude_modules.append("albert.encoder.embedding_hidden_mapping_in")
+    exclude_modules.append("albert.pooler")
     exclude_modules = list(set(exclude_modules))  # Remove duplicates
 
     # Step 1: Convert only LRTT target layers to LRTT Analog (skip if none mode)
@@ -665,13 +599,6 @@ def create_model(params):
         # Convert to analog with exclusions (only LRTT targets get converted)
         model = convert_to_analog(model, lrtt_config, exclude_modules=exclude_modules)
 
-        # Set backward gradient scaling on LRTT C tiles (periphery level)
-        if BACKWARD_INP_BOUND != 1.0:
-            from aihwkit.simulator.tiles.lrtt_tile import LRTTSimulatorTile
-            for m in model.modules():
-                if isinstance(m, LRTTSimulatorTile):
-                    m.tile_c.backward_inp_bound_override = BACKWARD_INP_BOUND
-
         # Count analog layers
         analog_count = sum(1 for m in model.modules() if isinstance(m, AnalogLinear))
 
@@ -691,14 +618,14 @@ def create_model(params):
             lrtt_config if LORA_TARGET != "none" else None,
             out_noise=params.get("out_noise", 0.0),
         )
-        frozen_exclude = []
+        frozen_exclude = ["albert.pooler"]
         if not EMBEDDING_ANALOG:
-            frozen_exclude.append("mobilebert.embeddings.embedding_transformation")
+            frozen_exclude.append("albert.encoder.embedding_hidden_mapping_in")
         if not HEAD_ANALOG:
-            frozen_exclude.append("classifier")
+            frozen_exclude.append("qa_outputs")
         if not ENCODER_ANALOG or LORA_TARGET == "all":
             for name in all_linear_names:
-                if "encoder" in name and "embedding_transformation" not in name:
+                if "encoder" in name and "embedding_hidden_mapping_in" not in name:
                     frozen_exclude.append(name)
         model = convert_to_analog(model, frozen_config, exclude_modules=frozen_exclude)
         frozen_analog_count = sum(1 for m in model.modules() if isinstance(m, AnalogLinear)) - analog_count
@@ -746,14 +673,10 @@ def create_model(params):
                 for tile in m.analog_tiles():
                     if id(tile) not in existing_tile_ids:
                         # Head analog tiles remain trainable (weight + bias)
-                        if HEAD_ANALOG and "classifier" in mod_name:
-                            if BACKWARD_INP_BOUND != 1.0:
-                                tile.backward_inp_bound_override = BACKWARD_INP_BOUND
+                        if HEAD_ANALOG and "qa_outputs" in mod_name:
                             continue
                         tile.update = _frozen_noop_update
                         tile.forward = types.MethodType(_frozen_analog_forward, tile)
-                        if BACKWARD_INP_BOUND != 1.0:
-                            tile.backward_inp_bound_override = BACKWARD_INP_BOUND
 
     total_params = sum(p.numel() for p in model.parameters())
     trainable_before = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -762,22 +685,22 @@ def create_model(params):
 
     # Step 2: Set requires_grad
     # - LRTT layers: A/B + out_scaling TRAINABLE, C + bias FROZEN
-    # - Frozen analog: out_scaling TRAINABLE (same as C tile), weights FROZEN
-    # - classifier: TRAINABLE if HEAD_LAYER=="train", else FROZEN
-    # - embedding_transformation: always digital frozen
+    # - qa_outputs: TRAINABLE if HEAD_LAYER=="train", else FROZEN
+    # - embedding_hidden_mapping_in: always digital frozen
+    # - pooler: always digital frozen
     # - Everything else: FROZEN
     for name, param in model.named_parameters():
         if "tile_a" in name or "tile_b" in name:
-            # LRTT A/B tiles: TRAINABLE, but FROZEN if no_transfer (no point updating without transfer)
             param.requires_grad = not OPT_CONFIG['no_transfer']
         elif "tile_c" in name:
             pass  # Respect lrtt_tile.py settings (train_c_bias, mapping_c)
         elif "out_scaling_alpha" in name:
             pass  # Frozen analog out_scaling: TRAINABLE (same as C tile)
-        elif "classifier" in name:
-            # classifier: TRAINABLE or FROZEN based on setting
+        elif "qa_outputs" in name:
             param.requires_grad = (HEAD_LAYER == "train")
-        elif "embedding_transformation" in name:
+        elif "embedding_hidden_mapping_in" in name:
+            param.requires_grad = False
+        elif "pooler" in name:
             param.requires_grad = False
         else:
             param.requires_grad = False
@@ -789,8 +712,6 @@ def create_model(params):
     try:
         return model.to(DEVICE)
     except Exception:
-        # If .to(DEVICE) fails (e.g. CUBLAS/OOM), partially-transferred model
-        # must be explicitly deleted to free GPU memory from tiles that DID transfer
         del model
         gc.collect()
         if torch.cuda.is_available():
@@ -799,119 +720,347 @@ def create_model(params):
 
 
 # =============================================================================
+# Digital Params Save/Load (2-stage training)
+# =============================================================================
+
+def save_digital_params(model, path):
+    """Save digital params (LayerNorm, qa_outputs, out_scaling_alpha) to .pt file.
+
+    These are the params that benefit from digital pre-training (Stage 1).
+    """
+    digital_state = {}
+    for name, param in model.named_parameters():
+        # LayerNorm params (weight + bias)
+        if "LayerNorm" in name:
+            digital_state[name] = param.detach().cpu().clone()
+        # qa_outputs (classifier head for SQuAD)
+        elif "qa_outputs" in name:
+            digital_state[name] = param.detach().cpu().clone()
+        # out_scaling_alpha (C tile or frozen analog out_scaling)
+        elif "out_scaling_alpha" in name:
+            digital_state[name] = param.detach().cpu().clone()
+
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    torch.save(digital_state, path)
+    print(f"  [Save Digital] Saved {len(digital_state)} params to {path}")
+    for k, v in digital_state.items():
+        print(f"    {k}: {v.shape}")
+
+
+def load_digital_params(model, path):
+    """Load pre-trained digital params into model state_dict.
+
+    Matches by key name and shape. Skips mismatched keys with warning.
+    """
+    raw = torch.load(path, map_location="cpu", weights_only=True)
+    # Support both formats:
+    #   - stage1_digital.pt: {"key": tensor, ...}
+    #   - classifier_ckpt:   {"state_dict": {"key": tensor, ...}, "task": ..., ...}
+    digital_state = raw.get("state_dict", raw) if isinstance(raw, dict) else raw
+    model_state = model.state_dict()
+
+    loaded = 0
+    skipped = 0
+    for key, saved_tensor in digital_state.items():
+        target_key = key
+        # Key mapping: SingleRPUConfig → LRTT (PythonLRTTRPUConfig)
+        # SingleRPU: ...array.X.Y.out_scaling_alpha
+        # LRTT:      ...array.X.Y.tile_c.out_scaling_alpha
+        if target_key not in model_state and "out_scaling_alpha" in key and ".tile_c." not in key:
+            target_key = key.replace(".out_scaling_alpha", ".tile_c.out_scaling_alpha")
+
+        if target_key in model_state:
+            if model_state[target_key].shape == saved_tensor.shape:
+                model_state[target_key].copy_(saved_tensor)
+                loaded += 1
+                if target_key != key:
+                    print(f"  [Load Digital] Mapped {key} -> {target_key}")
+            else:
+                print(f"  [Load Digital] Shape mismatch for {target_key}: "
+                      f"model={model_state[target_key].shape}, saved={saved_tensor.shape} -> SKIP")
+                skipped += 1
+        else:
+            print(f"  [Load Digital] Key not found in model: {key} -> SKIP")
+            skipped += 1
+
+    # Load the modified state_dict back
+    model.load_state_dict(model_state)
+    print(f"  [Load Digital] Loaded {loaded} params from {path} (skipped {skipped})")
+
+
+# =============================================================================
 # Data Functions
 # =============================================================================
 
 def load_data(tokenizer):
-    """Load and tokenize GLUE dataset for the specified task."""
-    raw_datasets = load_dataset("nyu-mll/glue", TASK_NAME)
-    sentence1_key, sentence2_key = TASK_TO_KEYS[TASK_NAME]
+    """Load and tokenize SQuAD dataset."""
+    raw_datasets = load_dataset("squad")
 
-    def preprocess_function(examples):
-        if sentence2_key is None:
-            return tokenizer(
-                examples[sentence1_key],
-                max_length=MAX_SEQ_LENGTH,
-                truncation=True,
-                padding=False,
-            )
-        return tokenizer(
-            examples[sentence1_key], examples[sentence2_key],
-            max_length=MAX_SEQ_LENGTH,
-            truncation=True,
-            padding=False,
-        )
-
-    # Tokenize all splits
-    cols_to_remove = [c for c in raw_datasets["train"].column_names if c != "label"]
-    tokenized = raw_datasets.map(preprocess_function, batched=True, remove_columns=cols_to_remove)
-    tokenized = tokenized.rename_column("label", "labels")
-
-    # Training set
-    train_dataset = tokenized["train"]
-    if TRAIN_SUBSET_SIZE > 0:
-        train_dataset = train_dataset.shuffle(seed=SEED).select(
-            range(min(TRAIN_SUBSET_SIZE, len(train_dataset)))
+    # Use full dataset if EVAL_SUBSET_SIZE == 0, otherwise subset
+    if EVAL_SUBSET_SIZE > 0:
+        eval_examples = raw_datasets["validation"].select(
+            range(min(EVAL_SUBSET_SIZE, len(raw_datasets["validation"])))
         )
     else:
-        train_dataset = train_dataset.shuffle(seed=SEED)
+        eval_examples = raw_datasets["validation"]
 
-    # Eval set (MNLI uses validation_matched)
-    eval_key = "validation_matched" if TASK_NAME == "mnli" else "validation"
-    eval_dataset = tokenized[eval_key]
-    if EVAL_SUBSET_SIZE > 0:
-        eval_dataset = eval_dataset.select(
-            range(min(EVAL_SUBSET_SIZE, len(eval_dataset)))
+    def preprocess_train(examples):
+        questions = [q.strip() for q in examples["question"]]
+        inputs = tokenizer(
+            questions, examples["context"],
+            max_length=MAX_SEQ_LENGTH, truncation="only_second",
+            stride=128, return_overflowing_tokens=True,
+            return_offsets_mapping=True, padding=False,
         )
+
+        offset_mapping = inputs.pop("offset_mapping")
+        sample_map = inputs.pop("overflow_to_sample_mapping")
+        answers = examples["answers"]
+
+        start_positions = []
+        end_positions = []
+
+        for i, offset in enumerate(offset_mapping):
+            sample_idx = sample_map[i]
+            answer = answers[sample_idx]
+
+            if len(answer["answer_start"]) == 0:
+                start_positions.append(0)
+                end_positions.append(0)
+                continue
+
+            start_char = answer["answer_start"][0]
+            end_char = start_char + len(answer["text"][0])
+
+            sequence_ids = inputs.sequence_ids(i)
+
+            idx = 0
+            while sequence_ids[idx] != 1:
+                idx += 1
+            context_start = idx
+            while idx < len(sequence_ids) and sequence_ids[idx] == 1:
+                idx += 1
+            context_end = idx - 1
+
+            if offset[context_start][0] > end_char or offset[context_end][1] < start_char:
+                start_positions.append(0)
+                end_positions.append(0)
+            else:
+                idx = context_start
+                while idx <= context_end and offset[idx][0] <= start_char:
+                    idx += 1
+                start_positions.append(idx - 1)
+
+                idx = context_end
+                while idx >= context_start and offset[idx][1] >= end_char:
+                    idx -= 1
+                end_positions.append(idx + 1)
+
+        inputs["start_positions"] = start_positions
+        inputs["end_positions"] = end_positions
+        return inputs
+
+    def preprocess_eval(examples):
+        questions = [q.strip() for q in examples["question"]]
+        inputs = tokenizer(
+            questions, examples["context"],
+            max_length=MAX_SEQ_LENGTH, truncation="only_second",
+            stride=128, return_overflowing_tokens=True,
+            return_offsets_mapping=True, padding=False,
+        )
+
+        sample_map = inputs.pop("overflow_to_sample_mapping")
+        offset_mapping = inputs["offset_mapping"]
+
+        for i in range(len(inputs["input_ids"])):
+            sequence_ids = inputs.sequence_ids(i)
+            inputs["offset_mapping"][i] = [
+                o if sequence_ids[k] == 1 else None
+                for k, o in enumerate(offset_mapping[i])
+            ]
+
+        inputs["example_id"] = [
+            examples["id"][sample_map[i]] for i in range(len(inputs["input_ids"]))
+        ]
+
+        return inputs
+
+    tokenized_train = raw_datasets["train"].map(
+        preprocess_train, batched=True,
+        remove_columns=raw_datasets["train"].column_names
+    )
+    # Use full dataset if TRAIN_SUBSET_SIZE == 0, otherwise subset
+    if TRAIN_SUBSET_SIZE > 0:
+        train_subset = tokenized_train.shuffle(seed=SEED).select(
+            range(min(TRAIN_SUBSET_SIZE, len(tokenized_train)))
+        )
+    else:
+        train_subset = tokenized_train.shuffle(seed=SEED)
+
+    tokenized_eval = eval_examples.map(
+        preprocess_eval, batched=True,
+        remove_columns=raw_datasets["validation"].column_names
+    )
 
     collator = DataCollatorWithPadding(tokenizer)
     train_loader = DataLoader(
-        train_dataset, batch_size=BATCH_SIZE // GRAD_ACCUM_STEPS, shuffle=True,
+        train_subset, batch_size=BATCH_SIZE // GRAD_ACCUM_STEPS, shuffle=True,
         collate_fn=collator, num_workers=2,
         generator=torch.Generator().manual_seed(SEED)
     )
 
-    eval_loader = DataLoader(
-        eval_dataset, batch_size=EVAL_BATCH_SIZE, shuffle=False,
-        collate_fn=collator,
-        num_workers=2
-    )
-
-    return train_loader, eval_loader
+    return train_loader, tokenized_eval, eval_examples
 
 
 # =============================================================================
 # Evaluation Functions
 # =============================================================================
 
-def evaluate_model(model, eval_loader):
-    """Evaluate GLUE model. Returns (metric_value, val_loss)."""
+def normalize_answer(s):
+    def remove_articles(text):
+        return re.sub(r'\b(a|an|the)\b', ' ', text)
+
+    def white_space_fix(text):
+        return ' '.join(text.split())
+
+    def remove_punc(text):
+        exclude = set(string.punctuation)
+        return ''.join(ch for ch in text if ch not in exclude)
+
+    return white_space_fix(remove_articles(remove_punc(s.lower())))
+
+
+def compute_f1(prediction, ground_truth):
+    pred_tokens = normalize_answer(prediction).split()
+    truth_tokens = normalize_answer(ground_truth).split()
+
+    if len(pred_tokens) == 0 or len(truth_tokens) == 0:
+        return int(pred_tokens == truth_tokens)
+
+    common = Counter(pred_tokens) & Counter(truth_tokens)
+    num_same = sum(common.values())
+
+    if num_same == 0:
+        return 0.0
+
+    precision = num_same / len(pred_tokens)
+    recall = num_same / len(truth_tokens)
+    return 2 * precision * recall / (precision + recall)
+
+
+def compute_exact_match(prediction, ground_truth):
+    return float(normalize_answer(prediction) == normalize_answer(ground_truth))
+
+
+def postprocess_squad_predictions(
+    examples, features, all_start_logits, all_end_logits,
+    n_best_size=20, max_answer_length=30,
+):
+    example_id_to_index = {k: i for i, k in enumerate(examples["id"])}
+    features_per_example = collections.defaultdict(list)
+    for i, feature in enumerate(features):
+        features_per_example[example_id_to_index[feature["example_id"]]].append(i)
+
+    all_predictions = collections.OrderedDict()
+
+    for example_index, example in enumerate(examples):
+        feature_indices = features_per_example[example_index]
+        context = example["context"]
+
+        prelim_predictions = []
+
+        for feature_index in feature_indices:
+            start_logits = all_start_logits[feature_index]
+            end_logits = all_end_logits[feature_index]
+            offset_mapping = features[feature_index]["offset_mapping"]
+
+            start_indexes = np.argsort(start_logits)[-1: -n_best_size - 1: -1].tolist()
+            end_indexes = np.argsort(end_logits)[-1: -n_best_size - 1: -1].tolist()
+
+            for start_index in start_indexes:
+                for end_index in end_indexes:
+                    if (
+                        start_index >= len(offset_mapping)
+                        or end_index >= len(offset_mapping)
+                        or offset_mapping[start_index] is None
+                        or offset_mapping[end_index] is None
+                    ):
+                        continue
+                    if end_index < start_index or end_index - start_index + 1 > max_answer_length:
+                        continue
+
+                    prelim_predictions.append({
+                        "offsets": (offset_mapping[start_index][0], offset_mapping[end_index][1]),
+                        "score": start_logits[start_index] + end_logits[end_index],
+                    })
+
+        predictions = sorted(prelim_predictions, key=lambda x: x["score"], reverse=True)[:n_best_size]
+
+        if len(predictions) == 0:
+            all_predictions[example["id"]] = ""
+        else:
+            best_pred = predictions[0]
+            start_char, end_char = best_pred["offsets"]
+            all_predictions[example["id"]] = context[start_char:end_char]
+
+    return all_predictions
+
+
+def evaluate_model(model, eval_features, eval_examples, tokenizer):
+    """Evaluate SQuAD model. Returns (F1, EM)."""
     model.eval()
 
-    is_regression = (TASK_NAME == "stsb")
-    all_preds = []
-    all_labels = []
-    total_val_loss = 0.0
-    num_val_batches = 0
+    all_start_logits = []
+    all_end_logits = []
+
+    # Pad to max_length so all batches produce same-sized logits for np.concatenate
+    collator = DataCollatorWithPadding(tokenizer, padding="max_length", max_length=MAX_SEQ_LENGTH)
+
+    def squad_eval_collate_fn(features):
+        offset_mappings = [f.pop("offset_mapping") for f in features]
+        example_ids = [f.pop("example_id") for f in features]
+        batch = collator(features)
+        batch["offset_mapping"] = offset_mappings
+        batch["example_id"] = example_ids
+        for i, f in enumerate(features):
+            f["offset_mapping"] = offset_mappings[i]
+            f["example_id"] = example_ids[i]
+        return batch
+
+    eval_loader = DataLoader(
+        eval_features, batch_size=EVAL_BATCH_SIZE, shuffle=False,
+        collate_fn=squad_eval_collate_fn,
+        num_workers=2
+    )
 
     with no_grad():
         for batch in eval_loader:
             input_ids = batch['input_ids'].to(DEVICE)
             attention_mask = batch['attention_mask'].to(DEVICE)
-            labels = batch['labels'].to(DEVICE)
 
-            outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
-            total_val_loss += outputs.loss.item()
-            num_val_batches += 1
+            outputs = model(input_ids=input_ids, attention_mask=attention_mask)
 
-            if is_regression:
-                preds = outputs.logits.squeeze()
-                all_preds.extend(preds.cpu().numpy())
-                all_labels.extend(labels.float().cpu().numpy())
-            else:
-                preds = torch.argmax(outputs.logits, dim=-1)
-                all_preds.extend(preds.cpu().numpy())
-                all_labels.extend(labels.cpu().numpy())
+            all_start_logits.append(outputs.start_logits.cpu().numpy())
+            all_end_logits.append(outputs.end_logits.cpu().numpy())
 
     model.train()
 
-    val_loss = total_val_loss / num_val_batches if num_val_batches > 0 else float('inf')
+    all_start_logits = np.concatenate(all_start_logits, axis=0)
+    all_end_logits = np.concatenate(all_end_logits, axis=0)
 
-    # Compute task-specific metric
-    metric_name = TASK_TO_METRIC[TASK_NAME]
-    if metric_name == "accuracy":
-        metric_value = sum(p == l for p, l in zip(all_preds, all_labels)) / len(all_labels) * 100.0
-    elif metric_name == "f1":
-        from sklearn.metrics import f1_score
-        metric_value = f1_score(all_labels, all_preds) * 100.0
-    elif metric_name == "matthews_correlation":
-        from sklearn.metrics import matthews_corrcoef
-        metric_value = matthews_corrcoef(all_labels, all_preds) * 100.0
-    elif metric_name == "spearmanr":
-        from scipy.stats import spearmanr
-        metric_value = spearmanr(all_preds, all_labels)[0] * 100.0
+    predictions = postprocess_squad_predictions(
+        eval_examples, eval_features,
+        all_start_logits, all_end_logits,
+        n_best_size=20, max_answer_length=30
+    )
 
-    return metric_value, val_loss
+    formatted_predictions = [{"id": k, "prediction_text": v} for k, v in predictions.items()]
+    references = [{"id": ex["id"], "answers": ex["answers"]} for ex in eval_examples]
+
+    squad_metric = evaluate.load("squad")
+    results = squad_metric.compute(predictions=formatted_predictions, references=references)
+
+    return results["f1"], results["exact_match"]
 
 
 # =============================================================================
@@ -934,12 +1083,12 @@ def get_linear_schedule_with_min_lr(optimizer, num_warmup_steps, num_training_st
 # Optuna Objective
 # =============================================================================
 
-def objective(trial, train_loader, eval_loader, tokenizer):
+def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 
     # Hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 1e-6, 1e-2, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 3e-2, 7e0, log=True)
 
     # LRTT parameters: skip sweep if --no-transfer (A/B frozen, no transfer happens)
     if OPT_CONFIG['no_transfer']:
@@ -950,11 +1099,11 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         lora_alpha = 1.0         # fixed (no effect)
         tau_sec = 0.0            # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 1e-5, 1e2, log=True)
+        transfer_lr = trial.suggest_float('transfer_lr', 2e-6, 3e-1, log=True)
         transfer_every = trial.suggest_int('transfer_every', 1, 500, log=True)
-        rank_exp = trial.suggest_int('rank_exp', 0, 5)
+        rank_exp = trial.suggest_int('rank_exp', 1, 6)
         rank = 2 ** rank_exp
-        lora_alpha = trial.suggest_float('lora_alpha', 1e-5, 1e2, log=True)
+        lora_alpha = trial.suggest_float('lora_alpha', 1e-4, 3e1, log=True)
         tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
 
     # C tile pulsed transfer params (only meaningful for onehot/direct)
@@ -1018,8 +1167,6 @@ def objective(trial, train_loader, eval_loader, tokenizer):
     print(f"  lora_alpha={lora_alpha:.2e}, lr={learning_rate:.2e}, wd={weight_decay:.2e}")
     print(f"  momentum={momentum:.2f}, nesterov={nesterov}, reinit_mode={reinit_mode}")
     print(f"  tau_sec={tau_sec:.1f}, optimizer={optimizer_name}, min_lr_rate={min_lr_rate:.4f}")
-    if TRANSFER_METHOD in ("onehot", "direct") and not OPT_CONFIG['no_transfer']:
-        print(f"  c_dw_min={c_dw_min:.4e}, c_desired_bl={c_desired_bl}")
     print(f"{'='*70}")
 
     model = None
@@ -1027,6 +1174,19 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         set_seed(SEED)
 
         model = create_model(params)
+
+        # 2-stage: load pre-trained digital params (Stage 2)
+        if LOAD_DIGITAL:
+            load_digital_params(model, LOAD_DIGITAL)
+
+        # 2-stage: freeze classifier (Stage 2)
+        if FREEZE_CLASSIFIER:
+            for name, param in model.named_parameters():
+                if "qa_outputs" in name:
+                    param.requires_grad = False
+            frozen_cls = sum(1 for n, p in model.named_parameters()
+                            if "qa_outputs" in n and not p.requires_grad)
+            print(f"  [Freeze Classifier] Froze {frozen_cls} qa_outputs params")
 
         if LORA_TARGET == "none" and not ENCODER_ANALOG and not EMBEDDING_ANALOG and not HEAD_ANALOG:
             # None mode (no analog tiles): use standard PyTorch optimizers
@@ -1062,10 +1222,10 @@ def objective(trial, train_loader, eval_loader, tokenizer):
             min_lr_rate=min_lr_rate,
         )
 
-        best_acc = 0.0
+        best_f1 = 0.0
         epochs_without_improvement = 0
-        best_val_loss = float('inf')
-        val_loss_no_improvement = 0
+        best_train_loss = float('inf')
+        train_loss_no_improvement = 0
 
         for epoch in range(1, N_EPOCHS + 1):
             model.train()
@@ -1077,11 +1237,12 @@ def objective(trial, train_loader, eval_loader, tokenizer):
             for micro_step, batch in enumerate(pbar):
                 input_ids = batch['input_ids'].to(DEVICE)
                 attention_mask = batch['attention_mask'].to(DEVICE)
-                labels = batch['labels'].to(DEVICE)
+                start_positions = batch['start_positions'].to(DEVICE)
+                end_positions = batch['end_positions'].to(DEVICE)
 
                 outputs = model(
                     input_ids=input_ids, attention_mask=attention_mask,
-                    labels=labels,
+                    start_positions=start_positions, end_positions=end_positions,
                 )
                 loss = outputs.loss / GRAD_ACCUM_STEPS
                 loss.backward()
@@ -1098,41 +1259,39 @@ def objective(trial, train_loader, eval_loader, tokenizer):
 
             train_loss = total_loss / num_batches if num_batches > 0 else 0.0
 
-            eval_acc, val_loss = evaluate_model(model, eval_loader)
+            eval_f1, eval_em = evaluate_model(model, eval_features, eval_examples, tokenizer)
 
             improved = ""
-            if eval_acc > best_acc:
-                best_acc = eval_acc
+            if eval_f1 > best_f1:
+                best_f1 = eval_f1
                 epochs_without_improvement = 0
                 improved = " ★"
             else:
                 epochs_without_improvement += 1
 
-            val_loss_improved = ""
-            if val_loss < best_val_loss:
-                best_val_loss = val_loss
-                val_loss_no_improvement = 0
-                val_loss_improved = " ↓"
+            train_loss_improved = ""
+            if train_loss < best_train_loss:
+                best_train_loss = train_loss
+                train_loss_no_improvement = 0
+                train_loss_improved = " ↓"
             else:
-                val_loss_no_improvement += 1
+                train_loss_no_improvement += 1
 
-            metric_name = TASK_TO_METRIC[TASK_NAME]
             current_lr = optimizer.param_groups[0]['lr']
             tqdm.write(f"[Trial {trial.number}] Epoch {epoch:3d} | "
-                      f"{metric_name}: {eval_acc:6.2f}% | Best: {best_acc:6.2f}% | "
-                      f"Train loss: {train_loss:.4f} | Val loss: {val_loss:.4f}{val_loss_improved} | LR: {current_lr:.2e} | "
-                      f"No imp: {epochs_without_improvement}/{EARLY_STOP_PATIENCE}{improved}")
+                  f"F1: {eval_f1:6.2f}% | EM: {eval_em:6.2f}% | Best F1: {best_f1:6.2f}% | "
+                  f"Train loss: {train_loss:.4f}{train_loss_improved} | LR: {current_lr:.2e} | "
+                  f"No imp: {epochs_without_improvement}/{EARLY_STOP_PATIENCE}{improved}")
 
-            trial.report(best_acc, epoch)
+            trial.report(best_f1, epoch)
             trial.set_user_attr(f"train_loss_epoch_{epoch}", train_loss)
-            trial.set_user_attr(f"val_loss_epoch_{epoch}", val_loss)
 
-            if best_val_loss > VAL_LOSS_THRESHOLD and val_loss_no_improvement >= VAL_LOSS_EARLY_STOP_PATIENCE:
-                tqdm.write(f"[Trial {trial.number}] Val loss early stop at epoch {epoch} "
-                          f"(val_loss={val_loss:.4f} > {VAL_LOSS_THRESHOLD}, no improvement for {val_loss_no_improvement} epochs)")
+            if best_train_loss > TRAIN_LOSS_THRESHOLD and train_loss_no_improvement >= TRAIN_LOSS_EARLY_STOP_PATIENCE:
+                tqdm.write(f"[Trial {trial.number}] Train loss early stop at epoch {epoch} "
+                          f"(train_loss={train_loss:.4f} > {TRAIN_LOSS_THRESHOLD}, no improvement for {train_loss_no_improvement} epochs)")
                 break
 
-            if best_val_loss <= VAL_LOSS_THRESHOLD and epochs_without_improvement >= EARLY_STOP_PATIENCE:
+            if best_train_loss <= TRAIN_LOSS_THRESHOLD and epochs_without_improvement >= EARLY_STOP_PATIENCE:
                 tqdm.write(f"[Trial {trial.number}] Early stopping at epoch {epoch}")
                 break
 
@@ -1140,19 +1299,22 @@ def objective(trial, train_loader, eval_loader, tokenizer):
                 tqdm.write(f"[Trial {trial.number}] Pruned at epoch {epoch}")
                 raise optuna.exceptions.TrialPruned()
 
-        tqdm.write(f"\n[Trial {trial.number}] Finished - Best {metric_name}: {best_acc:.2f}%")
-        tqdm.write(f"{'='*70}\n")
-        return best_acc
+        # 2-stage: save digital params after training (Stage 1)
+        if SAVE_DIGITAL:
+            save_digital_params(model, SAVE_DIGITAL)
+
+        print(f"\n[Trial {trial.number}] Finished - Best F1: {best_f1:.2f}%")
+        print(f"{'='*70}\n")
+        return best_f1
 
     except Exception as e:
         error_msg = str(e)[:500]
         trial.set_user_attr("error", error_msg)
-        tqdm.write(f"[Trial {trial.number}] Error: {error_msg}")
+        print(f"[Trial {trial.number}] Error: {error_msg}")
         raise
 
     finally:
-        # Delete ALL local vars holding GPU refs or model refs
-        # outputs/loss hold comp graph refs blocking C++ destructor
+        # Delete training loop vars to release model refs for C++ destructor
         try:
             del outputs
         except NameError:
@@ -1178,35 +1340,35 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         except NameError:
             pass
         try:
-            del labels
+            del start_positions
         except NameError:
             pass
-        # Reverse dependency order: scheduler -> optimizer -> model
         try:
+            del end_positions
+        except NameError:
+            pass
+        # Delete in reverse dependency order: scheduler → optimizer → model
+        # optimizer holds references to analog tiles via param_groups
+        if 'scheduler' in dir():
             del scheduler
-        except NameError:
-            pass
-        try:
+        if 'optimizer' in dir():
             del optimizer
-        except NameError:
-            pass
         if model is not None:
             del model
         gc.collect()
-        gc.collect()  # Second pass for cyclic refs
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
             torch.cuda.synchronize()
+        tqdm.write(f"[Trial {trial.number}] GPU cache cleared")
+
+
 
 # =============================================================================
 # Visualization
 # =============================================================================
 
 def visualize_study(study, save_dir):
-    """Visualize optimization history, parameter importance, and LR vs metric."""
-    metric_name = TASK_TO_METRIC[TASK_NAME]
-    metric_label = f"{metric_name} (%)"
-
+    """Visualize optimization history, parameter importance, and LR vs F1."""
     complete_trials = [t for t in study.trials if t.state == TrialState.COMPLETE]
     if not complete_trials:
         print("No completed trials to visualize.")
@@ -1215,16 +1377,16 @@ def visualize_study(study, save_dir):
     fig, axes = plt.subplots(1, 3, figsize=(15, 5))
 
     trial_numbers = [t.number for t in complete_trials]
-    acc_scores = [t.value for t in complete_trials]
+    f1_scores = [t.value for t in complete_trials]
 
     # Optimization history
-    axes[0].scatter(trial_numbers, acc_scores, alpha=0.6)
+    axes[0].scatter(trial_numbers, f1_scores, alpha=0.6)
     axes[0].plot(trial_numbers,
-                 [max(acc_scores[:i+1]) for i in range(len(acc_scores))],
+                 [max(f1_scores[:i+1]) for i in range(len(f1_scores))],
                  'r-', linewidth=2, label='Best so far')
     axes[0].set_xlabel('Trial')
-    axes[0].set_ylabel(metric_label)
-    axes[0].set_title(f'Optimization History ({TASK_NAME})')
+    axes[0].set_ylabel('F1 (%)')
+    axes[0].set_title('Optimization History')
     axes[0].legend()
     axes[0].grid(True, alpha=0.3)
 
@@ -1238,13 +1400,13 @@ def visualize_study(study, save_dir):
         axes[1].text(0.5, 0.5, 'Not enough trials', ha='center', va='center',
                      transform=axes[1].transAxes)
 
-    # LR vs metric
+    # LR vs F1
     lrs = [t.params.get('learning_rate', 1e-4) for t in complete_trials]
-    axes[2].scatter(lrs, acc_scores, alpha=0.6)
+    axes[2].scatter(lrs, f1_scores, alpha=0.6)
     axes[2].set_xscale('log')
     axes[2].set_xlabel('Learning Rate')
-    axes[2].set_ylabel(metric_label)
-    axes[2].set_title(f'Learning Rate vs {metric_name}')
+    axes[2].set_ylabel('F1 (%)')
+    axes[2].set_title('Learning Rate vs F1')
     axes[2].grid(True, alpha=0.3)
 
     plt.tight_layout()
@@ -1255,15 +1417,14 @@ def visualize_study(study, save_dir):
 
 def print_study_summary(study):
     """Print study summary."""
-    metric_name = TASK_TO_METRIC[TASK_NAME]
     print("\n" + "=" * 60)
-    print(f"STUDY SUMMARY ({TASK_NAME})")
+    print("STUDY SUMMARY")
     print("=" * 60)
     complete_trials = [t for t in study.trials if t.state == TrialState.COMPLETE]
     print(f"Study: {study.study_name}, Trials: {len(study.trials)} ({len(complete_trials)} complete)")
     if complete_trials:
-        acc_scores = [t.value for t in complete_trials]
-        print(f"Best {metric_name}: {max(acc_scores):.2f}%, Mean: {sum(acc_scores)/len(acc_scores):.2f}%")
+        f1_scores = [t.value for t in complete_trials]
+        print(f"Best F1: {max(f1_scores):.2f}%, Mean F1: {sum(f1_scores)/len(f1_scores):.2f}%")
         print(f"Best params: {study.best_params}")
 
 
@@ -1272,12 +1433,9 @@ def print_study_summary(study):
 # =============================================================================
 
 def main():
-    global TASK_NAME, NUM_LABELS, BATCH_SIZE, GRAD_ACCUM_STEPS, N_EPOCHS, WARMUP_STEPS, TRANSFER_METHOD, AB_DEVICE, IO_NOISE, LORA_TARGET, HEAD_LAYER, ENCODER_ANALOG, EMBEDDING_ANALOG, HEAD_ANALOG, BACKWARD_INP_BOUND
+    global BATCH_SIZE, GRAD_ACCUM_STEPS, N_EPOCHS, WARMUP_STEPS, TRANSFER_METHOD, AB_DEVICE, IO_NOISE, LORA_TARGET, HEAD_LAYER, ENCODER_ANALOG, EMBEDDING_ANALOG, HEAD_ANALOG, RESULTS, _oom_retry_pending, SAVE_DIGITAL, LOAD_DIGITAL, FREEZE_CLASSIFIER
 
-    parser = argparse.ArgumentParser(description="Optuna sweep for MobileBERT GLUE LRTT")
-    parser.add_argument('--task', type=str, default='sst2',
-                        choices=list(TASK_TO_KEYS.keys()),
-                        help='GLUE task name (default: sst2)')
+    parser = argparse.ArgumentParser(description="Optuna sweep for ALBERT SQuAD LRTT")
     parser.add_argument('--study-name', type=str, default=None,
                         help='Study name (default: auto-generated based on config)')
     parser.add_argument('--n-trials', type=int, default=50)
@@ -1315,27 +1473,28 @@ def main():
     parser.add_argument('--no-adc-ab-proj', action='store_true',
                         help='Use digital matmul for A/B projections (no ADC/DAC between B and A)')
     parser.add_argument('--lora-target', type=str, default=LORA_TARGET,
-                        choices=['none', 'qonly', 'konly', 'vonly', 'qkv', 'qkvo', 'ffn', 'dense', 'allnobn', 'all'],
-                        help='LoRA target: none, qonly, konly, vonly, qkv, qkvo, ffn, dense, allnobn, all (default: qkv)')
+                        choices=['none', 'qonly', 'konly', 'vonly', 'qkv', 'qkvo', 'ffn', 'all'],
+                        help='LoRA target: none, qonly, konly, vonly, qkv, qkvo, ffn, all (default: qkv)')
     parser.add_argument('--head-layer', type=str, default=HEAD_LAYER,
                         choices=['train', 'freeze'],
-                        help='classifier layer: train or freeze (default: train)')
+                        help='qa_outputs layer: train or freeze (default: train)')
     parser.add_argument('--encoder-analog', action='store_true', default=ENCODER_ANALOG,
                         help='Convert non-LRTT encoder layers to frozen analog (default: digital)')
     parser.add_argument('--embedding-analog', action='store_true', default=EMBEDDING_ANALOG,
                         help='Convert embedding projection to frozen analog (default: digital)')
     parser.add_argument('--head-analog', action='store_true', default=HEAD_ANALOG,
-                        help='Convert classifier to frozen analog (default: digital)')
-    parser.add_argument('--backward-inp-bound', type=float, default=BACKWARD_INP_BOUND,
-                        help=f'Backward pass input bound for analog layers (default: {BACKWARD_INP_BOUND})')
+                        help='Convert qa_outputs to frozen analog (default: digital)')
     parser.add_argument('--no-learn-out-scaling', action='store_true',
                         help='Disable trainable out_scaling on C tile')
+    parser.add_argument('--save-digital', type=str, default=None,
+                        help='Save digital params (LayerNorm, qa_outputs, out_scaling) after training')
+    parser.add_argument('--load-digital', type=str, default=None,
+                        help='Load pre-trained digital params before training')
+    parser.add_argument('--freeze-classifier', action='store_true',
+                        help='Freeze qa_outputs (classifier) during training')
     args = parser.parse_args()
 
     # Update global config
-    global RESULTS, GRAD_ACCUM_STEPS, _oom_retry_pending
-    TASK_NAME = args.task
-    NUM_LABELS = TASK_TO_NUM_LABELS[TASK_NAME]
     BATCH_SIZE = args.batch_size
     GRAD_ACCUM_STEPS = args.grad_accum_steps
     N_EPOCHS = args.epochs
@@ -1356,16 +1515,20 @@ def main():
     ENCODER_ANALOG = args.encoder_analog
     EMBEDDING_ANALOG = args.embedding_analog
     HEAD_ANALOG = args.head_analog
-    BACKWARD_INP_BOUND = args.backward_inp_bound
+    SAVE_DIGITAL = args.save_digital
+    LOAD_DIGITAL = args.load_digital
+    FREEZE_CLASSIFIER = args.freeze_classifier
 
-    # Per-task results directory
-    RESULTS = os.path.join(os.getcwd(), "results", f"optuna_mobilebert_{TASK_NAME}_lrtt")
-    os.makedirs(RESULTS, exist_ok=True)
-
-    # Auto-generate study name: mobilebert_{TASK_NAME}_lrtt_bs{BS}_{suffix}
-    study_name = args.study_name or f"mobilebert_{TASK_NAME}_lrtt_bs{BATCH_SIZE}_{get_study_name_suffix()}"
+    # Auto-generate study name based on config (includes batch size)
+    study_name = args.study_name or f"albert_squad_lrtt_bs{BATCH_SIZE}_{get_study_name_suffix()}"
 
     storage = JournalStorage(JournalFileBackend(f"{RESULTS}/optuna_{study_name}.log"))
+
+    if args.visualize:
+        study = optuna.load_study(study_name=study_name, storage=storage)
+        print_study_summary(study)
+        visualize_study(study, RESULTS)
+        return
 
     # Check for OOM retry file (from previous OOM restart)
     retry_file = os.path.join(RESULTS, f"_oom_retry_{study_name}.json")
@@ -1379,16 +1542,10 @@ def main():
         print(f"[OOM Retry] Retrying trial {retry_info['trial_number']}, "
               f"GRAD_ACCUM_STEPS={GRAD_ACCUM_STEPS}, micro_bs={BATCH_SIZE // GRAD_ACCUM_STEPS}")
 
-    if args.visualize:
-        study = optuna.load_study(study_name=study_name, storage=storage)
-        print_study_summary(study)
-        visualize_study(study, RESULTS)
-        return
-
     # Load data once (shared across all trials)
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-    train_loader, eval_loader = load_data(tokenizer)
-    print(f"Train batches: {len(train_loader)}, Eval batches: {len(eval_loader)}")
+    train_loader, eval_features, eval_examples = load_data(tokenizer)
+    print(f"Train batches: {len(train_loader)}, Eval features: {len(eval_features)}")
 
     study = optuna.create_study(
         study_name=study_name, storage=storage, direction="maximize",
@@ -1397,12 +1554,11 @@ def main():
         load_if_exists=True,
     )
 
-    # Enqueue OOM retry trial if pending
+    # Enqueue retry trial if OOM retry pending
     if retry_info is not None:
         study.enqueue_trial(retry_info["trial_params"])
 
-    print(f"\nTask: {TASK_NAME}, Metric: {TASK_TO_METRIC[TASK_NAME]}")
-    print(f"Study: {study_name}, Device: {DEVICE}, New trials: {args.n_trials}")
+    print(f"\nStudy: {study_name}, Device: {DEVICE}, New trials: {args.n_trials}")
 
     # Run trials with OOM recovery via process restart
     initial_complete = sum(1 for t in study.trials if t.state == TrialState.COMPLETE)
@@ -1414,8 +1570,10 @@ def main():
             if arg == '--n-trials' and i + 1 < len(new_argv):
                 new_argv[i + 1] = str(remaining)
                 break
-        print(f"\n[OOM Recovery] Restarting process for {remaining} remaining trials...")
         child_cmd = [sys.executable] + new_argv
+        # os.execv replaces process image → all CUDA memory freed.
+        # New process is a thin wrapper (no torch import, 0 GPU memory)
+        # that spawns child and forwards SIGINT for Ctrl+C.
         wrapper = (
             'import subprocess,signal,sys\n'
             f'p=subprocess.Popen({child_cmd!r})\n'
@@ -1429,7 +1587,7 @@ def main():
 
     try:
         study.optimize(
-            lambda trial: objective(trial, train_loader, eval_loader, tokenizer),
+            lambda trial: objective(trial, train_loader, eval_features, eval_examples, tokenizer),
             n_trials=args.n_trials,
             catch=(Exception,),
             show_progress_bar=False,
@@ -1438,12 +1596,14 @@ def main():
     except _OOMRestart:
         current_complete = sum(1 for t in study.trials if t.state == TrialState.COMPLETE)
         remaining = max(1, args.n_trials - (current_complete - initial_complete))
+        print(f"\n[OOM Recovery] Restarting process for {remaining} remaining trials...")
         _restart_with_remaining(remaining)
     except _OOMRetryDone:
         # Retry succeeded, restart to reset GRAD_ACCUM_STEPS to default
         current_complete = sum(1 for t in study.trials if t.state == TrialState.COMPLETE)
         remaining = args.n_trials - (current_complete - initial_complete)
         if remaining > 0:
+            print(f"\n[OOM Recovery] Restarting with default GRAD_ACCUM for {remaining} remaining trials...")
             _restart_with_remaining(remaining)
 
     print_study_summary(study)
@@ -1452,13 +1612,10 @@ def main():
     # Save best params
     complete_trials = [t for t in study.trials if t.state == TrialState.COMPLETE]
     if complete_trials:
-        metric_name = TASK_TO_METRIC[TASK_NAME]
         best_params_file = os.path.join(RESULTS, f"best_params_{study_name}.json")
         with open(best_params_file, 'w') as f:
             json.dump({
-                "task": TASK_NAME,
-                "metric": metric_name,
-                f"best_{metric_name}": study.best_value,
+                "best_f1": study.best_value,
                 "best_params": study.best_params,
             }, f, indent=2)
         print(f"Best params saved to: {best_params_file}")
@@ -1474,7 +1631,7 @@ def main():
         })
     all_trials.sort(key=lambda x: x["value"] if x["value"] is not None else -1, reverse=True)
 
-    all_trials_file = os.path.join(RESULTS, f"all_trials_{TASK_NAME}.json")
+    all_trials_file = os.path.join(RESULTS, "all_trials.json")
     with open(all_trials_file, 'w') as f:
         json.dump(all_trials, f, indent=2)
     print(f"All trials saved to: {all_trials_file}")
@@ -1491,7 +1648,6 @@ class _OOMRetryDone(Exception):
 
 
 _oom_retry_pending = False
-
 
 
 def _oom_restart_callback(study, trial):
