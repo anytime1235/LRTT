@@ -1082,9 +1082,6 @@ class LRTTController:
             self.tile_c.set_learning_rate(old_lr)
         self.num_transfers += 1
 
-        # CRITICAL: Reset transfer counter after transfer (matches CUDA)
-        self.transfer_counter = 0
-
         # DEBUG: Check A before reinit (first few transfers only)
         if self.num_transfers < 1:
             A_before_reinit = self.tile_a.get_weights()[0] if hasattr(self.tile_a, 'get_weights') else None
@@ -1147,7 +1144,6 @@ class LRTTController:
             self.tile_c.tile.set_learning_rate(old_lr)
 
         self.num_transfers += 1
-        self.transfer_counter = 0
 
         # DEBUG: Check A before reinit (first few transfers only)
         if self.num_transfers < 1:  # 거의 출력 안 함
@@ -1480,7 +1476,6 @@ class LRTTController:
                     self.tile_c.rpu_config.forward.out_noise = old_out_c
 
         self.num_transfers += 1
-        self.transfer_counter = 0
 
         self.reinit()
 
@@ -1548,7 +1543,6 @@ class LRTTController:
                     self.tile_b.rpu_config.backward.out_noise = old_out_b_b
 
         self.num_transfers += 1
-        self.transfer_counter = 0
 
         self.reinit()
 
@@ -1655,7 +1649,6 @@ class LRTTController:
                     self.tile_c.rpu_config.forward.out_noise = old_out_c
 
         self.num_transfers += 1
-        self.transfer_counter = 0
         self.reinit()
 
     def forward_inject(
@@ -1818,15 +1811,20 @@ class LRTTController:
     def should_transfer(self) -> bool:
         """Check if transfer should occur based on counter and schedule.
 
-        Matches TikiTaka convention for units_in_mbatch:
-        - units_in_mbatch=True:  TE is in mini-batch units (TE=1 → every batch)
-        - units_in_mbatch=False: TE is in mat-vec units (TE=1 → every sample)
-        Counter always increments by m_batch.
+        Uses the same modulo-based boundary crossing check as TikiTaka
+        (see transfer.py and rpu_transfer_device.cpp):
+        - Counter always increments by m_batch (never reset).
+        - effective_te = transfer_every * m_batch when units_in_mbatch=True.
+        - Transfer fires when the current batch crosses an effective_te boundary.
+        This avoids premature transfer when the last mini-batch is smaller.
         """
         effective_te = self.transfer_every
         if self.units_in_mbatch:
-            effective_te = self.transfer_every * self._last_m_batch
-        return self.transfer_counter >= effective_te
+            effective_te = int(math.ceil(self.transfer_every * self._last_m_batch))
+        if effective_te <= 0:
+            return False
+        rest_count = ((self.transfer_counter - self._last_m_batch) % effective_te) + self._last_m_batch
+        return rest_count >= effective_te
 
     def reset_transfer_counter(self) -> None:
         """Reset transfer counter (called after transfer)."""
