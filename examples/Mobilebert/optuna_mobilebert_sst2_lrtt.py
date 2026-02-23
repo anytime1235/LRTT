@@ -959,6 +959,7 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         epochs_without_improvement = 0
         best_val_loss = float('inf')
         val_loss_no_improvement = 0
+        val_loss_crossed_threshold = False  # True once val loss drops below threshold
 
         for epoch in range(1, N_EPOCHS + 1):
             model.train()
@@ -1009,6 +1010,11 @@ def objective(trial, train_loader, eval_loader, tokenizer):
             else:
                 val_loss_no_improvement += 1
 
+            # Reset metric patience when val loss first crosses threshold
+            if not val_loss_crossed_threshold and best_val_loss <= VAL_LOSS_THRESHOLD:
+                val_loss_crossed_threshold = True
+                epochs_without_improvement = 0
+
             current_lr = optimizer.param_groups[0]['lr']
             tqdm.write(f"[Trial {trial.number}] Epoch {epoch:3d} | "
                       f"Acc: {eval_acc:6.2f}% | Best Acc: {best_acc:6.2f}% | "
@@ -1019,12 +1025,12 @@ def objective(trial, train_loader, eval_loader, tokenizer):
             trial.set_user_attr(f"train_loss_epoch_{epoch}", train_loss)
             trial.set_user_attr(f"val_loss_epoch_{epoch}", val_loss)
 
-            if best_val_loss > VAL_LOSS_THRESHOLD and val_loss_no_improvement >= VAL_LOSS_EARLY_STOP_PATIENCE:
+            if not val_loss_crossed_threshold and val_loss_no_improvement >= VAL_LOSS_EARLY_STOP_PATIENCE:
                 tqdm.write(f"[Trial {trial.number}] Val loss early stop at epoch {epoch} "
                           f"(val_loss={val_loss:.4f} > {VAL_LOSS_THRESHOLD}, no improvement for {val_loss_no_improvement} epochs)")
                 break
 
-            if best_val_loss <= VAL_LOSS_THRESHOLD and epochs_without_improvement >= EARLY_STOP_PATIENCE:
+            if val_loss_crossed_threshold and epochs_without_improvement >= EARLY_STOP_PATIENCE:
                 tqdm.write(f"[Trial {trial.number}] Early stopping at epoch {epoch}")
                 break
 

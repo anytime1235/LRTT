@@ -1057,6 +1057,7 @@ def main():
     epochs_without_improvement = 0
     best_val_loss = float('inf')
     val_loss_no_improvement = 0
+    val_loss_crossed_threshold = False  # True once val loss drops below threshold
     global_step = 0
 
     print(f"\nStarting training: {N_EPOCHS} epochs (max), early stopping patience={EARLY_STOP_PATIENCE}")
@@ -1187,6 +1188,11 @@ def main():
         else:
             val_loss_no_improvement += 1
 
+        # Reset metric patience when val loss first crosses threshold
+        if not val_loss_crossed_threshold and best_val_loss <= VAL_LOSS_THRESHOLD:
+            val_loss_crossed_threshold = True
+            epochs_without_improvement = 0
+
         tqdm.write(
             f"Epoch {epoch}: Train loss: {train_loss:.4f} | Val loss: {val_loss:.4f}{val_loss_improved} | "
             f"Acc {eval_acc:.2f}% | "
@@ -1194,12 +1200,12 @@ def main():
             f"No imp: {epochs_without_improvement}/{EARLY_STOP_PATIENCE}"
         )
 
-        if best_val_loss > VAL_LOSS_THRESHOLD and val_loss_no_improvement >= VAL_LOSS_EARLY_STOP_PATIENCE:
+        if not val_loss_crossed_threshold and val_loss_no_improvement >= VAL_LOSS_EARLY_STOP_PATIENCE:
             print(f"Val loss early stop at epoch {epoch} "
                   f"(val_loss={val_loss:.4f} > {VAL_LOSS_THRESHOLD}, no improvement for {val_loss_no_improvement} epochs)")
             break
 
-        if best_val_loss <= VAL_LOSS_THRESHOLD and epochs_without_improvement >= EARLY_STOP_PATIENCE:
+        if val_loss_crossed_threshold and epochs_without_improvement >= EARLY_STOP_PATIENCE:
             tqdm.write(f"Early stopping at epoch {epoch}")
             break
 
