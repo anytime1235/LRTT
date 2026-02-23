@@ -8,26 +8,6 @@ Usage:
     python optuna_mobilebert_glue_lrtt.py --task mrpc --n-trials 50
     python optuna_mobilebert_glue_lrtt.py --task sst2 --visualize
 
-HF_HUB_DISABLE_XET=1
-
-python optuna_mobilebert_glue_lrtt.py --task wnli --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 3 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
-
-python optuna_mobilebert_glue_lrtt.py --task rte --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 10 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
-
-python optuna_mobilebert_glue_lrtt.py --task mrpc --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 15 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
-
-python optuna_mobilebert_glue_lrtt.py --task stsb --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 23 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
-  
-python optuna_mobilebert_glue_lrtt.py --task cola --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 34 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
-    
-python optuna_mobilebert_glue_lrtt.py --task sst2 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 264 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
-  
-python optuna_mobilebert_glue_lrtt.py --task qnli --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 410 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
-                                                                                                                                                                                                                                             
-python optuna_mobilebert_glue_lrtt.py --task qqp --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 1422 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
-  
-python optuna_mobilebert_glue_lrtt.py --task mnli --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 64 --epochs 5 --warmup-steps 1534 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
-
 HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task rte --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 80 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
 
 HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task mrpc --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 14 --warmup-steps 80 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
@@ -43,6 +23,24 @@ HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task qnli --optimiz
 HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task qqp --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 10 --warmup-steps 1400 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
   
 HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task mnli --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 4 --warmup-steps 1000 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --n-trials 150
+
+HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task rte --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 80 --transfer-method set --no-io-noise --lora-target qkvo
+HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task rte --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 80 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
+HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task mrpc --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 14 --warmup-steps 80 --transfer-method set --no-io-noise --lora-target qkvo
+HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task mrpc --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 14 --warmup-steps 80 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
+HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task stsb --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 360 --transfer-method set --no-io-noise --lora-target qkvo
+HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task stsb --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 360 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
+HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task cola --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --lora-target qkvo
+HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task cola --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
+HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task sst2 --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 20 --warmup-steps 2094 --transfer-method set --no-io-noise --lora-target qkvo
+HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task sst2 --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 20 --warmup-steps 2094 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
+HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task qnli --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 3312 --transfer-method set --no-io-noise --lora-target qkvo
+HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task qnli --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 3312 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
+HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task qqp --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 10 --warmup-steps 1400 --transfer-method set --no-io-noise --lora-target qkvo
+HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task qqp --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 10 --warmup-steps 1400 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
+HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task mnli --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 4 --warmup-steps 1000 --transfer-method set --no-io-noise --lora-target qkvo
+HF_HUB_DISABLE_XET=1 python optuna_mobilebert_glue_lrtt.py --task mnli --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 4 --warmup-steps 1000 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
+
 
 All flags:
     python optuna_mobilebert_glue_lrtt.py \
@@ -276,6 +274,8 @@ BATCH_SIZE = 64
 GRAD_ACCUM_STEPS = 1
 EVAL_BATCH_SIZE = 256
 EARLY_STOP_PATIENCE = 3
+VAL_LOSS_EARLY_STOP_PATIENCE = 2  # Stop if val loss doesn't improve for this many epochs
+VAL_LOSS_THRESHOLD = 8.0  # Once val loss drops below this, rely on metric-based early stop only
 
 # Scheduler
 WARMUP_STEPS = 500  # warmup steps
@@ -665,12 +665,12 @@ def create_model(params):
         # Convert to analog with exclusions (only LRTT targets get converted)
         model = convert_to_analog(model, lrtt_config, exclude_modules=exclude_modules)
 
-        # Set backward_inp_bound on LRTT tiles (gradient scaling for C tile backward)
+        # Set backward gradient scaling on LRTT C tiles (periphery level)
         if BACKWARD_INP_BOUND != 1.0:
             from aihwkit.simulator.tiles.lrtt_tile import LRTTSimulatorTile
             for m in model.modules():
                 if isinstance(m, LRTTSimulatorTile):
-                    m.backward_inp_bound = BACKWARD_INP_BOUND
+                    m.tile_c.backward_inp_bound_override = BACKWARD_INP_BOUND
 
         # Count analog layers
         analog_count = sum(1 for m in model.modules() if isinstance(m, AnalogLinear))
@@ -747,9 +747,13 @@ def create_model(params):
                     if id(tile) not in existing_tile_ids:
                         # Head analog tiles remain trainable (weight + bias)
                         if HEAD_ANALOG and "classifier" in mod_name:
+                            if BACKWARD_INP_BOUND != 1.0:
+                                tile.backward_inp_bound_override = BACKWARD_INP_BOUND
                             continue
                         tile.update = _frozen_noop_update
                         tile.forward = types.MethodType(_frozen_analog_forward, tile)
+                        if BACKWARD_INP_BOUND != 1.0:
+                            tile.backward_inp_bound_override = BACKWARD_INP_BOUND
 
     total_params = sum(p.numel() for p in model.parameters())
     trainable_before = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -861,12 +865,14 @@ def load_data(tokenizer):
 # =============================================================================
 
 def evaluate_model(model, eval_loader):
-    """Evaluate GLUE model. Returns metric value (task-specific, scaled to %)."""
+    """Evaluate GLUE model. Returns (metric_value, val_loss)."""
     model.eval()
 
     is_regression = (TASK_NAME == "stsb")
     all_preds = []
     all_labels = []
+    total_val_loss = 0.0
+    num_val_batches = 0
 
     with no_grad():
         for batch in eval_loader:
@@ -874,7 +880,9 @@ def evaluate_model(model, eval_loader):
             attention_mask = batch['attention_mask'].to(DEVICE)
             labels = batch['labels'].to(DEVICE)
 
-            outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+            outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
+            total_val_loss += outputs.loss.item()
+            num_val_batches += 1
 
             if is_regression:
                 preds = outputs.logits.squeeze()
@@ -886,6 +894,8 @@ def evaluate_model(model, eval_loader):
                 all_labels.extend(labels.cpu().numpy())
 
     model.train()
+
+    val_loss = total_val_loss / num_val_batches if num_val_batches > 0 else float('inf')
 
     # Compute task-specific metric
     metric_name = TASK_TO_METRIC[TASK_NAME]
@@ -901,7 +911,7 @@ def evaluate_model(model, eval_loader):
         from scipy.stats import spearmanr
         metric_value = spearmanr(all_preds, all_labels)[0] * 100.0
 
-    return metric_value
+    return metric_value, val_loss
 
 
 # =============================================================================
@@ -929,7 +939,7 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         torch.cuda.empty_cache()
 
     # Hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 1e-3, 1e1, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 1e-6, 1e-2, log=True)
 
     # LRTT parameters: skip sweep if --no-transfer (A/B frozen, no transfer happens)
     if OPT_CONFIG['no_transfer']:
@@ -1054,6 +1064,8 @@ def objective(trial, train_loader, eval_loader, tokenizer):
 
         best_acc = 0.0
         epochs_without_improvement = 0
+        best_val_loss = float('inf')
+        val_loss_no_improvement = 0
 
         for epoch in range(1, N_EPOCHS + 1):
             model.train()
@@ -1086,7 +1098,7 @@ def objective(trial, train_loader, eval_loader, tokenizer):
 
             train_loss = total_loss / num_batches if num_batches > 0 else 0.0
 
-            eval_acc = evaluate_model(model, eval_loader)
+            eval_acc, val_loss = evaluate_model(model, eval_loader)
 
             improved = ""
             if eval_acc > best_acc:
@@ -1096,17 +1108,31 @@ def objective(trial, train_loader, eval_loader, tokenizer):
             else:
                 epochs_without_improvement += 1
 
+            val_loss_improved = ""
+            if val_loss < best_val_loss:
+                best_val_loss = val_loss
+                val_loss_no_improvement = 0
+                val_loss_improved = " ↓"
+            else:
+                val_loss_no_improvement += 1
+
             metric_name = TASK_TO_METRIC[TASK_NAME]
             current_lr = optimizer.param_groups[0]['lr']
             tqdm.write(f"[Trial {trial.number}] Epoch {epoch:3d} | "
                       f"{metric_name}: {eval_acc:6.2f}% | Best: {best_acc:6.2f}% | "
-                      f"Loss: {train_loss:.4f} | LR: {current_lr:.2e} | "
+                      f"Train loss: {train_loss:.4f} | Val loss: {val_loss:.4f}{val_loss_improved} | LR: {current_lr:.2e} | "
                       f"No imp: {epochs_without_improvement}/{EARLY_STOP_PATIENCE}{improved}")
 
             trial.report(best_acc, epoch)
             trial.set_user_attr(f"train_loss_epoch_{epoch}", train_loss)
+            trial.set_user_attr(f"val_loss_epoch_{epoch}", val_loss)
 
-            if epochs_without_improvement >= EARLY_STOP_PATIENCE:
+            if best_val_loss > VAL_LOSS_THRESHOLD and val_loss_no_improvement >= VAL_LOSS_EARLY_STOP_PATIENCE:
+                tqdm.write(f"[Trial {trial.number}] Val loss early stop at epoch {epoch} "
+                          f"(val_loss={val_loss:.4f} > {VAL_LOSS_THRESHOLD}, no improvement for {val_loss_no_improvement} epochs)")
+                break
+
+            if best_val_loss <= VAL_LOSS_THRESHOLD and epochs_without_improvement >= EARLY_STOP_PATIENCE:
                 tqdm.write(f"[Trial {trial.number}] Early stopping at epoch {epoch}")
                 break
 
