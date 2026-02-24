@@ -183,8 +183,9 @@ def _step_mem_opt(self, closure=None, **kwargs):
                     entries_per_fwd = n_micro // grad_accum_steps
 
                     # Snapshot A0, B0 for consistent projections
-                    A0 = controller.tile_a.get_weights()[0].clone()
-                    B0 = controller.tile_b.get_weights()[0].clone()
+                    _dev = analog_tile.device
+                    A0 = controller.tile_a.get_weights()[0].clone().to(_dev)
+                    B0 = controller.tile_b.get_weights()[0].clone().to(_dev)
                     controller._snapshot_ab = (A0, B0)
 
                     # Save state that _update_dynamic_te / transfer_counter
