@@ -390,6 +390,15 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         self.tile_b._orig_update = self.tile_b.update
         self.tile_c._orig_update = self.tile_c.update
 
+        # Back-references so the optimizer patch can find the controller
+        # from any sub-tile's AnalogContext.analog_tile
+        self.tile_a._lrtt_controller = self.controller
+        self.tile_b._lrtt_controller = self.controller
+        self.tile_c._lrtt_controller = self.controller
+        self.tile_a._lrtt_tile_name = 'tile_a'
+        self.tile_b._lrtt_tile_name = 'tile_b'
+        self.tile_c._lrtt_tile_name = 'tile_c'
+
         # Track if we've already handled this batch
         self._update_handled = False
 

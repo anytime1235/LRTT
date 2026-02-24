@@ -156,11 +156,22 @@ def _step_mem_opt(self, closure=None, **kwargs):
                     )
             else:
                 # Multiple entries: weight-sharing and/or grad_accum
-                controller = getattr(analog_tile, 'controller', None)
-                is_lrtt = controller is not None and hasattr(controller, 'tile_a')
+                # Detect LRTT sub-tiles via back-reference set in
+                # LRTTSimulatorTile._hook_tile_updates()
+                controller = getattr(analog_tile, '_lrtt_controller', None)
+                is_lrtt = controller is not None
+                tile_name = getattr(analog_tile, '_lrtt_tile_name', None)
 
-                if is_lrtt:
-                    # ── LRTT tile: bypass _update_handled, group correctly ──
+                if is_lrtt and not controller.forward_inject_enabled:
+                    # ── LRTT NFI mode ──
+                    # In NFI mode, only tile_c's update triggers
+                    # ab_weight_update; tile_a/tile_b hooks are no-ops.
+                    if tile_name != 'tile_c':
+                        # tile_a/tile_b: skip (no-op in NFI mode)
+                        analog_ctx.reset()
+                        continue
+
+                    # tile_c: bypass _update_handled, group correctly
                     #
                     # n_micro = entries_per_fwd * grad_accum_steps
                     #   entries_per_fwd: weight-sharing depth (ALBERT=12, MobileBERT=1)
@@ -225,14 +236,66 @@ def _step_mem_opt(self, closure=None, **kwargs):
                     # Counter always += m_batch per call (TikiTaka convention).
                     # Loop called ab_weight_update N times with depth-inflated
                     # entries_per_fwd groups. Correct to 1 batch worth.
+                    # _last_m_batch must equal the corrected increment for the
+                    # modulo boundary-crossing check in should_transfer().
                     inflated = controller.transfer_counter - counter_before
-                    controller.transfer_counter = counter_before + inflated // entries_per_fwd
+                    corrected_increment = inflated // entries_per_fwd
+                    controller.transfer_counter = counter_before + corrected_increment
+                    controller._last_m_batch = corrected_increment
 
                     # Check transfer once after all groups processed
                     if controller.should_transfer():
                         controller.ab_weight_transfer()
 
                     del controller._snapshot_ab
+
+                elif is_lrtt and controller.forward_inject_enabled:
+                    # ── LRTT FI mode ──
+                    # In FI mode, tile_a/tile_b hooks call _orig_update
+                    # with rescaled lr (no _update_handled guard).
+                    # tile_c hook handles transfer counter (C is frozen).
+                    entries_per_fwd = n_micro // grad_accum_steps
+
+                    if tile_name == 'tile_c':
+                        # tile_c: frozen, only handle transfer counter once.
+                        # The hook would call _update_dynamic_te and increment
+                        # transfer_counter per call, inflating them n_micro×.
+                        # Instead, do one logical update.
+                        # Counter = m_batch * grad_accum_steps (matching NFI
+                        # correction which removes depth inflation).
+                        # _last_m_batch must equal the increment for the
+                        # modulo boundary-crossing check in should_transfer().
+                        lr = analog_tile.get_learning_rate()
+                        m_batch = analog_ctx.analog_input[0].shape[0]
+                        controller._update_dynamic_te(lr)
+                        corrected_increment = m_batch * grad_accum_steps
+                        controller._last_m_batch = corrected_increment
+                        controller.transfer_counter += corrected_increment
+                        if controller.should_transfer():
+                            controller.ab_weight_transfer()
+                    else:
+                        # tile_a/tile_b: group by grad_accum step, concat
+                        # weight-sharing entries within each group, then call
+                        # update() per group. The FI hooks handle lr rescaling.
+                        for g in range(grad_accum_steps):
+                            start = g * entries_per_fwd
+                            end = start + entries_per_fwd
+
+                            x_group = self._pad_and_cat(
+                                analog_ctx.analog_input[start:end],
+                                axis=-1 if analog_tile.in_trans else 0,
+                            )
+                            d_group = self._pad_and_cat(
+                                analog_ctx.analog_grad_output[start:end],
+                                axis=-1 if analog_tile.out_trans else 0,
+                            )
+
+                            if runtime.offload_input:
+                                x_group = x_group.to(analog_tile.device)
+                            if runtime.offload_gradient:
+                                d_group = d_group.to(analog_tile.device)
+
+                            analog_tile.update(x_group, d_group)
 
                 else:
                     # Non-LRTT tile: per-micro-batch update (no _update_handled issue)
