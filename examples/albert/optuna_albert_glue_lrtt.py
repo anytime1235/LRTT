@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Optuna hyperparameter sweep for ALBERT + GLUE with LRTT.
 
-Supported GLUE tasks: cola, sst2, mrpc, qqp, mnli, qnli, rte, stsb, wnli
+Supported GLUE tasks: cola, sst2, mrpc, qqp, mnli, qnli, rte, stsb
 
 Usage:
     python optuna_albert_glue_lrtt.py --task sst2 --n-trials 50
@@ -11,41 +11,6 @@ Usage:
     python optuna_albert_glue_lrtt.py --task cola --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --lora-target all
     python optuna_albert_glue_lrtt.py --task stsb --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 360 --transfer-method set --no-io-noise --lora-target all
     python optuna_albert_glue_lrtt.py --task cola --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --lora-target none --encoder-analog
-
-   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task cola --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog  --lora-target qkvo --no-learn-out-scaling
-   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task cola --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target none --no-learn-out-scaling
-   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task stsb --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 360 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --no-learn-out-scaling
-   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task stsb --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 360 --transfer-method set --encoder-analog --embedding-analog --head-analog  --no-io-noise --lora-target none --no-learn-out-scaling
-   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task sst2 --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 20 --warmup-steps 2094 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --no-learn-out-scaling
-   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task sst2 --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 20 --warmup-steps 2094 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target none --no-learn-out-scaling
-   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task mnli --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 4 --warmup-steps 1000 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --no-learn-out-scaling
-   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task mnli --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 4 --warmup-steps 1000 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target none --no-learn-out-scaling
-   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task qnli --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 3312 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --no-learn-out-scaling
-   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task qnli --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 3312 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target none --no-learn-out-scaling
-   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task qqp --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 10 --warmup-steps 1400 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --no-learn-out-scaling
-   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task qqp --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 10 --warmup-steps 1400 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target none --no-learn-out-scaling
-   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task rte --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 80 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target qkvo --no-learn-out-scaling
-   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task rte --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 80 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target none --no-learn-out-scaling
-   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task mrpc --n-trials 150 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 14 --warmup-steps 80 --transfer-method set --no-io-noise--encoder-analog --embedding-analog --head-analog --lora-target qkvo --no-learn-out-scaling
-   HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task mrpc --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 14 --warmup-steps 80 --transfer-method set --no-io-noise --encoder-analog --embedding-analog --head-analog --lora-target none --no-learn-out-scaling
-
-HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task rte --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 80 --transfer-method set --no-io-noise --lora-target qkvo
-HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task rte --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 80 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
-HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task mrpc --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 14 --warmup-steps 80 --transfer-method set --no-io-noise --lora-target qkvo
-HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task mrpc --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 14 --warmup-steps 80 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
-HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task stsb --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 360 --transfer-method set --no-io-noise --lora-target qkvo
-HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task stsb --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 360 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
-HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task cola --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --lora-target qkvo
-HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task cola --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 16 --epochs 20 --warmup-steps 534 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
-HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task sst2 --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 20 --warmup-steps 2094 --transfer-method set --no-io-noise --lora-target qkvo
-HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task sst2 --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 20 --warmup-steps 2094 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
-HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task qnli --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 3312 --transfer-method set --no-io-noise --lora-target qkvo
-HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task qnli --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 32 --epochs 21 --warmup-steps 3312 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
-HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task qqp --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 10 --warmup-steps 1400 --transfer-method set --no-io-noise --lora-target qkvo
-HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task qqp --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 10 --warmup-steps 1400 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
-HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task mnli --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 4 --warmup-steps 1000 --transfer-method set --no-io-noise --lora-target qkvo
-HF_HUB_DISABLE_XET=1 python optuna_albert_glue_lrtt.py --task mnli --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 4 --warmup-steps 1000 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
-
 
 All flags:
     python optuna_albert_glue_lrtt.py \
@@ -68,10 +33,7 @@ All flags:
         --head-layer <str>          # classifier: train | freeze (default: train)
         --no-transfer               # Disable LRTT transfer (A/B frozen, skip LRTT param sweep)
         --no-adc-ab-proj            # Remove ADC/DAC between A/B projections (full precision)
-        --no-learn-out-scaling      # Disable trainable out_scaling on C tile
         --encoder-analog            # Non-LRTT encoder layers: frozen analog instead of digital
-        --embedding-analog          # Embedding projection: frozen analog instead of digital
-        --head-analog               # Classifier/qa_outputs: frozen analog instead of digital
 
 
 Inline flags (edit directly in script):
@@ -107,7 +69,7 @@ EOF
 """
 
 import os
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["TOKENIZERS_PARALLELISM"] = "false"  
 import sys
 import math
 import json
@@ -165,12 +127,11 @@ TASK_TO_KEYS = {
     "rte": ("sentence1", "sentence2"),
     "sst2": ("sentence", None),
     "stsb": ("sentence1", "sentence2"),
-    "wnli": ("sentence1", "sentence2"),
 }
 
 TASK_TO_NUM_LABELS = {
     "cola": 2, "sst2": 2, "mrpc": 2, "qqp": 2,
-    "mnli": 3, "qnli": 2, "rte": 2, "stsb": 1, "wnli": 2,
+    "mnli": 3, "qnli": 2, "rte": 2, "stsb": 1,
 }
 
 TASK_TO_METRIC = {
@@ -182,12 +143,11 @@ TASK_TO_METRIC = {
     "qnli": "accuracy",
     "rte": "accuracy",
     "stsb": "spearmanr",
-    "wnli": "accuracy",
 }
 
 TASK_TO_MAX_SEQ_LENGTH = {
     "cola": 128, "sst2": 128, "mrpc": 128, "qqp": 128,
-    "mnli": 128, "qnli": 128, "rte": 256, "stsb": 128, "wnli": 128,
+    "mnli": 128, "qnli": 128, "rte": 256, "stsb": 128,
 }
 
 
@@ -284,8 +244,6 @@ BATCH_SIZE = 64
 GRAD_ACCUM_STEPS = 1
 EVAL_BATCH_SIZE = 64
 EARLY_STOP_PATIENCE = 3
-VAL_LOSS_EARLY_STOP_PATIENCE = 2  # Stop if val loss doesn't improve for this many epochs
-VAL_LOSS_THRESHOLD = 8.0  # Once val loss drops below this, rely on metric-based early stop only
 
 # Scheduler
 WARMUP_STEPS = 500  # warmup steps
@@ -303,9 +261,6 @@ TRANSFER_METHOD = "onehot"  # "onehot", "direct", or "set"
 AB_DEVICE = "6t1c"  # "6t1c" or "fp"
 IO_NOISE = True  # If False, disable out_noise (resolution kept)
 ENCODER_ANALOG = False  # If True, non-LRTT encoder layers become frozen analog instead of digital
-EMBEDDING_ANALOG = False  # If True, embedding projection → frozen analog instead of digital
-HEAD_ANALOG = False  # If True, classifier → frozen analog instead of digital
-BACKWARD_OUT_BOUND = 12.0  # Backward pass output bound (default 12.0)
 
 # LoRA target options: which layers have trainable A/B tiles
 # - none: no LRTT layers (fully digital baseline)
@@ -321,7 +276,7 @@ LORA_TARGET_MODULES = {
     "vonly": ["value"],  # Value only (1 shared layer)
     "qkv": ["query", "key", "value"],  # Q/K/V (3 shared layers)
     "qkvo": ["query", "key", "value", "attention.dense"],  # Q/K/V + attention output (4 shared layers)
-    "ffn": ["ffn"],  # FFN layers only: ffn + ffn_output (2 in shared group)
+    "ffn": ["ffn"],  # ffn + ffn_output (2 shared layers)
     "all": None,  # None means all encoder layers (no filtering) (~6 shared layers)
 }
 
@@ -338,7 +293,6 @@ OPT_CONFIG = {
     'reinit_mode': None,    # None = tune, or 'standard'/'decay'/'hybrid' = fixed
     'no_transfer': False,   # If True, disable transfer (transfer_every = inf)
     'no_adc_ab_proj': False,  # If True, remove ADC/DAC between A/B projections
-    'learn_out_scaling': True,  # If True, C tile out_scaling is trainable
 }
 
 
@@ -374,19 +328,8 @@ def get_study_name_suffix():
     if OPT_CONFIG.get('no_adc_ab_proj', False):
         suffix += "_noadc"
 
-    if not OPT_CONFIG.get('learn_out_scaling', True):
-        suffix += "_noos"
-
     if ENCODER_ANALOG:
         suffix += "_encanalog"
-
-    if EMBEDDING_ANALOG:
-        suffix += "_embedanalog"
-    if HEAD_ANALOG:
-        suffix += "_headanalog"
-
-    if BACKWARD_OUT_BOUND != 12.0:
-        suffix += f"_bob{BACKWARD_OUT_BOUND:g}"
 
     # Add lora target (always include for clarity)
     suffix += f"_{LORA_TARGET}"
@@ -489,13 +432,11 @@ def create_frozen_analog_config(lrtt_config=None, out_noise=0.0):
         rpu_config.mapping = MappingParameter(
             weight_scaling_omega=1.0,
             weight_scaling_columnwise=True,
-            learn_out_scaling=OPT_CONFIG.get('learn_out_scaling', True),
+            learn_out_scaling=True,
             out_scaling_columnwise=True,
         )
         rpu_config.forward.out_noise = out_noise
         rpu_config.backward.out_noise = out_noise
-        if BACKWARD_OUT_BOUND != 12.0:
-            rpu_config.backward.out_bound = BACKWARD_OUT_BOUND
     return rpu_config
 
 
@@ -522,7 +463,7 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, lora_alpha, reinit_mod
         mapping_c=MappingParameter(
             weight_scaling_omega=1.0,
             weight_scaling_columnwise=True,
-            learn_out_scaling=OPT_CONFIG.get('learn_out_scaling', True),
+            learn_out_scaling=True,
             out_scaling_columnwise=True,
         ),
     )
@@ -547,9 +488,6 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, lora_alpha, reinit_mod
 
     rpu_config.forward.out_noise = out_noise
     rpu_config.backward.out_noise = out_noise
-
-    if BACKWARD_OUT_BOUND != 12.0:
-        rpu_config.backward.out_bound = BACKWARD_OUT_BOUND
 
     return rpu_config
 
@@ -681,8 +619,7 @@ def create_model(params):
     # Step 1.5: Convert remaining encoder layers to frozen analog (if enabled)
     # Already-converted LRTT layers (AnalogLinear) are naturally skipped by convert_to_analog
     frozen_analog_count = 0
-    any_frozen_analog = (ENCODER_ANALOG and LORA_TARGET != "all") or EMBEDDING_ANALOG or HEAD_ANALOG
-    if any_frozen_analog:
+    if ENCODER_ANALOG and LORA_TARGET != "all":
         # Collect existing tile IDs (LRTT sub-tiles) before frozen conversion
         existing_tile_ids = set()
         for m in model.modules():
@@ -694,15 +631,7 @@ def create_model(params):
             lrtt_config if LORA_TARGET != "none" else None,
             out_noise=params.get("out_noise", 0.0),
         )
-        frozen_exclude = ["albert.pooler"]
-        if not EMBEDDING_ANALOG:
-            frozen_exclude.append("albert.encoder.embedding_hidden_mapping_in")
-        if not HEAD_ANALOG:
-            frozen_exclude.append("classifier")
-        if not ENCODER_ANALOG or LORA_TARGET == "all":
-            for name in all_linear_names:
-                if "encoder" in name and "embedding_hidden_mapping_in" not in name:
-                    frozen_exclude.append(name)
+        frozen_exclude = ["classifier", "albert.encoder.embedding_hidden_mapping_in", "albert.pooler"]
         model = convert_to_analog(model, frozen_config, exclude_modules=frozen_exclude)
         frozen_analog_count = sum(1 for m in model.modules() if isinstance(m, AnalogLinear)) - analog_count
 
@@ -744,13 +673,10 @@ def create_model(params):
                 return out + self.bias.view(*tensor_view)
             return out
 
-        for mod_name, m in model.named_modules():
+        for m in model.modules():
             if isinstance(m, AnalogLinear):
                 for tile in m.analog_tiles():
                     if id(tile) not in existing_tile_ids:
-                        # Head analog tiles remain trainable (weight + bias)
-                        if HEAD_ANALOG and "classifier" in mod_name:
-                            continue
                         tile.update = _frozen_noop_update
                         tile.forward = types.MethodType(_frozen_analog_forward, tile)
 
@@ -781,14 +707,11 @@ def create_model(params):
             param.requires_grad = False
         elif "pooler" in name:
             param.requires_grad = False
-        elif "LayerNorm" in name:
-            param.requires_grad = True
         else:
             param.requires_grad = False
 
     trainable_after = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    ln_params = sum(p.numel() for n, p in model.named_parameters() if "LayerNorm" in n and p.requires_grad)
-    print(f"  Trainable (after grad set): {trainable_after:,} (LayerNorm: {ln_params:,})")
+    print(f"  Trainable (after grad set): {trainable_after:,}")
     print(f"  LoRA target: {LORA_TARGET} -> {lrtt_patterns if lrtt_patterns else 'all encoder layers'}")
 
     try:
@@ -871,14 +794,12 @@ def load_data(tokenizer):
 # =============================================================================
 
 def evaluate_model(model, eval_loader):
-    """Evaluate GLUE model. Returns (metric_value, val_loss)."""
+    """Evaluate GLUE model. Returns metric value (task-specific, scaled to %)."""
     model.eval()
 
     is_regression = (TASK_NAME == "stsb")
     all_preds = []
     all_labels = []
-    total_val_loss = 0.0
-    num_val_batches = 0
 
     with no_grad():
         for batch in eval_loader:
@@ -886,9 +807,7 @@ def evaluate_model(model, eval_loader):
             attention_mask = batch['attention_mask'].to(DEVICE)
             labels = batch['labels'].to(DEVICE)
 
-            outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
-            total_val_loss += outputs.loss.item()
-            num_val_batches += 1
+            outputs = model(input_ids=input_ids, attention_mask=attention_mask)
 
             if is_regression:
                 preds = outputs.logits.squeeze()
@@ -900,8 +819,6 @@ def evaluate_model(model, eval_loader):
                 all_labels.extend(labels.cpu().numpy())
 
     model.train()
-
-    val_loss = total_val_loss / num_val_batches if num_val_batches > 0 else float('inf')
 
     # Compute task-specific metric
     metric_name = TASK_TO_METRIC[TASK_NAME]
@@ -917,7 +834,7 @@ def evaluate_model(model, eval_loader):
         from scipy.stats import spearmanr
         metric_value = spearmanr(all_preds, all_labels)[0] * 100.0
 
-    return metric_value, val_loss
+    return metric_value
 
 
 # =============================================================================
@@ -945,7 +862,7 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         torch.cuda.empty_cache()
 
     # Hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 1e-6, 1e-2, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 3e-3, 1e1, log=True)
 
     # LRTT parameters: skip sweep if --no-transfer (A/B frozen, no transfer happens)
     if OPT_CONFIG['no_transfer']:
@@ -956,11 +873,11 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         lora_alpha = 1.0         # fixed (no effect)
         tau_sec = 0.0            # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 1e-5, 1e1, log=True)
-        transfer_every = trial.suggest_int('transfer_every', 1, 500, log=True)
+        transfer_lr = trial.suggest_float('transfer_lr', 4e-7, 8e-2, log=True)
+        transfer_every = trial.suggest_int('transfer_every', 16, 35000, log=True)
         rank_exp = trial.suggest_int('rank_exp', 0, 7)
         rank = 2 ** rank_exp
-        lora_alpha = trial.suggest_float('lora_alpha', 1e-5, 1e1, log=True)
+        lora_alpha = trial.suggest_float('lora_alpha', 6e-6, 2e1, log=True)
         tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
 
     # C tile pulsed transfer params (only meaningful for onehot/direct)
@@ -1021,7 +938,7 @@ def objective(trial, train_loader, eval_loader, tokenizer):
     print(f"Trial {trial.number} Starting")
     print(f"{'='*70}")
     print(f"  rank={rank}, transfer_every={transfer_every}, transfer_lr={transfer_lr:.4e}")
-    print(f"  lora_alpha={lora_alpha:.2e}, lr={learning_rate:.2e}, wd={weight_decay:.2e}")
+    print(f"  lora_alpha={lora_alpha:.4f}, lr={learning_rate:.2e}, wd={weight_decay:.2e}")
     print(f"  momentum={momentum:.2f}, nesterov={nesterov}, reinit_mode={reinit_mode}")
     print(f"  tau_sec={tau_sec:.1f}, optimizer={optimizer_name}, min_lr_rate={min_lr_rate:.4f}")
     if TRANSFER_METHOD in ("onehot", "direct") and not OPT_CONFIG['no_transfer']:
@@ -1034,7 +951,7 @@ def objective(trial, train_loader, eval_loader, tokenizer):
 
         model = create_model(params)
 
-        if LORA_TARGET == "none" and not ENCODER_ANALOG and not EMBEDDING_ANALOG and not HEAD_ANALOG:
+        if LORA_TARGET == "none" and not ENCODER_ANALOG:
             # None mode (no analog tiles): use standard PyTorch optimizers
             if optimizer_name == "AnalogSGD":
                 optimizer = torch.optim.SGD(
@@ -1070,9 +987,6 @@ def objective(trial, train_loader, eval_loader, tokenizer):
 
         best_acc = 0.0
         epochs_without_improvement = 0
-        best_val_loss = float('inf')
-        val_loss_no_improvement = 0
-        val_loss_crossed_threshold = False  # True once val loss drops below threshold
 
         for epoch in range(1, N_EPOCHS + 1):
             model.train()
@@ -1105,7 +1019,7 @@ def objective(trial, train_loader, eval_loader, tokenizer):
 
             train_loss = total_loss / num_batches if num_batches > 0 else 0.0
 
-            eval_acc, val_loss = evaluate_model(model, eval_loader)
+            eval_acc = evaluate_model(model, eval_loader)
 
             improved = ""
             if eval_acc > best_acc:
@@ -1115,36 +1029,17 @@ def objective(trial, train_loader, eval_loader, tokenizer):
             else:
                 epochs_without_improvement += 1
 
-            val_loss_improved = ""
-            if val_loss < best_val_loss:
-                best_val_loss = val_loss
-                val_loss_no_improvement = 0
-                val_loss_improved = " ↓"
-            else:
-                val_loss_no_improvement += 1
-
-            # Reset metric patience when val loss first crosses threshold
-            if not val_loss_crossed_threshold and best_val_loss <= VAL_LOSS_THRESHOLD:
-                val_loss_crossed_threshold = True
-                epochs_without_improvement = 0
-
             metric_name = TASK_TO_METRIC[TASK_NAME]
             current_lr = optimizer.param_groups[0]['lr']
             tqdm.write(f"[Trial {trial.number}] Epoch {epoch:3d} | "
                       f"{metric_name}: {eval_acc:6.2f}% | Best: {best_acc:6.2f}% | "
-                      f"Train loss: {train_loss:.4f} | Val loss: {val_loss:.4f}{val_loss_improved} | LR: {current_lr:.2e} | "
+                      f"Loss: {train_loss:.4f} | LR: {current_lr:.2e} | "
                       f"No imp: {epochs_without_improvement}/{EARLY_STOP_PATIENCE}{improved}")
 
             trial.report(best_acc, epoch)
             trial.set_user_attr(f"train_loss_epoch_{epoch}", train_loss)
-            trial.set_user_attr(f"val_loss_epoch_{epoch}", val_loss)
 
-            if not val_loss_crossed_threshold and val_loss_no_improvement >= VAL_LOSS_EARLY_STOP_PATIENCE:
-                tqdm.write(f"[Trial {trial.number}] Val loss early stop at epoch {epoch} "
-                          f"(val_loss={val_loss:.4f} > {VAL_LOSS_THRESHOLD}, no improvement for {val_loss_no_improvement} epochs)")
-                break
-
-            if val_loss_crossed_threshold and epochs_without_improvement >= EARLY_STOP_PATIENCE:
+            if epochs_without_improvement >= EARLY_STOP_PATIENCE:
                 tqdm.write(f"[Trial {trial.number}] Early stopping at epoch {epoch}")
                 break
 
@@ -1285,7 +1180,7 @@ def print_study_summary(study):
 # =============================================================================
 
 def main():
-    global TASK_NAME, NUM_LABELS, MAX_SEQ_LENGTH, BATCH_SIZE, GRAD_ACCUM_STEPS, N_EPOCHS, WARMUP_STEPS, TRANSFER_METHOD, AB_DEVICE, IO_NOISE, LORA_TARGET, HEAD_LAYER, ENCODER_ANALOG, EMBEDDING_ANALOG, HEAD_ANALOG, BACKWARD_OUT_BOUND, RESULTS, _oom_retry_pending
+    global TASK_NAME, NUM_LABELS, MAX_SEQ_LENGTH, BATCH_SIZE, GRAD_ACCUM_STEPS, N_EPOCHS, WARMUP_STEPS, TRANSFER_METHOD, AB_DEVICE, IO_NOISE, LORA_TARGET, HEAD_LAYER, ENCODER_ANALOG
 
     parser = argparse.ArgumentParser(description="Optuna sweep for ALBERT GLUE LRTT")
     parser.add_argument('--task', type=str, default='sst2',
@@ -1335,17 +1230,10 @@ def main():
                         help='classifier layer: train or freeze (default: train)')
     parser.add_argument('--encoder-analog', action='store_true', default=ENCODER_ANALOG,
                         help='Convert non-LRTT encoder layers to frozen analog (default: digital)')
-    parser.add_argument('--embedding-analog', action='store_true', default=EMBEDDING_ANALOG,
-                        help='Convert embedding projection to frozen analog (default: digital)')
-    parser.add_argument('--head-analog', action='store_true', default=HEAD_ANALOG,
-                        help='Convert classifier to frozen analog (default: digital)')
-    parser.add_argument('--backward-out-bound', type=float, default=BACKWARD_OUT_BOUND,
-                        help=f'Backward pass output bound (default: {BACKWARD_OUT_BOUND})')
-    parser.add_argument('--no-learn-out-scaling', action='store_true',
-                        help='Disable trainable out_scaling on C tile')
     args = parser.parse_args()
 
     # Update global config
+    global RESULTS, GRAD_ACCUM_STEPS, _oom_retry_pending
     TASK_NAME = args.task
     NUM_LABELS = TASK_TO_NUM_LABELS[TASK_NAME]
     MAX_SEQ_LENGTH = TASK_TO_MAX_SEQ_LENGTH[TASK_NAME]
@@ -1365,11 +1253,7 @@ def main():
     OPT_CONFIG['tune_nesterov'] = not args.no_nesterov
     OPT_CONFIG['no_transfer'] = args.no_transfer
     OPT_CONFIG['no_adc_ab_proj'] = args.no_adc_ab_proj
-    OPT_CONFIG['learn_out_scaling'] = not args.no_learn_out_scaling
     ENCODER_ANALOG = args.encoder_analog
-    EMBEDDING_ANALOG = args.embedding_analog
-    HEAD_ANALOG = args.head_analog
-    BACKWARD_OUT_BOUND = args.backward_out_bound
 
     # Per-task results directory
     RESULTS = os.path.join(os.getcwd(), "results", f"optuna_albert_{TASK_NAME}_lrtt")
