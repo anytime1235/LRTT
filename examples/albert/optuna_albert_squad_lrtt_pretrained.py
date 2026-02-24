@@ -230,6 +230,7 @@ IO_NOISE = True  # If False, disable out_noise (resolution kept)
 ENCODER_ANALOG = False  # If True, non-LRTT encoder layers become frozen analog instead of digital
 EMBEDDING_ANALOG = False  # If True, embedding projection → frozen analog instead of digital
 HEAD_ANALOG = False  # If True, qa_outputs → frozen analog instead of digital
+BACKWARD_OUT_BOUND = 12.0  # Backward pass output bound (default 12.0)
 
 # 2-stage training: save/load digital params
 SAVE_DIGITAL = None   # Path to save digital params (LayerNorm, qa_outputs, out_scaling) after training
@@ -313,6 +314,9 @@ def get_study_name_suffix():
         suffix += "_embedanalog"
     if HEAD_ANALOG:
         suffix += "_headanalog"
+
+    if BACKWARD_OUT_BOUND != 12.0:
+        suffix += f"_bob{BACKWARD_OUT_BOUND:g}"
 
     # Add lora target (always include for clarity)
     suffix += f"_{LORA_TARGET}"
@@ -425,6 +429,8 @@ def create_frozen_analog_config(lrtt_config=None, out_noise=0.0):
         )
         rpu_config.forward.out_noise = out_noise
         rpu_config.backward.out_noise = out_noise
+        if BACKWARD_OUT_BOUND != 12.0:
+            rpu_config.backward.out_bound = BACKWARD_OUT_BOUND
     return rpu_config
 
 
@@ -476,6 +482,9 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, lora_alpha, reinit_mod
 
     rpu_config.forward.out_noise = out_noise
     rpu_config.backward.out_noise = out_noise
+
+    if BACKWARD_OUT_BOUND != 12.0:
+        rpu_config.backward.out_bound = BACKWARD_OUT_BOUND
 
     return rpu_config
 
@@ -1436,7 +1445,7 @@ def print_study_summary(study):
 # =============================================================================
 
 def main():
-    global BATCH_SIZE, GRAD_ACCUM_STEPS, N_EPOCHS, WARMUP_STEPS, TRANSFER_METHOD, AB_DEVICE, IO_NOISE, LORA_TARGET, HEAD_LAYER, ENCODER_ANALOG, EMBEDDING_ANALOG, HEAD_ANALOG, RESULTS, _oom_retry_pending, SAVE_DIGITAL, LOAD_DIGITAL, FREEZE_CLASSIFIER
+    global BATCH_SIZE, GRAD_ACCUM_STEPS, N_EPOCHS, WARMUP_STEPS, TRANSFER_METHOD, AB_DEVICE, IO_NOISE, LORA_TARGET, HEAD_LAYER, ENCODER_ANALOG, EMBEDDING_ANALOG, HEAD_ANALOG, BACKWARD_OUT_BOUND, RESULTS, _oom_retry_pending, SAVE_DIGITAL, LOAD_DIGITAL, FREEZE_CLASSIFIER
 
     parser = argparse.ArgumentParser(description="Optuna sweep for ALBERT SQuAD LRTT")
     parser.add_argument('--study-name', type=str, default=None,
@@ -1487,6 +1496,8 @@ def main():
                         help='Convert embedding projection to frozen analog (default: digital)')
     parser.add_argument('--head-analog', action='store_true', default=HEAD_ANALOG,
                         help='Convert qa_outputs to frozen analog (default: digital)')
+    parser.add_argument('--backward-out-bound', type=float, default=BACKWARD_OUT_BOUND,
+                        help=f'Backward pass output bound (default: {BACKWARD_OUT_BOUND})')
     parser.add_argument('--no-learn-out-scaling', action='store_true',
                         help='Disable trainable out_scaling on C tile')
     parser.add_argument('--save-digital', type=str, default=None,
@@ -1518,6 +1529,7 @@ def main():
     ENCODER_ANALOG = args.encoder_analog
     EMBEDDING_ANALOG = args.embedding_analog
     HEAD_ANALOG = args.head_analog
+    BACKWARD_OUT_BOUND = args.backward_out_bound
     SAVE_DIGITAL = args.save_digital
     LOAD_DIGITAL = args.load_digital
     FREEZE_CLASSIFIER = args.freeze_classifier

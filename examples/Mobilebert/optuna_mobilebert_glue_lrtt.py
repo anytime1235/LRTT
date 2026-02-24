@@ -296,6 +296,7 @@ ENCODER_ANALOG = False  # If True, non-LRTT encoder layers become frozen analog 
 EMBEDDING_ANALOG = False  # If True, embedding projection → frozen analog instead of digital
 HEAD_ANALOG = False  # If True, classifier → frozen analog instead of digital
 BACKWARD_INP_BOUND = 1.0  # Backward pass input bound (default 1.0; increase to prevent gradient clipping)
+BACKWARD_OUT_BOUND = 12.0  # Backward pass output bound (default 12.0)
 
 # LoRA target options: which layers have trainable A/B tiles
 # - none: no LRTT layers (fully digital baseline)
@@ -379,6 +380,9 @@ def get_study_name_suffix():
 
     if BACKWARD_INP_BOUND != 1.0:
         suffix += f"_bib{BACKWARD_INP_BOUND:g}"
+
+    if BACKWARD_OUT_BOUND != 12.0:
+        suffix += f"_bob{BACKWARD_OUT_BOUND:g}"
 
     # Add lora target (always include for clarity)
     suffix += f"_{LORA_TARGET}"
@@ -486,6 +490,8 @@ def create_frozen_analog_config(lrtt_config=None, out_noise=0.0):
         )
         rpu_config.forward.out_noise = out_noise
         rpu_config.backward.out_noise = out_noise
+        if BACKWARD_OUT_BOUND != 12.0:
+            rpu_config.backward.out_bound = BACKWARD_OUT_BOUND
     return rpu_config
 
 
@@ -537,6 +543,9 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, lora_alpha, reinit_mod
 
     rpu_config.forward.out_noise = out_noise
     rpu_config.backward.out_noise = out_noise
+
+    if BACKWARD_OUT_BOUND != 12.0:
+        rpu_config.backward.out_bound = BACKWARD_OUT_BOUND
 
     return rpu_config
 
@@ -1281,7 +1290,7 @@ def print_study_summary(study):
 # =============================================================================
 
 def main():
-    global TASK_NAME, NUM_LABELS, BATCH_SIZE, GRAD_ACCUM_STEPS, N_EPOCHS, WARMUP_STEPS, TRANSFER_METHOD, AB_DEVICE, IO_NOISE, LORA_TARGET, HEAD_LAYER, ENCODER_ANALOG, EMBEDDING_ANALOG, HEAD_ANALOG, BACKWARD_INP_BOUND
+    global TASK_NAME, NUM_LABELS, BATCH_SIZE, GRAD_ACCUM_STEPS, N_EPOCHS, WARMUP_STEPS, TRANSFER_METHOD, AB_DEVICE, IO_NOISE, LORA_TARGET, HEAD_LAYER, ENCODER_ANALOG, EMBEDDING_ANALOG, HEAD_ANALOG, BACKWARD_INP_BOUND, BACKWARD_OUT_BOUND
 
     parser = argparse.ArgumentParser(description="Optuna sweep for MobileBERT GLUE LRTT")
     parser.add_argument('--task', type=str, default='sst2',
@@ -1337,6 +1346,8 @@ def main():
                         help='Convert classifier to frozen analog (default: digital)')
     parser.add_argument('--backward-inp-bound', type=float, default=BACKWARD_INP_BOUND,
                         help=f'Backward pass input bound for analog layers (default: {BACKWARD_INP_BOUND})')
+    parser.add_argument('--backward-out-bound', type=float, default=BACKWARD_OUT_BOUND,
+                        help=f'Backward pass output bound (default: {BACKWARD_OUT_BOUND})')
     parser.add_argument('--no-learn-out-scaling', action='store_true',
                         help='Disable trainable out_scaling on C tile')
     args = parser.parse_args()
@@ -1366,6 +1377,7 @@ def main():
     EMBEDDING_ANALOG = args.embedding_analog
     HEAD_ANALOG = args.head_analog
     BACKWARD_INP_BOUND = args.backward_inp_bound
+    BACKWARD_OUT_BOUND = args.backward_out_bound
 
     # Per-task results directory
     RESULTS = os.path.join(os.getcwd(), "results", f"optuna_mobilebert_{TASK_NAME}_lrtt")

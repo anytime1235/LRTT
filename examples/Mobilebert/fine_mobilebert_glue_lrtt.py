@@ -203,6 +203,7 @@ HEAD_LAYER = "train"  # "train" or "freeze" for classifier layer
 ENCODER_ANALOG = False  # If True, non-LRTT encoder layers become frozen analog instead of digital
 EMBEDDING_ANALOG = False  # If True, embedding projection → frozen analog instead of digital
 HEAD_ANALOG = False  # If True, classifier → frozen analog instead of digital
+BACKWARD_OUT_BOUND = 12.0  # Backward pass output bound (default 12.0)
 LORA_TARGET_MODULES = {
     "none": [],  # Empty = no layers converted to LRTT (fully digital)
     "qonly": ["query"],  # Query only (24 layers)
@@ -311,6 +312,8 @@ def create_frozen_analog_config(lrtt_config=None, out_noise=0.0):
         )
         rpu_config.forward.out_noise = out_noise
         rpu_config.backward.out_noise = out_noise
+        if BACKWARD_OUT_BOUND != 12.0:
+            rpu_config.backward.out_bound = BACKWARD_OUT_BOUND
     return rpu_config
 
 
@@ -361,6 +364,9 @@ def create_lrtt_config():
     # Set IO noise to 0.0 (per spec)
     rpu_config.forward.out_noise = 0.0
     rpu_config.backward.out_noise = 0.0
+
+    if BACKWARD_OUT_BOUND != 12.0:
+        rpu_config.backward.out_bound = BACKWARD_OUT_BOUND
 
     return rpu_config
 
