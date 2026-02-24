@@ -527,6 +527,8 @@ def create_model():
             param.requires_grad = (HEAD_LAYER == "train")
         elif "embedding_transformation" in name:
             param.requires_grad = False
+        elif "LayerNorm" in name:
+            param.requires_grad = True
         else:
             param.requires_grad = False
 

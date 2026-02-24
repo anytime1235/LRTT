@@ -588,6 +588,8 @@ def create_model():
             param.requires_grad = False
         elif "pooler" in name:
             param.requires_grad = False
+        elif "LayerNorm" in name:
+            param.requires_grad = True
         else:
             param.requires_grad = False
 

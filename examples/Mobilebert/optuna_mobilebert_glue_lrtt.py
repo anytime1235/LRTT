@@ -779,11 +779,14 @@ def create_model(params):
             param.requires_grad = (HEAD_LAYER == "train")
         elif "embedding_transformation" in name:
             param.requires_grad = False
+        elif "LayerNorm" in name:
+            param.requires_grad = True
         else:
             param.requires_grad = False
 
     trainable_after = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"  Trainable (after grad set): {trainable_after:,}")
+    ln_params = sum(p.numel() for n, p in model.named_parameters() if "LayerNorm" in n and p.requires_grad)
+    print(f"  Trainable (after grad set): {trainable_after:,} (LayerNorm: {ln_params:,})")
     print(f"  LoRA target: {LORA_TARGET} -> {lrtt_patterns if lrtt_patterns else 'all encoder layers'}")
 
     try:
