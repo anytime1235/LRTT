@@ -144,6 +144,7 @@ TE_WARMUP_SCHEDULE = []
 # - qkv: only query, key, value
 # - ffn: attention.dense + ffn + ffn_output
 # - all: all encoder linear layers
+NO_ADC_AB_PROJ = False  # If True, remove ADC between A/B projections
 LEARN_OUT_SCALING = True  # If True, C tile out_scaling is trainable
 LORA_TARGET = "qkv"  # default
 HEAD_LAYER = "train"  # "train" or "freeze" for qa_outputs layer
@@ -293,6 +294,7 @@ def create_lrtt_config():
     device_config.update_mode = "lora"
     device_config.a_init_mode = "zero"
     device_config.forward_inject = False
+    device_config.no_adc_ab_projection = NO_ADC_AB_PROJ
     device_config.c_desired_bl = C_DESIRED_BL
 
     # Dynamic TE: increase TE as LR decays
