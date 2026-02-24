@@ -25,7 +25,8 @@ Inline flags (edit directly in script):
     TRANSFER_EVERY = 1000           # Transfer interval (steps)
     TRANSFER_LR = 0.00115           # Transfer learning rate
     TRANSFER_METHOD = "onehot"      # Transfer method: "onehot" | "direct" | "set"
-    LORA_ALPHA = 1.0                # LoRA alpha scaling
+    FAST_LR = 1.0                   # Fast LR for A/B updates
+    AUTO_SCALE_MODE = "none"        # Auto-scale: "none" | "shared" | "separate"
     REINIT_MODE = "hybrid"          # Reinit mode: "standard" | "decay" | "hybrid"
     REINIT_GAIN = 1.0               # Reinitialization gain
     DECAY_FACTOR = 1.0              # Decay factor for reinit
@@ -180,7 +181,8 @@ OPTIMIZER = "AnalogSGD"  # "AnalogSGD" or "AnalogAdam"
 LRTT_RANK = 32
 TRANSFER_EVERY = 1092
 TRANSFER_LR = 4.706173285862282e-05
-LORA_ALPHA = 0.11465313432104135
+FAST_LR = 0.11465313432104135
+AUTO_SCALE_MODE = "none"  # Auto-scale mode: "none", "shared", or "separate"
 REINIT_MODE = "hybrid"
 REINIT_GAIN = 1.0
 DECAY_FACTOR = 1.0
@@ -331,7 +333,8 @@ def create_lrtt_config():
     device_config = PythonLRTTDevice(
         rank=LRTT_RANK,
         transfer_every=te,
-        lora_alpha=LORA_ALPHA,
+        lora_alpha=1.0,
+        fast_lr=FAST_LR,
         reinit_gain=REINIT_GAIN,
         reinit_mode=REINIT_MODE,
         decay_factor=DECAY_FACTOR,
@@ -356,6 +359,7 @@ def create_lrtt_config():
     device_config.forward_inject = False
     device_config.no_adc_ab_projection = NO_ADC_AB_PROJ
     device_config.c_desired_bl = C_DESIRED_BL
+    device_config.auto_scale_mode = AUTO_SCALE_MODE
 
     # Dynamic TE: increase TE as LR decays
     device_config.dynamic_te = DYNAMIC_TE
@@ -607,7 +611,7 @@ def create_model():
     print(f"  Total params: {total_params:,}, Trainable: {num_params:,}")
     print(f"  LRTT Analog layers: {num_analog}")
     print(f"  LRTT config: rank={LRTT_RANK}, transfer_every={TRANSFER_EVERY}, "
-          f"transfer_lr={TRANSFER_LR}, lora_alpha={LORA_ALPHA}")
+          f"transfer_lr={TRANSFER_LR}, fast_lr={FAST_LR}, auto_scale={AUTO_SCALE_MODE}")
     print(f"  Reinit: mode={REINIT_MODE}, gain={REINIT_GAIN}")
     print(f"  LoRA target: {LORA_TARGET} -> {lrtt_patterns if lrtt_patterns else 'all encoder layers'}")
 
@@ -1044,7 +1048,7 @@ def main():
             "model": MODEL_NAME, "dataset": f"GLUE/{TASK_NAME}",
             "task": TASK_NAME, "metric": metric_name,
             "lrtt_rank": LRTT_RANK, "transfer_every": TRANSFER_EVERY,
-            "transfer_lr": TRANSFER_LR, "lora_alpha": LORA_ALPHA,
+            "transfer_lr": TRANSFER_LR, "fast_lr": FAST_LR, "auto_scale_mode": AUTO_SCALE_MODE,
             "reinit_mode": REINIT_MODE, "reinit_gain": REINIT_GAIN,
             "tau_sec": TAU_SEC,
             "dynamic_te": DYNAMIC_TE, "te_warmup_steps": TE_WARMUP_STEPS,
@@ -1319,7 +1323,7 @@ def main():
                 "config": {
                     "learning_rate": LEARNING_RATE, "transfer_lr": TRANSFER_LR,
                     "transfer_every": TRANSFER_EVERY, "lrtt_rank": LRTT_RANK,
-                    "lora_alpha": LORA_ALPHA, "reinit_mode": REINIT_MODE,
+                    "fast_lr": FAST_LR, "auto_scale_mode": AUTO_SCALE_MODE, "reinit_mode": REINIT_MODE,
                     "transfer_method": TRANSFER_METHOD, "optimizer": OPTIMIZER,
                     "batch_size": BATCH_SIZE, "n_epochs": N_EPOCHS,
                     "diag_epochs": DIAG_EPOCHS,

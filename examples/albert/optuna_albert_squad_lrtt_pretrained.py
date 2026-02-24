@@ -57,7 +57,7 @@ study.enqueue_trial({
 'transfer_lr': 0.010000000000000004,
 'transfer_every': 16210,
 'rank_exp': 1,
-'lora_alpha': 0.41139594231202437,
+'fast_lr': 0.41139594231202437,
 'tau_sec': 0.0,
 'min_lr_rate': 0.0})
 print('Enqueued!')
@@ -269,6 +269,7 @@ OPT_CONFIG = {
     'no_transfer': False,   # If True, disable transfer (transfer_every = inf)
     'no_adc_ab_proj': False,  # If True, remove ADC/DAC between A/B projections
     'learn_out_scaling': True,  # If True, C tile out_scaling is trainable
+    'auto_scale_mode': 'none',  # Auto-scale mode for A/B LR normalization
 }
 
 
@@ -317,6 +318,9 @@ def get_study_name_suffix():
 
     if BACKWARD_OUT_BOUND != 12.0:
         suffix += f"_bob{BACKWARD_OUT_BOUND:g}"
+
+    if OPT_CONFIG.get('auto_scale_mode', 'none') != 'none':
+        suffix += f"_as-{OPT_CONFIG['auto_scale_mode']}"
 
     # Add lora target (always include for clarity)
     suffix += f"_{LORA_TARGET}"
@@ -434,8 +438,9 @@ def create_frozen_analog_config(lrtt_config=None, out_noise=0.0):
     return rpu_config
 
 
-def create_lrtt_config(rank, transfer_every, transfer_lr, lora_alpha, reinit_mode, tau_sec=0.0,
-                       c_dw_min=0.001, c_desired_bl=None, out_noise=0.0, ab_weight_scaling_omega=0.0):
+def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, tau_sec=0.0,
+                       c_dw_min=0.001, c_desired_bl=None, out_noise=0.0, ab_weight_scaling_omega=0.0,
+                       auto_scale_mode='none'):
     """Create LRTT RPU configuration for analog layers."""
     ab_device = _create_ab_device(tau_sec=tau_sec)
     c_device = _create_c_device(dw_min=c_dw_min)
@@ -444,7 +449,8 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, lora_alpha, reinit_mod
     device_config = PythonLRTTDevice(
         rank=rank,
         transfer_every=te,
-        lora_alpha=lora_alpha,
+        lora_alpha=1.0,
+        fast_lr=fast_lr,
         reinit_gain=REINIT_GAIN,
         reinit_mode=reinit_mode,
         decay_factor=DECAY_FACTOR,
@@ -468,6 +474,7 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, lora_alpha, reinit_mod
     device_config.a_init_mode = "zero"
     device_config.forward_inject = False
     device_config.no_adc_ab_projection = OPT_CONFIG.get('no_adc_ab_proj', False)
+    device_config.auto_scale_mode = auto_scale_mode
     if c_desired_bl is not None:
         device_config.c_desired_bl = c_desired_bl
 
@@ -596,13 +603,14 @@ def create_model(params):
             rank=int(params["rank"]),
             transfer_every=te,
             transfer_lr=params["transfer_lr"],
-            lora_alpha=params["lora_alpha"],
+            fast_lr=params["fast_lr"],
             reinit_mode=params["reinit_mode"],
             tau_sec=params["tau_sec"],
             c_dw_min=params["c_dw_min"],
             c_desired_bl=params["c_desired_bl"],
             out_noise=params["out_noise"],
             ab_weight_scaling_omega=params["ab_weight_scaling_omega"],
+            auto_scale_mode=OPT_CONFIG['auto_scale_mode'],
         )
 
         # Convert to analog with exclusions (only LRTT targets get converted)
@@ -1108,14 +1116,14 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         transfer_every = 999999999
         rank_exp = 2             # fixed (A=0 init, no effect)
         rank = 4
-        lora_alpha = 1.0         # fixed (no effect)
+        fast_lr = 1.0            # fixed (no effect)
         tau_sec = 0.0            # fixed
     else:
         transfer_lr = trial.suggest_float('transfer_lr', 2e-6, 3e-1, log=True)
         transfer_every = trial.suggest_int('transfer_every', 1, 500, log=True)
         rank_exp = trial.suggest_int('rank_exp', 1, 6)
         rank = 2 ** rank_exp
-        lora_alpha = trial.suggest_float('lora_alpha', 1e-4, 3e1, log=True)
+        fast_lr = trial.suggest_float('fast_lr', 1e-4, 3e1, log=True)
         tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
 
     # C tile pulsed transfer params (only meaningful for onehot/direct)
@@ -1163,7 +1171,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         "rank": rank,
         "transfer_every": transfer_every,
         "transfer_lr": transfer_lr,
-        "lora_alpha": lora_alpha,
+        "fast_lr": fast_lr,
         "reinit_mode": reinit_mode,
         "tau_sec": tau_sec,
         "c_dw_min": c_dw_min,
@@ -1176,7 +1184,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
     print(f"Trial {trial.number} Starting")
     print(f"{'='*70}")
     print(f"  rank={rank}, transfer_every={transfer_every}, transfer_lr={transfer_lr:.4e}")
-    print(f"  lora_alpha={lora_alpha:.2e}, lr={learning_rate:.2e}, wd={weight_decay:.2e}")
+    print(f"  fast_lr={fast_lr:.2e}, lr={learning_rate:.2e}, wd={weight_decay:.2e}")
     print(f"  momentum={momentum:.2f}, nesterov={nesterov}, reinit_mode={reinit_mode}")
     print(f"  tau_sec={tau_sec:.1f}, optimizer={optimizer_name}, min_lr_rate={min_lr_rate:.4f}")
     print(f"{'='*70}")
@@ -1506,6 +1514,9 @@ def main():
                         help='Load pre-trained digital params before training')
     parser.add_argument('--freeze-classifier', action='store_true',
                         help='Freeze qa_outputs (classifier) during training')
+    parser.add_argument('--auto-scale-mode', type=str, default='none',
+                        choices=['none', 'shared', 'separate'],
+                        help='Auto-scale mode for A/B LR normalization (default: none)')
     args = parser.parse_args()
 
     # Update global config
@@ -1526,6 +1537,7 @@ def main():
     OPT_CONFIG['no_transfer'] = args.no_transfer
     OPT_CONFIG['no_adc_ab_proj'] = args.no_adc_ab_proj
     OPT_CONFIG['learn_out_scaling'] = not args.no_learn_out_scaling
+    OPT_CONFIG['auto_scale_mode'] = args.auto_scale_mode
     ENCODER_ANALOG = args.encoder_analog
     EMBEDDING_ANALOG = args.embedding_analog
     HEAD_ANALOG = args.head_analog

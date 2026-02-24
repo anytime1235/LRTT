@@ -292,6 +292,9 @@ class LRTTSimulatorTile(SimulatorTile, Module):
                 self.lrtt_config, "b_init_mode", "kaiming"
             ),  # B matrix initialization mode
             correct_gradient_magnitudes=self.correct_gradient_magnitudes,
+            fast_lr=getattr(self.lrtt_config, "fast_lr", 1.0),
+            scale_transfer_lr=getattr(self.lrtt_config, "scale_transfer_lr", True),
+            transfer_fast_lr_ref=getattr(self.lrtt_config, "transfer_fast_lr_ref", "geomean"),
             rank_chunk=self.rank_chunk,
             forward_inject=getattr(self.lrtt_config, "forward_inject", False),
             dynamic_te=getattr(self.lrtt_config, "dynamic_te", False),
@@ -354,6 +357,19 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         self.controller.log_ab_scaling = post_init.get("log_ab_scaling", False)
         self.controller.log_ab_scaling_every = post_init.get("log_ab_scaling_every", 10)
 
+        # Auto-scale settings (from post_init)
+        self.controller.auto_scale_mode = post_init.get("auto_scale_mode", "none")
+        self.controller.auto_momentum = post_init.get("auto_momentum", 0.99)
+        # EMA is lazily initialized by controller._lazy_init_ema(x.device) on first update
+
+        # Granularity for separate auto-scale mode
+        if self.controller.auto_scale_mode == "separate":
+            dw_min_a = getattr(self.lrtt_config.unit_cell_devices[0], "dw_min", 1.0)
+            dw_min_b = getattr(self.lrtt_config.unit_cell_devices[1], "dw_min", 1.0)
+            desired_bl = rpu_config.update.desired_bl
+            self.controller.gran_a = desired_bl * dw_min_a
+            self.controller.gran_b = desired_bl * dw_min_b
+
         # Initialize LRTT weights
         self.controller.reinit()
 
@@ -410,26 +426,34 @@ class LRTTSimulatorTile(SimulatorTile, Module):
     def _hook_tile_updates_fi(self) -> None:
         """Hook setup for forward_inject=True.
 
-        tile_a/tile_b: rescale d_input (remove α), adjust lr (add α),
+        tile_a/tile_b: rescale d_input (remove α), use last_lr_eff from controller,
                        then call orig_update for stochastic pulse update.
         tile_c: no-op (C frozen), handle transfer counter.
+
+        Note: auto_scale_mode != 'none' is not supported with forward_inject=True
+        because EMA cannot be updated without _ab_weight_update_lora().
         """
         ctrl = self.controller
         alpha = ctrl.lora_alpha
+
+        # Guard: auto_scale not supported in FI path
+        if ctrl.auto_scale_mode != "none":
+            raise ValueError(
+                f"auto_scale_mode='{ctrl.auto_scale_mode}' is not supported with "
+                f"forward_inject=True. Use auto_scale_mode='none' or forward_inject=False."
+            )
 
         def hooked_ab(tile, tile_name):
             def update_wrapper(x_input, d_input, *args, **kwargs):
                 # Remove α from gradient, move it to learning rate
                 d_rescaled = d_input / alpha
 
-                # Compute lr_eff: same formula as _ab_weight_update_lora()
+                # Use last_lr_eff_a/b from controller (set by fast_lr in 'none' mode)
                 lr_base = tile.get_learning_rate()
                 if ctrl._is_hardware_mode():
                     lr_eff = 1.0
                 else:
-                    lr_eff = lr_base * alpha
-                    if ctrl.correct_gradient_magnitudes:
-                        lr_eff /= math.sqrt(ctrl.rank)
+                    lr_eff = ctrl.last_lr_eff_a if tile_name == "tile_a" else ctrl.last_lr_eff_b
 
                 tile.set_learning_rate(lr_eff)
                 tile._orig_update(x_input, d_rescaled, *args, **kwargs)
@@ -445,6 +469,8 @@ class LRTTSimulatorTile(SimulatorTile, Module):
 
         def hooked_c_noop(x_input, d_input, *args, **kwargs):
             # C is frozen — no weight update
+            # Track lr_sgd for transfer LR computation
+            ctrl._last_lr_sgd = self.tile_c.get_learning_rate()
             # Handle transfer counter and dynamic TE
             lr = self.tile_c.get_learning_rate()
             ctrl._update_dynamic_te(lr)

@@ -39,9 +39,37 @@ class PythonLRTTDevice(_PrintableMixin):
     transfer_lr: float = 1.0
     """Transfer learning rate scalar applied during A⊗B -> visible transfer."""
 
+    scale_transfer_lr: bool = True
+    """If True, multiply transfer_lr by the current SGD learning rate (lr_sgd).
+    Effective: lr_tr = transfer_lr * lr_sgd (when True) or transfer_lr (when False)."""
+
+    transfer_fast_lr_ref: str = "geomean"
+    """Reference for correct_gradient_magnitudes transfer LR division:
+    - 'A': divide by lr_eff_a
+    - 'B': divide by lr_eff_b
+    - 'geomean': divide by sqrt(lr_eff_a * lr_eff_b)
+    Only used when correct_gradient_magnitudes=True."""
+
     lora_alpha: float = 1.0
-    """LoRA scaling factor α in W_eff = W_visible + α * A @ B."""
-    
+    """LoRA scaling factor α in W_eff = W_visible + α * A @ B.
+    Used only for forward-injection scaling (y = Cx + α·ABx).
+    No longer affects A/B learning rate — use fast_lr instead."""
+
+    fast_lr: float = 1.0
+    """Fixed learning rate constant for A/B weight updates (replaces lr*lora_alpha).
+    In auto_scale_mode='none': lr_eff = fast_lr.
+    In auto_scale_mode='shared'/'separate': fast_lr is normalized by signal EMA."""
+
+    auto_scale_mode: str = "none"
+    """Auto-scale mode for A/B learning rate normalization:
+    - 'none': lr_eff = fast_lr (no signal-based scaling)
+    - 'shared': lr_eff = fast_lr / (μ_x · μ_d), shared across A and B
+    - 'separate': lr_eff_a and lr_eff_b computed independently with granularity"""
+
+    auto_momentum: float = 0.99
+    """EMA momentum for auto-scale signal tracking. τ = (1 - auto_momentum) / m_batch.
+    Higher values = smoother EMA, slower adaptation. Must be in (0, 1)."""
+
     reinit_gain: float = 1.0
     """Kaiming uniform initialization gain (multiplier). 1.0 = standard PyTorch nn.Linear default."""
 
@@ -200,7 +228,9 @@ class PythonLRTTDevice(_PrintableMixin):
     B output and A backward output pass through at full precision."""
     
     correct_gradient_magnitudes: bool = False
-    """If True, scale learning rate by sqrt(rank) for gradient correction."""
+    """If True, divide transfer LR by the fast effective LR (lr_eff_a/b or geomean).
+    This corrects transfer magnitude relative to fast A/B update speed.
+    The old A/B sqrt(rank) correction has been removed."""
     
     forward_inject: bool = False
     """Enable forward injection optimization: W_eff composition."""
@@ -297,6 +327,16 @@ class PythonLRTTDevice(_PrintableMixin):
     
     def __post_init__(self):
         """Validate configuration parameters."""
+        # Validate fast_lr and auto-scale
+        if self.fast_lr <= 0:
+            raise ValueError(f"fast_lr must be positive, got {self.fast_lr}")
+        if self.auto_scale_mode not in ["none", "shared", "separate"]:
+            raise ValueError(f"auto_scale_mode must be 'none', 'shared', or 'separate', got '{self.auto_scale_mode}'")
+        if not (0.0 < self.auto_momentum < 1.0):
+            raise ValueError(f"auto_momentum must be in (0, 1), got {self.auto_momentum}")
+        if self.transfer_fast_lr_ref not in ["A", "B", "geomean"]:
+            raise ValueError(f"transfer_fast_lr_ref must be 'A', 'B', or 'geomean', got '{self.transfer_fast_lr_ref}'")
+
         # Validate rank
         if self.rank <= 0:
             raise ValueError(f"rank must be positive, got {self.rank}")
@@ -440,6 +480,9 @@ class PythonLRTTDevice(_PrintableMixin):
             'reinit_mode': self.reinit_mode,
             'decay_factor': self.decay_factor,
             'correct_gradient_magnitudes': self.correct_gradient_magnitudes,
+            'fast_lr': self.fast_lr,
+            'scale_transfer_lr': self.scale_transfer_lr,
+            'transfer_fast_lr_ref': self.transfer_fast_lr_ref,
             'rank_chunk': self.rank_chunk,
             'ab_bl_mgmt': self.ab_bl_mgmt,
             'transfer_bl_mgmt': self.transfer_bl_mgmt,
@@ -457,6 +500,9 @@ class PythonLRTTDevice(_PrintableMixin):
         }
         # Post-init settings (set on controller after creation)
         kwargs['_post_init'] = {
+            # Auto-scale settings
+            'auto_scale_mode': self.auto_scale_mode,
+            'auto_momentum': self.auto_momentum,
             # Transfer mode & calibration
             'transfer_mode': self.transfer_mode,
             'transfer_micro_steps': self.transfer_micro_steps,
