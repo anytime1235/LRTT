@@ -15,7 +15,7 @@ NVIDIA 드라이버가 설치되어 있어야 합니다 (`nvidia-smi`로 확인)
 ```bash
 # 빌드 도구 + OpenBLAS
 apt update
-apt install -y build-essential cmake python3-venv python3-dev libopenblas-dev wget
+apt install -y build-essential cmake python3-dev libopenblas-dev wget
 
 # NVIDIA CUDA 12.1 Toolkit (이미 nvcc가 있으면 건너뛰기: nvcc --version)
 wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
@@ -34,10 +34,9 @@ export LD_LIBRARY_PATH=/usr/local/cuda-12.1/lib64:$LD_LIBRARY_PATH
 
 ```bash
 pip install uv
-uv pip install --system --upgrade pip wheel setuptools
 uv pip install --system torch==2.3.1+cu121 torchvision==0.18.1+cu121 \
     --index-url https://download.pytorch.org/whl/cu121
-uv pip install --system scikit-build pybind11 cmake mypy
+uv pip install --system scikit-build pybind11 mypy
 ```
 
 > 다른 GPU는 하단 [GPU 아키텍처 참고](#gpu-아키텍처-참고) 표에서 PyTorch 버전 확인.
@@ -54,7 +53,7 @@ USE_CUDA=1 pip install -e .
 USE_CUDA=1 python setup.py build_ext --inplace
 ```
 
-> **참고**: editable 빌드(`pip install -e .`)는 C++ 확장 빌드를 포함하므로 uv 대신 pip을 사용합니다.
+> **참고**: editable 빌드(`pip install -e .`)는 C++ 확장 빌드를 포함하므로 uv 대신 pip을 사용합니다. `build_ext --inplace`는 컴파일된 C++ 확장(.so)을 소스 트리에 배치하여 editable 모드에서 import할 수 있게 합니다.
 
 ### 1.4 Python 의존성 설치
 
@@ -89,13 +88,12 @@ print('aihwkit + LRTT OK!')
 ```bash
 # 사전 요구사항
 apt update
-apt install -y build-essential cmake python3-venv python3-dev libopenblas-dev
+apt install -y build-essential cmake python3-dev libopenblas-dev
 
 # uv + PyTorch + 빌드 도구
 pip install uv
-uv pip install --system --upgrade pip wheel setuptools
 uv pip install --system torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cpu
-uv pip install --system scikit-build pybind11 cmake mypy
+uv pip install --system scikit-build pybind11 mypy
 
 # 빌드
 cd /path/to/LRTT_vit
@@ -120,9 +118,9 @@ uv pip install --system transformers==4.47.1 datasets==4.5.0 evaluate==0.4.6 \
 CUDA toolkit이 이미 설치된 환경 기준입니다.
 
 ```bash
-apt update && apt install -y build-essential cmake python3-venv python3-dev libopenblas-dev && \
+apt update && apt install -y build-essential cmake python3-dev libopenblas-dev && \
 pip install uv && \
-uv pip install --system --upgrade pip wheel setuptools scikit-build pybind11 cmake mypy && \
+uv pip install --system scikit-build pybind11 mypy && \
 uv pip install --system torch==2.3.1+cu121 torchvision==0.18.1+cu121 --index-url https://download.pytorch.org/whl/cu121 && \
 cd /path/to/LRTT_vit && rm -rf _skbuild build && \
 export GPU_ARCH=$(nvidia-smi --query-gpu=compute_cap -i 0 --format=csv,noheader | tr -d '.') && \
@@ -135,12 +133,13 @@ uv pip install --system transformers==4.47.1 datasets==4.5.0 evaluate==0.4.6 opt
 ### CPU 버전
 
 ```bash
-apt update && apt install -y build-essential cmake python3-venv python3-dev libopenblas-dev && \
+apt update && apt install -y build-essential cmake python3-dev libopenblas-dev && \
 pip install uv && \
-uv pip install --system --upgrade pip wheel setuptools scikit-build pybind11 cmake mypy && \
+uv pip install --system scikit-build pybind11 mypy && \
 uv pip install --system torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cpu && \
 cd /path/to/LRTT_vit && rm -rf _skbuild build && \
-USE_CUDA=0 pip install -e . && USE_CUDA=0 python setup.py build_ext --inplace && \
+USE_CUDA=0 pip install -e . && \
+USE_CUDA=0 python setup.py build_ext --inplace && \
 uv pip install --system transformers==4.47.1 datasets==4.5.0 evaluate==0.4.6 optuna==4.7.0 optuna-integration==4.7.0 botorch==0.16.1 wandb==0.24.1 accelerate==1.12.0 scipy==1.15.3 scikit-learn==1.7.2
 ```
 
@@ -213,8 +212,7 @@ LRTT_vit/
 | uv | - | 빠른 패키지 설치 |
 | scikit-build | - | 빌드용 |
 | pybind11 | - | 빌드용 |
-| cmake | - | 빌드용 |
-| mypy | - | 빌드용 |
+| mypy | - | 빌드용 (stubgen) |
 | libopenblas-dev | - | apt, BLAS 라이브러리 |
 | build-essential | - | apt, GCC/G++ 컴파일러 |
 | cuda-toolkit-12-1 | 12.1 | apt (NVIDIA repo), CUDA 없을 때만 |
