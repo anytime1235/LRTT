@@ -15,7 +15,7 @@ NVIDIA 드라이버가 설치되어 있어야 합니다 (`nvidia-smi`로 확인)
 ```bash
 # 빌드 도구 + OpenBLAS
 apt update
-apt install -y build-essential cmake python3-dev libopenblas-dev wget
+apt install -y build-essential cmake ninja-build python3-dev libopenblas-dev wget
 
 # NVIDIA CUDA 12.1 Toolkit (이미 nvcc가 있으면 건너뛰기: nvcc --version)
 wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
@@ -48,7 +48,7 @@ cd /root/LRTT
 rm -rf _skbuild build
 
 export GPU_ARCH=$(nvidia-smi --query-gpu=compute_cap -i 0 --format=csv,noheader | tr -d '.')
-export CMAKE_ARGS="-DRPU_CUDA_ARCHITECTURES=$GPU_ARCH -DCMAKE_CUDA_ARCHITECTURES=$GPU_ARCH"
+export CMAKE_ARGS="-GNinja -DRPU_CUDA_ARCHITECTURES=$GPU_ARCH -DCMAKE_CUDA_ARCHITECTURES=$GPU_ARCH"
 USE_CUDA=1 pip install -e .
 USE_CUDA=1 python setup.py build_ext --inplace
 ```
@@ -88,7 +88,7 @@ print('aihwkit + LRTT OK!')
 ```bash
 # 사전 요구사항
 apt update
-apt install -y build-essential cmake python3-dev libopenblas-dev
+apt install -y build-essential cmake ninja-build python3-dev libopenblas-dev
 
 # uv + PyTorch + 빌드 도구
 pip install uv
@@ -118,13 +118,13 @@ uv pip install --system transformers==4.47.1 datasets==4.5.0 evaluate==0.4.6 \
 CUDA toolkit이 이미 설치된 환경 기준입니다.
 
 ```bash
-apt update && apt install -y build-essential cmake python3-dev libopenblas-dev && \
+apt update && apt install -y build-essential cmake ninja-build python3-dev libopenblas-dev && \
 pip install uv && \
 uv pip install --system scikit-build pybind11 mypy && \
 uv pip install --system torch==2.3.1+cu121 torchvision==0.18.1+cu121 --index-url https://download.pytorch.org/whl/cu121 && \
 cd /root/LRTT && rm -rf _skbuild build && \
 export GPU_ARCH=$(nvidia-smi --query-gpu=compute_cap -i 0 --format=csv,noheader | tr -d '.') && \
-export CMAKE_ARGS="-DRPU_CUDA_ARCHITECTURES=$GPU_ARCH -DCMAKE_CUDA_ARCHITECTURES=$GPU_ARCH" && \
+export CMAKE_ARGS="-GNinja -DRPU_CUDA_ARCHITECTURES=$GPU_ARCH -DCMAKE_CUDA_ARCHITECTURES=$GPU_ARCH" && \
 USE_CUDA=1 pip install -e . && \
 USE_CUDA=1 python setup.py build_ext --inplace && \
 uv pip install --system transformers==4.47.1 datasets==4.5.0 evaluate==0.4.6 optuna==4.7.0 optuna-integration==4.7.0 botorch==0.16.1 wandb==0.24.1 accelerate==1.12.0 scipy==1.15.3 scikit-learn==1.7.2 matplotlib==3.10.8 pandas==2.3.3 numpy==2.2.6 safetensors==0.7.0 tokenizers==0.21.4 huggingface_hub==0.36.2 tqdm==4.67.2
@@ -133,7 +133,7 @@ uv pip install --system transformers==4.47.1 datasets==4.5.0 evaluate==0.4.6 opt
 ### CPU 버전
 
 ```bash
-apt update && apt install -y build-essential cmake python3-dev libopenblas-dev && \
+apt update && apt install -y build-essential cmake ninja-build python3-dev libopenblas-dev && \
 pip install uv && \
 uv pip install --system scikit-build pybind11 mypy && \
 uv pip install --system torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cpu && \
@@ -215,6 +215,7 @@ LRTT_vit/
 | mypy | - | 빌드용 (stubgen) |
 | libopenblas-dev | - | apt, BLAS 라이브러리 |
 | build-essential | - | apt, GCC/G++ 컴파일러 |
+| ninja-build | - | apt, 빠른 빌드 시스템 |
 | cuda-toolkit-12-1 | 12.1 | apt (NVIDIA repo), CUDA 없을 때만 |
 
 curl -fsSL https://claude.ai/install.sh | bash
