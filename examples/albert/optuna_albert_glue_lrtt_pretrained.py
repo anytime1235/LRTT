@@ -54,6 +54,8 @@ All flags:
         --encoder-analog            # Non-LRTT encoder layers: frozen analog instead of digital
         --embedding-analog          # Embedding projection: frozen analog instead of digital
         --head-analog               # Classifier/qa_outputs: frozen analog instead of digital
+        --backward-out-bound <float> # Backward pass output bound (default: 12.0)
+        --auto-scale-mode <str>     # Auto-scale: none | shared | separate (default: none)
 
 
 Inline flags (edit directly in script):
