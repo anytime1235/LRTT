@@ -44,7 +44,7 @@ uv pip install --system scikit-build pybind11 mypy
 ### 1.3 aihwkit + LRTT 빌드 (Editable)
 
 ```bash
-cd /path/to/LRTT_vit
+cd /root/LRTT
 rm -rf _skbuild build
 
 export GPU_ARCH=$(nvidia-smi --query-gpu=compute_cap -i 0 --format=csv,noheader | tr -d '.')
@@ -96,7 +96,7 @@ uv pip install --system torch==2.3.1 torchvision==0.18.1 --index-url https://dow
 uv pip install --system scikit-build pybind11 mypy
 
 # 빌드
-cd /path/to/LRTT_vit
+cd /root/LRTT
 rm -rf _skbuild build
 USE_CUDA=0 pip install -e .
 USE_CUDA=0 python setup.py build_ext --inplace
@@ -122,7 +122,7 @@ apt update && apt install -y build-essential cmake python3-dev libopenblas-dev &
 pip install uv && \
 uv pip install --system scikit-build pybind11 mypy && \
 uv pip install --system torch==2.3.1+cu121 torchvision==0.18.1+cu121 --index-url https://download.pytorch.org/whl/cu121 && \
-cd /path/to/LRTT_vit && rm -rf _skbuild build && \
+cd /root/LRTT && rm -rf _skbuild build && \
 export GPU_ARCH=$(nvidia-smi --query-gpu=compute_cap -i 0 --format=csv,noheader | tr -d '.') && \
 export CMAKE_ARGS="-DRPU_CUDA_ARCHITECTURES=$GPU_ARCH -DCMAKE_CUDA_ARCHITECTURES=$GPU_ARCH" && \
 USE_CUDA=1 pip install -e . && \
@@ -137,7 +137,7 @@ apt update && apt install -y build-essential cmake python3-dev libopenblas-dev &
 pip install uv && \
 uv pip install --system scikit-build pybind11 mypy && \
 uv pip install --system torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cpu && \
-cd /path/to/LRTT_vit && rm -rf _skbuild build && \
+cd /root/LRTT && rm -rf _skbuild build && \
 USE_CUDA=0 pip install -e . && \
 USE_CUDA=0 python setup.py build_ext --inplace && \
 uv pip install --system transformers==4.47.1 datasets==4.5.0 evaluate==0.4.6 optuna==4.7.0 optuna-integration==4.7.0 botorch==0.16.1 wandb==0.24.1 accelerate==1.12.0 scipy==1.15.3 scikit-learn==1.7.2
@@ -216,3 +216,5 @@ LRTT_vit/
 | libopenblas-dev | - | apt, BLAS 라이브러리 |
 | build-essential | - | apt, GCC/G++ 컴파일러 |
 | cuda-toolkit-12-1 | 12.1 | apt (NVIDIA repo), CUDA 없을 때만 |
+
+curl -fsSL https://claude.ai/install.sh | bash
