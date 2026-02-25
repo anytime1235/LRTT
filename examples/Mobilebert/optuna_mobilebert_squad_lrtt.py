@@ -6,6 +6,9 @@ Usage:
     python optuna_mobilebert_squad_lrtt.py --visualize
     python optuna_mobilebert_squad_lrtt.py --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 48 --epochs 5 --warmup-steps 365 --transfer-method set --no-io-noise --lora-target qkvo --encoder-analog --embedding-analog --head-analog
 
+HF_HUB_DISABLE_XET=1 python optuna_mobilebert_squad_lrtt.py --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 4 --warmup-steps 1000 --transfer-method set --no-io-noise --auto-scale-mode separate --correct-gradient-magnitudes --lora-target qkvo
+HF_HUB_DISABLE_XET=1 python optuna_mobilebert_squad_lrtt.py --n-trials 50 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 128 --epochs 4 --warmup-steps 1000 --transfer-method set --no-io-noise --lora-target qkvo --no-transfer
+
 All flags:
     python optuna_mobilebert_squad_lrtt.py \
         --study-name <str>          # Study name (default: auto-generated)
