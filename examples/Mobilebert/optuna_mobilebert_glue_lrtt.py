@@ -335,6 +335,7 @@ OPT_CONFIG = {
     'no_adc_ab_proj': False,  # If True, remove ADC/DAC between A/B projections
     'learn_out_scaling': True,  # If True, C tile out_scaling is trainable
     'auto_scale_mode': 'none',
+    'correct_gradient_magnitudes': False,
 }
 
 
@@ -389,6 +390,8 @@ def get_study_name_suffix():
 
     if OPT_CONFIG.get('auto_scale_mode', 'none') != 'none':
         suffix += f"_as-{OPT_CONFIG['auto_scale_mode']}"
+    if OPT_CONFIG.get('correct_gradient_magnitudes', False):
+        suffix += "_cgm"
 
     # Add lora target (always include for clarity)
     suffix += f"_{LORA_TARGET}"
@@ -503,7 +506,7 @@ def create_frozen_analog_config(lrtt_config=None, out_noise=0.0):
 
 def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, tau_sec=0.0,
                        c_dw_min=0.001, c_desired_bl=None, out_noise=0.0, ab_weight_scaling_omega=0.0,
-                       auto_scale_mode='none'):
+                       auto_scale_mode='none', correct_gradient_magnitudes=False):
     """Create LRTT RPU configuration for analog layers."""
     ab_device = _create_ab_device(tau_sec=tau_sec)
     c_device = _create_c_device(dw_min=c_dw_min)
@@ -538,6 +541,7 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, 
     device_config.forward_inject = False
     device_config.no_adc_ab_projection = OPT_CONFIG.get('no_adc_ab_proj', False)
     device_config.auto_scale_mode = auto_scale_mode
+    device_config.correct_gradient_magnitudes = correct_gradient_magnitudes
     if c_desired_bl is not None:
         device_config.c_desired_bl = c_desired_bl
 
@@ -679,6 +683,7 @@ def create_model(params):
             out_noise=params["out_noise"],
             ab_weight_scaling_omega=params["ab_weight_scaling_omega"],
             auto_scale_mode=OPT_CONFIG['auto_scale_mode'],
+            correct_gradient_magnitudes=OPT_CONFIG['correct_gradient_magnitudes'],
         )
 
         # Convert to analog with exclusions (only LRTT targets get converted)
@@ -1363,6 +1368,8 @@ def main():
     parser.add_argument('--auto-scale-mode', type=str, default='none',
                         choices=['none', 'shared', 'separate'],
                         help='Auto-scale mode for A/B LR normalization (default: none)')
+    parser.add_argument('--correct-gradient-magnitudes', action='store_true',
+                        help='Correct transfer magnitude by dividing by effective A/B LR')
     args = parser.parse_args()
 
     # Update global config
@@ -1387,6 +1394,7 @@ def main():
     OPT_CONFIG['no_adc_ab_proj'] = args.no_adc_ab_proj
     OPT_CONFIG['learn_out_scaling'] = not args.no_learn_out_scaling
     OPT_CONFIG['auto_scale_mode'] = args.auto_scale_mode
+    OPT_CONFIG['correct_gradient_magnitudes'] = args.correct_gradient_magnitudes
     ENCODER_ANALOG = args.encoder_analog
     EMBEDDING_ANALOG = args.embedding_analog
     HEAD_ANALOG = args.head_analog

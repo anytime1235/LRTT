@@ -183,6 +183,7 @@ TRANSFER_EVERY = 1092
 TRANSFER_LR = 4.706173285862282e-05
 FAST_LR = 0.11465313432104135
 AUTO_SCALE_MODE = "none"  # Auto-scale mode: "none", "shared", or "separate"
+CORRECT_GRADIENT_MAGNITUDES = False  # Correct transfer magnitude by dividing by effective A/B LR
 REINIT_MODE = "hybrid"
 REINIT_GAIN = 1.0
 DECAY_FACTOR = 1.0
@@ -360,6 +361,7 @@ def create_lrtt_config():
     device_config.no_adc_ab_projection = NO_ADC_AB_PROJ
     device_config.c_desired_bl = C_DESIRED_BL
     device_config.auto_scale_mode = AUTO_SCALE_MODE
+    device_config.correct_gradient_magnitudes = CORRECT_GRADIENT_MAGNITUDES
 
     # Dynamic TE: increase TE as LR decays
     device_config.dynamic_te = DYNAMIC_TE
