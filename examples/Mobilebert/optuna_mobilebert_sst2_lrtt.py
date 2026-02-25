@@ -206,7 +206,7 @@ GRAD_ACCUM_STEPS = 1
 EVAL_BATCH_SIZE = 256
 EARLY_STOP_PATIENCE = 3
 VAL_LOSS_EARLY_STOP_PATIENCE = 2  # Stop if val loss doesn't improve for this many epochs
-VAL_LOSS_THRESHOLD = 8.0  # Once val loss drops below this, rely on metric-based early stop only
+VAL_LOSS_THRESHOLD = 1.5  # Once val loss drops below this, rely on metric-based early stop only
 
 # Scheduler
 WARMUP_STEPS = 500  # warmup steps

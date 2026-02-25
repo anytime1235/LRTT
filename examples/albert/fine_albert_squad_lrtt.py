@@ -110,7 +110,7 @@ LEARNING_RATE = 0.00362
 WEIGHT_DECAY = 0.0
 EARLY_STOP_PATIENCE = 3
 TRAIN_LOSS_EARLY_STOP_PATIENCE = 2  # Stop if train loss doesn't improve for this many epochs
-TRAIN_LOSS_THRESHOLD = 8.0  # Once train loss drops below this, rely on metric-based early stop only
+TRAIN_LOSS_THRESHOLD = 1.5  # Once train loss drops below this, rely on metric-based early stop only
 
 # Scheduler
 WARMUP_STEPS =500
