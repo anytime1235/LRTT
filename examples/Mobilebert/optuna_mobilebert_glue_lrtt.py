@@ -137,7 +137,7 @@ from aihwkit.optim import AnalogSGD, AnalogAdam
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import lrtt_grad_accum_patch  # noqa: F401  — per-micro-batch tile.update + LRTT A/B snapshot
 
-from aihwkit.simulator.configs.devices import LinearStepDevice, SoftBoundsDevice, FloatingPointDevice
+from aihwkit.simulator.configs.devices import LinearStepDevice, SoftBoundsDevice, FloatingPointDevice, IdealDevice
 from aihwkit.simulator.configs import SingleRPUConfig
 
 # LRTT config imports (direct imports to avoid __init__.py dependency issues)
@@ -290,7 +290,8 @@ TE_WARMUP_SCHEDULE = []
 REINIT_GAIN = 1.0
 DECAY_FACTOR = 1.0
 TRANSFER_METHOD = "onehot"  # "onehot", "direct", or "set"
-AB_DEVICE = "6t1c"  # "6t1c" or "fp"
+AB_DEVICE = "6t1c"  # "6t1c", "fp", or "ideal"
+C_DEVICE = "softbounds"  # "softbounds" or "ideal"
 IO_NOISE = True  # If False, disable out_noise (resolution kept)
 ENCODER_ANALOG = False  # If True, non-LRTT encoder layers become frozen analog instead of digital
 EMBEDDING_ANALOG = False  # If True, embedding projection → frozen analog instead of digital
@@ -358,6 +359,9 @@ def get_study_name_suffix():
     if AB_DEVICE != "6t1c":
         suffix += f"_{AB_DEVICE.replace('-', '')}"
 
+    if C_DEVICE != "softbounds":
+        suffix += f"_c{C_DEVICE}"
+
     if not IO_NOISE:
         suffix += "_noio"
 
@@ -415,6 +419,8 @@ def _create_ab_device(tau_sec=0.0):
     """
     if AB_DEVICE == "fp":
         return FloatingPointDevice()
+    if AB_DEVICE == "ideal":
+        return IdealDevice()
 
     # Compute retention lifetime from tau_sec
     if tau_sec > 0:
@@ -450,7 +456,9 @@ def _create_ab_device(tau_sec=0.0):
 
 
 def _create_c_device(dw_min=0.001):
-    """Create noise-free SoftBoundsDevice for C tile."""
+    """Create device for C tile."""
+    if C_DEVICE == "ideal":
+        return IdealDevice()
     return SoftBoundsDevice(
         dw_min=dw_min,
         w_max=1.0,
@@ -1290,7 +1298,7 @@ def print_study_summary(study):
 # =============================================================================
 
 def main():
-    global TASK_NAME, NUM_LABELS, BATCH_SIZE, GRAD_ACCUM_STEPS, N_EPOCHS, WARMUP_STEPS, TRANSFER_METHOD, AB_DEVICE, IO_NOISE, LORA_TARGET, HEAD_LAYER, ENCODER_ANALOG, EMBEDDING_ANALOG, HEAD_ANALOG, BACKWARD_INP_BOUND, BACKWARD_OUT_BOUND
+    global TASK_NAME, NUM_LABELS, BATCH_SIZE, GRAD_ACCUM_STEPS, N_EPOCHS, WARMUP_STEPS, TRANSFER_METHOD, AB_DEVICE, C_DEVICE, IO_NOISE, LORA_TARGET, HEAD_LAYER, ENCODER_ANALOG, EMBEDDING_ANALOG, HEAD_ANALOG, BACKWARD_INP_BOUND, BACKWARD_OUT_BOUND
 
     parser = argparse.ArgumentParser(description="Optuna sweep for MobileBERT GLUE LRTT")
     parser.add_argument('--task', type=str, default='sst2',
@@ -1324,8 +1332,11 @@ def main():
                         choices=['onehot', 'direct', 'set'],
                         help=f'Transfer method (default: {TRANSFER_METHOD})')
     parser.add_argument('--ab-device', type=str, default=AB_DEVICE,
-                        choices=['6t1c', 'fp'],
+                        choices=['6t1c', 'fp', 'ideal'],
                         help=f'A/B tile device type (default: {AB_DEVICE})')
+    parser.add_argument('--c-device', type=str, default=C_DEVICE,
+                        choices=['softbounds', 'ideal'],
+                        help=f'C tile device type (default: {C_DEVICE})')
     parser.add_argument('--no-io-noise', action='store_true',
                         help='Disable IO out_noise (resolution kept)')
     parser.add_argument('--no-transfer', action='store_true',
@@ -1362,6 +1373,7 @@ def main():
     WARMUP_STEPS = args.warmup_steps
     TRANSFER_METHOD = args.transfer_method
     AB_DEVICE = args.ab_device
+    C_DEVICE = args.c_device
     IO_NOISE = not args.no_io_noise
     LORA_TARGET = args.lora_target
     HEAD_LAYER = args.head_layer
