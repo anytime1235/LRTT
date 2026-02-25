@@ -115,10 +115,14 @@ uv pip install --system transformers==4.47.1 datasets==4.5.0 evaluate==0.4.6 \
 
 ### CUDA 12.1 (권장)
 
-CUDA toolkit이 이미 설치된 환경 기준입니다.
+NVIDIA 드라이버(`nvidia-smi`)만 있으면 CUDA toolkit 유무와 관계없이 동작합니다.
 
 ```bash
-apt update && apt install -y build-essential cmake ninja-build python3-dev libopenblas-dev && \
+apt update && apt install -y build-essential cmake ninja-build python3-dev libopenblas-dev wget && \
+wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb && \
+dpkg -i cuda-keyring_1.1-1_all.deb && apt update && apt install -y cuda-toolkit-12-1 && \
+export PATH=/usr/local/cuda-12.1/bin:$PATH && \
+export LD_LIBRARY_PATH=/usr/local/cuda-12.1/lib64:$LD_LIBRARY_PATH && \
 pip install uv && \
 uv pip install --system scikit-build pybind11 mypy && \
 uv pip install --system torch==2.3.1+cu121 torchvision==0.18.1+cu121 --index-url https://download.pytorch.org/whl/cu121 && \
@@ -138,6 +142,7 @@ pip install uv && \
 uv pip install --system scikit-build pybind11 mypy && \
 uv pip install --system torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cpu && \
 cd /root/LRTT && rm -rf _skbuild build && \
+export CMAKE_ARGS="-GNinja" && \
 USE_CUDA=0 pip install -e . && \
 USE_CUDA=0 python setup.py build_ext --inplace && \
 uv pip install --system transformers==4.47.1 datasets==4.5.0 evaluate==0.4.6 optuna==4.7.0 optuna-integration==4.7.0 botorch==0.16.1 wandb==0.24.1 accelerate==1.12.0 scipy==1.15.3 scikit-learn==1.7.2
