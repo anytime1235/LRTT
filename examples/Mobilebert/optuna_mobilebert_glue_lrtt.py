@@ -961,7 +961,7 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         torch.cuda.empty_cache()
 
     # Hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 1e-6, 1e-1, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 1e-4, 6e-3, log=True)
 
     # LRTT parameters: skip sweep if --no-transfer (A/B frozen, no transfer happens)
     if OPT_CONFIG['no_transfer']:
@@ -973,10 +973,10 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         tau_sec = 0.0            # fixed
     else:
         transfer_lr = trial.suggest_float('transfer_lr', 1e-5, 1e2, log=True)
-        transfer_every = trial.suggest_int('transfer_every', 1, 500, log=True)
-        rank_exp = trial.suggest_int('rank_exp', 0, 5)
+        transfer_every = trial.suggest_int('transfer_every', 1, 600, log=True)
+        rank_exp = trial.suggest_int('rank_exp', 0, 6)
         rank = 2 ** rank_exp
-        fast_lr = trial.suggest_float('fast_lr', 1e-5, 1e2, log=True)
+        fast_lr = trial.suggest_float('fast_lr', 1e-1, 1e0, log=True)
         tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
 
     # C tile pulsed transfer params (only meaningful for onehot/direct)
