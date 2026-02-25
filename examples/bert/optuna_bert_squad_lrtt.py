@@ -31,6 +31,7 @@ All flags:
         --head-analog               # qa_outputs: frozen analog instead of digital
         --backward-out-bound <float> # Backward pass output bound (default: 12.0)
         --auto-scale-mode <str>     # Auto-scale: none | shared | separate (default: none)
+        --correct-gradient-magnitudes  # Correct transfer magnitude by dividing by effective A/B LR
 
 
 Inline flags (edit directly in script):
