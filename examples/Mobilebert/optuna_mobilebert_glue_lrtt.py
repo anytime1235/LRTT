@@ -986,8 +986,8 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         fast_lr = 1.0            # fixed (no effect)
         tau_sec = 0.0            # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 1e-5, 1e1, log=True)
-        transfer_every = trial.suggest_int('transfer_every', 1, 500, log=True)
+        transfer_lr = trial.suggest_float('transfer_lr', 9e-3, 1e5, log=True)
+        transfer_every = trial.suggest_int('transfer_every', 1, 600, log=True)
         rank_exp = trial.suggest_int('rank_exp', 3, 3)
         rank = 2 ** rank_exp
         fast_lr = trial.suggest_float('fast_lr', 1e-1, 1e0, log=True)
