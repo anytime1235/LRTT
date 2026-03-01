@@ -1,1755 +1,0 @@
-2026-02-24 14:24:48.754450: I tensorflow/core/util/port.cc:111] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
-2026-02-24 14:24:48.756947: I tensorflow/tsl/cuda/cudart_stub.cc:28] Could not find cuda drivers on your machine, GPU will not be used.
-2026-02-24 14:24:48.784434: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-2026-02-24 14:24:48.784465: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-2026-02-24 14:24:48.784488: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-2026-02-24 14:24:48.790874: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
-To enable the following instructions: AVX2 AVX512F AVX512_VNNI AVX512_BF16 AVX_VNNI AMX_TILE AMX_INT8 AMX_BF16 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2026-02-24 14:24:49.630736: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
-  [Task Config] mrpc: batch_size=32, max_seq=128, epochs=7, lr=0.006
-Map:   0%|                                                                                            | 0/3668 [00:00<?, ? examples/s]Map:  82%|███████████████████████████████████████████████████████████████▊              | 3000/3668 [00:00<00:00, 25017.47 examples/s]Map: 100%|██████████████████████████████████████████████████████████████████████████████| 3668/3668 [00:00<00:00, 26209.00 examples/s]
-Map:   0%|                                                                                             | 0/408 [00:00<?, ? examples/s]Map: 100%|████████████████████████████████████████████████████████████████████████████████| 408/408 [00:00<00:00, 30780.01 examples/s]
-Map:   0%|                                                                                            | 0/1725 [00:00<?, ? examples/s]Map: 100%|███████████████████████████████████████████████████████████████████████████████| 1725/1725 [00:00<00:00, 6387.23 examples/s]Map: 100%|███████████████████████████████████████████████████████████████████████████████| 1725/1725 [00:00<00:00, 6342.73 examples/s]
-[I 2026-02-24 14:24:55,552] A new study created in RDB with name: mrpc_bestlr_ablrwarm
-  GLUE mrpc: Train=3668, Eval=408
-Train batches: 115, Eval batches: 7
-  Early stop patience: 2, Pruner: Median, startup=5, warmup=2
-
-Study: mrpc_bestlr_ablrwarm, Device: cuda, New trials: 3
-
-======================================================================
-Trial 0 Starting
-======================================================================
-  rank=8, transfer_every=10000000, transfer_lr=1.0000e-01
-  lora_alpha=1.0000, lr=1.0760e-03, wd=0.00e+00
-  target_ab_lr=0.0010, lr_multiplier=0.929368
-  effective_ab_lr = lr*alpha*mult = 0.0010
-  momentum=0.00, nesterov=False, reinit_mode=decay
-  tau_sec=0.0, optimizer=AnalogAdam
-======================================================================
-huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
-To disable this warning, you can either:
-	- Avoid using `tokenizers` before the fork if possible
-	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
-Some weights of MobileBertForSequenceClassification were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
-You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-  [FIX] Reinitialized classifier with FIXED seed=42
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  LRTT Analog layers: 96, Total params: 21,842,978, Trainable (before grad set): 21,842,978
-  Trainable (after grad set): 13,602
-  LoRA target: qkv -> ['attention.self.query', 'attention.self.key', 'attention.self.value', 'attention.output.dense']
-
-Optimizer configuration:
-  Forward scaling (lora_alpha): 1.0
-  Classifier LR: 0.001076
-  LRTT LR (optimizer): 0.001 (= 0.001076 * 0.9293680297397771)
-  Effective A,B LR: 0.001 (= 0.001 * 1.0)
-  LRTT_LR_MULTIPLIER: 0.9293680297397771
-  LRTT tile params: 288
-  Other params: 98
-  Collected 96 tile_c contexts for post-step reset
-  Collected 192 tile_a/b contexts for post-step reset
-  AB LR Warmup: 1e-07 → 1e-03 over 402 steps (scheduler warmup: 40 steps)
-Trial 0 Ep1:   0%|                                                                                            | 0/115 [00:00<?, ?it/s]Trial 0 Ep1:   0%|                                                                         | 0/115 [00:01<?, ?it/s, loss=3982584.5000]Trial 0 Ep1:   1%|▌                                                                | 1/115 [00:01<02:30,  1.32s/it, loss=3982584.5000]Trial 0 Ep1:   1%|▌                                                                | 1/115 [00:01<02:30,  1.32s/it, loss=3803819.0000]Trial 0 Ep1:   2%|█▏                                                               | 2/115 [00:01<01:27,  1.29it/s, loss=3803819.0000]Trial 0 Ep1:   2%|█▏                                                               | 2/115 [00:02<01:27,  1.29it/s, loss=3728636.0000]Trial 0 Ep1:   3%|█▋                                                               | 3/115 [00:02<01:06,  1.70it/s, loss=3728636.0000]Trial 0 Ep1:   3%|█▋                                                               | 3/115 [00:02<01:06,  1.70it/s, loss=3020942.0000]Trial 0 Ep1:   3%|██▎                                                              | 4/115 [00:02<00:49,  2.25it/s, loss=3020942.0000]Trial 0 Ep1:   3%|██▎                                                              | 4/115 [00:02<00:49,  2.25it/s, loss=2392759.5000]Trial 0 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:40,  2.74it/s, loss=2392759.5000]Trial 0 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:40,  2.74it/s, loss=1301181.2500]Trial 0 Ep1:   5%|███▍                                                             | 6/115 [00:02<00:35,  3.10it/s, loss=1301181.2500]Trial 0 Ep1:   5%|███▍                                                              | 6/115 [00:03<00:35,  3.10it/s, loss=445361.6875]Trial 0 Ep1:   6%|████                                                              | 7/115 [00:03<00:36,  2.95it/s, loss=445361.6875]Trial 0 Ep1:   6%|████                                                              | 7/115 [00:03<00:36,  2.95it/s, loss=323698.2188]Trial 0 Ep1:   7%|████▌                                                             | 8/115 [00:03<00:31,  3.36it/s, loss=323698.2188]Trial 0 Ep1:   7%|████▌                                                             | 8/115 [00:03<00:31,  3.36it/s, loss=792413.4375]Trial 0 Ep1:   8%|█████▏                                                            | 9/115 [00:03<00:28,  3.72it/s, loss=792413.4375]Trial 0 Ep1:   8%|█████                                                            | 9/115 [00:03<00:28,  3.72it/s, loss=1707633.6250]Trial 0 Ep1:   9%|█████▌                                                          | 10/115 [00:03<00:27,  3.79it/s, loss=1707633.6250]Trial 0 Ep1:   9%|█████▌                                                          | 10/115 [00:04<00:27,  3.79it/s, loss=1765739.6250]Trial 0 Ep1:  10%|██████                                                          | 11/115 [00:04<00:25,  4.01it/s, loss=1765739.6250]Trial 0 Ep1:  10%|██████                                                          | 11/115 [00:04<00:25,  4.01it/s, loss=1361368.2500]Trial 0 Ep1:  10%|██████▋                                                         | 12/115 [00:04<00:37,  2.78it/s, loss=1361368.2500]Trial 0 Ep1:  10%|██████▋                                                         | 12/115 [00:04<00:37,  2.78it/s, loss=1359188.3750]Trial 0 Ep1:  11%|███████▏                                                        | 13/115 [00:04<00:32,  3.18it/s, loss=1359188.3750]Trial 0 Ep1:  11%|███████▎                                                         | 13/115 [00:05<00:32,  3.18it/s, loss=872669.1250]Trial 0 Ep1:  12%|███████▉                                                         | 14/115 [00:05<00:28,  3.54it/s, loss=872669.1250]Trial 0 Ep1:  12%|███████▉                                                         | 14/115 [00:05<00:28,  3.54it/s, loss=425444.1562]Trial 0 Ep1:  13%|████████▍                                                        | 15/115 [00:05<00:25,  3.85it/s, loss=425444.1562]Trial 0 Ep1:  13%|████████▍                                                        | 15/115 [00:05<00:25,  3.85it/s, loss=438020.6250]Trial 0 Ep1:  14%|█████████                                                        | 16/115 [00:05<00:30,  3.21it/s, loss=438020.6250]Trial 0 Ep1:  14%|█████████                                                        | 16/115 [00:05<00:30,  3.21it/s, loss=432323.1250]Trial 0 Ep1:  15%|█████████▌                                                       | 17/115 [00:05<00:28,  3.42it/s, loss=432323.1250]Trial 0 Ep1:  15%|█████████▍                                                      | 17/115 [00:06<00:28,  3.42it/s, loss=1156357.0000]Trial 0 Ep1:  16%|██████████                                                      | 18/115 [00:06<00:26,  3.69it/s, loss=1156357.0000]Trial 0 Ep1:  16%|██████████                                                      | 18/115 [00:06<00:26,  3.69it/s, loss=5838022.0000]Trial 0 Ep1:  17%|██████████▌                                                     | 19/115 [00:06<00:24,  3.92it/s, loss=5838022.0000]Trial 0 Ep1:  17%|██████████                                                   | 19/115 [00:06<00:24,  3.92it/s, loss=1916574464.0000]Trial 0 Ep1:  17%|██████████▌                                                  | 20/115 [00:06<00:24,  3.86it/s, loss=1916574464.0000]Trial 0 Ep1:  17%|██████████                                                | 20/115 [00:06<00:24,  3.86it/s, loss=3195830272000.0000]Trial 0 Ep1:  18%|██████████▌                                               | 21/115 [00:06<00:23,  3.92it/s, loss=3195830272000.0000]                                                                                                                                      [I 2026-02-24 14:25:10,799] Trial 0 finished with value: 0.0 and parameters: {'learning_rate': 0.001076, 'target_ab_lr': 0.001}. Best is trial 0 with value: 0.0.
-
-  [NaN/Inf detected at batch 21] Aborting trial.
-[Trial 0] GPU cache cleared
-
-======================================================================
-Trial 1 Starting
-======================================================================
-  rank=8, transfer_every=10000000, transfer_lr=1.0000e-01
-  lora_alpha=1.0000, lr=1.0760e-03, wd=0.00e+00
-  target_ab_lr=0.0100, lr_multiplier=9.293680
-  effective_ab_lr = lr*alpha*mult = 0.0100
-  momentum=0.00, nesterov=False, reinit_mode=decay
-  tau_sec=0.0, optimizer=AnalogAdam
-======================================================================
-huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
-To disable this warning, you can either:
-	- Avoid using `tokenizers` before the fork if possible
-	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
-Some weights of MobileBertForSequenceClassification were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
-You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-  [FIX] Reinitialized classifier with FIXED seed=42
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  LRTT Analog layers: 96, Total params: 21,842,978, Trainable (before grad set): 21,842,978
-  Trainable (after grad set): 13,602
-  LoRA target: qkv -> ['attention.self.query', 'attention.self.key', 'attention.self.value', 'attention.output.dense']
-
-Optimizer configuration:
-  Forward scaling (lora_alpha): 1.0
-  Classifier LR: 0.001076
-  LRTT LR (optimizer): 0.01 (= 0.001076 * 9.29368029739777)
-  Effective A,B LR: 0.01 (= 0.01 * 1.0)
-  LRTT_LR_MULTIPLIER: 9.29368029739777
-  LRTT tile params: 288
-  Other params: 98
-  Collected 96 tile_c contexts for post-step reset
-  Collected 192 tile_a/b contexts for post-step reset
-  AB LR Warmup: 1e-07 → 1e-02 over 402 steps (scheduler warmup: 40 steps)
-Trial 1 Ep1:   0%|                                                                                            | 0/115 [00:00<?, ?it/s]Trial 1 Ep1:   0%|                                                                         | 0/115 [00:01<?, ?it/s, loss=3520327.7500]Trial 1 Ep1:   1%|▌                                                                | 1/115 [00:01<02:03,  1.08s/it, loss=3520327.7500]Trial 1 Ep1:   1%|▌                                                                | 1/115 [00:01<02:03,  1.08s/it, loss=2984527.5000]Trial 1 Ep1:   2%|█▏                                                               | 2/115 [00:01<01:15,  1.50it/s, loss=2984527.5000]Trial 1 Ep1:   2%|█▏                                                               | 2/115 [00:01<01:15,  1.50it/s, loss=2986804.5000]Trial 1 Ep1:   3%|█▋                                                               | 3/115 [00:01<00:51,  2.17it/s, loss=2986804.5000]Trial 1 Ep1:   3%|█▋                                                               | 3/115 [00:01<00:51,  2.17it/s, loss=2308391.0000]Trial 1 Ep1:   3%|██▎                                                              | 4/115 [00:01<00:41,  2.69it/s, loss=2308391.0000]Trial 1 Ep1:   3%|██▎                                                              | 4/115 [00:02<00:41,  2.69it/s, loss=2343523.2500]Trial 1 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:43,  2.55it/s, loss=2343523.2500]Trial 1 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:43,  2.55it/s, loss=1157770.7500]Trial 1 Ep1:   5%|███▍                                                             | 6/115 [00:02<00:36,  3.01it/s, loss=1157770.7500]Trial 1 Ep1:   5%|███▍                                                              | 6/115 [00:02<00:36,  3.01it/s, loss=336394.9062]Trial 1 Ep1:   6%|████                                                              | 7/115 [00:02<00:33,  3.20it/s, loss=336394.9062]Trial 1 Ep1:   6%|████                                                              | 7/115 [00:03<00:33,  3.20it/s, loss=515385.2812]Trial 1 Ep1:   7%|████▌                                                             | 8/115 [00:03<00:29,  3.58it/s, loss=515385.2812]Trial 1 Ep1:   7%|████▌                                                            | 8/115 [00:03<00:29,  3.58it/s, loss=1182360.8750]Trial 1 Ep1:   8%|█████                                                            | 9/115 [00:03<00:27,  3.92it/s, loss=1182360.8750]Trial 1 Ep1:   8%|█████▏                                                            | 9/115 [00:03<00:27,  3.92it/s, loss=950362.3125]Trial 1 Ep1:   9%|█████▋                                                           | 10/115 [00:03<00:26,  4.02it/s, loss=950362.3125]Trial 1 Ep1:   9%|█████▌                                                          | 10/115 [00:03<00:26,  4.02it/s, loss=1255732.5000]Trial 1 Ep1:  10%|██████                                                          | 11/115 [00:03<00:24,  4.20it/s, loss=1255732.5000]Trial 1 Ep1:  10%|██████▏                                                          | 11/115 [00:04<00:24,  4.20it/s, loss=894457.5000]Trial 1 Ep1:  10%|██████▊                                                          | 12/115 [00:04<00:31,  3.28it/s, loss=894457.5000]Trial 1 Ep1:  10%|██████▊                                                          | 12/115 [00:04<00:31,  3.28it/s, loss=107714.5234]Trial 1 Ep1:  11%|███████▎                                                         | 13/115 [00:04<00:32,  3.15it/s, loss=107714.5234]                                                                                                                                      [I 2026-02-24 14:25:22,418] Trial 1 finished with value: 0.0 and parameters: {'learning_rate': 0.001076, 'target_ab_lr': 0.01}. Best is trial 0 with value: 0.0.
-
-  [NaN/Inf detected at batch 13] Aborting trial.
-[Trial 1] GPU cache cleared
-
-======================================================================
-Trial 2 Starting
-======================================================================
-  rank=8, transfer_every=10000000, transfer_lr=1.0000e-01
-  lora_alpha=1.0000, lr=1.0760e-03, wd=0.00e+00
-  target_ab_lr=0.0050, lr_multiplier=4.646840
-  effective_ab_lr = lr*alpha*mult = 0.0050
-  momentum=0.00, nesterov=False, reinit_mode=decay
-  tau_sec=0.0, optimizer=AnalogAdam
-======================================================================
-huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
-To disable this warning, you can either:
-	- Avoid using `tokenizers` before the fork if possible
-	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
-Some weights of MobileBertForSequenceClassification were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
-You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-  [FIX] Reinitialized classifier with FIXED seed=42
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  LRTT Analog layers: 96, Total params: 21,842,978, Trainable (before grad set): 21,842,978
-  Trainable (after grad set): 13,602
-  LoRA target: qkv -> ['attention.self.query', 'attention.self.key', 'attention.self.value', 'attention.output.dense']
-
-Optimizer configuration:
-  Forward scaling (lora_alpha): 1.0
-  Classifier LR: 0.001076
-  LRTT LR (optimizer): 0.005 (= 0.001076 * 4.646840148698885)
-  Effective A,B LR: 0.005 (= 0.005 * 1.0)
-  LRTT_LR_MULTIPLIER: 4.646840148698885
-  LRTT tile params: 288
-  Other params: 98
-  Collected 96 tile_c contexts for post-step reset
-  Collected 192 tile_a/b contexts for post-step reset
-  AB LR Warmup: 1e-07 → 5e-03 over 402 steps (scheduler warmup: 40 steps)
-Trial 2 Ep1:   0%|                                                                                            | 0/115 [00:00<?, ?it/s]Trial 2 Ep1:   0%|                                                                         | 0/115 [00:01<?, ?it/s, loss=3481864.5000]Trial 2 Ep1:   1%|▌                                                                | 1/115 [00:01<02:10,  1.14s/it, loss=3481864.5000]Trial 2 Ep1:   1%|▌                                                                | 1/115 [00:01<02:10,  1.14s/it, loss=2940390.0000]Trial 2 Ep1:   2%|█▏                                                               | 2/115 [00:01<01:18,  1.44it/s, loss=2940390.0000]Trial 2 Ep1:   2%|█▏                                                               | 2/115 [00:01<01:18,  1.44it/s, loss=2460521.5000]Trial 2 Ep1:   3%|█▋                                                               | 3/115 [00:01<00:53,  2.08it/s, loss=2460521.5000]Trial 2 Ep1:   3%|█▋                                                               | 3/115 [00:01<00:53,  2.08it/s, loss=3022862.0000]Trial 2 Ep1:   3%|██▎                                                              | 4/115 [00:01<00:43,  2.57it/s, loss=3022862.0000]Trial 2 Ep1:   3%|██▎                                                              | 4/115 [00:02<00:43,  2.57it/s, loss=2336580.5000]Trial 2 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:36,  3.00it/s, loss=2336580.5000]Trial 2 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:36,  3.00it/s, loss=1680604.2500]Trial 2 Ep1:   5%|███▍                                                             | 6/115 [00:02<00:33,  3.26it/s, loss=1680604.2500]Trial 2 Ep1:   5%|███▍                                                              | 6/115 [00:02<00:33,  3.26it/s, loss=533747.6250]Trial 2 Ep1:   6%|████                                                              | 7/115 [00:02<00:30,  3.50it/s, loss=533747.6250]Trial 2 Ep1:   6%|████                                                              | 7/115 [00:02<00:30,  3.50it/s, loss=345021.1250]Trial 2 Ep1:   7%|████▌                                                             | 8/115 [00:02<00:28,  3.75it/s, loss=345021.1250]Trial 2 Ep1:   7%|████▌                                                             | 8/115 [00:03<00:28,  3.75it/s, loss=758495.6875]Trial 2 Ep1:   8%|█████▏                                                            | 9/115 [00:03<00:26,  3.95it/s, loss=758495.6875]Trial 2 Ep1:   8%|█████▏                                                            | 9/115 [00:03<00:26,  3.95it/s, loss=342408.7188]Trial 2 Ep1:   9%|█████▋                                                           | 10/115 [00:03<00:26,  4.00it/s, loss=342408.7188]Trial 2 Ep1:   9%|█████▋                                                           | 10/115 [00:03<00:26,  4.00it/s, loss=506795.2188]Trial 2 Ep1:  10%|██████▏                                                          | 11/115 [00:03<00:25,  4.12it/s, loss=506795.2188]Trial 2 Ep1:  10%|██████                                                          | 11/115 [00:03<00:25,  4.12it/s, loss=2051096.5000]Trial 2 Ep1:  10%|██████▋                                                         | 12/115 [00:03<00:26,  3.93it/s, loss=2051096.5000]Trial 2 Ep1:  10%|██████▋                                                         | 12/115 [00:04<00:26,  3.93it/s, loss=1533867.6250]Trial 2 Ep1:  11%|███████▏                                                        | 13/115 [00:04<00:24,  4.10it/s, loss=1533867.6250]Trial 2 Ep1:  11%|███████▎                                                         | 13/115 [00:04<00:24,  4.10it/s, loss=950867.7500]Trial 2 Ep1:  12%|███████▉                                                         | 14/115 [00:04<00:24,  4.19it/s, loss=950867.7500]Trial 2 Ep1:  12%|███████▉                                                         | 14/115 [00:04<00:24,  4.19it/s, loss=403614.0625]Trial 2 Ep1:  13%|████████▍                                                        | 15/115 [00:04<00:24,  4.14it/s, loss=403614.0625]Trial 2 Ep1:  13%|████████▍                                                        | 15/115 [00:04<00:24,  4.14it/s, loss=494850.8125]Trial 2 Ep1:  14%|█████████                                                        | 16/115 [00:04<00:24,  4.03it/s, loss=494850.8125]Trial 2 Ep1:  14%|████████▉                                                       | 16/115 [00:05<00:24,  4.03it/s, loss=1315314.3750]Trial 2 Ep1:  15%|█████████▍                                                      | 17/115 [00:05<00:24,  4.06it/s, loss=1315314.3750]                                                                                                                                      [W 2026-02-24 14:25:34,964] Trial 2 failed with parameters: {'learning_rate': 0.001076, 'target_ab_lr': 0.005} because of the following error: OutOfMemoryError('CUDA out of memory. Tried to allocate 20.00 MiB. GPU 0 has a total capacity of 139.81 GiB of which 15.69 MiB is free. Process 2934491 has 139.79 GiB memory in use. Of the allocated memory 70.39 GiB is allocated by PyTorch, and 997.56 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)').
-Traceback (most recent call last):
-  File "/opt/conda/lib/python3.11/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
-    value_or_values = func(trial)
-                      ^^^^^^^^^^^
-  File "/data/optuna_mobilebert_glue_lora.py", line 1484, in <lambda>
-    lambda trial: objective(trial, train_loader, eval_loader, tokenizer),
-                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/data/optuna_mobilebert_glue_lora.py", line 1141, in objective
-    outputs = model(**model_inputs)
-              ^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 1286, in forward
-    outputs = self.mobilebert(
-              ^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 898, in forward
-    encoder_outputs = self.encoder(
-                      ^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 580, in forward
-    layer_outputs = layer_module(
-                    ^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 542, in forward
-    layer_output = self.output(intermediate_output, attention_output, hidden_states)
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 421, in forward
-    layer_output = self.bottleneck(layer_output, residual_tensor_2)
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 397, in forward
-    layer_outputs = self.LayerNorm(layer_outputs + residual_tensor)
-                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 165, in forward
-    return input_tensor * self.weight + self.bias
-           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~
-torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 20.00 MiB. GPU 0 has a total capacity of 139.81 GiB of which 15.69 MiB is free. Process 2934491 has 139.79 GiB memory in use. Of the allocated memory 70.39 GiB is allocated by PyTorch, and 997.56 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
-[W 2026-02-24 14:25:34,966] Trial 2 failed with value None.
-2026-02-24 14:25:38.379031: I tensorflow/core/util/port.cc:111] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
-2026-02-24 14:25:38.381686: I tensorflow/tsl/cuda/cudart_stub.cc:28] Could not find cuda drivers on your machine, GPU will not be used.
-2026-02-24 14:25:38.411990: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-2026-02-24 14:25:38.412025: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-2026-02-24 14:25:38.412052: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-2026-02-24 14:25:38.418233: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
-To enable the following instructions: AVX2 AVX512F AVX512_VNNI AVX512_BF16 AVX_VNNI AMX_TILE AMX_INT8 AMX_BF16 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2026-02-24 14:25:39.127533: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
-  [Task Config] mrpc: batch_size=32, max_seq=128, epochs=7, lr=0.006
-Map:   0%|                                                                                             | 0/408 [00:00<?, ? examples/s]Map: 100%|████████████████████████████████████████████████████████████████████████████████| 408/408 [00:00<00:00, 10667.21 examples/s]
-[I 2026-02-24 14:25:44,876] Using an existing study with name 'mrpc_bestlr_ablrwarm' instead of creating a new one.
-  GLUE mrpc: Train=3668, Eval=408
-Train batches: 115, Eval batches: 7
-  Early stop patience: 2, Pruner: Median, startup=5, warmup=2
-
-Study: mrpc_bestlr_ablrwarm, Device: cuda, New trials: 3
-
-======================================================================
-Trial 3 Starting
-======================================================================
-  rank=8, transfer_every=10000000, transfer_lr=1.0000e-01
-  lora_alpha=1.0000, lr=1.0760e-03, wd=0.00e+00
-  target_ab_lr=0.0010, lr_multiplier=0.929368
-  effective_ab_lr = lr*alpha*mult = 0.0010
-  momentum=0.00, nesterov=False, reinit_mode=decay
-  tau_sec=0.0, optimizer=AnalogAdam
-======================================================================
-huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
-To disable this warning, you can either:
-	- Avoid using `tokenizers` before the fork if possible
-	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
-Some weights of MobileBertForSequenceClassification were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
-You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-  [FIX] Reinitialized classifier with FIXED seed=42
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  LRTT Analog layers: 96, Total params: 21,842,978, Trainable (before grad set): 21,842,978
-  Trainable (after grad set): 13,602
-  LoRA target: qkv -> ['attention.self.query', 'attention.self.key', 'attention.self.value', 'attention.output.dense']
-
-Optimizer configuration:
-  Forward scaling (lora_alpha): 1.0
-  Classifier LR: 0.001076
-  LRTT LR (optimizer): 0.001 (= 0.001076 * 0.9293680297397771)
-  Effective A,B LR: 0.001 (= 0.001 * 1.0)
-  LRTT_LR_MULTIPLIER: 0.9293680297397771
-  LRTT tile params: 288
-  Other params: 98
-  Collected 96 tile_c contexts for post-step reset
-  Collected 192 tile_a/b contexts for post-step reset
-  AB LR Warmup: 1e-07 → 1e-03 over 402 steps (scheduler warmup: 40 steps)
-Trial 3 Ep1:   0%|                                                                                            | 0/115 [00:00<?, ?it/s]Trial 3 Ep1:   0%|                                                                         | 0/115 [00:01<?, ?it/s, loss=3982584.5000]Trial 3 Ep1:   1%|▌                                                                | 1/115 [00:01<02:36,  1.37s/it, loss=3982584.5000]Trial 3 Ep1:   1%|▌                                                                | 1/115 [00:01<02:36,  1.37s/it, loss=3803819.0000]Trial 3 Ep1:   2%|█▏                                                               | 2/115 [00:01<01:28,  1.27it/s, loss=3803819.0000]Trial 3 Ep1:   2%|█▏                                                               | 2/115 [00:02<01:28,  1.27it/s, loss=3728636.0000]Trial 3 Ep1:   3%|█▋                                                               | 3/115 [00:02<01:06,  1.68it/s, loss=3728636.0000]Trial 3 Ep1:   3%|█▋                                                               | 3/115 [00:02<01:06,  1.68it/s, loss=3020942.0000]Trial 3 Ep1:   3%|██▎                                                              | 4/115 [00:02<00:48,  2.28it/s, loss=3020942.0000]Trial 3 Ep1:   3%|██▎                                                              | 4/115 [00:02<00:48,  2.28it/s, loss=2392759.5000]Trial 3 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:40,  2.73it/s, loss=2392759.5000]Trial 3 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:40,  2.73it/s, loss=1301181.2500]Trial 3 Ep1:   5%|███▍                                                             | 6/115 [00:02<00:34,  3.20it/s, loss=1301181.2500]Trial 3 Ep1:   5%|███▍                                                              | 6/115 [00:03<00:34,  3.20it/s, loss=445361.6875]Trial 3 Ep1:   6%|████                                                              | 7/115 [00:03<00:35,  3.03it/s, loss=445361.6875]Trial 3 Ep1:   6%|████                                                              | 7/115 [00:03<00:35,  3.03it/s, loss=323698.2188]Trial 3 Ep1:   7%|████▌                                                             | 8/115 [00:03<00:31,  3.35it/s, loss=323698.2188]Trial 3 Ep1:   7%|████▌                                                             | 8/115 [00:03<00:31,  3.35it/s, loss=792413.4375]Trial 3 Ep1:   8%|█████▏                                                            | 9/115 [00:03<00:28,  3.67it/s, loss=792413.4375]Trial 3 Ep1:   8%|█████                                                            | 9/115 [00:03<00:28,  3.67it/s, loss=1707633.6250]Trial 3 Ep1:   9%|█████▌                                                          | 10/115 [00:03<00:27,  3.77it/s, loss=1707633.6250]Trial 3 Ep1:   9%|█████▌                                                          | 10/115 [00:04<00:27,  3.77it/s, loss=1765739.6250]Trial 3 Ep1:  10%|██████                                                          | 11/115 [00:04<00:25,  4.05it/s, loss=1765739.6250]Trial 3 Ep1:  10%|██████                                                          | 11/115 [00:04<00:25,  4.05it/s, loss=1361368.2500]Trial 3 Ep1:  10%|██████▋                                                         | 12/115 [00:04<00:24,  4.21it/s, loss=1361368.2500]Trial 3 Ep1:  10%|██████▋                                                         | 12/115 [00:04<00:24,  4.21it/s, loss=1359188.3750]Trial 3 Ep1:  11%|███████▏                                                        | 13/115 [00:04<00:23,  4.36it/s, loss=1359188.3750]Trial 3 Ep1:  11%|███████▎                                                         | 13/115 [00:04<00:23,  4.36it/s, loss=872669.1250]Trial 3 Ep1:  12%|███████▉                                                         | 14/115 [00:04<00:23,  4.38it/s, loss=872669.1250]Trial 3 Ep1:  12%|███████▉                                                         | 14/115 [00:04<00:23,  4.38it/s, loss=425444.1562]Trial 3 Ep1:  13%|████████▍                                                        | 15/115 [00:04<00:22,  4.54it/s, loss=425444.1562]Trial 3 Ep1:  13%|████████▍                                                        | 15/115 [00:05<00:22,  4.54it/s, loss=438020.6250]Trial 3 Ep1:  14%|█████████                                                        | 16/115 [00:05<00:29,  3.36it/s, loss=438020.6250]Trial 3 Ep1:  14%|█████████                                                        | 16/115 [00:05<00:29,  3.36it/s, loss=441948.5000]Trial 3 Ep1:  15%|█████████▌                                                       | 17/115 [00:05<00:27,  3.52it/s, loss=441948.5000]Trial 3 Ep1:  15%|█████████▌                                                       | 17/115 [00:05<00:27,  3.52it/s, loss=521467.8750]Trial 3 Ep1:  16%|██████████▏                                                      | 18/115 [00:05<00:26,  3.60it/s, loss=521467.8750]Trial 3 Ep1:  16%|██████████▏                                                      | 18/115 [00:06<00:26,  3.60it/s, loss=862675.2500]Trial 3 Ep1:  17%|██████████▋                                                      | 19/115 [00:06<00:24,  3.89it/s, loss=862675.2500]Trial 3 Ep1:  17%|█████████▌                                                | 19/115 [00:06<00:24,  3.89it/s, loss=6502171017216.0000]Trial 3 Ep1:  17%|██████████                                                | 20/115 [00:06<00:23,  4.03it/s, loss=6502171017216.0000]                                                                                                                                      [I 2026-02-24 14:25:59,521] Trial 3 finished with value: 0.0 and parameters: {'learning_rate': 0.001076, 'target_ab_lr': 0.001}. Best is trial 0 with value: 0.0.
-
-  [NaN/Inf detected at batch 20] Aborting trial.
-[Trial 3] GPU cache cleared
-
-======================================================================
-Trial 4 Starting
-======================================================================
-  rank=8, transfer_every=10000000, transfer_lr=1.0000e-01
-  lora_alpha=1.0000, lr=1.0760e-03, wd=0.00e+00
-  target_ab_lr=0.0100, lr_multiplier=9.293680
-  effective_ab_lr = lr*alpha*mult = 0.0100
-  momentum=0.00, nesterov=False, reinit_mode=decay
-  tau_sec=0.0, optimizer=AnalogAdam
-======================================================================
-huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
-To disable this warning, you can either:
-	- Avoid using `tokenizers` before the fork if possible
-	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
-Some weights of MobileBertForSequenceClassification were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
-You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-  [FIX] Reinitialized classifier with FIXED seed=42
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  LRTT Analog layers: 96, Total params: 21,842,978, Trainable (before grad set): 21,842,978
-  Trainable (after grad set): 13,602
-  LoRA target: qkv -> ['attention.self.query', 'attention.self.key', 'attention.self.value', 'attention.output.dense']
-
-Optimizer configuration:
-  Forward scaling (lora_alpha): 1.0
-  Classifier LR: 0.001076
-  LRTT LR (optimizer): 0.01 (= 0.001076 * 9.29368029739777)
-  Effective A,B LR: 0.01 (= 0.01 * 1.0)
-  LRTT_LR_MULTIPLIER: 9.29368029739777
-  LRTT tile params: 288
-  Other params: 98
-  Collected 96 tile_c contexts for post-step reset
-  Collected 192 tile_a/b contexts for post-step reset
-  AB LR Warmup: 1e-07 → 1e-02 over 402 steps (scheduler warmup: 40 steps)
-Trial 4 Ep1:   0%|                                                                                            | 0/115 [00:00<?, ?it/s]Trial 4 Ep1:   0%|                                                                         | 0/115 [00:01<?, ?it/s, loss=3520327.7500]Trial 4 Ep1:   1%|▌                                                                | 1/115 [00:01<01:59,  1.04s/it, loss=3520327.7500]Trial 4 Ep1:   1%|▌                                                                | 1/115 [00:01<01:59,  1.04s/it, loss=2984527.5000]Trial 4 Ep1:   2%|█▏                                                               | 2/115 [00:01<01:12,  1.55it/s, loss=2984527.5000]Trial 4 Ep1:   2%|█▏                                                               | 2/115 [00:01<01:12,  1.55it/s, loss=2986804.5000]Trial 4 Ep1:   3%|█▋                                                               | 3/115 [00:01<00:50,  2.23it/s, loss=2986804.5000]Trial 4 Ep1:   3%|█▋                                                               | 3/115 [00:01<00:50,  2.23it/s, loss=2308391.0000]Trial 4 Ep1:   3%|██▎                                                              | 4/115 [00:01<00:40,  2.75it/s, loss=2308391.0000]Trial 4 Ep1:   3%|██▎                                                              | 4/115 [00:02<00:40,  2.75it/s, loss=2343523.2500]Trial 4 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:41,  2.67it/s, loss=2343523.2500]Trial 4 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:41,  2.67it/s, loss=1157770.7500]Trial 4 Ep1:   5%|███▍                                                             | 6/115 [00:02<00:35,  3.07it/s, loss=1157770.7500]Trial 4 Ep1:   5%|███▍                                                              | 6/115 [00:02<00:35,  3.07it/s, loss=336394.9062]Trial 4 Ep1:   6%|████                                                              | 7/115 [00:02<00:32,  3.37it/s, loss=336394.9062]Trial 4 Ep1:   6%|████                                                              | 7/115 [00:02<00:32,  3.37it/s, loss=515385.2812]Trial 4 Ep1:   7%|████▌                                                             | 8/115 [00:02<00:28,  3.73it/s, loss=515385.2812]Trial 4 Ep1:   7%|████▌                                                            | 8/115 [00:03<00:28,  3.73it/s, loss=1182360.8750]Trial 4 Ep1:   8%|█████                                                            | 9/115 [00:03<00:26,  3.99it/s, loss=1182360.8750]Trial 4 Ep1:   8%|█████▏                                                            | 9/115 [00:03<00:26,  3.99it/s, loss=950362.3125]Trial 4 Ep1:   9%|█████▋                                                           | 10/115 [00:03<00:25,  4.18it/s, loss=950362.3125]Trial 4 Ep1:   9%|█████▌                                                          | 10/115 [00:03<00:25,  4.18it/s, loss=1255732.5000]Trial 4 Ep1:  10%|██████                                                          | 11/115 [00:03<00:23,  4.39it/s, loss=1255732.5000]Trial 4 Ep1:  10%|██████▏                                                          | 11/115 [00:04<00:23,  4.39it/s, loss=894457.5000]Trial 4 Ep1:  10%|██████▊                                                          | 12/115 [00:04<00:32,  3.20it/s, loss=894457.5000]Trial 4 Ep1:  10%|██████▊                                                          | 12/115 [00:04<00:32,  3.20it/s, loss=216707.3594]Trial 4 Ep1:  11%|███████▎                                                         | 13/115 [00:04<00:31,  3.21it/s, loss=216707.3594]                                                                                                                                      [I 2026-02-24 14:26:11,038] Trial 4 finished with value: 0.0 and parameters: {'learning_rate': 0.001076, 'target_ab_lr': 0.01}. Best is trial 0 with value: 0.0.
-
-  [NaN/Inf detected at batch 13] Aborting trial.
-[Trial 4] GPU cache cleared
-
-======================================================================
-Trial 5 Starting
-======================================================================
-  rank=8, transfer_every=10000000, transfer_lr=1.0000e-01
-  lora_alpha=1.0000, lr=1.0760e-03, wd=0.00e+00
-  target_ab_lr=0.0050, lr_multiplier=4.646840
-  effective_ab_lr = lr*alpha*mult = 0.0050
-  momentum=0.00, nesterov=False, reinit_mode=decay
-  tau_sec=0.0, optimizer=AnalogAdam
-======================================================================
-huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
-To disable this warning, you can either:
-	- Avoid using `tokenizers` before the fork if possible
-	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
-Some weights of MobileBertForSequenceClassification were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
-You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-  [FIX] Reinitialized classifier with FIXED seed=42
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  LRTT Analog layers: 96, Total params: 21,842,978, Trainable (before grad set): 21,842,978
-  Trainable (after grad set): 13,602
-  LoRA target: qkv -> ['attention.self.query', 'attention.self.key', 'attention.self.value', 'attention.output.dense']
-
-Optimizer configuration:
-  Forward scaling (lora_alpha): 1.0
-  Classifier LR: 0.001076
-  LRTT LR (optimizer): 0.005 (= 0.001076 * 4.646840148698885)
-  Effective A,B LR: 0.005 (= 0.005 * 1.0)
-  LRTT_LR_MULTIPLIER: 4.646840148698885
-  LRTT tile params: 288
-  Other params: 98
-  Collected 96 tile_c contexts for post-step reset
-  Collected 192 tile_a/b contexts for post-step reset
-  AB LR Warmup: 1e-07 → 5e-03 over 402 steps (scheduler warmup: 40 steps)
-Trial 5 Ep1:   0%|                                                                                            | 0/115 [00:00<?, ?it/s]Trial 5 Ep1:   0%|                                                                         | 0/115 [00:01<?, ?it/s, loss=3481864.5000]Trial 5 Ep1:   1%|▌                                                                | 1/115 [00:01<02:08,  1.13s/it, loss=3481864.5000]Trial 5 Ep1:   1%|▌                                                                | 1/115 [00:01<02:08,  1.13s/it, loss=2940390.0000]Trial 5 Ep1:   2%|█▏                                                               | 2/115 [00:01<01:18,  1.43it/s, loss=2940390.0000]Trial 5 Ep1:   2%|█▏                                                               | 2/115 [00:01<01:18,  1.43it/s, loss=2460521.5000]Trial 5 Ep1:   3%|█▋                                                               | 3/115 [00:01<00:53,  2.08it/s, loss=2460521.5000]Trial 5 Ep1:   3%|█▋                                                               | 3/115 [00:01<00:53,  2.08it/s, loss=3022862.0000]Trial 5 Ep1:   3%|██▎                                                              | 4/115 [00:01<00:41,  2.68it/s, loss=3022862.0000]Trial 5 Ep1:   3%|██▎                                                              | 4/115 [00:02<00:41,  2.68it/s, loss=2336580.5000]Trial 5 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:36,  2.99it/s, loss=2336580.5000]Trial 5 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:36,  2.99it/s, loss=1680604.2500]Trial 5 Ep1:   5%|███▍                                                             | 6/115 [00:02<00:32,  3.36it/s, loss=1680604.2500]Trial 5 Ep1:   5%|███▍                                                              | 6/115 [00:02<00:32,  3.36it/s, loss=533747.6250]Trial 5 Ep1:   6%|████                                                              | 7/115 [00:02<00:29,  3.70it/s, loss=533747.6250]Trial 5 Ep1:   6%|████                                                              | 7/115 [00:02<00:29,  3.70it/s, loss=345021.1250]Trial 5 Ep1:   7%|████▌                                                             | 8/115 [00:02<00:28,  3.75it/s, loss=345021.1250]Trial 5 Ep1:   7%|████▌                                                             | 8/115 [00:03<00:28,  3.75it/s, loss=758495.6875]Trial 5 Ep1:   8%|█████▏                                                            | 9/115 [00:03<00:26,  3.98it/s, loss=758495.6875]Trial 5 Ep1:   8%|█████▏                                                            | 9/115 [00:03<00:26,  3.98it/s, loss=342408.7188]Trial 5 Ep1:   9%|█████▋                                                           | 10/115 [00:03<00:25,  4.09it/s, loss=342408.7188]Trial 5 Ep1:   9%|█████▋                                                           | 10/115 [00:03<00:25,  4.09it/s, loss=506795.2188]Trial 5 Ep1:  10%|██████▏                                                          | 11/115 [00:03<00:24,  4.16it/s, loss=506795.2188]Trial 5 Ep1:  10%|██████                                                          | 11/115 [00:03<00:24,  4.16it/s, loss=2051096.5000]Trial 5 Ep1:  10%|██████▋                                                         | 12/115 [00:03<00:24,  4.16it/s, loss=2051096.5000]Trial 5 Ep1:  10%|██████▋                                                         | 12/115 [00:04<00:24,  4.16it/s, loss=1533867.6250]Trial 5 Ep1:  11%|███████▏                                                        | 13/115 [00:04<00:25,  3.98it/s, loss=1533867.6250]Trial 5 Ep1:  11%|███████▎                                                         | 13/115 [00:04<00:25,  3.98it/s, loss=950867.7500]Trial 5 Ep1:  12%|███████▉                                                         | 14/115 [00:04<00:24,  4.11it/s, loss=950867.7500]Trial 5 Ep1:  12%|███████▉                                                         | 14/115 [00:04<00:24,  4.11it/s, loss=403614.0625]Trial 5 Ep1:  13%|████████▍                                                        | 15/115 [00:04<00:24,  4.13it/s, loss=403614.0625]Trial 5 Ep1:  13%|████████▍                                                        | 15/115 [00:04<00:24,  4.13it/s, loss=494850.8125]Trial 5 Ep1:  14%|█████████                                                        | 16/115 [00:04<00:23,  4.21it/s, loss=494850.8125]Trial 5 Ep1:  14%|████████▉                                                       | 16/115 [00:05<00:23,  4.21it/s, loss=1315314.3750]Trial 5 Ep1:  15%|█████████▍                                                      | 17/115 [00:05<00:22,  4.28it/s, loss=1315314.3750]Trial 5 Ep1:  15%|█████████▍                                                      | 17/115 [00:05<00:22,  4.28it/s, loss=1805650.5000]Trial 5 Ep1:  16%|██████████                                                      | 18/115 [00:05<00:32,  3.01it/s, loss=1805650.5000]Trial 5 Ep1:  16%|██████████                                                      | 18/115 [00:05<00:32,  3.01it/s, loss=1859176.5000]Trial 5 Ep1:  17%|██████████▌                                                     | 19/115 [00:05<00:31,  3.04it/s, loss=1859176.5000]                                                                                                                                      [W 2026-02-24 14:26:24,222] Trial 5 failed with parameters: {'learning_rate': 0.001076, 'target_ab_lr': 0.005} because of the following error: OutOfMemoryError('CUDA out of memory. Tried to allocate 20.00 MiB. GPU 0 has a total capacity of 139.81 GiB of which 15.69 MiB is free. Process 2934491 has 139.79 GiB memory in use. Of the allocated memory 70.57 GiB is allocated by PyTorch, and 754.31 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)').
-Traceback (most recent call last):
-  File "/opt/conda/lib/python3.11/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
-    value_or_values = func(trial)
-                      ^^^^^^^^^^^
-  File "/data/optuna_mobilebert_glue_lora.py", line 1484, in <lambda>
-    lambda trial: objective(trial, train_loader, eval_loader, tokenizer),
-                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/data/optuna_mobilebert_glue_lora.py", line 1141, in objective
-    outputs = model(**model_inputs)
-              ^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 1286, in forward
-    outputs = self.mobilebert(
-              ^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 898, in forward
-    encoder_outputs = self.encoder(
-                      ^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 580, in forward
-    layer_outputs = layer_module(
-                    ^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 538, in forward
-    attention_output = ffn_module(attention_output)
-                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 492, in forward
-    intermediate_output = self.intermediate(hidden_states)
-                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 383, in forward
-    hidden_states = self.intermediate_act_fn(hidden_states)
-                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/activation.py", line 143, in forward
-    return F.relu(input, inplace=self.inplace)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/functional.py", line 1721, in relu
-    result = torch.relu(input)
-             ^^^^^^^^^^^^^^^^^
-torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 20.00 MiB. GPU 0 has a total capacity of 139.81 GiB of which 15.69 MiB is free. Process 2934491 has 139.79 GiB memory in use. Of the allocated memory 70.57 GiB is allocated by PyTorch, and 754.31 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
-[W 2026-02-24 14:26:24,224] Trial 5 failed with value None.
-2026-02-24 14:26:27.591256: I tensorflow/core/util/port.cc:111] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
-2026-02-24 14:26:27.593748: I tensorflow/tsl/cuda/cudart_stub.cc:28] Could not find cuda drivers on your machine, GPU will not be used.
-2026-02-24 14:26:27.623475: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-2026-02-24 14:26:27.623510: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-2026-02-24 14:26:27.623539: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-2026-02-24 14:26:27.629746: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
-To enable the following instructions: AVX2 AVX512F AVX512_VNNI AVX512_BF16 AVX_VNNI AMX_TILE AMX_INT8 AMX_BF16 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2026-02-24 14:26:28.343085: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
-  [Task Config] mrpc: batch_size=32, max_seq=128, epochs=7, lr=0.006
-Map:   0%|                                                                                            | 0/1725 [00:00<?, ? examples/s]Map: 100%|██████████████████████████████████████████████████████████████████████████████| 1725/1725 [00:00<00:00, 18596.79 examples/s]
-[I 2026-02-24 14:26:35,035] Using an existing study with name 'mrpc_bestlr_ablrwarm' instead of creating a new one.
-  GLUE mrpc: Train=3668, Eval=408
-Train batches: 115, Eval batches: 7
-  Early stop patience: 2, Pruner: Median, startup=5, warmup=2
-
-Study: mrpc_bestlr_ablrwarm, Device: cuda, New trials: 3
-
-======================================================================
-Trial 6 Starting
-======================================================================
-  rank=8, transfer_every=10000000, transfer_lr=1.0000e-01
-  lora_alpha=1.0000, lr=1.0760e-03, wd=0.00e+00
-  target_ab_lr=0.0010, lr_multiplier=0.929368
-  effective_ab_lr = lr*alpha*mult = 0.0010
-  momentum=0.00, nesterov=False, reinit_mode=decay
-  tau_sec=0.0, optimizer=AnalogAdam
-======================================================================
-huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
-To disable this warning, you can either:
-	- Avoid using `tokenizers` before the fork if possible
-	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
-Some weights of MobileBertForSequenceClassification were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
-You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-  [FIX] Reinitialized classifier with FIXED seed=42
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  LRTT Analog layers: 96, Total params: 21,842,978, Trainable (before grad set): 21,842,978
-  Trainable (after grad set): 13,602
-  LoRA target: qkv -> ['attention.self.query', 'attention.self.key', 'attention.self.value', 'attention.output.dense']
-
-Optimizer configuration:
-  Forward scaling (lora_alpha): 1.0
-  Classifier LR: 0.001076
-  LRTT LR (optimizer): 0.001 (= 0.001076 * 0.9293680297397771)
-  Effective A,B LR: 0.001 (= 0.001 * 1.0)
-  LRTT_LR_MULTIPLIER: 0.9293680297397771
-  LRTT tile params: 288
-  Other params: 98
-  Collected 96 tile_c contexts for post-step reset
-  Collected 192 tile_a/b contexts for post-step reset
-  AB LR Warmup: 1e-07 → 1e-03 over 402 steps (scheduler warmup: 40 steps)
-Trial 6 Ep1:   0%|                                                                                            | 0/115 [00:00<?, ?it/s]Trial 6 Ep1:   0%|                                                                         | 0/115 [00:01<?, ?it/s, loss=3982584.5000]Trial 6 Ep1:   1%|▌                                                                | 1/115 [00:01<02:31,  1.33s/it, loss=3982584.5000]Trial 6 Ep1:   1%|▌                                                                | 1/115 [00:01<02:31,  1.33s/it, loss=3803819.0000]Trial 6 Ep1:   2%|█▏                                                               | 2/115 [00:01<01:25,  1.32it/s, loss=3803819.0000]Trial 6 Ep1:   2%|█▏                                                               | 2/115 [00:02<01:25,  1.32it/s, loss=3728636.0000]Trial 6 Ep1:   3%|█▋                                                               | 3/115 [00:02<01:04,  1.73it/s, loss=3728636.0000]Trial 6 Ep1:   3%|█▋                                                               | 3/115 [00:02<01:04,  1.73it/s, loss=3020942.0000]Trial 6 Ep1:   3%|██▎                                                              | 4/115 [00:02<00:47,  2.35it/s, loss=3020942.0000]Trial 6 Ep1:   3%|██▎                                                              | 4/115 [00:02<00:47,  2.35it/s, loss=2392759.5000]Trial 6 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:37,  2.90it/s, loss=2392759.5000]Trial 6 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:37,  2.90it/s, loss=1301181.2500]Trial 6 Ep1:   5%|███▍                                                             | 6/115 [00:02<00:34,  3.17it/s, loss=1301181.2500]Trial 6 Ep1:   5%|███▍                                                              | 6/115 [00:03<00:34,  3.17it/s, loss=445361.6875]Trial 6 Ep1:   6%|████                                                              | 7/115 [00:03<00:35,  3.04it/s, loss=445361.6875]Trial 6 Ep1:   6%|████                                                              | 7/115 [00:03<00:35,  3.04it/s, loss=323698.2188]Trial 6 Ep1:   7%|████▌                                                             | 8/115 [00:03<00:30,  3.51it/s, loss=323698.2188]Trial 6 Ep1:   7%|████▌                                                             | 8/115 [00:03<00:30,  3.51it/s, loss=792413.4375]Trial 6 Ep1:   8%|█████▏                                                            | 9/115 [00:03<00:28,  3.68it/s, loss=792413.4375]Trial 6 Ep1:   8%|█████                                                            | 9/115 [00:03<00:28,  3.68it/s, loss=1707633.6250]Trial 6 Ep1:   9%|█████▌                                                          | 10/115 [00:03<00:26,  3.94it/s, loss=1707633.6250]Trial 6 Ep1:   9%|█████▌                                                          | 10/115 [00:03<00:26,  3.94it/s, loss=1765739.6250]Trial 6 Ep1:  10%|██████                                                          | 11/115 [00:03<00:24,  4.23it/s, loss=1765739.6250]Trial 6 Ep1:  10%|██████                                                          | 11/115 [00:04<00:24,  4.23it/s, loss=1361368.2500]Trial 6 Ep1:  10%|██████▋                                                         | 12/115 [00:04<00:23,  4.33it/s, loss=1361368.2500]Trial 6 Ep1:  10%|██████▋                                                         | 12/115 [00:04<00:23,  4.33it/s, loss=1359188.3750]Trial 6 Ep1:  11%|███████▏                                                        | 13/115 [00:04<00:22,  4.53it/s, loss=1359188.3750]Trial 6 Ep1:  11%|███████▎                                                         | 13/115 [00:04<00:22,  4.53it/s, loss=872669.1250]Trial 6 Ep1:  12%|███████▉                                                         | 14/115 [00:04<00:21,  4.62it/s, loss=872669.1250]Trial 6 Ep1:  12%|███████▉                                                         | 14/115 [00:04<00:21,  4.62it/s, loss=425444.1562]Trial 6 Ep1:  13%|████████▍                                                        | 15/115 [00:04<00:21,  4.65it/s, loss=425444.1562]Trial 6 Ep1:  13%|████████▍                                                        | 15/115 [00:05<00:21,  4.65it/s, loss=438020.6250]Trial 6 Ep1:  14%|█████████                                                        | 16/115 [00:05<00:25,  3.87it/s, loss=438020.6250]Trial 6 Ep1:  14%|█████████                                                        | 16/115 [00:05<00:25,  3.87it/s, loss=406596.7500]Trial 6 Ep1:  15%|█████████▌                                                       | 17/115 [00:05<00:24,  3.93it/s, loss=406596.7500]Trial 6 Ep1:  15%|█████████▍                                                      | 17/115 [00:05<00:24,  3.93it/s, loss=4202353.0000]Trial 6 Ep1:  16%|██████████                                                      | 18/115 [00:05<00:24,  3.90it/s, loss=4202353.0000]Trial 6 Ep1:  16%|█████████▋                                                    | 18/115 [00:05<00:24,  3.90it/s, loss=330196544.0000]Trial 6 Ep1:  17%|██████████▏                                                   | 19/115 [00:05<00:23,  4.09it/s, loss=330196544.0000]Trial 6 Ep1:  17%|█████████▌                                                | 19/115 [00:06<00:23,  4.09it/s, loss=5799977943040.0000]Trial 6 Ep1:  17%|██████████                                                | 20/115 [00:06<00:32,  2.93it/s, loss=5799977943040.0000]                                                                                                                                      [I 2026-02-24 14:26:49,543] Trial 6 finished with value: 0.0 and parameters: {'learning_rate': 0.001076, 'target_ab_lr': 0.001}. Best is trial 0 with value: 0.0.
-
-  [NaN/Inf detected at batch 20] Aborting trial.
-[Trial 6] GPU cache cleared
-
-======================================================================
-Trial 7 Starting
-======================================================================
-  rank=8, transfer_every=10000000, transfer_lr=1.0000e-01
-  lora_alpha=1.0000, lr=1.0760e-03, wd=0.00e+00
-  target_ab_lr=0.0100, lr_multiplier=9.293680
-  effective_ab_lr = lr*alpha*mult = 0.0100
-  momentum=0.00, nesterov=False, reinit_mode=decay
-  tau_sec=0.0, optimizer=AnalogAdam
-======================================================================
-huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
-To disable this warning, you can either:
-	- Avoid using `tokenizers` before the fork if possible
-	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
-Some weights of MobileBertForSequenceClassification were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
-You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-  [FIX] Reinitialized classifier with FIXED seed=42
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  LRTT Analog layers: 96, Total params: 21,842,978, Trainable (before grad set): 21,842,978
-  Trainable (after grad set): 13,602
-  LoRA target: qkv -> ['attention.self.query', 'attention.self.key', 'attention.self.value', 'attention.output.dense']
-
-Optimizer configuration:
-  Forward scaling (lora_alpha): 1.0
-  Classifier LR: 0.001076
-  LRTT LR (optimizer): 0.01 (= 0.001076 * 9.29368029739777)
-  Effective A,B LR: 0.01 (= 0.01 * 1.0)
-  LRTT_LR_MULTIPLIER: 9.29368029739777
-  LRTT tile params: 288
-  Other params: 98
-  Collected 96 tile_c contexts for post-step reset
-  Collected 192 tile_a/b contexts for post-step reset
-  AB LR Warmup: 1e-07 → 1e-02 over 402 steps (scheduler warmup: 40 steps)
-Trial 7 Ep1:   0%|                                                                                            | 0/115 [00:00<?, ?it/s]Trial 7 Ep1:   0%|                                                                         | 0/115 [00:00<?, ?it/s, loss=3520327.7500]Trial 7 Ep1:   1%|▌                                                                | 1/115 [00:00<01:53,  1.00it/s, loss=3520327.7500]Trial 7 Ep1:   1%|▌                                                                | 1/115 [00:01<01:53,  1.00it/s, loss=2984527.5000]Trial 7 Ep1:   2%|█▏                                                               | 2/115 [00:01<01:14,  1.52it/s, loss=2984527.5000]Trial 7 Ep1:   2%|█▏                                                               | 2/115 [00:01<01:14,  1.52it/s, loss=2986804.5000]Trial 7 Ep1:   3%|█▋                                                               | 3/115 [00:01<00:50,  2.21it/s, loss=2986804.5000]Trial 7 Ep1:   3%|█▋                                                               | 3/115 [00:01<00:50,  2.21it/s, loss=2308391.0000]Trial 7 Ep1:   3%|██▎                                                              | 4/115 [00:01<00:41,  2.70it/s, loss=2308391.0000]Trial 7 Ep1:   3%|██▎                                                              | 4/115 [00:02<00:41,  2.70it/s, loss=2343523.2500]Trial 7 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:41,  2.64it/s, loss=2343523.2500]Trial 7 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:41,  2.64it/s, loss=1157770.7500]Trial 7 Ep1:   5%|███▍                                                             | 6/115 [00:02<00:34,  3.12it/s, loss=1157770.7500]Trial 7 Ep1:   5%|███▍                                                              | 6/115 [00:02<00:34,  3.12it/s, loss=336394.9062]Trial 7 Ep1:   6%|████                                                              | 7/115 [00:02<00:32,  3.35it/s, loss=336394.9062]Trial 7 Ep1:   6%|████                                                              | 7/115 [00:02<00:32,  3.35it/s, loss=515385.2812]Trial 7 Ep1:   7%|████▌                                                             | 8/115 [00:02<00:28,  3.73it/s, loss=515385.2812]Trial 7 Ep1:   7%|████▌                                                            | 8/115 [00:03<00:28,  3.73it/s, loss=1182360.8750]Trial 7 Ep1:   8%|█████                                                            | 9/115 [00:03<00:27,  3.87it/s, loss=1182360.8750]Trial 7 Ep1:   8%|█████▏                                                            | 9/115 [00:03<00:27,  3.87it/s, loss=950362.3125]Trial 7 Ep1:   9%|█████▋                                                           | 10/115 [00:03<00:25,  4.12it/s, loss=950362.3125]Trial 7 Ep1:   9%|█████▌                                                          | 10/115 [00:03<00:25,  4.12it/s, loss=1255732.5000]Trial 7 Ep1:  10%|██████                                                          | 11/115 [00:03<00:23,  4.35it/s, loss=1255732.5000]Trial 7 Ep1:  10%|██████▏                                                          | 11/115 [00:04<00:23,  4.35it/s, loss=894457.5000]Trial 7 Ep1:  10%|██████▊                                                          | 12/115 [00:04<00:34,  3.02it/s, loss=894457.5000]Trial 7 Ep1:  10%|██████▊                                                          | 12/115 [00:04<00:34,  3.02it/s, loss=664551.5625]Trial 7 Ep1:  11%|███████▎                                                         | 13/115 [00:04<00:33,  3.05it/s, loss=664551.5625]                                                                                                                                      [I 2026-02-24 14:27:01,138] Trial 7 finished with value: 0.0 and parameters: {'learning_rate': 0.001076, 'target_ab_lr': 0.01}. Best is trial 0 with value: 0.0.
-
-  [NaN/Inf detected at batch 13] Aborting trial.
-[Trial 7] GPU cache cleared
-
-======================================================================
-Trial 8 Starting
-======================================================================
-  rank=8, transfer_every=10000000, transfer_lr=1.0000e-01
-  lora_alpha=1.0000, lr=1.0760e-03, wd=0.00e+00
-  target_ab_lr=0.0050, lr_multiplier=4.646840
-  effective_ab_lr = lr*alpha*mult = 0.0050
-  momentum=0.00, nesterov=False, reinit_mode=decay
-  tau_sec=0.0, optimizer=AnalogAdam
-======================================================================
-huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
-To disable this warning, you can either:
-	- Avoid using `tokenizers` before the fork if possible
-	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
-Some weights of MobileBertForSequenceClassification were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
-You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-  [FIX] Reinitialized classifier with FIXED seed=42
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  LRTT Analog layers: 96, Total params: 21,842,978, Trainable (before grad set): 21,842,978
-  Trainable (after grad set): 13,602
-  LoRA target: qkv -> ['attention.self.query', 'attention.self.key', 'attention.self.value', 'attention.output.dense']
-
-Optimizer configuration:
-  Forward scaling (lora_alpha): 1.0
-  Classifier LR: 0.001076
-  LRTT LR (optimizer): 0.005 (= 0.001076 * 4.646840148698885)
-  Effective A,B LR: 0.005 (= 0.005 * 1.0)
-  LRTT_LR_MULTIPLIER: 4.646840148698885
-  LRTT tile params: 288
-  Other params: 98
-  Collected 96 tile_c contexts for post-step reset
-  Collected 192 tile_a/b contexts for post-step reset
-  AB LR Warmup: 1e-07 → 5e-03 over 402 steps (scheduler warmup: 40 steps)
-Trial 8 Ep1:   0%|                                                                                            | 0/115 [00:00<?, ?it/s]Trial 8 Ep1:   0%|                                                                         | 0/115 [00:01<?, ?it/s, loss=3481864.5000]Trial 8 Ep1:   1%|▌                                                                | 1/115 [00:01<01:58,  1.04s/it, loss=3481864.5000]Trial 8 Ep1:   1%|▌                                                                | 1/115 [00:01<01:58,  1.04s/it, loss=2940390.0000]Trial 8 Ep1:   2%|█▏                                                               | 2/115 [00:01<01:16,  1.48it/s, loss=2940390.0000]Trial 8 Ep1:   2%|█▏                                                               | 2/115 [00:01<01:16,  1.48it/s, loss=2460521.5000]Trial 8 Ep1:   3%|█▋                                                               | 3/115 [00:01<00:52,  2.13it/s, loss=2460521.5000]Trial 8 Ep1:   3%|█▋                                                               | 3/115 [00:01<00:52,  2.13it/s, loss=3022862.0000]Trial 8 Ep1:   3%|██▎                                                              | 4/115 [00:01<00:42,  2.61it/s, loss=3022862.0000]Trial 8 Ep1:   3%|██▎                                                              | 4/115 [00:02<00:42,  2.61it/s, loss=2336580.5000]Trial 8 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:36,  3.04it/s, loss=2336580.5000]Trial 8 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:36,  3.04it/s, loss=1680604.2500]Trial 8 Ep1:   5%|███▍                                                             | 6/115 [00:02<00:32,  3.38it/s, loss=1680604.2500]Trial 8 Ep1:   5%|███▍                                                              | 6/115 [00:02<00:32,  3.38it/s, loss=533747.6250]Trial 8 Ep1:   6%|████                                                              | 7/115 [00:02<00:28,  3.75it/s, loss=533747.6250]Trial 8 Ep1:   6%|████                                                              | 7/115 [00:02<00:28,  3.75it/s, loss=345021.1250]Trial 8 Ep1:   7%|████▌                                                             | 8/115 [00:02<00:27,  3.94it/s, loss=345021.1250]Trial 8 Ep1:   7%|████▌                                                             | 8/115 [00:03<00:27,  3.94it/s, loss=758495.6875]Trial 8 Ep1:   8%|█████▏                                                            | 9/115 [00:03<00:25,  4.16it/s, loss=758495.6875]Trial 8 Ep1:   8%|█████▏                                                            | 9/115 [00:03<00:25,  4.16it/s, loss=342408.7188]Trial 8 Ep1:   9%|█████▋                                                           | 10/115 [00:03<00:25,  4.15it/s, loss=342408.7188]Trial 8 Ep1:   9%|█████▋                                                           | 10/115 [00:03<00:25,  4.15it/s, loss=506795.2188]Trial 8 Ep1:  10%|██████▏                                                          | 11/115 [00:03<00:25,  4.02it/s, loss=506795.2188]Trial 8 Ep1:  10%|██████                                                          | 11/115 [00:03<00:25,  4.02it/s, loss=2051096.5000]Trial 8 Ep1:  10%|██████▋                                                         | 12/115 [00:03<00:25,  4.09it/s, loss=2051096.5000]Trial 8 Ep1:  10%|██████▋                                                         | 12/115 [00:04<00:25,  4.09it/s, loss=1533867.6250]Trial 8 Ep1:  11%|███████▏                                                        | 13/115 [00:04<00:26,  3.89it/s, loss=1533867.6250]Trial 8 Ep1:  11%|███████▎                                                         | 13/115 [00:04<00:26,  3.89it/s, loss=950867.7500]Trial 8 Ep1:  12%|███████▉                                                         | 14/115 [00:04<00:24,  4.11it/s, loss=950867.7500]Trial 8 Ep1:  12%|███████▉                                                         | 14/115 [00:04<00:24,  4.11it/s, loss=403614.0625]Trial 8 Ep1:  13%|████████▍                                                        | 15/115 [00:04<00:23,  4.18it/s, loss=403614.0625]Trial 8 Ep1:  13%|████████▍                                                        | 15/115 [00:04<00:23,  4.18it/s, loss=494850.8125]Trial 8 Ep1:  14%|█████████                                                        | 16/115 [00:04<00:23,  4.26it/s, loss=494850.8125]Trial 8 Ep1:  14%|████████▉                                                       | 16/115 [00:04<00:23,  4.26it/s, loss=1315314.3750]Trial 8 Ep1:  15%|█████████▍                                                      | 17/115 [00:04<00:22,  4.30it/s, loss=1315314.3750]Trial 8 Ep1:  15%|█████████▍                                                      | 17/115 [00:05<00:22,  4.30it/s, loss=1805650.5000]Trial 8 Ep1:  16%|██████████                                                      | 18/115 [00:05<00:31,  3.12it/s, loss=1805650.5000]Trial 8 Ep1:  16%|██████████                                                      | 18/115 [00:05<00:31,  3.12it/s, loss=2438094.7500]Trial 8 Ep1:  17%|██████████▌                                                     | 19/115 [00:05<00:30,  3.16it/s, loss=2438094.7500]                                                                                                                                      [W 2026-02-24 14:27:14,286] Trial 8 failed with parameters: {'learning_rate': 0.001076, 'target_ab_lr': 0.005} because of the following error: OutOfMemoryError('CUDA out of memory. Tried to allocate 20.00 MiB. GPU 0 has a total capacity of 139.81 GiB of which 15.69 MiB is free. Process 2934491 has 139.79 GiB memory in use. Of the allocated memory 70.57 GiB is allocated by PyTorch, and 754.31 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)').
-Traceback (most recent call last):
-  File "/opt/conda/lib/python3.11/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
-    value_or_values = func(trial)
-                      ^^^^^^^^^^^
-  File "/data/optuna_mobilebert_glue_lora.py", line 1484, in <lambda>
-    lambda trial: objective(trial, train_loader, eval_loader, tokenizer),
-                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/data/optuna_mobilebert_glue_lora.py", line 1141, in objective
-    outputs = model(**model_inputs)
-              ^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 1286, in forward
-    outputs = self.mobilebert(
-              ^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 898, in forward
-    encoder_outputs = self.encoder(
-                      ^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 580, in forward
-    layer_outputs = layer_module(
-                    ^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 538, in forward
-    attention_output = ffn_module(attention_output)
-                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 492, in forward
-    intermediate_output = self.intermediate(hidden_states)
-                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 383, in forward
-    hidden_states = self.intermediate_act_fn(hidden_states)
-                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/activation.py", line 143, in forward
-    return F.relu(input, inplace=self.inplace)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/functional.py", line 1721, in relu
-    result = torch.relu(input)
-             ^^^^^^^^^^^^^^^^^
-torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 20.00 MiB. GPU 0 has a total capacity of 139.81 GiB of which 15.69 MiB is free. Process 2934491 has 139.79 GiB memory in use. Of the allocated memory 70.57 GiB is allocated by PyTorch, and 754.31 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
-[W 2026-02-24 14:27:14,289] Trial 8 failed with value None.
-2026-02-24 14:27:17.414620: I tensorflow/core/util/port.cc:111] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
-2026-02-24 14:27:17.417160: I tensorflow/tsl/cuda/cudart_stub.cc:28] Could not find cuda drivers on your machine, GPU will not be used.
-2026-02-24 14:27:17.445563: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-2026-02-24 14:27:17.445593: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-2026-02-24 14:27:17.445617: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-2026-02-24 14:27:17.451594: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
-To enable the following instructions: AVX2 AVX512F AVX512_VNNI AVX512_BF16 AVX_VNNI AMX_TILE AMX_INT8 AMX_BF16 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2026-02-24 14:27:18.170120: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
-[I 2026-02-24 14:27:24,738] Using an existing study with name 'mrpc_bestlr_ablrwarm' instead of creating a new one.
-  [Task Config] mrpc: batch_size=32, max_seq=128, epochs=7, lr=0.006
-  GLUE mrpc: Train=3668, Eval=408
-Train batches: 115, Eval batches: 7
-  Early stop patience: 2, Pruner: Median, startup=5, warmup=2
-
-Study: mrpc_bestlr_ablrwarm, Device: cuda, New trials: 3
-
-======================================================================
-Trial 9 Starting
-======================================================================
-  rank=8, transfer_every=10000000, transfer_lr=1.0000e-01
-  lora_alpha=1.0000, lr=1.0760e-03, wd=0.00e+00
-  target_ab_lr=0.0010, lr_multiplier=0.929368
-  effective_ab_lr = lr*alpha*mult = 0.0010
-  momentum=0.00, nesterov=False, reinit_mode=decay
-  tau_sec=0.0, optimizer=AnalogAdam
-======================================================================
-Some weights of MobileBertForSequenceClassification were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
-You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-  [FIX] Reinitialized classifier with FIXED seed=42
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  LRTT Analog layers: 96, Total params: 21,842,978, Trainable (before grad set): 21,842,978
-  Trainable (after grad set): 13,602
-  LoRA target: qkv -> ['attention.self.query', 'attention.self.key', 'attention.self.value', 'attention.output.dense']
-
-Optimizer configuration:
-  Forward scaling (lora_alpha): 1.0
-  Classifier LR: 0.001076
-  LRTT LR (optimizer): 0.001 (= 0.001076 * 0.9293680297397771)
-  Effective A,B LR: 0.001 (= 0.001 * 1.0)
-  LRTT_LR_MULTIPLIER: 0.9293680297397771
-  LRTT tile params: 288
-  Other params: 98
-  Collected 96 tile_c contexts for post-step reset
-  Collected 192 tile_a/b contexts for post-step reset
-  AB LR Warmup: 1e-07 → 1e-03 over 402 steps (scheduler warmup: 40 steps)
-Trial 9 Ep1:   0%|                                                                                            | 0/115 [00:00<?, ?it/s]Trial 9 Ep1:   0%|                                                                         | 0/115 [00:01<?, ?it/s, loss=3982584.5000]Trial 9 Ep1:   1%|▌                                                                | 1/115 [00:01<02:26,  1.28s/it, loss=3982584.5000]Trial 9 Ep1:   1%|▌                                                                | 1/115 [00:01<02:26,  1.28s/it, loss=3803819.0000]Trial 9 Ep1:   2%|█▏                                                               | 2/115 [00:01<01:28,  1.28it/s, loss=3803819.0000]Trial 9 Ep1:   2%|█▏                                                               | 2/115 [00:02<01:28,  1.28it/s, loss=3728636.0000]Trial 9 Ep1:   3%|█▋                                                               | 3/115 [00:02<01:06,  1.67it/s, loss=3728636.0000]Trial 9 Ep1:   3%|█▋                                                               | 3/115 [00:02<01:06,  1.67it/s, loss=3020942.0000]Trial 9 Ep1:   3%|██▎                                                              | 4/115 [00:02<00:51,  2.14it/s, loss=3020942.0000]Trial 9 Ep1:   3%|██▎                                                              | 4/115 [00:02<00:51,  2.14it/s, loss=2392759.5000]Trial 9 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:41,  2.67it/s, loss=2392759.5000]Trial 9 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:41,  2.67it/s, loss=1301181.2500]Trial 9 Ep1:   5%|███▍                                                             | 6/115 [00:02<00:34,  3.15it/s, loss=1301181.2500]Trial 9 Ep1:   5%|███▍                                                              | 6/115 [00:03<00:34,  3.15it/s, loss=445361.6875]Trial 9 Ep1:   6%|████                                                              | 7/115 [00:03<00:35,  3.03it/s, loss=445361.6875]Trial 9 Ep1:   6%|████                                                              | 7/115 [00:03<00:35,  3.03it/s, loss=323698.2188]Trial 9 Ep1:   7%|████▌                                                             | 8/115 [00:03<00:30,  3.47it/s, loss=323698.2188]Trial 9 Ep1:   7%|████▌                                                             | 8/115 [00:03<00:30,  3.47it/s, loss=792413.4375]Trial 9 Ep1:   8%|█████▏                                                            | 9/115 [00:03<00:30,  3.46it/s, loss=792413.4375]Trial 9 Ep1:   8%|█████                                                            | 9/115 [00:03<00:30,  3.46it/s, loss=1707633.6250]Trial 9 Ep1:   9%|█████▌                                                          | 10/115 [00:03<00:28,  3.70it/s, loss=1707633.6250]Trial 9 Ep1:   9%|█████▌                                                          | 10/115 [00:04<00:28,  3.70it/s, loss=1765739.6250]Trial 9 Ep1:  10%|██████                                                          | 11/115 [00:04<00:26,  3.95it/s, loss=1765739.6250]Trial 9 Ep1:  10%|██████                                                          | 11/115 [00:04<00:26,  3.95it/s, loss=1361368.2500]Trial 9 Ep1:  10%|██████▋                                                         | 12/115 [00:04<00:25,  4.11it/s, loss=1361368.2500]Trial 9 Ep1:  10%|██████▋                                                         | 12/115 [00:04<00:25,  4.11it/s, loss=1359188.3750]Trial 9 Ep1:  11%|███████▏                                                        | 13/115 [00:04<00:23,  4.33it/s, loss=1359188.3750]Trial 9 Ep1:  11%|███████▎                                                         | 13/115 [00:04<00:23,  4.33it/s, loss=872669.1250]Trial 9 Ep1:  12%|███████▉                                                         | 14/115 [00:04<00:22,  4.55it/s, loss=872669.1250]Trial 9 Ep1:  12%|███████▉                                                         | 14/115 [00:04<00:22,  4.55it/s, loss=425444.1562]Trial 9 Ep1:  13%|████████▍                                                        | 15/115 [00:04<00:23,  4.31it/s, loss=425444.1562]Trial 9 Ep1:  13%|████████▍                                                        | 15/115 [00:05<00:23,  4.31it/s, loss=438020.6250]Trial 9 Ep1:  14%|█████████                                                        | 16/115 [00:05<00:27,  3.65it/s, loss=438020.6250]Trial 9 Ep1:  14%|█████████                                                        | 16/115 [00:05<00:27,  3.65it/s, loss=436390.0000]Trial 9 Ep1:  15%|█████████▌                                                       | 17/115 [00:05<00:27,  3.52it/s, loss=436390.0000]Trial 9 Ep1:  15%|█████████▍                                                      | 17/115 [00:05<00:27,  3.52it/s, loss=1035506.1250]Trial 9 Ep1:  16%|██████████                                                      | 18/115 [00:05<00:25,  3.74it/s, loss=1035506.1250]Trial 9 Ep1:  16%|█████████▊                                                     | 18/115 [00:06<00:25,  3.74it/s, loss=47592616.0000]Trial 9 Ep1:  17%|██████████▍                                                    | 19/115 [00:06<00:24,  3.96it/s, loss=47592616.0000]Trial 9 Ep1:  17%|██████████▍                                                    | 19/115 [00:06<00:24,  3.96it/s, loss=16494880.0000]Trial 9 Ep1:  17%|██████████▉                                                    | 20/115 [00:06<00:23,  4.05it/s, loss=16494880.0000]Trial 9 Ep1:  17%|█████████▋                                              | 20/115 [00:06<00:23,  4.05it/s, loss=806291794558976.0000]Trial 9 Ep1:  18%|██████████▏                                             | 21/115 [00:06<00:22,  4.15it/s, loss=806291794558976.0000]Trial 9 Ep1:  18%|████████▊                                       | 21/115 [00:06<00:22,  4.15it/s, loss=14192936599671160176640.0000]Trial 9 Ep1:  19%|█████████▏                                      | 22/115 [00:06<00:22,  4.18it/s, loss=14192936599671160176640.0000]                                                                                                                                      [I 2026-02-24 14:27:39,737] Trial 9 finished with value: 0.0 and parameters: {'learning_rate': 0.001076, 'target_ab_lr': 0.001}. Best is trial 0 with value: 0.0.
-
-  [NaN/Inf detected at batch 22] Aborting trial.
-[Trial 9] GPU cache cleared
-
-======================================================================
-Trial 10 Starting
-======================================================================
-  rank=8, transfer_every=10000000, transfer_lr=1.0000e-01
-  lora_alpha=1.0000, lr=1.0760e-03, wd=0.00e+00
-  target_ab_lr=0.0100, lr_multiplier=9.293680
-  effective_ab_lr = lr*alpha*mult = 0.0100
-  momentum=0.00, nesterov=False, reinit_mode=decay
-  tau_sec=0.0, optimizer=AnalogAdam
-======================================================================
-Some weights of MobileBertForSequenceClassification were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
-You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-  [FIX] Reinitialized classifier with FIXED seed=42
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  [WARMUP] Initialized 3 tiles for LRTT update
-  LRTT Analog layers: 96, Total params: 21,842,978, Trainable (before grad set): 21,842,978
-  Trainable (after grad set): 13,602
-  LoRA target: qkv -> ['attention.self.query', 'attention.self.key', 'attention.self.value', 'attention.output.dense']
-
-Optimizer configuration:
-  Forward scaling (lora_alpha): 1.0
-  Classifier LR: 0.001076
-  LRTT LR (optimizer): 0.01 (= 0.001076 * 9.29368029739777)
-  Effective A,B LR: 0.01 (= 0.01 * 1.0)
-  LRTT_LR_MULTIPLIER: 9.29368029739777
-  LRTT tile params: 288
-  Other params: 98
-  Collected 96 tile_c contexts for post-step reset
-  Collected 192 tile_a/b contexts for post-step reset
-  AB LR Warmup: 1e-07 → 1e-02 over 402 steps (scheduler warmup: 40 steps)
-Trial 10 Ep1:   0%|                                                                                           | 0/115 [00:00<?, ?it/s]Trial 10 Ep1:   0%|                                                                        | 0/115 [00:01<?, ?it/s, loss=3520327.7500]Trial 10 Ep1:   1%|▌                                                               | 1/115 [00:01<02:00,  1.05s/it, loss=3520327.7500]Trial 10 Ep1:   1%|▌                                                               | 1/115 [00:01<02:00,  1.05s/it, loss=2984527.5000]Trial 10 Ep1:   2%|█                                                               | 2/115 [00:01<01:12,  1.56it/s, loss=2984527.5000]Trial 10 Ep1:   2%|█                                                               | 2/115 [00:01<01:12,  1.56it/s, loss=2986804.5000]Trial 10 Ep1:   3%|█▋                                                              | 3/115 [00:01<00:53,  2.10it/s, loss=2986804.5000]Trial 10 Ep1:   3%|█▋                                                              | 3/115 [00:01<00:53,  2.10it/s, loss=2308391.0000]Trial 10 Ep1:   3%|██▏                                                             | 4/115 [00:01<00:41,  2.68it/s, loss=2308391.0000]Trial 10 Ep1:   3%|██▏                                                             | 4/115 [00:02<00:41,  2.68it/s, loss=2343523.2500]Trial 10 Ep1:   4%|██▊                                                             | 5/115 [00:02<00:42,  2.61it/s, loss=2343523.2500]Trial 10 Ep1:   4%|██▊                                                             | 5/115 [00:02<00:42,  2.61it/s, loss=1157770.7500]Trial 10 Ep1:   5%|███▎                                                            | 6/115 [00:02<00:35,  3.09it/s, loss=1157770.7500]Trial 10 Ep1:   5%|███▍                                                             | 6/115 [00:02<00:35,  3.09it/s, loss=336394.9062]Trial 10 Ep1:   6%|███▉                                                             | 7/115 [00:02<00:31,  3.44it/s, loss=336394.9062]Trial 10 Ep1:   6%|███▉                                                             | 7/115 [00:02<00:31,  3.44it/s, loss=515385.2812]Trial 10 Ep1:   7%|████▌                                                            | 8/115 [00:02<00:29,  3.60it/s, loss=515385.2812]Trial 10 Ep1:   7%|████▍                                                           | 8/115 [00:03<00:29,  3.60it/s, loss=1182360.8750]Trial 10 Ep1:   8%|█████                                                           | 9/115 [00:03<00:26,  3.95it/s, loss=1182360.8750]Trial 10 Ep1:   8%|█████                                                            | 9/115 [00:03<00:26,  3.95it/s, loss=950362.3125]Trial 10 Ep1:   9%|█████▌                                                          | 10/115 [00:03<00:24,  4.20it/s, loss=950362.3125]Trial 10 Ep1:   9%|█████▍                                                         | 10/115 [00:03<00:24,  4.20it/s, loss=1255732.5000]Trial 10 Ep1:  10%|██████                                                         | 11/115 [00:03<00:24,  4.21it/s, loss=1255732.5000]Trial 10 Ep1:  10%|██████                                                          | 11/115 [00:04<00:24,  4.21it/s, loss=894457.5000]Trial 10 Ep1:  10%|██████▋                                                         | 12/115 [00:04<00:31,  3.25it/s, loss=894457.5000]Trial 10 Ep1:  10%|██████▊                                                          | 12/115 [00:04<00:31,  3.25it/s, loss=42407.9648]Trial 10 Ep1:  11%|███████▎                                                         | 13/115 [00:04<00:30,  3.31it/s, loss=42407.9648]Trial 10 Ep1:  11%|██████                                                | 13/115 [00:04<00:30,  3.31it/s, loss=1224164060954624.0000]Trial 10 Ep1:  12%|██████▌                                               | 14/115 [00:04<00:28,  3.50it/s, loss=1224164060954624.0000]                                                                                                                                      [I 2026-02-24 14:27:51,577] Trial 10 finished with value: 0.0 and parameters: {'learning_rate': 0.001076, 'target_ab_lr': 0.01}. Best is trial 0 with value: 0.0.
-
-  [NaN/Inf detected at batch 14] Aborting trial.
-[Trial 10] GPU cache cleared
-
-======================================================================
-Trial 11 Starting
-======================================================================
-  rank=8, transfer_every=10000000, transfer_lr=1.0000e-01
-  lora_alpha=1.0000, lr=1.0760e-03, wd=0.00e+00
-  target_ab_lr=0.0050, lr_multiplier=4.646840
-  effective_ab_lr = lr*alpha*mult = 0.0050
-  momentum=0.00, nesterov=False, reinit_mode=decay
-  tau_sec=0.0, optimizer=AnalogAdam
-======================================================================
-Some weights of MobileBertForSequenceClassification were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
-You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.

@@ -1,103 +1,0 @@
-================================================================================
-LRTT GRADIENT TEST
-================================================================================
-
-Hyperparameters:
-  unified_lr (ALL parameters): 0.00362
-  lora_alpha: 0.01
-  rank: 8
-  model: google/mobilebert-uncased
-  task: sst2
-
-[1/6] Loading model and tokenizer...
-Some weights of MobileBertForSequenceClassification were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
-You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-✓ Model loaded: google/mobilebert-uncased
-
-[2/6] Converting to LRTT-LoRA...
-================================================================================
-LRTT-LORA MODEL CONVERSION
-================================================================================
-
-[1/4] Identifying target layers (target_modules=['query', 'key', 'value'])...
-Found 72 target layers to convert:
-  - mobilebert.encoder.layer.0.attention.self.query
-  - mobilebert.encoder.layer.0.attention.self.key
-  - mobilebert.encoder.layer.0.attention.self.value
-  - mobilebert.encoder.layer.1.attention.self.query
-  - mobilebert.encoder.layer.1.attention.self.key
-  ... and 67 more
-
-[2/4] Converting 72 layers to LRTT-LoRA...
-✓ All target layers converted to LRTT AnalogLinear
-
-[3/4] Setting trainability...
-✓ Trainability set:
-  - Trainable params: 11,034
-  - Frozen params: 22,231,808
-  - Trainable fraction: 0.05%
-
-[4/4] Conversion summary:
-  - Architecture: Unified LRTT tiles (A, B, C sub-tiles)
-  - Forward: y = C·x + α·A·(B·x)
-  - Trainable: A, B tiles (low-rank adapters)
-  - Frozen: C tile (pretrained weights)
-  - LoRA rank: 8
-  - LoRA alpha: 0.01
-================================================================================
-✓ Model converted and moved to GPU
-
-[3/6] Loading dataset...
-✓ Dataset loaded: 32 samples
-
-[4/6] Setting up optimizer...
-  Using UNIFIED_LR=0.00362 for ALL parameters (like original)
-✓ Optimizer created with lr=0.00362 for all parameters
-
-[5/6] Setting up training...
-✓ Trainer configured
-
-[6/6] Running training (10 steps)...
-================================================================================
-  0%|                                                                                                                                                                                                                          | 0/10 [00:00<?, ?it/s] 10%|█████████████████████                                                                                                                                                                                             | 1/10 [00:01<00:10,  1.14s/it]                                                                                                                                                                                                                                                       10%|█████████████████████                                                                                                                                                                                             | 1/10 [00:01<00:10,  1.14s/it] 20%|██████████████████████████████████████████                                                                                                                                                                        | 2/10 [00:01<00:04,  1.63it/s]                                                                                                                                                                                                                                                       20%|██████████████████████████████████████████                                                                                                                                                                        | 2/10 [00:01<00:04,  1.63it/s] 30%|███████████████████████████████████████████████████████████████                                                                                                                                                   | 3/10 [00:01<00:03,  2.29it/s]                                                                                                                                                                                                                                                       30%|███████████████████████████████████████████████████████████████                                                                                                                                                   | 3/10 [00:01<00:03,  2.29it/s] 40%|████████████████████████████████████████████████████████████████████████████████████                                                                                                                              | 4/10 [00:01<00:02,  2.70it/s]                                                                                                                                                                                                                                                       40%|████████████████████████████████████████████████████████████████████████████████████                                                                                                                              | 4/10 [00:01<00:02,  2.70it/s] 50%|█████████████████████████████████████████████████████████████████████████████████████████████████████████                                                                                                         | 5/10 [00:02<00:01,  3.05it/s]                                                                                                                                                                                                                                                       50%|█████████████████████████████████████████████████████████████████████████████████████████████████████████                                                                                                         | 5/10 [00:02<00:01,  3.05it/s] 60%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████                                                                                    | 6/10 [00:02<00:01,  3.60it/s]                                                                                                                                                                                                                                                       60%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████                                                                                    | 6/10 [00:02<00:01,  3.60it/s] 70%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████                                                               | 7/10 [00:02<00:00,  3.90it/s]                                                                                                                                                                                                                                                       70%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████                                                               | 7/10 [00:02<00:00,  3.90it/s] 80%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████                                          | 8/10 [00:02<00:00,  4.23it/s]                                                                                                                                                                                                                                                       80%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████                                          | 8/10 [00:02<00:00,  4.23it/s] 90%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████                     | 9/10 [00:02<00:00,  4.47it/s]                                                                                                                                                                                                                                                       90%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████                     | 9/10 [00:02<00:00,  4.47it/s]100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 10/10 [00:03<00:00,  4.65it/s]                                                                                                                                                                                                                                                      100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 10/10 [00:03<00:00,  4.65it/s]Traceback (most recent call last):
-  File "/data/LRTT_transformer/experiments/test_lrtt_gradient.py", line 141, in <module>
-    trainer.train()
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/trainer.py", line 2164, in train
-    return inner_training_loop(
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/trainer.py", line 2591, in _inner_training_loop
-    self._maybe_log_save_evaluate(
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/trainer.py", line 3056, in _maybe_log_save_evaluate
-    self._save_checkpoint(model, trial)
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/trainer.py", line 3188, in _save_checkpoint
-    self.save_model(output_dir, _internal_call=True)
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/trainer.py", line 3805, in save_model
-    self._save(output_dir)
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/trainer.py", line 3909, in _save
-    self.model.save_pretrained(
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/modeling_utils.py", line 2971, in save_pretrained
-    state_dict_split = split_torch_state_dict_into_shards(
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/huggingface_hub/serialization/_torch.py", line 351, in split_torch_state_dict_into_shards
-    return split_state_dict_into_shards_factory(
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/huggingface_hub/serialization/_base.py", line 105, in split_state_dict_into_shards_factory
-    storage_id = get_storage_id(tensor)
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/huggingface_hub/serialization/_torch.py", line 737, in get_torch_storage_id
-    if tensor.device.type == "meta":
-AttributeError: 'dict' object has no attribute 'device'
-{'loss': 4067585.25, 'grad_norm': 190039872.0, 'learning_rate': 0.003258, 'epoch': 0.25}
-{'loss': 5617575.5, 'grad_norm': 316522240.0, 'learning_rate': 0.002896, 'epoch': 0.5}
-{'loss': 2077003.5, 'grad_norm': 142131136.0, 'learning_rate': 0.002534, 'epoch': 0.75}
-{'loss': 2185598.5, 'grad_norm': 188660112.0, 'learning_rate': 0.002172, 'epoch': 1.0}
-{'loss': 7544.6436, 'grad_norm': 742455.8125, 'learning_rate': 0.00181, 'epoch': 1.25}
-{'loss': 3.027, 'grad_norm': 155.90818786621094, 'learning_rate': 0.001448, 'epoch': 1.5}
-{'loss': 5079.854, 'grad_norm': 969524.125, 'learning_rate': 0.001086, 'epoch': 1.75}
-{'loss': 749.3075, 'grad_norm': 155995.578125, 'learning_rate': 0.000724, 'epoch': 2.0}
-{'loss': 2.2245, 'grad_norm': 63.18498992919922, 'learning_rate': 0.000362, 'epoch': 2.25}
-{'loss': 1.6394, 'grad_norm': 104.478759765625, 'learning_rate': 0.0, 'epoch': 2.5}
-
-================================================================================
-✗ Training failed with error:
-  AttributeError: 'dict' object has no attribute 'device'
-================================================================================
-
-[Final Model Stats]
-100%|██████████| 10/10 [00:03<00:00,  2.77it/s]                                                                                                                                                                                                       

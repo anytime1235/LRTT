@@ -1,284 +1,0 @@
-========================================
- Full Run: SQuAD (ABD) + GLUE (ABDEF)
- Seeds: 42,43,44
- OUT_DIR: /data/main_results/results
- Started: Sat Feb 28 01:21:29 PM UTC 2026
- Log: /data/main_results/results/run_full_ABD_20260228_132129.log
-========================================
-
-[1/2] paper_figures.py --figures ABD --seeds 42,43,44
-  Out: /data/main_results/results/squad/seed_{42,43,44}/
-  Start: Sat Feb 28 01:21:29 PM UTC 2026
-2026-02-28 13:21:32.697849: I tensorflow/core/util/port.cc:111] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
-2026-02-28 13:21:32.700495: I tensorflow/tsl/cuda/cudart_stub.cc:28] Could not find cuda drivers on your machine, GPU will not be used.
-2026-02-28 13:21:32.728991: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-2026-02-28 13:21:32.729024: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-2026-02-28 13:21:32.729046: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-2026-02-28 13:21:32.734833: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
-To enable the following instructions: AVX2 AVX512F AVX512_VNNI AVX512_BF16 AVX_VNNI AMX_TILE AMX_INT8 AMX_BF16 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2026-02-28 13:21:33.471825: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
-Some weights of BertForQuestionAnswering were not initialized from the model checkpoint at bert-base-uncased and are newly initialized: ['qa_outputs.bias', 'qa_outputs.weight']
-You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-[Config] Device=cuda, N_STEP=200, N_STEP_SWEEP=100, BATCH=8, RUN_TAG=v3_ABD
-[Config] OUT_DIR=/data/main_results/results, Seeds=[42, 43, 44]
-[Config] Figures=ABD (A=True, B=True, C=False, D=True)
-
-[0] Loading tokenizer ...
-
-============================================================
-  SQuAD seed=42
-============================================================
-
-  [1] Loading data ...
-  Dataset: 1600 samples → 200 batches
-
-  [2] Baseline 7-bit, 200 steps ...
-  Analog tiles — target(QKVO):48, frozen(FFN):24, nm_thres=0, sto_round=False, dac=7b, adc=9b
-[Hook] 72 hooks, sublayers=['FFN1', 'FFN2', 'K', 'O', 'Q', 'V'], inp_res=0.007937, nm_thres=0
-A-baseline-s42:   0%|                                                                                                    | 0/200 [00:00<?, ?it/s]sys:1: UserWarning: Full backward hook is firing when gradients are computed with respect to module outputs since no inputs require gradients. See https://docs.pytorch.org/docs/main/generated/torch.nn.Module.html#torch.nn.Module.register_full_backward_hook for more details.
-A-baseline-s42:   0%|▍                                                                                           | 1/200 [00:16<54:50, 16.54s/it]A-baseline-s42:   1%|▉                                                                                           | 2/200 [00:31<50:54, 15.43s/it]A-baseline-s42:   2%|█▍                                                                                          | 3/200 [00:41<43:11, 13.15s/it]A-baseline-s42:   2%|█▊                                                                                          | 4/200 [00:52<39:46, 12.18s/it]A-baseline-s42:   2%|██▎                                                                                         | 5/200 [01:03<37:50, 11.64s/it]A-baseline-s42:   3%|██▊                                                                                         | 6/200 [01:13<36:16, 11.22s/it]A-baseline-s42:   4%|███▏                                                                                        | 7/200 [01:26<38:26, 11.95s/it]A-baseline-s42:   4%|███▋                                                                                        | 8/200 [01:38<37:49, 11.82s/it]A-baseline-s42:   4%|███▋                                                                                        | 8/200 [01:39<39:49, 12.44s/it]
-Traceback (most recent call last):
-  File "/data/main_results/scripts/paper/paper_figures.py", line 1997, in <module>
-    main()
-  File "/data/main_results/scripts/paper/paper_figures.py", line 1949, in main
-    run_single_seed(seed, tokenizer, run_figures)
-  File "/data/main_results/scripts/paper/paper_figures.py", line 1592, in run_single_seed
-    run_diagnostic(model_a, loader, n_step=N_STEP, seed=seed,
-  File "/data/main_results/scripts/paper/paper_figures.py", line 975, in run_diagnostic
-    outputs = model(
-              ^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1882, in _call_impl
-    return inner()
-           ^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1830, in inner
-    result = forward_call(*args, **kwargs)
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/transformers/models/bert/modeling_bert.py", line 1947, in forward
-    outputs = self.bert(
-              ^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/transformers/models/bert/modeling_bert.py", line 1142, in forward
-    encoder_outputs = self.encoder(
-                      ^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/transformers/models/bert/modeling_bert.py", line 695, in forward
-    layer_outputs = layer_module(
-                    ^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/transformers/models/bert/modeling_bert.py", line 585, in forward
-    self_attention_outputs = self.attention(
-                             ^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/transformers/models/bert/modeling_bert.py", line 524, in forward
-    attention_output = self.output(self_outputs[0], hidden_states)
-                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/transformers/models/bert/modeling_bert.py", line 466, in forward
-    hidden_states = self.dense(hidden_states)
-                    ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1882, in _call_impl
-    return inner()
-           ^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1830, in inner
-    result = forward_call(*args, **kwargs)
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/data/LRTT_transformer/src/aihwkit/nn/modules/linear.py", line 91, in forward
-    return self.analog_module(x_input)  # type: ignore
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/data/LRTT_transformer/src/aihwkit/simulator/tiles/array.py", line 171, in forward
-    out_result.append(analog_tile(x, tensor_view=tensor_view))
-                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/data/LRTT_transformer/src/aihwkit/simulator/tiles/analog.py", line 219, in forward
-    out = AnalogFunction.apply(
-          ^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/autograd/function.py", line 583, in apply
-    return super().apply(*args, **kwargs)  # type: ignore[misc]
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
-    return func(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^
-  File "/data/LRTT_transformer/src/aihwkit/simulator/tiles/functions.py", line 54, in forward
-    out = analog_tile.joint_forward(input_, is_test, ctx)
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/data/LRTT_transformer/src/aihwkit/simulator/tiles/periphery.py", line 1042, in joint_forward
-    x_output = self.tile.forward(
-               ^^^^^^^^^^^^^^^^^^
-RuntimeError: CUDA out of memory. Tried to allocate 20.00 MiB. GPU 0 has a total capacity of 139.81 GiB of which 16.12 MiB is free. Process 3607433 has 37.91 GiB memory in use. Process 4074659 has 101.88 GiB memory in use. Of the allocated memory 58.30 GiB is allocated by PyTorch, and 5.61 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
-Exception raised from malloc at /pytorch/c10/cuda/CUDACachingAllocator.cpp:1574 (most recent call first):
-frame #0: c10::Error::Error(c10::SourceLocation, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) + 0x9d (0x7fff454ddfdd in /opt/conda/lib/python3.11/site-packages/torch/lib/libc10.so)
-frame #1: <unknown function> + 0x42555 (0x7fff455ad555 in /opt/conda/lib/python3.11/site-packages/torch/lib/libc10_cuda.so)
-frame #2: <unknown function> + 0x427e2 (0x7fff455ad7e2 in /opt/conda/lib/python3.11/site-packages/torch/lib/libc10_cuda.so)
-frame #3: <unknown function> + 0x42e9f (0x7fff455ade9f in /opt/conda/lib/python3.11/site-packages/torch/lib/libc10_cuda.so)
-frame #4: at::detail::empty_generic(c10::ArrayRef<long>, c10::Allocator*, c10::DispatchKeySet, c10::ScalarType, std::optional<c10::MemoryFormat>) + 0x5cc (0x7ffe674f4a7c in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
-frame #5: at::detail::empty_cuda(c10::ArrayRef<long>, c10::ScalarType, std::optional<c10::Device>, std::optional<c10::MemoryFormat>) + 0x7f (0x7ffe2949eacf in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
-frame #6: at::detail::empty_cuda(c10::ArrayRef<long>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) + 0x6e (0x7ffe2949ecde in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
-frame #7: at::native::empty_cuda(c10::ArrayRef<long>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) + 0x43 (0x7ffe297945a3 in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
-frame #8: <unknown function> + 0x3749652 (0x7ffe2bcb6652 in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
-frame #9: <unknown function> + 0x374976c (0x7ffe2bcb676c in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
-frame #10: at::_ops::empty_memory_format::redispatch(c10::DispatchKeySet, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) + 0xe6 (0x7ffe68624e36 in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
-frame #11: <unknown function> + 0x2ee5b19 (0x7ffe68a8cb19 in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
-frame #12: at::_ops::empty_memory_format::call(c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) + 0x154 (0x7ffe686f9974 in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
-frame #13: <unknown function> + 0x16cbec (0x7ff737b40bec in /data/LRTT_transformer/src/aihwkit/simulator/rpu_base.cpython-311-x86_64-linux-gnu.so)
-frame #14: RPU::CudaBuffer<float>::get(RPU::CudaContext*, unsigned long) + 0x10d (0x7ff737e8fe7d in /data/LRTT_transformer/src/aihwkit/simulator/rpu_base.cpython-311-x86_64-linux-gnu.so)
-frame #15: void RPU::InputOutputManager<float>::initWithInput<float const*>(float const*, RPU::IOMetaParameter<float> const&, int, int, bool, float, bool) + 0x28e (0x7ff737ecfb3e in /data/LRTT_transformer/src/aihwkit/simulator/rpu_base.cpython-311-x86_64-linux-gnu.so)
-frame #16: void RPU::ForwardBackwardPassIOManagedCuda<float>::forwardMatrixIterator<float const*, float*>(float*, float const*, int, bool, float*, int, bool, int, float, RPU::InputOutputManager<float>&, RPU::IOMetaParameter<float> const&, bool) + 0x42c (0x7ff737c03a1c in /data/LRTT_transformer/src/aihwkit/simulator/rpu_base.cpython-311-x86_64-linux-gnu.so)
-frame #17: RPU::RPUCudaPulsed<float>::forwardMatrix(float const*, float*, int, bool, bool, bool) + 0xc1 (0x7ff737c03dc1 in /data/LRTT_transformer/src/aihwkit/simulator/rpu_base.cpython-311-x86_64-linux-gnu.so)
-frame #18: <unknown function> + 0x1d5165 (0x7ff737ba9165 in /data/LRTT_transformer/src/aihwkit/simulator/rpu_base.cpython-311-x86_64-linux-gnu.so)
-frame #19: <unknown function> + 0x1c44d1 (0x7ff737b984d1 in /data/LRTT_transformer/src/aihwkit/simulator/rpu_base.cpython-311-x86_64-linux-gnu.so)
-frame #20: <unknown function> + 0x1737dd (0x7ff737b477dd in /data/LRTT_transformer/src/aihwkit/simulator/rpu_base.cpython-311-x86_64-linux-gnu.so)
-<omitting python frames>
-frame #27: <unknown function> + 0x81da7c (0x7ffe7b82ea7c in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_python.so)
-
-[1/2] SQuAD Done: Sat Feb 28 01:24:27 PM UTC 2026
-
-[2/2] paper_figures_glue.py --figures ABDEF --seeds 42,43,44
-  Out: /data/main_results/results/glue/{task}/seed_{seed}/
-  Start: Sat Feb 28 01:24:27 PM UTC 2026
-2026-02-28 13:24:30.269765: I tensorflow/core/util/port.cc:111] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
-2026-02-28 13:24:30.272877: I tensorflow/tsl/cuda/cudart_stub.cc:28] Could not find cuda drivers on your machine, GPU will not be used.
-2026-02-28 13:24:30.301486: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-2026-02-28 13:24:30.301517: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-2026-02-28 13:24:30.301536: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-2026-02-28 13:24:30.307250: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
-To enable the following instructions: AVX2 AVX512F AVX512_VNNI AVX512_BF16 AVX_VNNI AMX_TILE AMX_INT8 AMX_BF16 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2026-02-28 13:24:31.018573: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
-[Config] Device=cuda, N_STEP=200, N_STEP_SWEEP=100, BATCH=8, MAX_LEN=128, RUN_TAG=glue_v1
-[Config] OUT_DIR=/data/main_results/results
-[Config] Tasks=['cola', 'rte', 'mrpc', 'mnli', 'sst2', 'stsb', 'qqp', 'qnli'], Seeds=[42, 43, 44]
-[Config] Figures=ABDEF (A=True, B=True, D=True, E=True, F=True)
-[Config] Baseline DAC=7b, ADC=9b
-
-[0] Loading tokenizer ...
-
-============================================================
-  Task=COLA, Seed=42, num_labels=2
-  Output: /data/main_results/results/glue/cola/seed_42
-============================================================
-Map:   0%|                                                                                                       | 0/8551 [00:00<?, ? examples/s]Map: 100%|█████████████████████████████████████████████████████████████████████████████████████████| 8551/8551 [00:00<00:00, 86497.28 examples/s]
-Some weights of BertForSequenceClassification were not initialized from the model checkpoint at bert-base-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
-You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-  Dataset(cola): 1600 samples -> 200 batches (seed=42, max_len=128)
-
-  [cola/42] Baseline 7-bit, 200 steps ...
-  Analog tiles -- target(QKVO):48, frozen(FFN):24, nm_thres=0, sto_round=False, dac=7b, adc=9b, num_labels=2
-[Hook] 72 hooks, sublayers=['FFN1', 'FFN2', 'K', 'O', 'Q', 'V'], inp_res=0.007937, nm_thres=0
-A-cola-s42:   0%|                                                                                                        | 0/200 [00:00<?, ?it/s]sys:1: UserWarning: Full backward hook is firing when gradients are computed with respect to module outputs since no inputs require gradients. See https://docs.pytorch.org/docs/main/generated/torch.nn.Module.html#torch.nn.Module.register_full_backward_hook for more details.
-A-cola-s42:   0%|▍                                                                                               | 1/200 [00:12<42:21, 12.77s/it]A-cola-s42:   1%|▉                                                                                               | 2/200 [00:19<30:19,  9.19s/it]A-cola-s42:   2%|█▍                                                                                              | 3/200 [00:26<26:43,  8.14s/it]A-cola-s42:   2%|█▉                                                                                              | 4/200 [00:32<24:07,  7.39s/it]A-cola-s42:   2%|██▍                                                                                             | 5/200 [00:38<22:21,  6.88s/it]A-cola-s42:   3%|██▉                                                                                             | 6/200 [00:47<24:12,  7.49s/it]A-cola-s42:   4%|███▎                                                                                            | 7/200 [01:05<35:24, 11.01s/it]A-cola-s42:   4%|███▊                                                                                            | 8/200 [01:11<30:15,  9.46s/it]A-cola-s42:   4%|████▎                                                                                           | 9/200 [01:18<27:05,  8.51s/it]A-cola-s42:   5%|████▊                                                                                          | 10/200 [01:24<25:18,  7.99s/it]A-cola-s42:   6%|█████▏                                                                                         | 11/200 [01:31<23:32,  7.47s/it]A-cola-s42:   6%|█████▋                                                                                         | 12/200 [01:37<22:03,  7.04s/it]A-cola-s42:   6%|██████▏                                                                                        | 13/200 [01:43<21:00,  6.74s/it]A-cola-s42:   7%|██████▋                                                                                        | 14/200 [01:51<22:43,  7.33s/it]A-cola-s42:   8%|███████▏                                                                                       | 15/200 [01:59<23:07,  7.50s/it]A-cola-s42:   8%|███████▌                                                                                       | 16/200 [02:06<22:16,  7.26s/it]A-cola-s42:   8%|████████                                                                                       | 17/200 [02:13<21:35,  7.08s/it]A-cola-s42:   9%|████████▌                                                                                      | 18/200 [02:19<20:40,  6.82s/it]A-cola-s42:  10%|█████████                                                                                      | 19/200 [02:26<20:50,  6.91s/it]A-cola-s42:  10%|█████████▌                                                                                     | 20/200 [02:32<19:55,  6.64s/it]A-cola-s42:  10%|█████████▉                                                                                     | 21/200 [02:38<19:17,  6.47s/it]A-cola-s42:  11%|██████████▍                                                                                    | 22/200 [02:46<20:37,  6.95s/it]A-cola-s42:  12%|██████████▉                                                                                    | 23/200 [02:55<22:20,  7.57s/it]A-cola-s42:  12%|███████████▍                                                                                   | 24/200 [03:03<22:03,  7.52s/it]A-cola-s42:  12%|███████████▉                                                                                   | 25/200 [03:09<20:50,  7.15s/it]A-cola-s42:  13%|████████████▎                                                                                  | 26/200 [03:15<19:55,  6.87s/it]A-cola-s42:  14%|████████████▊                                                                                  | 27/200 [03:22<19:53,  6.90s/it]A-cola-s42:  14%|█████████████▎                                                                                 | 28/200 [03:28<19:00,  6.63s/it]A-cola-s42:  14%|█████████████▊                                                                                 | 29/200 [03:35<18:50,  6.61s/it]A-cola-s42:  15%|██████████████▎                                                                                | 30/200 [03:42<18:59,  6.70s/it]A-cola-s42:  16%|██████████████▋                                                                                | 31/200 [03:50<20:25,  7.25s/it]A-cola-s42:  16%|███████████████▏                                                                               | 32/200 [03:59<21:47,  7.78s/it]A-cola-s42:  16%|███████████████▋                                                                               | 33/200 [04:05<20:24,  7.33s/it]A-cola-s42:  17%|████████████████▏                                                                              | 34/200 [04:12<19:35,  7.08s/it]A-cola-s42:  18%|████████████████▋                                                                              | 35/200 [04:19<19:06,  6.95s/it]A-cola-s42:  18%|█████████████████                                                                              | 36/200 [04:25<18:31,  6.78s/it]A-cola-s42:  18%|█████████████████▌                                                                             | 37/200 [04:31<18:08,  6.68s/it]A-cola-s42:  19%|██████████████████                                                                             | 38/200 [04:39<18:24,  6.82s/it]A-cola-s42:  20%|██████████████████▌                                                                            | 39/200 [04:44<17:31,  6.53s/it]A-cola-s42:  20%|███████████████████                                                                            | 40/200 [04:53<19:10,  7.19s/it]A-cola-s42:  20%|███████████████████▍                                                                           | 41/200 [05:00<18:52,  7.12s/it]A-cola-s42:  21%|███████████████████▉                                                                           | 42/200 [05:07<18:53,  7.17s/it]A-cola-s42:  22%|████████████████████▍                                                                          | 43/200 [05:13<17:34,  6.71s/it]A-cola-s42:  22%|████████████████████▉                                                                          | 44/200 [05:19<16:48,  6.47s/it]A-cola-s42:  22%|█████████████████████▍                                                                         | 45/200 [05:25<16:33,  6.41s/it]A-cola-s42:  23%|█████████████████████▊                                                                         | 46/200 [05:32<16:57,  6.61s/it]A-cola-s42:  24%|██████████████████████▎                                                                        | 47/200 [05:38<16:15,  6.37s/it]A-cola-s42:  24%|██████████████████████▊                                                                        | 48/200 [05:44<16:06,  6.36s/it]A-cola-s42:  24%|███████████████████████▎                                                                       | 49/200 [05:54<18:08,  7.21s/it]A-cola-s42:  25%|███████████████████████▊                                                                       | 50/200 [06:01<18:23,  7.36s/it]A-cola-s42:  26%|████████████████████████▏                                                                      | 51/200 [06:08<18:01,  7.26s/it]A-cola-s42:  26%|████████████████████████▋                                                                      | 52/200 [06:14<17:02,  6.91s/it]A-cola-s42:  26%|█████████████████████████▏                                                                     | 53/200 [06:21<16:46,  6.85s/it]A-cola-s42:  27%|█████████████████████████▋                                                                     | 54/200 [06:28<16:43,  6.87s/it]A-cola-s42:  28%|██████████████████████████▏                                                                    | 55/200 [06:35<16:47,  6.95s/it]A-cola-s42:  28%|██████████████████████████▌                                                                    | 56/200 [06:41<15:50,  6.60s/it]A-cola-s42:  28%|███████████████████████████                                                                    | 57/200 [06:50<17:14,  7.24s/it]A-cola-s42:  29%|███████████████████████████▌                                                                   | 58/200 [06:59<18:32,  7.83s/it]A-cola-s42:  30%|████████████████████████████                                                                   | 59/200 [07:05<17:27,  7.43s/it]A-cola-s42:  30%|████████████████████████████▌                                                                  | 60/200 [07:12<17:01,  7.30s/it]A-cola-s42:  30%|████████████████████████████▉                                                                  | 61/200 [07:19<16:34,  7.15s/it]A-cola-s42:  31%|█████████████████████████████▍                                                                 | 62/200 [07:26<15:55,  6.93s/it]A-cola-s42:  32%|█████████████████████████████▉                                                                 | 63/200 [07:32<15:32,  6.81s/it]A-cola-s42:  32%|██████████████████████████████▍                                                                | 64/200 [07:40<15:56,  7.03s/it]A-cola-s42:  32%|██████████████████████████████▉                                                                | 65/200 [07:46<15:40,  6.96s/it]A-cola-s42:  33%|███████████████████████████████▎                                                               | 66/200 [07:55<16:44,  7.49s/it]A-cola-s42:  34%|███████████████████████████████▊                                                               | 67/200 [08:02<16:12,  7.31s/it]A-cola-s42:  34%|████████████████████████████████▎                                                              | 68/200 [08:09<16:03,  7.30s/it]A-cola-s42:  34%|████████████████████████████████▊                                                              | 69/200 [08:16<15:33,  7.13s/it]A-cola-s42:  35%|█████████████████████████████████▎                                                             | 70/200 [08:23<15:01,  6.93s/it]A-cola-s42:  36%|█████████████████████████████████▋                                                             | 71/200 [08:29<14:36,  6.80s/it]A-cola-s42:  36%|██████████████████████████████████▏                                                            | 72/200 [08:36<14:49,  6.95s/it]A-cola-s42:  36%|██████████████████████████████████▋                                                            | 73/200 [08:42<14:10,  6.69s/it]A-cola-s42:  37%|███████████████████████████████████▏                                                           | 74/200 [08:52<16:05,  7.66s/it]A-cola-s42:  38%|███████████████████████████████████▋                                                           | 75/200 [09:01<16:40,  8.00s/it]A-cola-s42:  38%|████████████████████████████████████                                                           | 76/200 [09:08<15:35,  7.55s/it]A-cola-s42:  38%|████████████████████████████████████▌                                                          | 77/200 [09:14<14:48,  7.22s/it]A-cola-s42:  39%|█████████████████████████████████████                                                          | 78/200 [09:22<14:56,  7.35s/it]A-cola-s42:  40%|█████████████████████████████████████▌                                                         | 79/200 [09:28<14:17,  7.09s/it]A-cola-s42:  40%|██████████████████████████████████████                                                         | 80/200 [09:35<13:53,  6.95s/it]A-cola-s42:  40%|██████████████████████████████████████▍                                                        | 81/200 [09:41<13:33,  6.84s/it]A-cola-s42:  41%|██████████████████████████████████████▉                                                        | 82/200 [09:51<14:53,  7.57s/it]A-cola-s42:  42%|███████████████████████████████████████▍                                                       | 83/200 [10:00<15:38,  8.03s/it]A-cola-s42:  42%|███████████████████████████████████████▉                                                       | 84/200 [10:07<14:51,  7.68s/it]A-cola-s42:  42%|████████████████████████████████████████▍                                                      | 85/200 [10:13<13:58,  7.29s/it]A-cola-s42:  43%|████████████████████████████████████████▊                                                      | 86/200 [10:20<13:22,  7.04s/it]A-cola-s42:  44%|█████████████████████████████████████████▎                                                     | 87/200 [10:27<13:30,  7.17s/it]A-cola-s42:  44%|█████████████████████████████████████████▊                                                     | 88/200 [10:33<12:58,  6.95s/it]A-cola-s42:  44%|██████████████████████████████████████████▎                                                    | 89/200 [10:40<12:31,  6.77s/it]A-cola-s42:  45%|██████████████████████████████████████████▊                                                    | 90/200 [10:50<14:04,  7.68s/it]A-cola-s42:  46%|███████████████████████████████████████████▏                                                   | 91/200 [10:58<14:07,  7.77s/it]A-cola-s42:  46%|███████████████████████████████████████████▋                                                   | 92/200 [11:05<13:34,  7.55s/it]A-cola-s42:  46%|████████████████████████████████████████████▏                                                  | 93/200 [11:12<13:21,  7.49s/it]A-cola-s42:  47%|████████████████████████████████████████████▋                                                  | 94/200 [11:18<12:27,  7.05s/it]A-cola-s42:  48%|█████████████████████████████████████████████▏                                                 | 95/200 [11:25<12:04,  6.90s/it]A-cola-s42:  48%|█████████████████████████████████████████████▌                                                 | 96/200 [11:31<11:57,  6.90s/it]A-cola-s42:  48%|██████████████████████████████████████████████                                                 | 97/200 [11:39<12:07,  7.06s/it]A-cola-s42:  49%|██████████████████████████████████████████████▌                                                | 98/200 [11:46<12:12,  7.18s/it]A-cola-s42:  50%|███████████████████████████████████████████████                                                | 99/200 [11:57<13:44,  8.17s/it]A-cola-s42:  50%|███████████████████████████████████████████████                                               | 100/200 [12:04<13:09,  7.90s/it]A-cola-s42:  50%|███████████████████████████████████████████████▍                                              | 101/200 [12:11<12:25,  7.53s/it]A-cola-s42:  51%|███████████████████████████████████████████████▉                                              | 102/200 [12:17<11:52,  7.27s/it]A-cola-s42:  52%|████████████████████████████████████████████████▍                                             | 103/200 [12:25<11:45,  7.27s/it]A-cola-s42:  52%|████████████████████████████████████████████████▉                                             | 104/200 [12:31<11:10,  6.98s/it]A-cola-s42:  52%|█████████████████████████████████████████████████▎                                            | 105/200 [12:37<10:42,  6.77s/it]A-cola-s42:  53%|█████████████████████████████████████████████████▊                                            | 106/200 [12:44<10:43,  6.85s/it]A-cola-s42:  54%|██████████████████████████████████████████████████▎                                           | 107/200 [12:57<13:07,  8.47s/it]A-cola-s42:  54%|██████████████████████████████████████████████████▊                                           | 108/200 [13:05<12:55,  8.43s/it]A-cola-s42:  55%|███████████████████████████████████████████████████▏                                          | 109/200 [13:12<11:57,  7.89s/it]A-cola-s42:  55%|███████████████████████████████████████████████████▋                                          | 110/200 [13:18<11:09,  7.44s/it]A-cola-s42:  56%|████████████████████████████████████████████████████▏                                         | 111/200 [13:25<11:02,  7.45s/it]A-cola-s42:  56%|████████████████████████████████████████████████████▋                                         | 112/200 [13:32<10:21,  7.06s/it]A-cola-s42:  56%|█████████████████████████████████████████████████████                                         | 113/200 [13:38<09:58,  6.88s/it]A-cola-s42:  57%|█████████████████████████████████████████████████████▌                                        | 114/200 [13:47<10:37,  7.41s/it]A-cola-s42:  57%|██████████████████████████████████████████████████████                                        | 115/200 [13:56<11:13,  7.92s/it]A-cola-s42:  58%|██████████████████████████████████████████████████████▌                                       | 116/200 [14:05<11:29,  8.21s/it]A-cola-s42:  58%|██████████████████████████████████████████████████████▉                                       | 117/200 [14:11<10:43,  7.75s/it]A-cola-s42:  59%|███████████████████████████████████████████████████████▍                                      | 118/200 [14:18<10:08,  7.42s/it]A-cola-s42:  60%|███████████████████████████████████████████████████████▉                                      | 119/200 [14:24<09:35,  7.11s/it]A-cola-s42:  60%|████████████████████████████████████████████████████████▍                                     | 120/200 [14:32<09:42,  7.28s/it]A-cola-s42:  60%|████████████████████████████████████████████████████████▊                                     | 121/200 [14:38<09:00,  6.85s/it]A-cola-s42:  61%|█████████████████████████████████████████████████████████▎                                    | 122/200 [14:44<08:44,  6.72s/it]A-cola-s42:  62%|█████████████████████████████████████████████████████████▊                                    | 123/200 [14:55<10:05,  7.86s/it]A-cola-s42:  62%|██████████████████████████████████████████████████████████▎                                   | 124/200 [15:03<10:06,  7.99s/it]A-cola-s42:  62%|██████████████████████████████████████████████████████████▊                                   | 125/200 [15:09<09:20,  7.47s/it]A-cola-s42:  63%|███████████████████████████████████████████████████████████▏                                  | 126/200 [15:16<08:53,  7.22s/it]A-cola-s42:  64%|███████████████████████████████████████████████████████████▋                                  | 127/200 [15:23<08:49,  7.25s/it]A-cola-s42:  64%|████████████████████████████████████████████████████████████▏                                 | 128/200 [15:29<08:13,  6.85s/it]A-cola-s42:  64%|████████████████████████████████████████████████████████████▋                                 | 129/200 [15:36<07:55,  6.70s/it]A-cola-s42:  65%|█████████████████████████████████████████████████████████████                                 | 130/200 [15:43<08:04,  6.92s/it]A-cola-s42:  66%|█████████████████████████████████████████████████████████████▌                                | 131/200 [15:53<08:52,  7.71s/it]A-cola-s42:  66%|██████████████████████████████████████████████████████████████                                | 132/200 [16:02<09:20,  8.24s/it]A-cola-s42:  66%|██████████████████████████████████████████████████████████████▌                               | 133/200 [16:08<08:32,  7.64s/it]A-cola-s42:  67%|██████████████████████████████████████████████████████████████▉                               | 134/200 [16:16<08:20,  7.59s/it]A-cola-s42:  68%|███████████████████████████████████████████████████████████████▍                              | 135/200 [16:22<07:47,  7.19s/it]A-cola-s42:  68%|███████████████████████████████████████████████████████████████▉                              | 136/200 [16:28<07:25,  6.97s/it]A-cola-s42:  68%|████████████████████████████████████████████████████████████████▍                             | 137/200 [16:35<07:07,  6.79s/it]A-cola-s42:  69%|████████████████████████████████████████████████████████████████▊                             | 138/200 [16:42<07:16,  7.04s/it]A-cola-s42:  70%|█████████████████████████████████████████████████████████████████▎                            | 139/200 [16:52<07:51,  7.72s/it]A-cola-s42:  70%|█████████████████████████████████████████████████████████████████▊                            | 140/200 [17:01<08:17,  8.30s/it]A-cola-s42:  70%|██████████████████████████████████████████████████████████████████▎                           | 141/200 [17:09<07:54,  8.04s/it]A-cola-s42:  71%|██████████████████████████████████████████████████████████████████▋                           | 142/200 [17:15<07:13,  7.48s/it]A-cola-s42:  72%|███████████████████████████████████████████████████████████████████▏                          | 143/200 [17:22<06:54,  7.27s/it]A-cola-s42:  72%|███████████████████████████████████████████████████████████████████▋                          | 144/200 [17:29<06:52,  7.37s/it]A-cola-s42:  72%|████████████████████████████████████████████████████████████████████▏                         | 145/200 [17:36<06:32,  7.13s/it]A-cola-s42:  73%|████████████████████████████████████████████████████████████████████▌                         | 146/200 [17:42<06:12,  6.91s/it]A-cola-s42:  74%|█████████████████████████████████████████████████████████████████████                         | 147/200 [17:53<07:06,  8.04s/it]A-cola-s42:  74%|█████████████████████████████████████████████████████████████████████▌                        | 148/200 [18:03<07:24,  8.54s/it]A-cola-s42:  74%|██████████████████████████████████████████████████████████████████████                        | 149/200 [18:09<06:43,  7.91s/it]A-cola-s42:  75%|██████████████████████████████████████████████████████████████████████▌                       | 150/200 [18:15<06:10,  7.41s/it]A-cola-s42:  76%|██████████████████████████████████████████████████████████████████████▉                       | 151/200 [18:23<05:58,  7.31s/it]A-cola-s42:  76%|███████████████████████████████████████████████████████████████████████▍                      | 152/200 [18:29<05:42,  7.15s/it]A-cola-s42:  76%|███████████████████████████████████████████████████████████████████████▉                      | 153/200 [18:36<05:27,  6.96s/it]A-cola-s42:  77%|████████████████████████████████████████████████████████████████████████▍                     | 154/200 [18:42<05:11,  6.77s/it]A-cola-s42:  78%|████████████████████████████████████████████████████████████████████████▊                     | 155/200 [18:51<05:36,  7.49s/it]A-cola-s42:  78%|█████████████████████████████████████████████████████████████████████████▎                    | 156/200 [19:02<06:13,  8.49s/it]A-cola-s42:  78%|█████████████████████████████████████████████████████████████████████████▊                    | 157/200 [19:09<05:42,  7.96s/it]A-cola-s42:  79%|██████████████████████████████████████████████████████████████████████████▎                   | 158/200 [19:15<05:16,  7.53s/it]A-cola-s42:  80%|██████████████████████████████████████████████████████████████████████████▋                   | 159/200 [19:23<05:06,  7.47s/it]A-cola-s42:  80%|███████████████████████████████████████████████████████████████████████████▏                  | 160/200 [19:29<04:46,  7.16s/it]A-cola-s42:  80%|███████████████████████████████████████████████████████████████████████████▋                  | 161/200 [19:36<04:31,  6.95s/it]A-cola-s42:  81%|████████████████████████████████████████████████████████████████████████████▏                 | 162/200 [19:43<04:30,  7.11s/it]A-cola-s42:  82%|████████████████████████████████████████████████████████████████████████████▌                 | 163/200 [19:53<04:49,  7.84s/it]A-cola-s42:  82%|█████████████████████████████████████████████████████████████████████████████                 | 164/200 [20:02<04:53,  8.15s/it]A-cola-s42:  82%|█████████████████████████████████████████████████████████████████████████████▌                | 165/200 [20:07<04:22,  7.49s/it]A-cola-s42:  83%|██████████████████████████████████████████████████████████████████████████████                | 166/200 [20:14<04:05,  7.22s/it]A-cola-s42:  84%|██████████████████████████████████████████████████████████████████████████████▍               | 167/200 [20:21<03:54,  7.11s/it]A-cola-s42:  84%|██████████████████████████████████████████████████████████████████████████████▉               | 168/200 [20:28<03:48,  7.13s/it]A-cola-s42:  84%|███████████████████████████████████████████████████████████████████████████████▍              | 169/200 [20:36<03:48,  7.36s/it]A-cola-s42:  85%|███████████████████████████████████████████████████████████████████████████████▉              | 170/200 [20:42<03:32,  7.07s/it]A-cola-s42:  86%|████████████████████████████████████████████████████████████████████████████████▎             | 171/200 [20:52<03:47,  7.85s/it]A-cola-s42:  86%|████████████████████████████████████████████████████████████████████████████████▊             | 172/200 [21:03<04:05,  8.76s/it]A-cola-s42:  86%|█████████████████████████████████████████████████████████████████████████████████▎            | 173/200 [21:09<03:34,  7.96s/it]A-cola-s42:  87%|█████████████████████████████████████████████████████████████████████████████████▊            | 174/200 [21:16<03:17,  7.58s/it]A-cola-s42:  88%|██████████████████████████████████████████████████████████████████████████████████▎           | 175/200 [21:22<03:01,  7.27s/it]A-cola-s42:  88%|██████████████████████████████████████████████████████████████████████████████████▋           | 176/200 [21:29<02:52,  7.20s/it]A-cola-s42:  88%|███████████████████████████████████████████████████████████████████████████████████▏          | 177/200 [21:35<02:38,  6.90s/it]A-cola-s42:  89%|███████████████████████████████████████████████████████████████████████████████████▋          | 178/200 [21:42<02:27,  6.73s/it]A-cola-s42:  90%|████████████████████████████████████████████████████████████████████████████████████▏         | 179/200 [21:51<02:34,  7.34s/it]A-cola-s42:  90%|████████████████████████████████████████████████████████████████████████████████████▌         | 180/200 [22:00<02:39,  7.97s/it]A-cola-s42:  90%|█████████████████████████████████████████████████████████████████████████████████████         | 181/200 [22:07<02:23,  7.54s/it]A-cola-s42:  91%|█████████████████████████████████████████████████████████████████████████████████████▌        | 182/200 [22:14<02:17,  7.61s/it]A-cola-s42:  92%|██████████████████████████████████████████████████████████████████████████████████████        | 183/200 [22:20<02:01,  7.13s/it]A-cola-s42:  92%|██████████████████████████████████████████████████████████████████████████████████████        | 183/200 [22:23<02:04,  7.34s/it]
-Traceback (most recent call last):
-  File "/data/main_results/scripts/paper/paper_figures_glue.py", line 2022, in <module>
-    main()
-  File "/data/main_results/scripts/paper/paper_figures_glue.py", line 1969, in main
-    summary_rows = run_single_task_seed(
-                   ^^^^^^^^^^^^^^^^^^^^^
-  File "/data/main_results/scripts/paper/paper_figures_glue.py", line 1633, in run_single_task_seed
-    run_diagnostic(model_a, loader, n_step=N_STEP, seed=seed,
-  File "/data/main_results/scripts/paper/paper_figures_glue.py", line 960, in run_diagnostic
-    outputs.loss.backward()
-  File "/opt/conda/lib/python3.11/site-packages/torch/_tensor.py", line 630, in backward
-    torch.autograd.backward(
-  File "/opt/conda/lib/python3.11/site-packages/torch/autograd/__init__.py", line 364, in backward
-    _engine_run_backward(
-  File "/opt/conda/lib/python3.11/site-packages/torch/autograd/graph.py", line 865, in _engine_run_backward
-    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/autograd/function.py", line 317, in apply
-    return user_fn(self, *args)
-           ^^^^^^^^^^^^^^^^^^^^
-  File "/opt/conda/lib/python3.11/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
-    return func(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^
-  File "/data/LRTT_transformer/src/aihwkit/simulator/tiles/functions.py", line 87, in backward
-    grad_input = analog_tile.backward(grad_output, ctx)
-                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/data/LRTT_transformer/src/aihwkit/simulator/tiles/periphery.py", line 1146, in backward
-    d_output = self.tile.backward(  # type: ignore
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-RuntimeError: CUDA out of memory. Tried to allocate 2.00 MiB. GPU 0 has a total capacity of 139.81 GiB of which 2.12 MiB is free. Process 3607433 has 37.91 GiB memory in use. Process 4095702 has 101.89 GiB memory in use. Of the allocated memory 60.05 GiB is allocated by PyTorch, and 4.25 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
-Exception raised from malloc at /pytorch/c10/cuda/CUDACachingAllocator.cpp:1574 (most recent call first):
-frame #0: c10::Error::Error(c10::SourceLocation, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) + 0x9d (0x7fff454ddfdd in /opt/conda/lib/python3.11/site-packages/torch/lib/libc10.so)
-frame #1: <unknown function> + 0x42555 (0x7fff455ad555 in /opt/conda/lib/python3.11/site-packages/torch/lib/libc10_cuda.so)
-frame #2: <unknown function> + 0x427e2 (0x7fff455ad7e2 in /opt/conda/lib/python3.11/site-packages/torch/lib/libc10_cuda.so)
-frame #3: <unknown function> + 0x42e9f (0x7fff455ade9f in /opt/conda/lib/python3.11/site-packages/torch/lib/libc10_cuda.so)
-frame #4: at::detail::empty_generic(c10::ArrayRef<long>, c10::Allocator*, c10::DispatchKeySet, c10::ScalarType, std::optional<c10::MemoryFormat>) + 0x5cc (0x7ffe674f4a7c in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
-frame #5: at::detail::empty_cuda(c10::ArrayRef<long>, c10::ScalarType, std::optional<c10::Device>, std::optional<c10::MemoryFormat>) + 0x7f (0x7ffe2949eacf in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
-frame #6: at::detail::empty_cuda(c10::ArrayRef<long>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) + 0x6e (0x7ffe2949ecde in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
-frame #7: at::native::empty_cuda(c10::ArrayRef<long>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) + 0x43 (0x7ffe297945a3 in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
-frame #8: <unknown function> + 0x3749652 (0x7ffe2bcb6652 in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
-frame #9: <unknown function> + 0x374976c (0x7ffe2bcb676c in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
-frame #10: at::_ops::empty_memory_format::redispatch(c10::DispatchKeySet, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) + 0xe6 (0x7ffe68624e36 in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
-frame #11: <unknown function> + 0x2ee5b19 (0x7ffe68a8cb19 in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
-frame #12: at::_ops::empty_memory_format::call(c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) + 0x154 (0x7ffe686f9974 in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
-frame #13: <unknown function> + 0x16cbec (0x7ff6ecbefbec in /data/LRTT_transformer/src/aihwkit/simulator/rpu_base.cpython-311-x86_64-linux-gnu.so)
-frame #14: RPU::CudaBuffer<float>::get(RPU::CudaContext*, unsigned long) + 0x10d (0x7ff6ecf3ee7d in /data/LRTT_transformer/src/aihwkit/simulator/rpu_base.cpython-311-x86_64-linux-gnu.so)
-frame #15: void RPU::InputOutputManager<float>::initWithInput<float const*>(float const*, RPU::IOMetaParameter<float> const&, int, int, bool, float, bool) + 0x2a7 (0x7ff6ecf7eb57 in /data/LRTT_transformer/src/aihwkit/simulator/rpu_base.cpython-311-x86_64-linux-gnu.so)
-frame #16: void RPU::ForwardBackwardPassIOManagedCuda<float>::backwardMatrixIterator<float const*, float*>(float*, float const*, int, bool, float*, int, bool, int, float, RPU::InputOutputManager<float>&, RPU::IOMetaParameter<float> const&) + 0x507 (0x7ff6eccb32f7 in /data/LRTT_transformer/src/aihwkit/simulator/rpu_base.cpython-311-x86_64-linux-gnu.so)
-frame #17: RPU::RPUCudaPulsed<float>::backwardMatrix(float const*, float*, int, bool, bool) + 0xbc (0x7ff6eccb365c in /data/LRTT_transformer/src/aihwkit/simulator/rpu_base.cpython-311-x86_64-linux-gnu.so)
-frame #18: <unknown function> + 0x1d20c9 (0x7ff6ecc550c9 in /data/LRTT_transformer/src/aihwkit/simulator/rpu_base.cpython-311-x86_64-linux-gnu.so)
-frame #19: <unknown function> + 0x1c4721 (0x7ff6ecc47721 in /data/LRTT_transformer/src/aihwkit/simulator/rpu_base.cpython-311-x86_64-linux-gnu.so)
-frame #20: <unknown function> + 0x1737dd (0x7ff6ecbf67dd in /data/LRTT_transformer/src/aihwkit/simulator/rpu_base.cpython-311-x86_64-linux-gnu.so)
-<omitting python frames>
-frame #29: <unknown function> + 0x818c6e (0x7ffe7b829c6e in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_python.so)
-frame #30: <unknown function> + 0x5dfef2b (0x7ffe6b9a5f2b in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
-frame #31: torch::autograd::Engine::evaluate_function(std::shared_ptr<torch::autograd::GraphTask>&, torch::autograd::Node*, torch::autograd::InputBuffer&, std::shared_ptr<torch::autograd::ReadyQueue> const&) + 0xf35 (0x7ffe6b99f815 in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
-frame #32: torch::autograd::Engine::thread_main(std::shared_ptr<torch::autograd::GraphTask> const&) + 0x5c9 (0x7ffe6b9a06c9 in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
-frame #33: torch::autograd::Engine::thread_init(int, std::shared_ptr<torch::autograd::ReadyQueue> const&, bool) + 0x337 (0x7ffe6b995a77 in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
-frame #34: <unknown function> + 0x80c632 (0x7ffe7b81d632 in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_python.so)
-frame #35: <unknown function> + 0xdc253 (0x7fff51352253 in /usr/lib/x86_64-linux-gnu/libstdc++.so.6)
-frame #36: <unknown function> + 0x94ac3 (0x7ffff7d2aac3 in /usr/lib/x86_64-linux-gnu/libc.so.6)
-frame #37: <unknown function> + 0x126a40 (0x7ffff7dbca40 in /usr/lib/x86_64-linux-gnu/libc.so.6)
-
-[2/2] GLUE Done: Sat Feb 28 01:48:45 PM UTC 2026
-
-========================================
- All done: Sat Feb 28 01:48:45 PM UTC 2026
-========================================
-
---- SQuAD per-seed ---
-  seed_42: 5 CSVs, 0 PNGs, 6 NPZs
---- SQuAD aggregate ---
---- GLUE per-task ---
-  cola: 1 seeds, 0 files
---- GLUE aggregate ---

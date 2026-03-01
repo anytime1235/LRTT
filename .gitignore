@@ -182,6 +182,7 @@ checkpoints/
 
 # Test outputs and results
 *_RESULTS/
+*.log
 
 # Compiled shared libraries (CUDA, BLAS, etc.)
 src/aihwkit.libs/
@@ -204,14 +205,3 @@ experiments/hybrid_results_*/
 *.safetensors
 *_steps.csv
 
-# Large log files (>50MB sweep/experiment logs)
-tikitaka/results/sweep_squad_15ep.log
-experiments/sweep_frozen_classifier.log
-tikitaka_v2_sweep.log
-tikitaka/tikitaka_v2_sweep.log
-sweep_output.log
-tikitaka_v2_refined_sweep.log
-tikitaka/tikitaka_v2_refined_sweep.log
-sweep_digital_merge_output.log
-tikitaka/sweep_batch256_glue_bias_freeze.log
-LRTT_glue/safe_mode_qkv_batch256_15ep_linear.log

@@ -1,4 +1,0 @@
-Sweep finished at Sun Feb 22 10:31:49 PM UTC 2026
-  >>> New best: F1=76.36 (lr=1.0000e-03)
-  Best: F1=76.36 (lr=0.0010)
-Launching pretrain_qa_full.py...

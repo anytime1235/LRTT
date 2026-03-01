@@ -1,42 +1,0 @@
-============================================================
-HIGH LEARNING RATE TEST
-============================================================
-Learning Rate: 0.05
-LoRA Alpha: 1.0
-Batch Size: 256
-Testing first 10 batches
-============================================================
-
-Loading data...
-Map:   0%|                                                                                                                                                                                                            | 0/2000 [00:00<?, ? examples/s]Map:  50%|███████████████████████████████████████████████████████████████████████████████████████████████▌                                                                                               | 1000/2000 [00:00<00:00, 2257.76 examples/s]Map: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 2000/2000 [00:00<00:00, 3167.69 examples/s]Map: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 2000/2000 [00:00<00:00, 2945.86 examples/s]
-Train batches: 346, Eval features: 2023
-
-Creating model...
-huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
-To disable this warning, you can either:
-	- Avoid using `tokenizers` before the fork if possible
-	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
-Some weights of MobileBertForQuestionAnswering were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['qa_outputs.bias', 'qa_outputs.weight']
-You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-
-Creating optimizer with lr=0.05...
-
-Initial evaluation...
-Initial F1: 3.7982, EM: 0.6500
-
-Training for 10 batches...
-Batch 0: loss=84473.2891, max_grad=2923355.7500
-Batch 1: loss=3693466624.0000, max_grad=3914800640.0000
-Batch 2: loss=112788779571814533693440.0000, max_grad=inf
-Batch 3: loss=5452045891449300237418496.0000, max_grad=inf
-
-❌ NaN/Inf detected at batch 4!
-   Loss: nan
-
-❌ Training failed with NaN/Inf!
-Completed 4/10 batches
-Loss progression before failure: [84473.2890625, 3693466624.0, 1.1278877957181453e+23, 5.4520458914493e+24]
-
-============================================================
-TEST COMPLETE
-============================================================

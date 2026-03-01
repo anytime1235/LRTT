@@ -1,57 +1,0 @@
-Task: SQuAD v1.1, Metric: F1
-BSZ: 48, max_seq: 384, epochs: 2
-Train batches: 1845, Eval features: 10784
-
-======================================================================
-[CONFIG REPORT]
-======================================================================
-  Model         : bert-base-uncased
-  Task          : SQuAD v1.1 | Metric: F1
-  Batch size    : 48 (train), 256 (eval)
-  Max seq len   : 384, Doc stride: 128
-  Epochs        : 2, Early stop patience: 2
-  Optimizer     : AnalogSGD
-  Analog LR     : sweep [0.001, 1.0] (log)
-  Classifier/LN : same as analog LR
-  Weight decay  : 0 (fixed)
-  Warmup ratio  : 0.0500
-  Warmup target : analog tile ONLY (classifier/LayerNorm -> no warmup, full LR from step 0)
-  min_lr_rate   : 0.5 (decay to 50% of peak LR)
-  LORA target   : all -> ['attention + ffn']
-  Target config : TikiTaka
-  Head layer    : train
-  Target layers : all
-  Nontarget     : digital(frozen)
-  transfer_every: 1 (fixed, uim=True, every mini-batch)
-  TLR range     : (1.0, 1000.0), FLR range: (1.0, 1.0)
-  desired_bl    : 31
-  Clip grad     : analog=False, digital=norm(1.0)
-  Seed          : 42
-  Sampler       : tpe
-  Train batches : 1845, Eval features: 10784
-======================================================================
-
-[I 2026-02-27 09:03:41,142] A new study created in RDB with name: bert_squad_tiki_all_nlos_notideal_lr001_10_20trials
-  Early stop patience: 2, Pruner: Median, startup=5, warmup=1
-
-Study: bert_squad_tiki_all_nlos_notideal_lr001_10_20trials, Device: cuda, New trials: 20
-
-======================================================================
-Trial 0 Starting (squad, metric=F1)
-======================================================================
-  transfer_every=1, transfer_lr=6.0800e+01, fast_lr=1.0000e+00, desired_bl=31
-  lr=1.33e-02, wd=0.00e+00
-  momentum=0.00, nesterov=False, optimizer=AnalogSGD
-  min_lr_rate=0.5000
-  warmup_ratio=0.0500, warmup_target=analog_tile_only  [classifier/LayerNorm: no warmup]
-======================================================================
-  [GPU] Before model: alloc=0.00GB, reserved=0.00GB
-Some weights of BertForQuestionAnswering were not initialized from the model checkpoint at bert-base-uncased and are newly initialized: ['qa_outputs.bias', 'qa_outputs.weight']
-You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-  [FIX] Reinitialized qa_outputs with FIXED seed=42
-  TikiTaka: 72, Ideal(train): 0, SingleRPU(train): 0, Ideal(frozen): 0, NT SingleRPU: 0, Total analog: 72, Total params: 23,959,010
-  Trainable: 40,418
-  Target: all -> ['attention + ffn']
-  [VERIFY] Target tiles: 72 trainable, 0 FROZEN | Non-target frozen: 0 | Analog weight params: 84,934,656
-  [GPU] After model+optimizer: alloc=0.09GB, reserved=0.11GB
-Trial 0 Ep1:   0%|                                                                                                      | 0/1845 [00:00<?, ?it/s]Trial 0 Ep1:   0%|                                                                                         | 0/1845 [00:12<?, ?it/s, loss=5.9571]Trial 0 Ep1:   0%|                                                                               | 1/1845 [00:12<6:30:35, 12.71s/it, loss=5.9571]Trial 0 Ep1:   0%|                                                                               | 1/1845 [00:55<6:30:35, 12.71s/it, loss=5.9092]Trial 0 Ep1:   0%|                                                                              | 2/1845 [00:55<15:34:46, 30.43s/it, loss=5.9092]Trial 0 Ep1:   0%|                                                                              | 2/1845 [01:39<15:34:46, 30.43s/it, loss=5.8446]Trial 0 Ep1:   0%|▏                                                                             | 3/1845 [01:39<18:43:54, 36.61s/it, loss=5.8446]Trial 0 Ep1:   0%|▏                                                                             | 3/1845 [02:22<18:43:54, 36.61s/it, loss=5.8921]Trial 0 Ep1:   0%|▏                                                                             | 4/1845 [02:22<19:58:34, 39.06s/it, loss=5.8921]

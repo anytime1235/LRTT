@@ -1,683 +1,0 @@
-============================================================
-Sixt1c-LoRA Bayesian Optimization - SQuAD
-============================================================
-Strategy: SAFE MODE (Empirically Validated)
-Trials: 30
-Epochs: 15
-Batch Size: 256
-Results dir: /data/results/sixt1c_lora_squad/sixt1c_lora_classifier_only_20260210_043119
-
-Search Space (Empirically Tested):
-  learning_rate: [0.0001, 0.01] (log)
-  lora_alpha: [0.05, 10.0] (log)
-  Max LR×Alpha: 0.100000 ✅ (safe: < 0.0001)
-
-Empirical Validation:
-  Alpha 0.001~0.030 tested stable at LR=0.001
-  Best learning: Alpha=0.01 (F1 +3.41%)
-  All combinations expected stable
-
-Fixed Parameters:
-  rank: 8
-  reinit_gain: 0.1
-  transfer_every: 1000000 (no transfer)
-  forward_inject: True
-
-Default starting point:
-  lr: 0.001
-  lora_alpha: 0.01
-  lr×alpha: 0.000010 ✅
-
-Device: cuda
-
-Running target: QKV
-
-============================================================
-Starting Sixt1c-LoRA sweep for: QKV
-Target modules: ['query', 'key', 'value']
-============================================================
-Train batches: 346, Eval features: 2023
-Some weights of MobileBertForQuestionAnswering were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['qa_outputs.bias', 'qa_outputs.weight']
-You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-[I 2026-02-10 04:31:45,886] A new study created in memory with name: sixt1c_lora_QKV
-Initial evaluation (computed once): {'f1': np.float64(5.849192156421101), 'em': np.float64(0.05)}
-  0%|                                                                                                                                                                                                                          | 0/30 [00:00<?, ?it/s]/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/optuna/trial/_trial.py:658: UserWarning: Fixed parameter 'lora_alpha' with value 0.01 is out of range for distribution FloatDistribution(high=10.0, log=True, low=0.05, step=None).
-  optuna_warn(
-wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
-wandb: Tracking run with wandb version 0.24.1
-wandb: W&B syncing is set to `offline` in this directory. Run `wandb online` or set WANDB_MODE=online to enable cloud syncing.
-wandb: Run data is saved locally in /data/LRTT_transformer/LRTT_glue/wandb/offline-run-20260210_043146-3d7nrz55
-Some weights of MobileBertForQuestionAnswering were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['qa_outputs.bias', 'qa_outputs.weight']
-You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-
-Trial 0:   0%|                                                                                                                                                                                                                | 0/346 [00:00<?, ?it/s][A[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-
-Trial 0:   0%|                                                                                                                                                                                               | 0/346 [00:05<?, ?it/s, loss=36840.1875][A
-Trial 0:   0%|▌                                                                                                                                                                                      | 1/346 [00:05<30:21,  5.28s/it, loss=36840.1875][A[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=2 lr_current=0.00099982 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-
-Trial 0:   0%|▌                                                                                                                                                                                      | 1/346 [00:06<30:21,  5.28s/it, loss=11113.7002][A
-Trial 0:   1%|█                                                                                                                                                                                      | 2/346 [00:06<16:11,  2.82s/it, loss=11113.7002][A[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-[DTE DEBUG] step=3 lr_current=0.00099963 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
-
-Trial 0:   1%|█                                                                                                                                                                                    | 2/346 [00:07<16:11,  2.82s/it, loss=2772025.0000][A
-Trial 0:   1%|█▌                                                                                                                                                                                   | 3/346 [00:07<11:41,  2.04s/it, loss=2772025.0000][A
-Trial 0:   1%|█▌                                                                                                                                                                                   | 3/346 [00:08<11:41,  2.04s/it, loss=4222389.0000][A
-Trial 0:   1%|██                                                                                                                                                                                   | 4/346 [00:08<09:33,  1.68s/it, loss=4222389.0000][A
-Trial 0:   1%|██                                                                                                                                                                                   | 4/346 [00:09<09:33,  1.68s/it, loss=2653120.0000][A
-Trial 0:   1%|██▌                                                                                                                                                                                  | 5/346 [00:09<08:27,  1.49s/it, loss=2653120.0000][A
-Trial 0:   1%|██▋                                                                                                                                                                                   | 5/346 [00:10<08:27,  1.49s/it, loss=187290.4688][A
-Trial 0:   2%|███▏                                                                                                                                                                                  | 6/346 [00:10<07:44,  1.37s/it, loss=187290.4688][A
-Trial 0:   2%|███▏                                                                                                                                                                                    | 6/346 [00:11<07:44,  1.37s/it, loss=5959.4307][A
-Trial 0:   2%|███▋                                                                                                                                                                                    | 7/346 [00:11<07:12,  1.28s/it, loss=5959.4307][A
-Trial 0:   2%|███▊                                                                                                                                                                                      | 7/346 [00:13<07:12,  1.28s/it, loss=57.7614][A
-Trial 0:   2%|████▎                                                                                                                                                                                     | 8/346 [00:13<06:50,  1.22s/it, loss=57.7614][A
-Trial 0:   2%|████▎                                                                                                                                                                                    | 8/346 [00:14<06:50,  1.22s/it, loss=235.6552][A
-Trial 0:   3%|████▊                                                                                                                                                                                    | 9/346 [00:14<06:36,  1.18s/it, loss=235.6552][A
-Trial 0:   3%|████▊                                                                                                                                                                                     | 9/346 [00:15<06:36,  1.18s/it, loss=93.3405][A
-Trial 0:   3%|█████▎                                                                                                                                                                                   | 10/346 [00:15<06:30,  1.16s/it, loss=93.3405][A
-Trial 0:   3%|█████▎                                                                                                                                                                                   | 10/346 [00:16<06:30,  1.16s/it, loss=47.0711][A
-Trial 0:   3%|█████▉                                                                                                                                                                                   | 11/346 [00:16<06:21,  1.14s/it, loss=47.0711][A
-Trial 0:   3%|█████▊                                                                                                                                                                                 | 11/346 [00:17<06:21,  1.14s/it, loss=2191.2617][A
-Trial 0:   3%|██████▎                                                                                                                                                                                | 12/346 [00:17<06:15,  1.13s/it, loss=2191.2617][A
-Trial 0:   3%|██████▎                                                                                                                                                                                | 12/346 [00:18<06:15,  1.13s/it, loss=3009.1150][A
-Trial 0:   4%|██████▉                                                                                                                                                                                | 13/346 [00:18<06:10,  1.11s/it, loss=3009.1150][A
-Trial 0:   4%|██████▉                                                                                                                                                                                | 13/346 [00:19<06:10,  1.11s/it, loss=1955.5543][A
-Trial 0:   4%|███████▍                                                                                                                                                                               | 14/346 [00:19<06:06,  1.10s/it, loss=1955.5543][A
-Trial 0:   4%|███████▍                                                                                                                                                                               | 14/346 [00:20<06:06,  1.10s/it, loss=1020.7618][A
-Trial 0:   4%|███████▉                                                                                                                                                                               | 15/346 [00:20<06:03,  1.10s/it, loss=1020.7618][A
-Trial 0:   4%|████████                                                                                                                                                                                  | 15/346 [00:21<06:03,  1.10s/it, loss=6.5430][A
-Trial 0:   5%|████████▌                                                                                                                                                                                 | 16/346 [00:21<06:01,  1.09s/it, loss=6.5430][A
-Trial 0:   5%|████████▌                                                                                                                                                                                | 16/346 [00:22<06:01,  1.09s/it, loss=36.2542][A
-Trial 0:   5%|█████████                                                                                                                                                                                | 17/346 [00:22<05:58,  1.09s/it, loss=36.2542][A
-Trial 0:   5%|█████████                                                                                                                                                                                | 17/346 [00:23<05:58,  1.09s/it, loss=21.6486][A
-Trial 0:   5%|█████████▌                                                                                                                                                                               | 18/346 [00:23<05:57,  1.09s/it, loss=21.6486][A
-Trial 0:   5%|█████████▌                                                                                                                                                                             | 18/346 [00:25<05:57,  1.09s/it, loss=1362.9028][A
-Trial 0:   5%|██████████                                                                                                                                                                             | 19/346 [00:25<05:55,  1.09s/it, loss=1362.9028][A
-Trial 0:   5%|██████████                                                                                                                                                                             | 19/346 [00:26<05:55,  1.09s/it, loss=1821.8635][A
-Trial 0:   6%|██████████▌                                                                                                                                                                            | 20/346 [00:26<05:55,  1.09s/it, loss=1821.8635][A
-Trial 0:   6%|██████████▌                                                                                                                                                                            | 20/346 [00:27<05:55,  1.09s/it, loss=1429.6117][A
-Trial 0:   6%|███████████                                                                                                                                                                            | 21/346 [00:27<05:53,  1.09s/it, loss=1429.6117][A
-Trial 0:   6%|███████████▏                                                                                                                                                                             | 21/346 [00:28<05:53,  1.09s/it, loss=90.0472][A
-Trial 0:   6%|███████████▊                                                                                                                                                                             | 22/346 [00:28<05:52,  1.09s/it, loss=90.0472][A
-Trial 0:   6%|███████████▋                                                                                                                                                                            | 22/346 [00:29<05:52,  1.09s/it, loss=125.8318][A
-Trial 0:   7%|████████████▏                                                                                                                                                                           | 23/346 [00:29<05:52,  1.09s/it, loss=125.8318][A
-Trial 0:   7%|████████████▎                                                                                                                                                                            | 23/346 [00:30<05:52,  1.09s/it, loss=75.8265][A
-Trial 0:   7%|████████████▊                                                                                                                                                                            | 24/346 [00:30<05:50,  1.09s/it, loss=75.8265][A
-Trial 0:   7%|████████████▊                                                                                                                                                                            | 24/346 [00:31<05:50,  1.09s/it, loss=73.5822][A
-Trial 0:   7%|█████████████▎                                                                                                                                                                           | 25/346 [00:31<05:49,  1.09s/it, loss=73.5822][A
-Trial 0:   7%|█████████████▎                                                                                                                                                                           | 25/346 [00:32<05:49,  1.09s/it, loss=39.2851][A
-Trial 0:   8%|█████████████▉                                                                                                                                                                           | 26/346 [00:32<05:47,  1.09s/it, loss=39.2851][A
-Trial 0:   8%|█████████████▊                                                                                                                                                                          | 26/346 [00:33<05:47,  1.09s/it, loss=130.2035][A
-Trial 0:   8%|██████████████▎                                                                                                                                                                         | 27/346 [00:33<05:47,  1.09s/it, loss=130.2035][A
-Trial 0:   8%|██████████████▎                                                                                                                                                                        | 27/346 [00:34<05:47,  1.09s/it, loss=1142.4226][A
-Trial 0:   8%|██████████████▊                                                                                                                                                                        | 28/346 [00:34<05:47,  1.09s/it, loss=1142.4226][A
-Trial 0:   8%|██████████████▉                                                                                                                                                                         | 28/346 [00:35<05:47,  1.09s/it, loss=891.1422][A
-Trial 0:   8%|███████████████▍                                                                                                                                                                        | 29/346 [00:35<05:45,  1.09s/it, loss=891.1422][A
-Trial 0:   8%|███████████████▍                                                                                                                                                                        | 29/346 [00:37<05:45,  1.09s/it, loss=190.8115][A
-Trial 0:   9%|███████████████▉                                                                                                                                                                        | 30/346 [00:37<05:44,  1.09s/it, loss=190.8115][A
-Trial 0:   9%|████████████████▏                                                                                                                                                                         | 30/346 [00:38<05:44,  1.09s/it, loss=9.7559][A
-Trial 0:   9%|████████████████▋                                                                                                                                                                         | 31/346 [00:38<05:43,  1.09s/it, loss=9.7559][A
-Trial 0:   9%|████████████████▍                                                                                                                                                                       | 31/346 [00:39<05:43,  1.09s/it, loss=763.5571][A
-Trial 0:   9%|█████████████████                                                                                                                                                                       | 32/346 [00:39<05:42,  1.09s/it, loss=763.5571][A
-Trial 0:   9%|█████████████████                                                                                                                                                                       | 32/346 [00:40<05:42,  1.09s/it, loss=829.9486][A
-Trial 0:  10%|█████████████████▌                                                                                                                                                                      | 33/346 [00:40<05:41,  1.09s/it, loss=829.9486][A
-Trial 0:  10%|█████████████████▌                                                                                                                                                                      | 33/346 [00:41<05:41,  1.09s/it, loss=243.7353][A
-Trial 0:  10%|██████████████████                                                                                                                                                                      | 34/346 [00:41<05:40,  1.09s/it, loss=243.7353][A
-Trial 0:  10%|██████████████████▏                                                                                                                                                                      | 34/346 [00:42<05:40,  1.09s/it, loss=74.3169][A
-Trial 0:  10%|██████████████████▋                                                                                                                                                                      | 35/346 [00:42<05:40,  1.09s/it, loss=74.3169][A
-Trial 0:  10%|██████████████████▋                                                                                                                                                                      | 35/346 [00:43<05:40,  1.09s/it, loss=40.0825][A
-Trial 0:  10%|███████████████████▏                                                                                                                                                                     | 36/346 [00:43<05:38,  1.09s/it, loss=40.0825][A
-Trial 0:  10%|███████████████████▏                                                                                                                                                                     | 36/346 [00:44<05:38,  1.09s/it, loss=20.4899][A
-Trial 0:  11%|███████████████████▊                                                                                                                                                                     | 37/346 [00:44<05:36,  1.09s/it, loss=20.4899][A
-Trial 0:  11%|███████████████████▊                                                                                                                                                                     | 37/346 [00:45<05:36,  1.09s/it, loss=31.9704][A
-Trial 0:  11%|████████████████████▎                                                                                                                                                                    | 38/346 [00:45<05:35,  1.09s/it, loss=31.9704][A
-Trial 0:  11%|████████████████████▎                                                                                                                                                                    | 38/346 [00:46<05:35,  1.09s/it, loss=16.0289][A
-Trial 0:  11%|████████████████████▊                                                                                                                                                                    | 39/346 [00:46<05:34,  1.09s/it, loss=16.0289][A
-Trial 0:  11%|████████████████████▋                                                                                                                                                                  | 39/346 [00:47<05:34,  1.09s/it, loss=2134.5693][A
-Trial 0:  12%|█████████████████████▏                                                                                                                                                                 | 40/346 [00:47<05:32,  1.09s/it, loss=2134.5693][A
-Trial 0:  12%|█████████████████████▏                                                                                                                                                                 | 40/346 [00:49<05:32,  1.09s/it, loss=4103.2002][A
-Trial 0:  12%|█████████████████████▋                                                                                                                                                                 | 41/346 [00:49<05:35,  1.10s/it, loss=4103.2002][A
-Trial 0:  12%|█████████████████████▋                                                                                                                                                                 | 41/346 [00:50<05:35,  1.10s/it, loss=3597.1394][A
-Trial 0:  12%|██████████████████████▏                                                                                                                                                                | 42/346 [00:50<05:33,  1.10s/it, loss=3597.1394][A
-Trial 0:  12%|██████████████████████▏                                                                                                                                                                | 42/346 [00:51<05:33,  1.10s/it, loss=3144.4355][A
-Trial 0:  12%|██████████████████████▋                                                                                                                                                                | 43/346 [00:51<05:31,  1.09s/it, loss=3144.4355][A
-Trial 0:  12%|██████████████████████▋                                                                                                                                                                | 43/346 [00:52<05:31,  1.09s/it, loss=3635.2566][A
-Trial 0:  13%|███████████████████████▎                                                                                                                                                               | 44/346 [00:52<05:29,  1.09s/it, loss=3635.2566][A
-Trial 0:  13%|███████████████████████▎                                                                                                                                                               | 44/346 [00:53<05:29,  1.09s/it, loss=1011.0507][A
-Trial 0:  13%|███████████████████████▊                                                                                                                                                               | 45/346 [00:53<05:27,  1.09s/it, loss=1011.0507][A
-Trial 0:  13%|████████████████████████▏                                                                                                                                                                 | 45/346 [00:54<05:27,  1.09s/it, loss=6.2347][A
-Trial 0:  13%|████████████████████████▋                                                                                                                                                                 | 46/346 [00:54<05:26,  1.09s/it, loss=6.2347][A
-Trial 0:  13%|████████████████████████▌                                                                                                                                                                | 46/346 [00:55<05:26,  1.09s/it, loss=35.0343][A
-Trial 0:  14%|█████████████████████████▏                                                                                                                                                               | 47/346 [00:55<05:25,  1.09s/it, loss=35.0343][A
-Trial 0:  14%|█████████████████████████▏                                                                                                                                                               | 47/346 [00:56<05:25,  1.09s/it, loss=59.1008][A
-Trial 0:  14%|█████████████████████████▋                                                                                                                                                               | 48/346 [00:56<05:24,  1.09s/it, loss=59.1008][A
-Trial 0:  14%|█████████████████████████▋                                                                                                                                                               | 48/346 [00:57<05:24,  1.09s/it, loss=26.8726][A
-Trial 0:  14%|██████████████████████████▏                                                                                                                                                              | 49/346 [00:57<05:22,  1.09s/it, loss=26.8726][A
-Trial 0:  14%|██████████████████████████▏                                                                                                                                                              | 49/346 [00:58<05:22,  1.09s/it, loss=45.0985][A
-Trial 0:  14%|██████████████████████████▋                                                                                                                                                              | 50/346 [00:58<05:21,  1.09s/it, loss=45.0985][A
-Trial 0:  14%|██████████████████████████▋                                                                                                                                                              | 50/346 [00:59<05:21,  1.09s/it, loss=47.1268][A
-Trial 0:  15%|███████████████████████████▎                                                                                                                                                             | 51/346 [00:59<05:20,  1.09s/it, loss=47.1268][A
-Trial 0:  15%|███████████████████████████                                                                                                                                                             | 51/346 [01:01<05:20,  1.09s/it, loss=645.3744][A
-Trial 0:  15%|███████████████████████████▋                                                                                                                                                            | 52/346 [01:01<05:19,  1.09s/it, loss=645.3744][A
-Trial 0:  15%|███████████████████████████▋                                                                                                                                                            | 52/346 [01:02<05:19,  1.09s/it, loss=755.7396][A
-Trial 0:  15%|████████████████████████████▏                                                                                                                                                           | 53/346 [01:02<05:19,  1.09s/it, loss=755.7396][A
-Trial 0:  15%|████████████████████████████▏                                                                                                                                                           | 53/346 [01:03<05:19,  1.09s/it, loss=623.5050][A
-Trial 0:  16%|████████████████████████████▋                                                                                                                                                           | 54/346 [01:03<05:33,  1.14s/it, loss=623.5050][A
-Trial 0:  16%|████████████████████████████▊                                                                                                                                                            | 54/346 [01:04<05:33,  1.14s/it, loss=21.3239][A
-Trial 0:  16%|█████████████████████████████▍                                                                                                                                                           | 55/346 [01:04<05:27,  1.12s/it, loss=21.3239][A
-Trial 0:  16%|█████████████████████████████▍                                                                                                                                                           | 55/346 [01:05<05:27,  1.12s/it, loss=12.7093][A
-Trial 0:  16%|█████████████████████████████▉                                                                                                                                                           | 56/346 [01:05<05:22,  1.11s/it, loss=12.7093][A
-Trial 0:  16%|█████████████████████████████▉                                                                                                                                                           | 56/346 [01:06<05:22,  1.11s/it, loss=20.1538][A
-Trial 0:  16%|██████████████████████████████▍                                                                                                                                                          | 57/346 [01:06<05:18,  1.10s/it, loss=20.1538][A
-Trial 0:  16%|██████████████████████████████▍                                                                                                                                                          | 57/346 [01:07<05:18,  1.10s/it, loss=40.1588][A
-Trial 0:  17%|███████████████████████████████                                                                                                                                                          | 58/346 [01:07<05:15,  1.09s/it, loss=40.1588][A
-Trial 0:  17%|███████████████████████████████▏                                                                                                                                                          | 58/346 [01:08<05:15,  1.09s/it, loss=5.7952][A
-Trial 0:  17%|███████████████████████████████▋                                                                                                                                                          | 59/346 [01:08<05:12,  1.09s/it, loss=5.7952][A
-Trial 0:  17%|███████████████████████████████▍                                                                                                                                                        | 59/346 [01:09<05:12,  1.09s/it, loss=137.3917][A
-Trial 0:  17%|███████████████████████████████▉                                                                                                                                                        | 60/346 [01:09<05:10,  1.09s/it, loss=137.3917][A
-Trial 0:  17%|████████████████████████████████                                                                                                                                                         | 60/346 [01:10<05:10,  1.09s/it, loss=17.9491][A
-Trial 0:  18%|████████████████████████████████▌                                                                                                                                                        | 61/346 [01:10<05:09,  1.09s/it, loss=17.9491][A
-Trial 0:  18%|████████████████████████████████▌                                                                                                                                                        | 61/346 [01:12<05:09,  1.09s/it, loss=13.0224][A
-Trial 0:  18%|█████████████████████████████████▏                                                                                                                                                       | 62/346 [01:12<05:07,  1.08s/it, loss=13.0224][A
-Trial 0:  18%|████████████████████████████████▉                                                                                                                                                       | 62/346 [01:13<05:07,  1.08s/it, loss=652.9288][A
-Trial 0:  18%|█████████████████████████████████▌                                                                                                                                                      | 63/346 [01:13<05:06,  1.08s/it, loss=652.9288][A
-Trial 0:  18%|█████████████████████████████████▌                                                                                                                                                      | 63/346 [01:14<05:06,  1.08s/it, loss=772.4475][A
-Trial 0:  18%|██████████████████████████████████                                                                                                                                                      | 64/346 [01:14<05:05,  1.08s/it, loss=772.4475][A
-Trial 0:  18%|██████████████████████████████████                                                                                                                                                      | 64/346 [01:15<05:05,  1.08s/it, loss=805.4487][A
-Trial 0:  19%|██████████████████████████████████▌                                                                                                                                                     | 65/346 [01:15<05:04,  1.08s/it, loss=805.4487][A
-Trial 0:  19%|██████████████████████████████████▌                                                                                                                                                     | 65/346 [01:16<05:04,  1.08s/it, loss=485.9219][A
-Trial 0:  19%|███████████████████████████████████                                                                                                                                                     | 66/346 [01:16<05:02,  1.08s/it, loss=485.9219][A
-Trial 0:  19%|███████████████████████████████████▍                                                                                                                                                      | 66/346 [01:17<05:02,  1.08s/it, loss=9.3212][A
-Trial 0:  19%|████████████████████████████████████                                                                                                                                                      | 67/346 [01:17<05:01,  1.08s/it, loss=9.3212][A
-Trial 0:  19%|███████████████████████████████████▊                                                                                                                                                     | 67/346 [01:18<05:01,  1.08s/it, loss=10.6878][A
-Trial 0:  20%|████████████████████████████████████▎                                                                                                                                                    | 68/346 [01:18<05:00,  1.08s/it, loss=10.6878][A
-Trial 0:  20%|████████████████████████████████████▌                                                                                                                                                     | 68/346 [01:19<05:00,  1.08s/it, loss=5.7695][A
-Trial 0:  20%|█████████████████████████████████████                                                                                                                                                     | 69/346 [01:19<04:59,  1.08s/it, loss=5.7695][A
-Trial 0:  20%|█████████████████████████████████████                                                                                                                                                     | 69/346 [01:20<04:59,  1.08s/it, loss=5.6702][A
-Trial 0:  20%|█████████████████████████████████████▋                                                                                                                                                    | 70/346 [01:20<04:58,  1.08s/it, loss=5.6702][A
-Trial 0:  20%|█████████████████████████████████████▋                                                                                                                                                    | 70/346 [01:21<04:58,  1.08s/it, loss=9.7066][A
-Trial 0:  21%|██████████████████████████████████████▏                                                                                                                                                   | 71/346 [01:21<04:58,  1.08s/it, loss=9.7066][A
-Trial 0:  21%|█████████████████████████████████████▊                                                                                                                                                  | 71/346 [01:22<04:58,  1.08s/it, loss=484.6090][A
-Trial 0:  21%|██████████████████████████████████████▎                                                                                                                                                 | 72/346 [01:22<04:57,  1.08s/it, loss=484.6090][A
-Trial 0:  21%|██████████████████████████████████████▎                                                                                                                                                 | 72/346 [01:23<04:57,  1.08s/it, loss=540.8002][A
-Trial 0:  21%|██████████████████████████████████████▊                                                                                                                                                 | 73/346 [01:23<04:55,  1.08s/it, loss=540.8002][A
-Trial 0:  21%|██████████████████████████████████████▊                                                                                                                                                 | 73/346 [01:25<04:55,  1.08s/it, loss=186.7906][A
-Trial 0:  21%|███████████████████████████████████████▎                                                                                                                                                | 74/346 [01:25<04:54,  1.08s/it, loss=186.7906][A
-Trial 0:  21%|███████████████████████████████████████▌                                                                                                                                                 | 74/346 [01:26<04:54,  1.08s/it, loss=17.8334][A
-Trial 0:  22%|████████████████████████████████████████                                                                                                                                                 | 75/346 [01:26<04:53,  1.08s/it, loss=17.8334][A
-Trial 0:  22%|███████████████████████████████████████▉                                                                                                                                                | 75/346 [01:27<04:53,  1.08s/it, loss=156.1552][A
-Trial 0:  22%|████████████████████████████████████████▍                                                                                                                                               | 76/346 [01:27<04:53,  1.09s/it, loss=156.1552][A
-Trial 0:  22%|████████████████████████████████████████▋                                                                                                                                                | 76/346 [01:28<04:53,  1.09s/it, loss=12.2746][A
-Trial 0:  22%|█████████████████████████████████████████▏                                                                                                                                               | 77/346 [01:28<04:53,  1.09s/it, loss=12.2746][A
-Trial 0:  22%|█████████████████████████████████████████▏                                                                                                                                               | 77/346 [01:29<04:53,  1.09s/it, loss=26.6572][A
-Trial 0:  23%|█████████████████████████████████████████▋                                                                                                                                               | 78/346 [01:29<04:52,  1.09s/it, loss=26.6572][A
-Trial 0:  23%|█████████████████████████████████████████▉                                                                                                                                                | 78/346 [01:30<04:52,  1.09s/it, loss=9.5213][A
-Trial 0:  23%|██████████████████████████████████████████▍                                                                                                                                               | 79/346 [01:30<04:50,  1.09s/it, loss=9.5213][A
-Trial 0:  23%|██████████████████████████████████████████▏                                                                                                                                              | 79/346 [01:31<04:50,  1.09s/it, loss=10.8028][A
-Trial 0:  23%|██████████████████████████████████████████▊                                                                                                                                              | 80/346 [01:31<04:49,  1.09s/it, loss=10.8028][A
-Trial 0:  23%|██████████████████████████████████████████▌                                                                                                                                             | 80/346 [01:32<04:49,  1.09s/it, loss=147.8356][A
-Trial 0:  23%|███████████████████████████████████████████                                                                                                                                             | 81/346 [01:32<04:48,  1.09s/it, loss=147.8356][A
-Trial 0:  23%|███████████████████████████████████████████                                                                                                                                             | 81/346 [01:33<04:48,  1.09s/it, loss=506.4423][A
-Trial 0:  24%|███████████████████████████████████████████▌                                                                                                                                            | 82/346 [01:33<04:46,  1.09s/it, loss=506.4423][A
-Trial 0:  24%|███████████████████████████████████████████▌                                                                                                                                            | 82/346 [01:34<04:46,  1.09s/it, loss=258.9597][A
-Trial 0:  24%|████████████████████████████████████████████▏                                                                                                                                           | 83/346 [01:34<04:46,  1.09s/it, loss=258.9597][A
-Trial 0:  24%|████████████████████████████████████████████▍                                                                                                                                            | 83/346 [01:35<04:46,  1.09s/it, loss=19.7366][A
-Trial 0:  24%|████████████████████████████████████████████▉                                                                                                                                            | 84/346 [01:35<04:45,  1.09s/it, loss=19.7366][A
-Trial 0:  24%|████████████████████████████████████████████▉                                                                                                                                            | 84/346 [01:37<04:45,  1.09s/it, loss=11.0009][A
-Trial 0:  25%|█████████████████████████████████████████████▍                                                                                                                                           | 85/346 [01:37<04:44,  1.09s/it, loss=11.0009][A
-Trial 0:  25%|█████████████████████████████████████████████▍                                                                                                                                           | 85/346 [01:38<04:44,  1.09s/it, loss=96.8050][A
-Trial 0:  25%|█████████████████████████████████████████████▉                                                                                                                                           | 86/346 [01:38<04:43,  1.09s/it, loss=96.8050][A
-Trial 0:  25%|██████████████████████████████████████████████▏                                                                                                                                           | 86/346 [01:39<04:43,  1.09s/it, loss=5.6801][A
-Trial 0:  25%|██████████████████████████████████████████████▊                                                                                                                                           | 87/346 [01:39<04:42,  1.09s/it, loss=5.6801][A
-Trial 0:  25%|██████████████████████████████████████████████▎                                                                                                                                         | 87/346 [01:40<04:42,  1.09s/it, loss=474.8197][A
-Trial 0:  25%|██████████████████████████████████████████████▊                                                                                                                                         | 88/346 [01:40<04:41,  1.09s/it, loss=474.8197][A
-Trial 0:  25%|██████████████████████████████████████████████▊                                                                                                                                         | 88/346 [01:41<04:41,  1.09s/it, loss=439.6438][A
-Trial 0:  26%|███████████████████████████████████████████████▎                                                                                                                                        | 89/346 [01:41<04:40,  1.09s/it, loss=439.6438][A
-Trial 0:  26%|███████████████████████████████████████████████▌                                                                                                                                         | 89/346 [01:42<04:40,  1.09s/it, loss=98.3799][A
-Trial 0:  26%|████████████████████████████████████████████████                                                                                                                                         | 90/346 [01:42<04:39,  1.09s/it, loss=98.3799][A
-Trial 0:  26%|████████████████████████████████████████████████                                                                                                                                         | 90/346 [01:43<04:39,  1.09s/it, loss=24.7110][A
-Trial 0:  26%|████████████████████████████████████████████████▋                                                                                                                                        | 91/346 [01:43<04:37,  1.09s/it, loss=24.7110][A
-Trial 0:  26%|████████████████████████████████████████████████▋                                                                                                                                        | 91/346 [01:44<04:37,  1.09s/it, loss=14.4020][A
-Trial 0:  27%|█████████████████████████████████████████████████▏                                                                                                                                       | 92/346 [01:44<04:36,  1.09s/it, loss=14.4020][A
-Trial 0:  27%|████████████████████████████████████████████████▉                                                                                                                                       | 92/346 [01:45<04:36,  1.09s/it, loss=416.6982][A
-Trial 0:  27%|█████████████████████████████████████████████████▍                                                                                                                                      | 93/346 [01:45<04:34,  1.08s/it, loss=416.6982][A
-Trial 0:  27%|█████████████████████████████████████████████████▍                                                                                                                                      | 93/346 [01:46<04:34,  1.08s/it, loss=429.4735][A
-Trial 0:  27%|█████████████████████████████████████████████████▉                                                                                                                                      | 94/346 [01:46<04:33,  1.09s/it, loss=429.4735][A
-Trial 0:  27%|██████████████████████████████████████████████████▎                                                                                                                                      | 94/346 [01:47<04:33,  1.09s/it, loss=81.2637][A
-Trial 0:  27%|██████████████████████████████████████████████████▊                                                                                                                                      | 95/346 [01:47<04:32,  1.09s/it, loss=81.2637][A
-Trial 0:  27%|███████████████████████████████████████████████████                                                                                                                                       | 95/346 [01:48<04:32,  1.09s/it, loss=5.1794][A
-Trial 0:  28%|███████████████████████████████████████████████████▌                                                                                                                                      | 96/346 [01:48<04:30,  1.08s/it, loss=5.1794][A
-Trial 0:  28%|███████████████████████████████████████████████████▎                                                                                                                                     | 96/346 [01:50<04:30,  1.08s/it, loss=15.9437][A
-Trial 0:  28%|███████████████████████████████████████████████████▊                                                                                                                                     | 97/346 [01:50<04:29,  1.08s/it, loss=15.9437][A
-Trial 0:  28%|███████████████████████████████████████████████████▊                                                                                                                                     | 97/346 [01:51<04:29,  1.08s/it, loss=17.5151][A
-Trial 0:  28%|████████████████████████████████████████████████████▍                                                                                                                                    | 98/346 [01:51<04:28,  1.08s/it, loss=17.5151][A
-Trial 0:  28%|████████████████████████████████████████████████████▍                                                                                                                                    | 98/346 [01:52<04:28,  1.08s/it, loss=24.2065][A
-Trial 0:  29%|████████████████████████████████████████████████████▉                                                                                                                                    | 99/346 [01:52<04:27,  1.08s/it, loss=24.2065][A
-Trial 0:  29%|████████████████████████████████████████████████████▋                                                                                                                                   | 99/346 [01:53<04:27,  1.08s/it, loss=499.4479][A
-Trial 0:  29%|████████████████████████████████████████████████████▉                                                                                                                                  | 100/346 [01:53<04:26,  1.08s/it, loss=499.4479][A
-Trial 0:  29%|████████████████████████████████████████████████████▉                                                                                                                                  | 100/346 [01:54<04:26,  1.08s/it, loss=674.3071][A
-Trial 0:  29%|█████████████████████████████████████████████████████▍                                                                                                                                 | 101/346 [01:54<04:25,  1.09s/it, loss=674.3071][A
-Trial 0:  29%|█████████████████████████████████████████████████████▍                                                                                                                                 | 101/346 [01:55<04:25,  1.09s/it, loss=620.0804][A
-Trial 0:  29%|█████████████████████████████████████████████████████▉                                                                                                                                 | 102/346 [01:55<04:24,  1.09s/it, loss=620.0804][A
-Trial 0:  29%|█████████████████████████████████████████████████████▉                                                                                                                                 | 102/346 [01:56<04:24,  1.09s/it, loss=121.2042][A
-Trial 0:  30%|██████████████████████████████████████████████████████▍                                                                                                                                | 103/346 [01:56<04:23,  1.08s/it, loss=121.2042][A
-Trial 0:  30%|██████████████████████████████████████████████████████▊                                                                                                                                 | 103/346 [01:57<04:23,  1.08s/it, loss=12.9828][A
-Trial 0:  30%|███████████████████████████████████████████████████████▎                                                                                                                                | 104/346 [01:57<04:22,  1.09s/it, loss=12.9828][A
-Trial 0:  30%|███████████████████████████████████████████████████████▎                                                                                                                                | 104/346 [01:58<04:22,  1.09s/it, loss=14.9330][A
-Trial 0:  30%|███████████████████████████████████████████████████████▊                                                                                                                                | 105/346 [01:58<04:21,  1.08s/it, loss=14.9330][A
-Trial 0:  30%|███████████████████████████████████████████████████████▌                                                                                                                               | 105/346 [01:59<04:21,  1.08s/it, loss=519.3196][A
-Trial 0:  31%|████████████████████████████████████████████████████████                                                                                                                               | 106/346 [01:59<04:20,  1.09s/it, loss=519.3196][A
-Trial 0:  31%|████████████████████████████████████████████████████████                                                                                                                               | 106/346 [02:00<04:20,  1.09s/it, loss=795.2003][A
-Trial 0:  31%|████████████████████████████████████████████████████████▌                                                                                                                              | 107/346 [02:00<04:18,  1.08s/it, loss=795.2003][A
-Trial 0:  31%|████████████████████████████████████████████████████████▌                                                                                                                              | 107/346 [02:01<04:18,  1.08s/it, loss=490.8006][A
-Trial 0:  31%|█████████████████████████████████████████████████████████                                                                                                                              | 108/346 [02:01<04:17,  1.08s/it, loss=490.8006][A
-Trial 0:  31%|█████████████████████████████████████████████████████████▍                                                                                                                              | 108/346 [02:03<04:17,  1.08s/it, loss=22.9556][A
-Trial 0:  32%|█████████████████████████████████████████████████████████▉                                                                                                                              | 109/346 [02:03<04:17,  1.08s/it, loss=22.9556][A
-Trial 0:  32%|█████████████████████████████████████████████████████████▉                                                                                                                              | 109/346 [02:04<04:17,  1.08s/it, loss=19.7564][A
-Trial 0:  32%|██████████████████████████████████████████████████████████▍                                                                                                                             | 110/346 [02:04<04:16,  1.08s/it, loss=19.7564][A
-Trial 0:  32%|██████████████████████████████████████████████████████████▊                                                                                                                              | 110/346 [02:05<04:16,  1.08s/it, loss=5.0769][A
-Trial 0:  32%|███████████████████████████████████████████████████████████▎                                                                                                                             | 111/346 [02:05<04:15,  1.09s/it, loss=5.0769][A
-Trial 0:  32%|███████████████████████████████████████████████████████████▎                                                                                                                             | 111/346 [02:06<04:15,  1.09s/it, loss=7.4682][A
-Trial 0:  32%|███████████████████████████████████████████████████████████▉                                                                                                                             | 112/346 [02:06<04:14,  1.09s/it, loss=7.4682][A
-Trial 0:  32%|███████████████████████████████████████████████████████████▉                                                                                                                             | 112/346 [02:07<04:14,  1.09s/it, loss=6.6713][A
-Trial 0:  33%|████████████████████████████████████████████████████████████▍                                                                                                                            | 113/346 [02:07<04:12,  1.08s/it, loss=6.6713][A
-Trial 0:  33%|███████████████████████████████████████████████████████████▊                                                                                                                           | 113/346 [02:08<04:12,  1.08s/it, loss=615.7258][A
-Trial 0:  33%|████████████████████████████████████████████████████████████▎                                                                                                                          | 114/346 [02:08<04:11,  1.08s/it, loss=615.7258][A
-Trial 0:  33%|███████████████████████████████████████████████████████████▉                                                                                                                          | 114/346 [02:09<04:11,  1.08s/it, loss=1071.0880][A
-Trial 0:  33%|████████████████████████████████████████████████████████████▍                                                                                                                         | 115/346 [02:09<04:10,  1.08s/it, loss=1071.0880][A
-Trial 0:  33%|████████████████████████████████████████████████████████████▊                                                                                                                          | 115/346 [02:10<04:10,  1.08s/it, loss=992.1942][A
-Trial 0:  34%|█████████████████████████████████████████████████████████████▎                                                                                                                         | 116/346 [02:10<04:09,  1.08s/it, loss=992.1942][A
-Trial 0:  34%|█████████████████████████████████████████████████████████████▎                                                                                                                         | 116/346 [02:11<04:09,  1.08s/it, loss=842.3312][A
-Trial 0:  34%|█████████████████████████████████████████████████████████████▉                                                                                                                         | 117/346 [02:11<04:08,  1.09s/it, loss=842.3312][A
-Trial 0:  34%|█████████████████████████████████████████████████████████████▉                                                                                                                         | 117/346 [02:12<04:08,  1.09s/it, loss=431.5889][A
-Trial 0:  34%|██████████████████████████████████████████████████████████████▍                                                                                                                        | 118/346 [02:12<04:07,  1.09s/it, loss=431.5889][A
-Trial 0:  34%|██████████████████████████████████████████████████████████████▊                                                                                                                         | 118/346 [02:13<04:07,  1.09s/it, loss=14.1502][A
-Trial 0:  34%|███████████████████████████████████████████████████████████████▎                                                                                                                        | 119/346 [02:13<04:06,  1.08s/it, loss=14.1502][A
-Trial 0:  34%|███████████████████████████████████████████████████████████████▎                                                                                                                        | 119/346 [02:14<04:06,  1.08s/it, loss=15.7213][A
-Trial 0:  35%|███████████████████████████████████████████████████████████████▊                                                                                                                        | 120/346 [02:14<04:04,  1.08s/it, loss=15.7213][A
-Trial 0:  35%|███████████████████████████████████████████████████████████████▊                                                                                                                        | 120/346 [02:16<04:04,  1.08s/it, loss=33.3026][A
-Trial 0:  35%|████████████████████████████████████████████████████████████████▎                                                                                                                       | 121/346 [02:16<04:03,  1.08s/it, loss=33.3026][A
-Trial 0:  35%|████████████████████████████████████████████████████████████████▋                                                                                                                        | 121/346 [02:17<04:03,  1.08s/it, loss=4.9028][A
-Trial 0:  35%|█████████████████████████████████████████████████████████████████▏                                                                                                                       | 122/346 [02:17<04:02,  1.08s/it, loss=4.9028][A
-Trial 0:  35%|████████████████████████████████████████████████████████████████▉                                                                                                                       | 122/346 [02:18<04:02,  1.08s/it, loss=13.0506][A
-Trial 0:  36%|█████████████████████████████████████████████████████████████████▍                                                                                                                      | 123/346 [02:18<04:01,  1.08s/it, loss=13.0506][A
-Trial 0:  36%|█████████████████████████████████████████████████████████████████▍                                                                                                                      | 123/346 [02:19<04:01,  1.08s/it, loss=13.3133][A
-Trial 0:  36%|█████████████████████████████████████████████████████████████████▉                                                                                                                      | 124/346 [02:19<04:01,  1.09s/it, loss=13.3133][A
-Trial 0:  36%|█████████████████████████████████████████████████████████████████▌                                                                                                                     | 124/346 [02:20<04:01,  1.09s/it, loss=207.2463][A
-Trial 0:  36%|██████████████████████████████████████████████████████████████████                                                                                                                     | 125/346 [02:20<04:00,  1.09s/it, loss=207.2463][A
-Trial 0:  36%|██████████████████████████████████████████████████████████████████▍                                                                                                                     | 125/346 [02:21<04:00,  1.09s/it, loss=65.4896][A
-Trial 0:  36%|███████████████████████████████████████████████████████████████████                                                                                                                     | 126/346 [02:21<03:59,  1.09s/it, loss=65.4896][A
-Trial 0:  36%|██████████████████████████████████████████████████████████████████▋                                                                                                                    | 126/346 [02:22<03:59,  1.09s/it, loss=146.5256][A
-Trial 0:  37%|███████████████████████████████████████████████████████████████████▏                                                                                                                   | 127/346 [02:22<03:57,  1.09s/it, loss=146.5256][A
-Trial 0:  37%|███████████████████████████████████████████████████████████████████▌                                                                                                                    | 127/346 [02:23<03:57,  1.09s/it, loss=60.6882][A
-Trial 0:  37%|████████████████████████████████████████████████████████████████████                                                                                                                    | 128/346 [02:23<03:56,  1.09s/it, loss=60.6882][A
-Trial 0:  37%|████████████████████████████████████████████████████████████████████                                                                                                                    | 128/346 [02:24<03:56,  1.09s/it, loss=13.5826][A
-Trial 0:  37%|████████████████████████████████████████████████████████████████████▌                                                                                                                   | 129/346 [02:24<03:56,  1.09s/it, loss=13.5826][A
-Trial 0:  37%|████████████████████████████████████████████████████████████████████▌                                                                                                                   | 129/346 [02:25<03:56,  1.09s/it, loss=29.1555][A
-Trial 0:  38%|█████████████████████████████████████████████████████████████████████▏                                                                                                                  | 130/346 [02:25<03:55,  1.09s/it, loss=29.1555][A
-Trial 0:  38%|█████████████████████████████████████████████████████████████████████▏                                                                                                                  | 130/346 [02:26<03:55,  1.09s/it, loss=26.6447][A
-Trial 0:  38%|█████████████████████████████████████████████████████████████████████▋                                                                                                                  | 131/346 [02:26<03:53,  1.09s/it, loss=26.6447][A
-Trial 0:  38%|█████████████████████████████████████████████████████████████████████▋                                                                                                                  | 131/346 [02:28<03:53,  1.09s/it, loss=12.8769][A
-Trial 0:  38%|██████████████████████████████████████████████████████████████████████▏                                                                                                                 | 132/346 [02:28<03:51,  1.08s/it, loss=12.8769][A
-Trial 0:  38%|█████████████████████████████████████████████████████████████████████▊                                                                                                                 | 132/346 [02:29<03:51,  1.08s/it, loss=611.7999][A
-Trial 0:  38%|██████████████████████████████████████████████████████████████████████▎                                                                                                                | 133/346 [02:29<03:51,  1.09s/it, loss=611.7999][A
-Trial 0:  38%|██████████████████████████████████████████████████████████████████████▎                                                                                                                | 133/346 [02:30<03:51,  1.09s/it, loss=786.0488][A
-Trial 0:  39%|██████████████████████████████████████████████████████████████████████▊                                                                                                                | 134/346 [02:30<03:50,  1.09s/it, loss=786.0488][A
-Trial 0:  39%|██████████████████████████████████████████████████████████████████████▊                                                                                                                | 134/346 [02:31<03:50,  1.09s/it, loss=808.2386][A
-Trial 0:  39%|███████████████████████████████████████████████████████████████████████▍                                                                                                               | 135/346 [02:31<03:48,  1.08s/it, loss=808.2386][A
-Trial 0:  39%|███████████████████████████████████████████████████████████████████████▍                                                                                                               | 135/346 [02:32<03:48,  1.08s/it, loss=547.1400][A
-Trial 0:  39%|███████████████████████████████████████████████████████████████████████▉                                                                                                               | 136/346 [02:32<03:47,  1.08s/it, loss=547.1400][A
-Trial 0:  39%|███████████████████████████████████████████████████████████████████████▉                                                                                                               | 136/346 [02:33<03:47,  1.08s/it, loss=272.7541][A
-Trial 0:  40%|████████████████████████████████████████████████████████████████████████▍                                                                                                              | 137/346 [02:33<03:47,  1.09s/it, loss=272.7541][A
-Trial 0:  40%|████████████████████████████████████████████████████████████████████████▊                                                                                                               | 137/346 [02:34<03:47,  1.09s/it, loss=12.7598][A
-Trial 0:  40%|█████████████████████████████████████████████████████████████████████████▍                                                                                                              | 138/346 [02:34<03:45,  1.08s/it, loss=12.7598][A
-Trial 0:  40%|█████████████████████████████████████████████████████████████████████████▊                                                                                                               | 138/346 [02:35<03:45,  1.08s/it, loss=4.6524][A
-Trial 0:  40%|██████████████████████████████████████████████████████████████████████████▎                                                                                                              | 139/346 [02:35<03:45,  1.09s/it, loss=4.6524][A
-Trial 0:  40%|█████████████████████████████████████████████████████████████████████████▉                                                                                                              | 139/346 [02:36<03:45,  1.09s/it, loss=29.1590][A
-Trial 0:  40%|██████████████████████████████████████████████████████████████████████████▍                                                                                                             | 140/346 [02:36<03:43,  1.09s/it, loss=29.1590][A
-Trial 0:  40%|██████████████████████████████████████████████████████████████████████████▍                                                                                                             | 140/346 [02:37<03:43,  1.09s/it, loss=24.2642][A
-Trial 0:  41%|██████████████████████████████████████████████████████████████████████████▉                                                                                                             | 141/346 [02:37<03:42,  1.09s/it, loss=24.2642][A
-Trial 0:  41%|██████████████████████████████████████████████████████████████████████████▉                                                                                                             | 141/346 [02:38<03:42,  1.09s/it, loss=15.2252][A
-Trial 0:  41%|███████████████████████████████████████████████████████████████████████████▌                                                                                                            | 142/346 [02:38<03:41,  1.09s/it, loss=15.2252][A
-Trial 0:  41%|███████████████████████████████████████████████████████████████████████████▉                                                                                                             | 142/346 [02:39<03:41,  1.09s/it, loss=8.3595][A
-Trial 0:  41%|████████████████████████████████████████████████████████████████████████████▍                                                                                                            | 143/346 [02:39<03:40,  1.08s/it, loss=8.3595][A
-Trial 0:  41%|███████████████████████████████████████████████████████████████████████████▋                                                                                                           | 143/346 [02:41<03:40,  1.08s/it, loss=560.4401][A
-Trial 0:  42%|████████████████████████████████████████████████████████████████████████████▏                                                                                                          | 144/346 [02:41<03:39,  1.08s/it, loss=560.4401][A
-Trial 0:  42%|███████████████████████████████████████████████████████████████████████████▋                                                                                                          | 144/346 [02:42<03:39,  1.08s/it, loss=1201.3832][A
-Trial 0:  42%|████████████████████████████████████████████████████████████████████████████▎                                                                                                         | 145/346 [02:42<03:38,  1.09s/it, loss=1201.3832][A
-Trial 0:  42%|████████████████████████████████████████████████████████████████████████████▎                                                                                                         | 145/346 [02:43<03:38,  1.09s/it, loss=1115.1890][A
-Trial 0:  42%|████████████████████████████████████████████████████████████████████████████▊                                                                                                         | 146/346 [02:43<03:36,  1.08s/it, loss=1115.1890][A
-Trial 0:  42%|█████████████████████████████████████████████████████████████████████████████▏                                                                                                         | 146/346 [02:44<03:36,  1.08s/it, loss=919.0087][A
-Trial 0:  42%|█████████████████████████████████████████████████████████████████████████████▋                                                                                                         | 147/346 [02:44<03:35,  1.08s/it, loss=919.0087][A
-Trial 0:  42%|█████████████████████████████████████████████████████████████████████████████▋                                                                                                         | 147/346 [02:45<03:35,  1.08s/it, loss=366.8701][A
-Trial 0:  43%|██████████████████████████████████████████████████████████████████████████████▎                                                                                                        | 148/346 [02:45<03:35,  1.09s/it, loss=366.8701][A
-Trial 0:  43%|███████████████████████████████████████████████████████████████████████████████▏                                                                                                         | 148/346 [02:46<03:35,  1.09s/it, loss=4.6444][A
-Trial 0:  43%|███████████████████████████████████████████████████████████████████████████████▋                                                                                                         | 149/346 [02:46<03:33,  1.09s/it, loss=4.6444][A
-Trial 0:  43%|███████████████████████████████████████████████████████████████████████████████▋                                                                                                         | 149/346 [02:47<03:33,  1.09s/it, loss=4.4463][A
-Trial 0:  43%|████████████████████████████████████████████████████████████████████████████████▏                                                                                                        | 150/346 [02:47<03:32,  1.08s/it, loss=4.4463][A
-Trial 0:  43%|████████████████████████████████████████████████████████████████████████████████▏                                                                                                        | 150/346 [02:48<03:32,  1.08s/it, loss=6.1042][A
-Trial 0:  44%|████████████████████████████████████████████████████████████████████████████████▋                                                                                                        | 151/346 [02:48<03:31,  1.08s/it, loss=6.1042][A
-Trial 0:  44%|████████████████████████████████████████████████████████████████████████████████▋                                                                                                        | 151/346 [02:49<03:31,  1.08s/it, loss=7.2503][A
-Trial 0:  44%|█████████████████████████████████████████████████████████████████████████████████▎                                                                                                       | 152/346 [02:49<03:30,  1.09s/it, loss=7.2503][A
-Trial 0:  44%|████████████████████████████████████████████████████████████████████████████████▊                                                                                                       | 152/346 [02:50<03:30,  1.09s/it, loss=11.9243][A
-Trial 0:  44%|█████████████████████████████████████████████████████████████████████████████████▎                                                                                                      | 153/346 [02:50<03:29,  1.09s/it, loss=11.9243][A
-Trial 0:  44%|█████████████████████████████████████████████████████████████████████████████████▎                                                                                                      | 153/346 [02:51<03:29,  1.09s/it, loss=11.4004][A
-Trial 0:  45%|█████████████████████████████████████████████████████████████████████████████████▉                                                                                                      | 154/346 [02:51<03:28,  1.09s/it, loss=11.4004][A
-Trial 0:  45%|██████████████████████████████████████████████████████████████████████████████████▎                                                                                                      | 154/346 [02:52<03:28,  1.09s/it, loss=4.4622][A
-Trial 0:  45%|██████████████████████████████████████████████████████████████████████████████████▉                                                                                                      | 155/346 [02:52<03:27,  1.08s/it, loss=4.4622][A
-Trial 0:  45%|█████████████████████████████████████████████████████████████████████████████████▉                                                                                                     | 155/346 [02:54<03:27,  1.08s/it, loss=266.6534][A
-Trial 0:  45%|██████████████████████████████████████████████████████████████████████████████████▌                                                                                                    | 156/346 [02:54<03:25,  1.08s/it, loss=266.6534][A
-Trial 0:  45%|██████████████████████████████████████████████████████████████████████████████████▌                                                                                                    | 156/346 [02:55<03:25,  1.08s/it, loss=478.8086][A
-Trial 0:  45%|███████████████████████████████████████████████████████████████████████████████████                                                                                                    | 157/346 [02:55<03:24,  1.08s/it, loss=478.8086][A
-Trial 0:  45%|███████████████████████████████████████████████████████████████████████████████████                                                                                                    | 157/346 [02:56<03:24,  1.08s/it, loss=325.5373][A
-Trial 0:  46%|███████████████████████████████████████████████████████████████████████████████████▌                                                                                                   | 158/346 [02:56<03:23,  1.08s/it, loss=325.5373][A
-Trial 0:  46%|████████████████████████████████████████████████████████████████████████████████████                                                                                                    | 158/346 [02:57<03:23,  1.08s/it, loss=79.7694][A
-Trial 0:  46%|████████████████████████████████████████████████████████████████████████████████████▌                                                                                                   | 159/346 [02:57<03:22,  1.08s/it, loss=79.7694][A
-Trial 0:  46%|████████████████████████████████████████████████████████████████████████████████████▌                                                                                                   | 159/346 [02:58<03:22,  1.08s/it, loss=22.7134][A
-Trial 0:  46%|█████████████████████████████████████████████████████████████████████████████████████                                                                                                   | 160/346 [02:58<03:21,  1.08s/it, loss=22.7134][A
-Trial 0:  46%|█████████████████████████████████████████████████████████████████████████████████████▌                                                                                                   | 160/346 [02:59<03:21,  1.08s/it, loss=5.6405][A
-Trial 0:  47%|██████████████████████████████████████████████████████████████████████████████████████                                                                                                   | 161/346 [02:59<03:20,  1.08s/it, loss=5.6405][A
-Trial 0:  47%|██████████████████████████████████████████████████████████████████████████████████████                                                                                                   | 161/346 [03:00<03:20,  1.08s/it, loss=4.8349][A
-Trial 0:  47%|██████████████████████████████████████████████████████████████████████████████████████▌                                                                                                  | 162/346 [03:00<03:19,  1.09s/it, loss=4.8349][A
-                                                                                                                                                                                                                                                      [Awandb: 
-wandb: Run history:
-wandb:   epoch ▁
-wandb: eval/em ▁
-wandb: eval/f1 ▁
-wandb: 
-wandb: Run summary:
-wandb:   epoch 0
-wandb: eval/em 0.05
-wandb: eval/f1 5.84919
-wandb: 
-wandb: You can sync this run to the cloud by running:
-wandb: wandb sync /data/LRTT_transformer/LRTT_glue/wandb/offline-run-20260210_043146-3d7nrz55
-wandb: Find logs at: ./wandb/offline-run-20260210_043146-3d7nrz55/logs
-                                                                                                                                                                                                                                                        0%|                                                                                                                                                                                                                          | 0/30 [03:22<?, ?it/s]                                                                                                                                                                                                                                                        0%|                                                                                                                                                                                                                          | 0/30 [03:22<?, ?it/s]  0%|                                                                                                                                                                                                                          | 0/30 [03:22<?, ?it/s]
-[W 2026-02-10 04:35:08,684] Trial 0 failed with parameters: {'learning_rate': 0.001, 'lora_alpha': 0.01} because of the following error: KeyboardInterrupt().
-Traceback (most recent call last):
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
-    value_or_values = func(trial)
-  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_squad_adam.py", line 709, in objective
-    # Compute initial evaluation ONCE (optimization: avoid redundant computation per trial)
-  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_squad_adam.py", line 608, in run_trial
-    best_metric = init_metric
-  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_squad_adam.py", line 521, in train_epoch
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/_tensor.py", line 525, in backward
-    torch.autograd.backward(
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/autograd/__init__.py", line 267, in backward
-    _engine_run_backward(
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/autograd/graph.py", line 744, in _engine_run_backward
-    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
-KeyboardInterrupt
-[W 2026-02-10 04:35:08,694] Trial 0 failed with value None.
-Traceback (most recent call last):
-  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_squad_adam.py", line 860, in <module>
-    except Exception as e:
-  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_squad_adam.py", line 836, in main
-    print(f"  transfer_every: {TRANSFER_EVERY} (no transfer)")
-  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_squad_adam.py", line 713, in run_target_sweep
-    init_results = {"f1": init_f1, "em": init_em}
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/optuna/study/study.py", line 490, in optimize
-    _optimize(
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/optuna/study/_optimize.py", line 68, in _optimize
-    _optimize_sequential(
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/optuna/study/_optimize.py", line 165, in _optimize_sequential
-    frozen_trial_id = _run_trial(study, func, catch)
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/optuna/study/_optimize.py", line 263, in _run_trial
-    raise func_err
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
-    value_or_values = func(trial)
-  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_squad_adam.py", line 709, in objective
-    # Compute initial evaluation ONCE (optimization: avoid redundant computation per trial)
-  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_squad_adam.py", line 608, in run_trial
-    best_metric = init_metric
-  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_squad_adam.py", line 521, in train_epoch
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/_tensor.py", line 525, in backward
-    torch.autograd.backward(
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/autograd/__init__.py", line 267, in backward
-    _engine_run_backward(
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/autograd/graph.py", line 744, in _engine_run_backward
-    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
-KeyboardInterrupt
-Traceback (most recent call last):
-  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_squad_adam.py", line 860, in <module>
-    except Exception as e:
-  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_squad_adam.py", line 836, in main
-    print(f"  transfer_every: {TRANSFER_EVERY} (no transfer)")
-  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_squad_adam.py", line 713, in run_target_sweep
-    init_results = {"f1": init_f1, "em": init_em}
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/optuna/study/study.py", line 490, in optimize
-    _optimize(
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/optuna/study/_optimize.py", line 68, in _optimize
-    _optimize_sequential(
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/optuna/study/_optimize.py", line 165, in _optimize_sequential
-    frozen_trial_id = _run_trial(study, func, catch)
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/optuna/study/_optimize.py", line 263, in _run_trial
-    raise func_err
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
-    value_or_values = func(trial)
-  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_squad_adam.py", line 709, in objective
-    # Compute initial evaluation ONCE (optimization: avoid redundant computation per trial)
-  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_squad_adam.py", line 608, in run_trial
-    best_metric = init_metric
-  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_squad_adam.py", line 521, in train_epoch
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/_tensor.py", line 525, in backward
-    torch.autograd.backward(
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/autograd/__init__.py", line 267, in backward
-    _engine_run_backward(
-  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/autograd/graph.py", line 744, in _engine_run_backward
-    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
-KeyboardInterrupt

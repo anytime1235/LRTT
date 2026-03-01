@@ -1,58 +1,0 @@
-[I 2026-02-27 14:41:04,488] A new study created in RDB with name: bert_squad_tiki_qkv_ntdig_lr001_flr01_1_20trials
-Some weights of BertForQuestionAnswering were not initialized from the model checkpoint at bert-base-uncased and are newly initialized: ['qa_outputs.bias', 'qa_outputs.weight']
-You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-Task: SQuAD v1.1, Metric: F1
-BSZ: 48, max_seq: 384, epochs: 2
-Train batches: 1845, Eval features: 10784
-
-======================================================================
-[CONFIG REPORT]
-======================================================================
-  Model         : bert-base-uncased
-  Task          : SQuAD v1.1 | Metric: F1
-  Batch size    : 48 (train), 256 (eval)
-  Max seq len   : 384, Doc stride: 128
-  Epochs        : 2, Early stop patience: 2
-  Optimizer     : AnalogSGD
-  Analog LR     : sweep [0.0001, 1.0] (log)
-  Classifier/LN : same as analog LR
-  Weight decay  : 0 (fixed)
-  Warmup ratio  : 0.0500
-  Warmup target : analog tile ONLY (classifier/LayerNorm -> no warmup, full LR from step 0)
-  min_lr_rate   : 0.5 (decay to 50% of peak LR)
-  LORA target   : qkv -> ['attention (q,k,v,W_O)']
-  Target config : TikiTaka
-  Head layer    : train
-  Target layers : all
-  Nontarget     : digital(frozen)
-  transfer_every: 1 (fixed, uim=True, every mini-batch)
-  TLR range     : (1.0, 1.0), FLR range: (0.1, 1.0)
-  desired_bl    : 31
-  Clip grad     : analog=False, digital=norm(1.0)
-  Seed          : 42
-  Sampler       : tpe
-  Train batches : 1845, Eval features: 10784
-======================================================================
-
-  Early stop patience: 2, Pruner: Median, startup=5, warmup=1
-
-Study: bert_squad_tiki_qkv_ntdig_lr001_flr01_1_20trials, Device: cuda, New trials: 20
-
-======================================================================
-Trial 0 Starting (squad, metric=F1)
-======================================================================
-  transfer_every=1, transfer_lr=1.0000e+00, fast_lr=8.9272e-01, desired_bl=31
-  lr=3.15e-03, wd=0.00e+00
-  momentum=0.00, nesterov=False, optimizer=AnalogSGD
-  min_lr_rate=0.5000
-  warmup_ratio=0.0500, warmup_target=analog_tile_only  [classifier/LayerNorm: no warmup]
-======================================================================
-  [GPU] Before model: alloc=0.00GB, reserved=0.00GB
-  [FIX] Reinitialized qa_outputs with FIXED seed=42
-  [DIGITAL] Keeping 24 non-target layers as digital (frozen)
-  TikiTaka: 48, Ideal(train): 0, SingleRPU(train): 0, Ideal(frozen): 0, NT SingleRPU: 0, Total analog: 48, Total params: 80,581,826
-  Trainable: 40,130
-  Target: qkv -> ['attention (q,k,v,W_O)']
-  [VERIFY] Target tiles: 48 trainable, 0 FROZEN | Non-target frozen: 0 | Analog weight params: 28,311,552
-  [GPU] After model+optimizer: alloc=0.30GB, reserved=0.32GB
-Trial 0 Ep1:   0%|                                                                                           | 0/1845 [00:00<?, ?it/s]Trial 0 Ep1:   0%|                                                                              | 0/1845 [00:05<?, ?it/s, loss=5.9563]Trial 0 Ep1:   0%|                                                                    | 1/1845 [00:05<2:34:49,  5.04s/it, loss=5.9563]Trial 0 Ep1:   0%|                                                                    | 1/1845 [00:21<2:34:49,  5.04s/it, loss=5.9307]Trial 0 Ep1:   0%|                                                                    | 2/1845 [00:21<5:52:46, 11.48s/it, loss=5.9307]Trial 0 Ep1:   0%|                                                                    | 2/1845 [00:37<5:52:46, 11.48s/it, loss=5.8827]Trial 0 Ep1:   0%|                                                                    | 3/1845 [00:37<7:02:41, 13.77s/it, loss=5.8827]Trial 0 Ep1:   0%|                                                                    | 3/1845 [00:53<7:02:41, 13.77s/it, loss=5.9602]Trial 0 Ep1:   0%|▏                                                                   | 4/1845 [00:53<7:31:00, 14.70s/it, loss=5.9602]Trial 0 Ep1:   0%|▏                                                                   | 4/1845 [01:09<7:31:00, 14.70s/it, loss=5.8685]Trial 0 Ep1:   0%|▏                                                                   | 5/1845 [01:09<7:48:32, 15.28s/it, loss=5.8685]Trial 0 Ep1:   0%|▏                                                                   | 5/1845 [01:26<7:48:32, 15.28s/it, loss=5.9225]Trial 0 Ep1:   0%|▏                                                                   | 6/1845 [01:26<8:01:42, 15.72s/it, loss=5.9225]Trial 0 Ep1:   0%|▏                                                                   | 6/1845 [01:42<8:01:42, 15.72s/it, loss=5.8275]Trial 0 Ep1:   0%|▎                                                                   | 7/1845 [01:42<8:07:20, 15.91s/it, loss=5.8275]Trial 0 Ep1:   0%|▎                                                                   | 7/1845 [01:58<8:07:20, 15.91s/it, loss=5.9133]Trial 0 Ep1:   0%|▎                                                                   | 8/1845 [01:58<8:07:54, 15.94s/it, loss=5.9133]Trial 0 Ep1:   0%|▎                                                                   | 8/1845 [02:14<8:07:54, 15.94s/it, loss=5.8081]Trial 0 Ep1:   0%|▎                                                                   | 9/1845 [02:14<8:09:52, 16.01s/it, loss=5.8081]Trial 0 Ep1:   0%|▎                                                                   | 9/1845 [02:31<8:09:52, 16.01s/it, loss=5.8581]Trial 0 Ep1:   1%|▎                                                                  | 10/1845 [02:31<8:13:11, 16.13s/it, loss=5.8581]Trial 0 Ep1:   1%|▎                                                                  | 10/1845 [02:47<8:13:11, 16.13s/it, loss=5.8206]Trial 0 Ep1:   1%|▍                                                                  | 11/1845 [02:47<8:08:49, 15.99s/it, loss=5.8206]Trial 0 Ep1:   1%|▍                                                                  | 11/1845 [03:03<8:08:49, 15.99s/it, loss=5.8594]Trial 0 Ep1:   1%|▍                                                                  | 12/1845 [03:03<8:09:17, 16.02s/it, loss=5.8594]Trial 0 Ep1:   1%|▍                                                                  | 12/1845 [03:19<8:09:17, 16.02s/it, loss=5.8459]Trial 0 Ep1:   1%|▍                                                                  | 13/1845 [03:19<8:12:09, 16.12s/it, loss=5.8459]Trial 0 Ep1:   1%|▍                                                                  | 13/1845 [03:35<8:12:09, 16.12s/it, loss=5.8038]Trial 0 Ep1:   1%|▌                                                                  | 14/1845 [03:35<8:14:45, 16.21s/it, loss=5.8038]Trial 0 Ep1:   1%|▌                                                                  | 14/1845 [03:52<8:14:45, 16.21s/it, loss=5.8382]Trial 0 Ep1:   1%|▌                                                                  | 15/1845 [03:52<8:20:17, 16.40s/it, loss=5.8382]Trial 0 Ep1:   1%|▌                                                                  | 15/1845 [04:08<8:20:17, 16.40s/it, loss=5.8234]Trial 0 Ep1:   1%|▌                                                                  | 16/1845 [04:08<8:18:07, 16.34s/it, loss=5.8234]Trial 0 Ep1:   1%|▌                                                                  | 16/1845 [04:24<8:18:07, 16.34s/it, loss=5.7999]Trial 0 Ep1:   1%|▌                                                                  | 17/1845 [04:24<8:09:03, 16.05s/it, loss=5.7999]Trial 0 Ep1:   1%|▌                                                                  | 17/1845 [04:40<8:09:03, 16.05s/it, loss=5.8066]Trial 0 Ep1:   1%|▋                                                                  | 18/1845 [04:40<8:10:23, 16.10s/it, loss=5.8066]Trial 0 Ep1:   1%|▋                                                                  | 18/1845 [04:56<8:10:23, 16.10s/it, loss=5.8141]Trial 0 Ep1:   1%|▋                                                                  | 19/1845 [04:56<8:08:39, 16.06s/it, loss=5.8141]Trial 0 Ep1:   1%|▋                                                                  | 19/1845 [05:13<8:08:39, 16.06s/it, loss=5.7383]Trial 0 Ep1:   1%|▋                                                                  | 20/1845 [05:13<8:16:12, 16.31s/it, loss=5.7383]Trial 0 Ep1:   1%|▋                                                                  | 20/1845 [05:30<8:16:12, 16.31s/it, loss=5.7806]Trial 0 Ep1:   1%|▊                                                                  | 21/1845 [05:30<8:21:24, 16.49s/it, loss=5.7806]Trial 0 Ep1:   1%|▊                                                                  | 21/1845 [05:46<8:21:24, 16.49s/it, loss=5.7090]Trial 0 Ep1:   1%|▊                                                                  | 22/1845 [05:46<8:14:29, 16.28s/it, loss=5.7090]Trial 0 Ep1:   1%|▊                                                                  | 22/1845 [06:02<8:14:29, 16.28s/it, loss=5.7981]Trial 0 Ep1:   1%|▊                                                                  | 23/1845 [06:02<8:15:11, 16.31s/it, loss=5.7981]Trial 0 Ep1:   1%|▊                                                                  | 23/1845 [06:19<8:15:11, 16.31s/it, loss=5.7325]Trial 0 Ep1:   1%|▊                                                                  | 24/1845 [06:19<8:17:57, 16.41s/it, loss=5.7325]Trial 0 Ep1:   1%|▊                                                                  | 24/1845 [06:35<8:17:57, 16.41s/it, loss=5.7512]Trial 0 Ep1:   1%|▉                                                                  | 25/1845 [06:35<8:20:50, 16.51s/it, loss=5.7512]Trial 0 Ep1:   1%|▉                                                                  | 25/1845 [06:52<8:20:50, 16.51s/it, loss=5.7282]Trial 0 Ep1:   1%|▉                                                                  | 26/1845 [06:52<8:20:00, 16.49s/it, loss=5.7282]Trial 0 Ep1:   1%|▉                                                                  | 26/1845 [07:08<8:20:00, 16.49s/it, loss=5.6654]Trial 0 Ep1:   1%|▉                                                                  | 27/1845 [07:08<8:19:11, 16.48s/it, loss=5.6654]

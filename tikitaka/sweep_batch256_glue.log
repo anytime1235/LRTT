@@ -1,63 +1,0 @@
-/home/jovyan/work/ml/.venv310/lib/python3.10/site-packages/transformers/tokenization_utils_base.py:1601: FutureWarning: `clean_up_tokenization_spaces` was not set. It will be set to `True` by default. This behavior will be depracted in transformers v4.45, and will be then set to `False` by default. For more details check this issue: https://github.com/huggingface/transformers/issues/31884
-  warnings.warn(
-============================================================
-TikiTaka v2 Batch-256 Sweep (Narrowed Search Space)
-============================================================
-Tasks: ['rte', 'mrpc', 'stsb', 'cola', 'sst2', 'qnli', 'qqp', 'mnli']
-Trials per task: 30
-Max epochs: 3
-Batch size: 256
-Early stopping patience: 3
-Scheduler: linear decay (no warmup, min_lr=5% of peak)
-Fixed: auto_gran=169.0, chop_prob=0.061
-Tuned: lr=[0.0001, 0.01], transfer_lr=[0.05, 5.0], fast_lr=[0.05, 3.0], transfer_every=[10, 500]
-B tile: SoftBoundsReferenceDevice (noise=0)
-Results dir: /data/LRTT_transformer/tikitaka/results/sweep_bias_frozen_20260209_191354
-Device: cuda
-
-============================================================
-Starting sweep for: RTE
-============================================================
-  Scheduler: linear decay (no warmup, min_lr=1/20 of peak)
-  Fixed: auto_gran=169.0, chop_prob=0.061
-  Tuned: transfer_every=[10, 500]
-  B tile: SoftBoundsReferenceDevice (noise=0)
-Map:   0%|                                                                                                                                                                                                             | 0/277 [00:00<?, ? examples/s]Map: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 277/277 [00:00<00:00, 5888.22 examples/s]
-[I 2026-02-09 19:13:58,567] A new study created in memory with name: tikitaka_bs256_rte
-  Train batches: 10, Eval batches: 3
-  0%|                                                                                                                                                                                                                          | 0/30 [00:00<?, ?it/s]wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
-wandb: Tracking run with wandb version 0.24.1
-wandb: W&B syncing is set to `offline` in this directory. Run `wandb online` or set WANDB_MODE=online to enable cloud syncing.
-wandb: Run data is saved locally in /data/LRTT_transformer/tikitaka/wandb/offline-run-20260209_191358-wh7n5pdo
-Some weights of MobileBertForSequenceClassification were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
-You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-
---- Trial 0 ---
-Params: {
-  "learning_rate": 0.00108,
-  "transfer_lr": 0.269,
-  "fast_lr": 0.295,
-  "transfer_every": 20,
-  "auto_granularity": 169.0,
-  "in_chop_prob": 0.061
-}
-
-Trial 0 rte Ep1:   0%|                                                                                                                                                                                                         | 0/10 [00:00<?, ?it/s][A
-Trial 0 rte Ep1:   0%|                                                                                                                                                                                      | 0/10 [00:32<?, ?it/s, loss=2209626.5000][A
-Trial 0 rte Ep1:  10%|█████████████████▍                                                                                                                                                            | 1/10 [00:32<04:52, 32.51s/it, loss=2209626.5000][A
-Trial 0 rte Ep1:  10%|█████████████████▍                                                                                                                                                            | 1/10 [00:39<04:52, 32.51s/it, loss=2616582.7500][A
-Trial 0 rte Ep1:  20%|██████████████████████████████████▊                                                                                                                                           | 2/10 [00:39<02:20, 17.58s/it, loss=2616582.7500][A
-Trial 0 rte Ep1:  20%|██████████████████████████████████▊                                                                                                                                           | 2/10 [00:47<02:20, 17.58s/it, loss=1324909.8750][A
-Trial 0 rte Ep1:  30%|████████████████████████████████████████████████████▏                                                                                                                         | 3/10 [00:47<01:30, 12.92s/it, loss=1324909.8750][A
-Trial 0 rte Ep1:  30%|████████████████████████████████████████████████████▊                                                                                                                           | 3/10 [00:49<01:30, 12.92s/it, loss=49954.8945][A
-Trial 0 rte Ep1:  40%|██████████████████████████████████████████████████████████████████████▍                                                                                                         | 4/10 [00:49<00:52,  8.75s/it, loss=49954.8945][A
-Trial 0 rte Ep1:  40%|██████████████████████████████████████████████████████████████████████▊                                                                                                          | 4/10 [00:50<00:52,  8.75s/it, loss=3426.2749][A
-Trial 0 rte Ep1:  50%|████████████████████████████████████████████████████████████████████████████████████████▌                                                                                        | 5/10 [00:50<00:30,  6.09s/it, loss=3426.2749][A
-Trial 0 rte Ep1:  50%|█████████████████████████████████████████████████████████████████████████████████████████                                                                                         | 5/10 [00:52<00:30,  6.09s/it, loss=322.3895][A
-Trial 0 rte Ep1:  60%|██████████████████████████████████████████████████████████████████████████████████████████████████████████▊                                                                       | 6/10 [00:52<00:18,  4.69s/it, loss=322.3895][A
-Trial 0 rte Ep1:  60%|████████████████████████████████████████████████████████████████████████████████████████████████████████████                                                                        | 6/10 [00:54<00:18,  4.69s/it, loss=9.5812][A
-Trial 0 rte Ep1:  70%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▉                                                      | 7/10 [00:54<00:11,  3.85s/it, loss=9.5812][A
-Trial 0 rte Ep1:  70%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▉                                                      | 7/10 [00:56<00:11,  3.85s/it, loss=1.6669][A
-Trial 0 rte Ep1:  80%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████                                    | 8/10 [00:56<00:06,  3.30s/it, loss=1.6669][A
-Trial 0 rte Ep1:  80%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████                                    | 8/10 [00:59<00:06,  3.30s/it, loss=1.2552][A
-Trial 0 rte Ep1:  90%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████                  | 9/10 [00:59<00:02,  2.93s/it, loss=1.2552][A
