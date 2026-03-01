@@ -59,6 +59,8 @@ All flags:
         --transfer-method <str>     # Transfer method: onehot | direct | set (default: onehot)
         --ab-device <str>           # A/B tile device: 6t1c | fp (default: 6t1c)
         --no-io-noise               # Disable IO out_noise (resolution kept)
+        --is-perfect                # Use ideal FP forward/backward (no ADC/DAC/noise)
+        --no-quant                  # Disable DAC/ADC quantization (inp_res/out_res)
         --lora-target <str>         # LoRA target: none | qonly | konly | vonly | qkv | qkvo | ffn | dense | allnobn | all (default: qkv)
         --head-layer <str>          # classifier: train | freeze (default: train)
         --no-transfer               # Disable LRTT transfer (A/B frozen, skip LRTT param sweep)
@@ -295,6 +297,8 @@ TRANSFER_METHOD = "onehot"  # "onehot", "direct", or "set"
 AB_DEVICE = "6t1c"  # "6t1c", "fp", or "ideal"
 C_DEVICE = "softbounds"  # "softbounds" or "ideal"
 IO_NOISE = True  # If False, disable out_noise (resolution kept)
+IS_PERFECT = False  # If True, forward/backward use ideal FP matmul (no ADC/DAC/noise)
+NO_QUANT = False  # If True, disable DAC/ADC quantization (inp_res/out_res → -1)
 ENCODER_ANALOG = False  # If True, non-LRTT encoder layers become frozen analog instead of digital
 BACKWARD_INP_BOUND = 1.0  # Backward pass input bound (default 1.0; increase to prevent gradient clipping)
 BACKWARD_OUT_BOUND = 12.0  # Backward pass output bound (default 12.0)
@@ -366,6 +370,11 @@ def get_study_name_suffix():
 
     if not IO_NOISE:
         suffix += "_noio"
+
+    if IS_PERFECT:
+        suffix += "_perfect"
+    if NO_QUANT:
+        suffix += "_noquant"
 
     if OPT_CONFIG['no_transfer']:
         suffix += "_notrans"
@@ -503,6 +512,13 @@ def create_frozen_analog_config(lrtt_config=None, out_noise=0.0):
         )
         rpu_config.forward.out_noise = out_noise
         rpu_config.backward.out_noise = out_noise
+        rpu_config.forward.is_perfect = IS_PERFECT
+        rpu_config.backward.is_perfect = IS_PERFECT
+        if NO_QUANT:
+            rpu_config.forward.inp_res = -1
+            rpu_config.forward.out_res = -1
+            rpu_config.backward.inp_res = -1
+            rpu_config.backward.out_res = -1
         if BACKWARD_OUT_BOUND != 12.0:
             rpu_config.backward.out_bound = BACKWARD_OUT_BOUND
     return rpu_config
@@ -560,6 +576,13 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, 
 
     rpu_config.forward.out_noise = out_noise
     rpu_config.backward.out_noise = out_noise
+    rpu_config.forward.is_perfect = IS_PERFECT
+    rpu_config.backward.is_perfect = IS_PERFECT
+    if NO_QUANT:
+        rpu_config.forward.inp_res = -1
+        rpu_config.forward.out_res = -1
+        rpu_config.backward.inp_res = -1
+        rpu_config.backward.out_res = -1
 
     if BACKWARD_OUT_BOUND != 12.0:
         rpu_config.backward.out_bound = BACKWARD_OUT_BOUND
@@ -997,7 +1020,10 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         c_desired_bl = None
 
     # IO / mapping params
-    out_noise = trial.suggest_float('out_noise', 0.0, 0.0)
+    if IO_NOISE:
+        out_noise = trial.suggest_float('out_noise', 0.0, 0.0)
+    else:
+        out_noise = 0.0
     ab_weight_scaling_omega = trial.suggest_float('ab_weight_scaling_omega', 0.0, 0.0)
 
     min_lr_rate = trial.suggest_float('min_lr_rate', 0.0, 0.0)
@@ -1309,7 +1335,7 @@ def print_study_summary(study):
 # =============================================================================
 
 def main():
-    global TASK_NAME, NUM_LABELS, BATCH_SIZE, GRAD_ACCUM_STEPS, N_EPOCHS, WARMUP_STEPS, TRANSFER_METHOD, AB_DEVICE, C_DEVICE, IO_NOISE, LORA_TARGET, HEAD_LAYER, ENCODER_ANALOG, HEAD_ANALOG, BACKWARD_INP_BOUND, BACKWARD_OUT_BOUND
+    global TASK_NAME, NUM_LABELS, BATCH_SIZE, GRAD_ACCUM_STEPS, N_EPOCHS, WARMUP_STEPS, TRANSFER_METHOD, AB_DEVICE, C_DEVICE, IO_NOISE, IS_PERFECT, NO_QUANT, LORA_TARGET, HEAD_LAYER, ENCODER_ANALOG, HEAD_ANALOG, BACKWARD_INP_BOUND, BACKWARD_OUT_BOUND
 
     parser = argparse.ArgumentParser(description="Optuna sweep for BERT GLUE LRTT")
     parser.add_argument('--task', type=str, default='sst2',
@@ -1350,6 +1376,10 @@ def main():
                         help=f'C tile device type (default: {C_DEVICE})')
     parser.add_argument('--no-io-noise', action='store_true',
                         help='Disable IO out_noise (resolution kept)')
+    parser.add_argument('--is-perfect', action='store_true',
+                        help='Use ideal FP forward/backward (no ADC/DAC/noise)')
+    parser.add_argument('--no-quant', action='store_true',
+                        help='Disable DAC/ADC quantization (inp_res/out_res)')
     parser.add_argument('--no-transfer', action='store_true',
                         help='Disable transfer (set transfer_every to infinity)')
     parser.add_argument('--no-adc-ab-proj', action='store_true',
@@ -1389,6 +1419,8 @@ def main():
     AB_DEVICE = args.ab_device
     C_DEVICE = args.c_device
     IO_NOISE = not args.no_io_noise
+    IS_PERFECT = args.is_perfect
+    NO_QUANT = args.no_quant
     LORA_TARGET = args.lora_target
     HEAD_LAYER = args.head_layer
     OPT_CONFIG['optimizer'] = args.optimizer
