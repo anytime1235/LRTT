@@ -5,6 +5,8 @@ Usage:
     python optuna_bert_squad_lrtt.py --n-trials 50
     python optuna_bert_squad_lrtt.py --visualize
     python optuna_bert_squad_lrtt.py --n-trials 50 --optimizer AnalogSGD --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 48 --epochs 5 --warmup-steps 365 --transfer-method set --no-io-noise --lora-target qkvo --encoder-analog --head-analog
+    HF_HUB_DISABLE_XET=1 python optuna_bert_squad_lrtt.py --n-trials 150 --optimizer AnalogAdam --reinit-mode hybrid --no-wd --no-momentum --no-nesterov --batch-size 48 --epochs 5 --warmup-steps 365 --transfer-method set --no-io-noise --auto-scale-mode separate --correct-gradient-magnitudes --lora-target qkvo --ab-device ideal --c-device ideal --no-learn-out-scaling
+
 
 All flags:
     python optuna_bert_squad_lrtt.py \
@@ -1033,7 +1035,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         torch.cuda.empty_cache()
 
     # Hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 1e-3, 1e1, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 1e-5, 1e0, log=True)
 
     # LRTT parameters: skip sweep if --no-transfer (A/B frozen, no transfer happens)
     if OPT_CONFIG['no_transfer']:
@@ -1044,11 +1046,11 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         fast_lr = 1.0            # fixed (no effect)
         tau_sec = 0.0            # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 1e-5, 1e2, log=True)
+        transfer_lr = trial.suggest_float('transfer_lr', 1e-5, 1e0, log=True)
         transfer_every = trial.suggest_int('transfer_every', 1, 500, log=True)
         rank_exp = trial.suggest_int('rank_exp', 0, 5)
         rank = 2 ** rank_exp
-        fast_lr = trial.suggest_float('fast_lr', 1e-5, 1e2, log=True)
+        fast_lr = trial.suggest_float('fast_lr', 1e-1, 1e1, log=True)
         tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
 
     # C tile pulsed transfer params (only meaningful for onehot/direct)
