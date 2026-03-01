@@ -1,0 +1,9 @@
+{
+  "best_metric": 0.8451834862385321,
+  "best_params": {
+    "learning_rate": 1.0,
+    "lora_alpha": 0.028421917588679353,
+    "lrtt_lr_multiplier": 0.9702246355642874,
+    "min_lr_rate": 0.0
+  }
+}

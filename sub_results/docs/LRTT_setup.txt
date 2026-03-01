@@ -1,0 +1,318 @@
+1) Device Configuration & IO Configuration
+LRTT (PythonLRTTRPUConfig + PythonLRTTDevice)
+                                                                                                                                 
+  rank=8, transfer_every=(sweep 변수), transfer_lr=(sweep 변수), lora_alpha=1.0, reinit_gain=0.1, reinit_mode="hybrid",          
+  decay_factor=1.0, units_in_mbatch=True, transfer_method="onehot", update_mode="lora", a_init_mode="zero",  b_init_mode="kaiming", forward_inject=False,
+   dynamic_te=False, dynamic_te_power=1.0, dynamic_te_warmup_steps = 0
+
+  A Tile (LinearStepDevice, 6T1C)
+
+  Noise: dw_min=0.001981, dw_min_std=0.3, dw_min_dtod=0.1, write_noise_std=0.0, mult_noise=True, gamma_up=-0.1678,
+  gamma_down=0.1410, gamma_up_dtod=0.05, gamma_down_dtod=0.05, up_down=0.0, up_down_dtod=0.01, w_max=1.0, w_min=-1.0,
+  w_max_dtod=0.05, w_min_dtod=0.05, mean_bound_reference=True, lifetime=0 (중요), lifetime_dtod=0.0,
+  reset=0.0, reset_dtod=0.0
+
+  B Tile (LinearStepDevice, 6T1C — A Tile과 동일)
+
+  A Tile과 동일한 LinearStepDevice 인스턴스 사용
+
+  C Tile (SoftBoundsDevice, noise-free)
+
+  dw_min=0.001, w_max=1.0, w_min=-1.0, dw_min_std=0.0, dw_min_dtod=0.0, write_noise_std=0.0, up_down=0.0, up_down_dtod=0.0,
+  w_max_dtod=0.0, w_min_dtod=0.0, mult_noise=False
+
+  Forward/Backward IO (A/B/C 공통)
+
+  is_perfect=False, inp_noise=0.0, out_noise=0.0, out_noise_std=0.0, w_noise=0.0, noise_management='ABS_MAX', bound_management='Iterative',
+  inp_res=1/(2^7-2), out_res=1/(2^9-2)
+
+  Out Scaling / Mapping
+
+  weight_scaling_omega=1.0, weight_scaling_columnwise=True, learn_out_scaling=True, out_scaling_columnwise=True
+
+  Update
+
+  desired_bl = 31
+  update_bl_management = True
+  update_management = True
+
+
+  Optimizer / Scheduler
+
+  AnalogSGD w/ no momentum, no weight decay, no nestrov
+  linear scheduler (lr_min=0)
+  WARMUP = 500 (squad; glue는 0.1 ratio)
+  N_EPOCHS = 15
+  BATCH_SIZE = 64
+  EVAL_BATCH_SIZE = 256
+  EARLY_STOP_PATIENCE = 3
+  
+  SQUAD
+  MAX_SEQ_LENGTH = 320
+  DOC_STRIDE = 128
+  glue
+    max_seq_length: 128,                                                                                                                                                            pad_to_max_length': True           
+
+Classifier
+  ├───────────────────┼─────────────────────────────┤
+  │ Classifier seed   │ 42 (고정) ✓                 │
+  ├───────────────────┼─────────────────────────────┤
+  │ Classifier status │ FROZEN                      │
+  ├───────────────────┼─────────────────────────
+  if hasattr(model, 'classifier'):
+      torch.manual_seed(SEED)  # CRITICAL: Fix seed=42
+      nn.init.normal_(model.classifier.weight, mean=0.0, std=0.02)
+      nn.init.zeros_(model.classifier.bias)
+      print(f"[FIX] Reinitialized classifier with FIXED seed={SEED}")
+
+  lora_on_analog_hardware 대비
+  ┌────────────────┬────────────────┬──────────────┬─────────┐
+  │      항목      │ lora_on_analog │ sweep (최종) │  비율   │
+  ├────────────────┼────────────────┼──────────────┼─────────┤
+  │ SQuAD          │                │              │         │
+  ├────────────────┼────────────────┼──────────────┼─────────┤
+  │ max_seq_length │ 320            │ 320          │ ✅ 동일 │
+  ├────────────────┼────────────────┼──────────────┼─────────┤
+  │ doc_stride     │ 128            │ 128          │ ✅ 동일 │
+  ├────────────────┼────────────────┼──────────────┼─────────┤
+  │ train_batch    │ 32             │ 64           │ 2배     │
+  ├────────────────┼────────────────┼──────────────┼─────────┤
+  │ eval_batch     │ 128            │ 256          │ 2배   │
+  ├────────────────┼────────────────┼──────────────┼─────────┤
+  │ GLUE           │                │              │         │
+  ├────────────────┼────────────────┼──────────────┼─────────┤
+  │ max_seq_length │ 128            │ 128          │ ✅ 동일 │
+  ├────────────────┼────────────────┼──────────────┼─────────┤
+  │ train_batch    │ 32             │ 64           │ 2배     │
+  ├────────────────┼────────────────┼──────────────┼─────────┤
+  │ eval_batch     │ 32*            │ 64           │ 2배     │
+
+
+  GLUE
+  ┌─────────┬────────────────┬────────────────────────┬─────────┐
+  │ Dataset │ lora_on_analog │ sweep_sixt1c_lora_glue │  동일?  │
+  ├─────────┼────────────────┼────────────────────────┼─────────┤
+  │ Train   │ 전체           │ 전체                   │ ✅ 동일 │
+  ├─────────┼────────────────┼────────────────────────┼─────────┤
+  │ Eval    │ 전체           │ 전체                   │ ✅ 동일 │
+
+  SQuAD
+  ┌─────────┬────────────────┬────────────────────────┬─────────┐
+  │ Dataset │ lora_on_analog │ sweep_sixt1c_lora_glue │  동일?  │
+  ├─────────┼────────────────┼────────────────────────┼─────────┤
+  │ Train   │ 전체           │ 전체                   │ ✅ 동일 │
+  ├─────────┼────────────────┼────────────────────────┼─────────┤
+  │ Eval    │ 전체           │ 전체                   │ ✅ 동일 │
+
+  ╔════════════════════════════════════════════════════════════════════════════════════════════════════════════╗                                                                                                                                                                                                      
+  ║                                        --lora-target qkv 모드                                              ║
+  ╠════════════════════════════════════════════════════════════════════════════════════════════════════════════╣                                                                                                                                                                                                      
+  ║  Layer                         │ base         │ bias           │ out_scaling    │ lora(A/B)     │ Type    ║
+  ║  ──────────────────────────────┼──────────────┼────────────────┼────────────────┼───────────────┼───────  ║
+  ║  word_embeddings               │ Digital FROZEN│ -              │ -              │ -             │ Digital ║
+  ║  position_embeddings           │ Digital FROZEN│ -              │ -              │ -             │ Digital ║
+  ║  token_type_embeddings         │ Digital FROZEN│ -              │ -              │ -             │ Digital ║
+  ║  embedding_transformation      │ Digital FROZEN│ Digital FROZEN │ -              │ -             │ Digital ║
+  ║  ──────────────────────────────┼──────────────┼────────────────┼────────────────┼───────────────┼───────  ║
+  ║  bottleneck.input.dense ×24    │ Digital FROZEN│ Digital FROZEN │ -              │ -             │ Digital ║
+  ║  attention.self.query ×24      │ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  attention.self.key ×24        │ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  attention.self.value ×24      │ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  attention.output.dense ×24    │ Digital FROZEN│ Digital FROZEN │ -              │ -             │ Digital ║
+  ║  bottleneck.attention.dense ×24│ Digital FROZEN│ Digital FROZEN │ -              │ -             │ Digital ║
+  ║  intermediate.dense ×24        │ Digital FROZEN│ Digital FROZEN │ -              │ -             │ Digital ║
+  ║  output.dense ×24              │ Digital FROZEN│ Digital FROZEN │ -              │ -             │ Digital ║
+  ║  ffn.0.intermediate.dense ×24  │ Digital FROZEN│ Digital FROZEN │ -              │ -             │ Digital ║
+  ║  ffn.0.output.dense ×24        │ Digital FROZEN│ Digital FROZEN │ -              │ -             │ Digital ║
+  ║  ffn.1.intermediate.dense ×24  │ Digital FROZEN│ Digital FROZEN │ -              │ -             │ Digital ║
+  ║  ffn.1.output.dense ×24        │ Digital FROZEN│ Digital FROZEN │ -              │ -             │ Digital ║
+  ║  ffn.2.intermediate.dense ×24  │ Digital FROZEN│ Digital FROZEN │ -              │ -             │ Digital ║
+  ║  ffn.2.output.dense ×24        │ Digital FROZEN│ Digital FROZEN │ -              │ -             │ Digital ║
+  ║  output.bottleneck.dense ×24   │ Digital FROZEN│ Digital FROZEN │ -              │ -             │ Digital ║
+  ║  ──────────────────────────────┼──────────────┼────────────────┼────────────────┼───────────────┼───────  ║
+  ║  qa_outputs                    │ Digital TRAIN │ Digital TRAIN  │ -              │ -             │ Digital ║
+  ╠════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
+  ║  LRTT: 3 × 24 = 72  │  Digital TRAIN: 1 (qa_outputs)  │  Digital FROZEN: 12 × 24 + 4 = 292     ║
+  ╚════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+
+  ╔════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+  ║                                        --lora-target ffn 모드                                              ║
+  ╠════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
+  ║  Layer                         │ base         │ bias           │ out_scaling    │ lora(A/B)     │ Type    ║
+  ║  ──────────────────────────────┼──────────────┼────────────────┼────────────────┼───────────────┼───────  ║
+  ║  word_embeddings               │ Digital FROZEN│ -              │ -              │ -             │ Digital ║
+  ║  position_embeddings           │ Digital FROZEN│ -              │ -              │ -             │ Digital ║
+  ║  token_type_embeddings         │ Digital FROZEN│ -              │ -              │ -             │ Digital ║
+  ║  embedding_transformation      │ Digital FROZEN│ Digital FROZEN │ -              │ -             │ Digital ║
+  ║  ──────────────────────────────┼──────────────┼────────────────┼────────────────┼───────────────┼───────  ║
+  ║  bottleneck.input.dense ×24    │ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  attention.self.query ×24      │ Digital FROZEN│ Digital FROZEN │ -              │ -             │ Digital ║
+  ║  attention.self.key ×24        │ Digital FROZEN│ Digital FROZEN │ -              │ -             │ Digital ║
+  ║  attention.self.value ×24      │ Digital FROZEN│ Digital FROZEN │ -              │ -             │ Digital ║
+  ║  attention.output.dense ×24    │ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  bottleneck.attention.dense ×24│ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  intermediate.dense ×24        │ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  output.dense ×24              │ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  ffn.0.intermediate.dense ×24  │ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  ffn.0.output.dense ×24        │ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  ffn.1.intermediate.dense ×24  │ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  ffn.1.output.dense ×24        │ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  ffn.2.intermediate.dense ×24  │ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  ffn.2.output.dense ×24        │ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  output.bottleneck.dense ×24   │ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  ──────────────────────────────┼──────────────┼────────────────┼────────────────┼───────────────┼───────  ║
+  ║  qa_outputs                    │ Digital TRAIN │ Digital TRAIN  │ -              │ -             │ Digital ║
+  ╠════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
+  ║  LRTT: 12 × 24 = 288  │  Digital TRAIN: 1 (qa_outputs)  │  Digital FROZEN: 3 × 24 + 4 = 76     ║
+  ╚════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+
+  ╔════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+  ║                                        --lora-target all 모드                                              ║
+  ╠════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
+  ║  Layer                         │ base         │ bias           │ out_scaling    │ lora(A/B)     │ Type    ║
+  ║  ──────────────────────────────┼──────────────┼────────────────┼────────────────┼───────────────┼───────  ║
+  ║  word_embeddings               │ Digital FROZEN│ -              │ -              │ -             │ Digital ║
+  ║  position_embeddings           │ Digital FROZEN│ -              │ -              │ -             │ Digital ║
+  ║  token_type_embeddings         │ Digital FROZEN│ -              │ -              │ -             │ Digital ║
+  ║  embedding_transformation      │ Digital FROZEN│ Digital FROZEN │ -              │ -             │ Digital ║
+  ║  ──────────────────────────────┼──────────────┼────────────────┼────────────────┼───────────────┼───────  ║
+  ║  bottleneck.input.dense ×24    │ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  attention.self.query ×24      │ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  attention.self.key ×24        │ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  attention.self.value ×24      │ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  attention.output.dense ×24    │ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  bottleneck.attention.dense ×24│ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  intermediate.dense ×24        │ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  output.dense ×24              │ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  ffn.0.intermediate.dense ×24  │ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  ffn.0.output.dense ×24        │ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  ffn.1.intermediate.dense ×24  │ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  ffn.1.output.dense ×24        │ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  ffn.2.intermediate.dense ×24  │ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  ffn.2.output.dense ×24        │ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  output.bottleneck.dense ×24   │ Analog FROZEN │ Analog FROZEN  │ Analog TRAIN   │ Analog ✓TRAIN │ LRTT    ║
+  ║  ──────────────────────────────┼──────────────┼────────────────┼────────────────┼───────────────┼───────  ║
+  ║  qa_outputs                    │ Digital TRAIN │ Digital TRAIN  │ -              │ -             │ Digital ║
+  ╠════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
+  ║  LRTT: 15 × 24 + 1 = 361  │  Digital TRAIN: 1 (qa_outputs)  │  Digital FROZEN: 3 (embeddings)      ║
+  ╚════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+  ╔══════════════════════════════════════════════════════════════════════════════════════════╗                                                                                                                                                                                                     
+  ║  LEGEND                                                                                  ║
+  ║  ─────────────────────────────────────────────────────────────────────────────────────── ║
+  ║  ★ LRTT Analog Layer (only for --lora-target selected layers)                            ║
+  ║      • C-tile: Pretrained weights → FROZEN                                               ║
+  ║      • C-tile out_scaling: per-column scaling → LEARNABLE                                ║
+  ║      • A-tile: Low-rank factor (m × rank) → LEARNABLE                                    ║
+  ║      • B-tile: Low-rank factor (rank × n) → LEARNABLE                                    ║
+  ║      • bias: Pretrained → FROZEN                                                         ║
+  ║                                                                                          ║
+  ║  ○ Digital Layer                                                                         ║
+  ║      • FROZEN: Embeddings, non-target encoder layers, embedding_transformation (※1)     ║
+  ║      • TRAIN: qa_outputs (--head-layer train, default)                                   ║
+  ║                                                                                          ║
+  ║  ※1 embedding_transformation:                                                            ║
+  ║      • --lora-target all   → ★ LRTT Analog                                               ║
+  ║      • --lora-target others → ○ Digital FROZEN                                           ║
+  ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+
+  ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+  ┃ EMBEDDINGS                                                                               ┃
+  ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
+  ┃                                                                                          ┃
+  ┃ ○ word_embeddings        : Embedding(30522, 128)  │ 3,906,816 params │ Digital, FROZEN   ┃
+  ┃ ○ position_embeddings    : Embedding(512, 512)    │   262,144 params │ Digital, FROZEN   ┃
+  ┃ ○ token_type_embeddings  : Embedding(2, 512)      │     1,024 params │ Digital, FROZEN   ┃
+  ┃                                                                                          ┃
+  ┃   embedding_transformation: Linear(384→512)       │   197,120 params │ Mode-dependent    ┃
+  ┃   ┌────────────────────────────────────────────────────────────────────────────────────┐ ┃
+  ┃   │  --lora-target all:                                                                │ ┃
+  ┃   │    ★ LRTT Analog                                                                   │ ┃
+  ┃   │       C-tile:  384×512 = 196,608 params  →  FROZEN                                 │ ┃
+  ┃   │       out_scaling: 512 params            →  LEARNABLE                              │ ┃
+  ┃   │       A-tile:  384×rank params           →  LEARNABLE                              │ ┃
+  ┃   │       B-tile:  rank×512 params           →  LEARNABLE                              │ ┃
+  ┃   │       bias:    512 params                →  FROZEN                                 │ ┃
+  ┃   │                                                                                    │ ┃
+  ┃   │  --lora-target none/qonly/konly/vonly/qkv/ffn:                                     │ ┃
+  ┃   │    ○ Digital FROZEN                                                                │ ┃
+  ┃   │       weight: 384×512 = 196,608 params   →  FROZEN                                 │ ┃
+  ┃   │       bias:   512 params                 →  FROZEN                                 │ ┃
+  ┃   └────────────────────────────────────────────────────────────────────────────────────┘ ┃
+  ┃                                                                                          ┃
+  ┃   Digital FROZEN Params: 4,169,984 (word/pos/type embeddings)                            ┃
+  ┃   + embedding_transformation: Mode-dependent (see above)                                 ┃
+  ┃                                                                                          ┃
+  ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+  ╔══════════════════════════════════════════════════════════════════════════════════════════╗
+  ║                              PARAMETER SUMMARY (--lora-target all, rank=4)               ║
+  ╠══════════════════════════════════════════════════════════════════════════════════════════╣
+  ║                                                                                          ║
+  ║   ┌──────────────────────────────────────────────────────────────────────────────────┐   ║
+  ║   │                         FROZEN PARAMETERS                                        │   ║
+  ║   ├──────────────────────────────────────────────────────────────────────────────────┤   ║
+  ║   │ Component                        │ Count           │ Parameters                 │   ║
+  ║   ├──────────────────────────────────┼─────────────────┼────────────────────────────┤   ║
+  ║   │ Embeddings (word/pos/type)       │ 3 modules       │  4,169,984                 │   ║
+  ║   │ C-tile weights (Encoder LRTT)    │ 360 layers      │ 19,574,016                 │   ║
+  ║   │ C-tile weights (emb_trans LRTT)  │ 1 layer         │    196,608                 │   ║
+  ║   │ bias (Encoder LRTT)              │ 360 layers      │     92,160                 │   ║
+  ║   │ bias (emb_trans LRTT)            │ 1 layer         │        512                 │   ║
+  ║   ├──────────────────────────────────┼─────────────────┼────────────────────────────┤   ║
+  ║   │ TOTAL FROZEN                     │                 │ 24,033,280                 │   ║
+  ║   └──────────────────────────────────┴─────────────────┴────────────────────────────┘   ║
+  ║                                                                                          ║
+  ║   ┌──────────────────────────────────────────────────────────────────────────────────┐   ║
+  ║   │                        LEARNABLE PARAMETERS                                      │   ║
+  ║   ├──────────────────────────────────────────────────────────────────────────────────┤   ║
+  ║   │ Component                        │ Formula                │ Params (rank=4)      │   ║
+  ║   ├──────────────────────────────────┼────────────────────────┼──────────────────────┤   ║
+  ║   │ A-tile (Encoder LRTT, 360)       │ Σ(in_dim × rank)       │    405,504           │   ║
+  ║   │ B-tile (Encoder LRTT, 360)       │ Σ(rank × out_dim)      │    405,504           │   ║
+  ║   │ out_scaling (Encoder LRTT, 360)  │ Σ(out_dim)             │     92,160           │   ║
+  ║   │ A-tile (emb_trans LRTT, 1)       │ 384 × rank             │      1,536           │   ║
+  ║   │ B-tile (emb_trans LRTT, 1)       │ rank × 512             │      2,048           │   ║
+  ║   │ out_scaling (emb_trans LRTT, 1)  │ 512                    │        512           │   ║
+  ║   │ qa_outputs (Digital)             │ 512×2 + 2              │      1,026           │   ║
+  ║   ├──────────────────────────────────┼────────────────────────┼──────────────────────┤   ║
+  ║   │ TOTAL LEARNABLE                  │                        │    908,290           │   ║
+  ║   │                                  │                        │ (~3.6% of model)     │   ║
+  ║   └──────────────────────────────────┴────────────────────────┴──────────────────────┘   ║
+  ║                                                                                          ║
+  ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+
+  ║   ┌──────────────────────────────────────────────────────────────────────────────────┐   ║
+  ║   │                         LAYER TYPE SUMMARY                                       │   ║
+  ║   ├──────────────────────────────────────────────────────────────────────────────────┤   ║
+  ║   │                                                                                  │   ║
+  ║   │   --lora-target all:                                                             │   ║
+  ║   │     ★ LRTT Analog:    361 layers (360 encoder + 1 embedding_transformation)      │   ║
+  ║   │     ○ Digital TRAIN:    1 layer  (qa_outputs)                                    │   ║
+  ║   │     ○ Digital FROZEN:   3 modules (word/pos/type embeddings)                     │   ║
+  ║   │                                                                                  │   ║
+  ║   │   --lora-target qkv:                                                             │   ║
+  ║   │     ★ LRTT Analog:     72 layers (query, key, value × 24)                        │   ║
+  ║   │     ○ Digital TRAIN:    1 layer  (qa_outputs)                                    │   ║
+  ║   │     ○ Digital FROZEN: 292 (288 non-qkv encoder + 1 emb_trans + 3 embeddings)     │   ║
+  ║   │                                                                                  │   ║
+  ║   │   --lora-target ffn:                                                             │   ║
+  ║   │     ★ LRTT Analog:    288 layers (ffn related × 24)                              │   ║
+  ║   │     ○ Digital TRAIN:    1 layer  (qa_outputs)                                    │   ║
+  ║   │     ○ Digital FROZEN:  76 (72 qkv + 1 emb_trans + 3 embeddings)                  │   ║
+  ║   │                                                                                  │   ║
+  ║   │   --lora-target qonly/konly/vonly:                                               │   ║
+  ║   │     ★ LRTT Analog:     24 layers (target attention × 24)                         │   ║
+  ║   │     ○ Digital TRAIN:    1 layer  (qa_outputs)                                    │   ║
+  ║   │     ○ Digital FROZEN: 340 (336 non-target encoder + 1 emb_trans + 3 embeddings)  │   ║
+  ║   │                                                                                  │   ║
+  ║   │   --lora-target none:                                                            │   ║
+  ║   │     ★ LRTT Analog:      0 layers                                                 │   ║
+  ║   │     ○ Digital TRAIN:    1 layer  (qa_outputs)                                    │   ║
+  ║   │     ○ Digital FROZEN: 364 (360 encoder + 1 emb_trans + 3 embeddings)             │   ║
+  ║   │                                                                                  │   ║
+  ║   │   ※ qa_outputs: TRAIN (default) or FROZEN (--head-layer freeze)                  │   ║
+  ║   │                                                                                  │   ║
+  ║   └──────────────────────────────────────────────────────────────────────────────────┘   ║

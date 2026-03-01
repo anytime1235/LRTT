@@ -1,0 +1,9 @@
+{
+  "task": "rte",
+  "metric": "accuracy",
+  "best_value": 0.6931407942238267,
+  "best_params": {
+    "lora_alpha": 0.031817052986528864,
+    "target_ab_lr": 0.24598260017075405
+  }
+}

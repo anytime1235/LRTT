@@ -1,0 +1,71 @@
+{
+    "model": "google/mobilebert-uncased",
+    "method": "TikiTaka v2 (ChoppedTransferCompound)",
+    "experiment_date": "2026-02-11",
+    "script": "sweep_tikitaka_batch256.py",
+    "result_source": "Real_sweep_bias_frozen_20260211_050828",
+    "tag": "Real",
+    "description": "Single-trial evaluation using SST-2 best HP (trial 33) across all GLUE tasks. ABS_MAX/ITERATIVE IO, out_noise=0.0, bias frozen, full dataset, QKV only",
+    "training_config": {
+        "num_epochs": 3,
+        "batch_size": 64,
+        "optimizer": "AnalogAdam",
+        "scheduler": "linear_warmup_decay_to_0",
+        "glue_warmup_ratio": 0.1,
+        "target_modules": ["query", "key", "value"],
+        "n_trials": 1,
+        "note": "Using SST-2 sweep best params (trial 33, acc=90.14%) as fixed HP for all tasks"
+    },
+    "fixed_params": {
+        "auto_granularity": 169.0,
+        "in_chop_prob": 0.061,
+        "fast_lr": 3.0,
+        "noise_management": "ABS_MAX",
+        "bound_management": "ITERATIVE",
+        "out_noise": 0.0,
+        "bias_frozen": true
+    },
+    "hp_from_sst2_best": {
+        "learning_rate": 0.0023065114558800644,
+        "transfer_lr": 3.986266963830462,
+        "transfer_every": 491
+    },
+    "results": {
+        "rte": {
+            "metric": "accuracy",
+            "value": 0.5271,
+            "note": "Near random (baseline ~52.7%). SST-2 HP not effective for RTE."
+        },
+        "mrpc": {
+            "metric": "f1",
+            "value": 0.8122,
+            "note": "Reasonable F1."
+        },
+        "stsb": {
+            "metric": "spearmanr",
+            "value": null,
+            "raw_value": "-Infinity",
+            "note": "Loss diverged. SST-2 HP causes training instability on STS-B (regression task)."
+        },
+        "cola": {
+            "metric": "matthews_correlation",
+            "value": 0.0834,
+            "note": "Near random. SST-2 HP not effective for CoLA."
+        },
+        "sst2": {
+            "metric": "accuracy",
+            "value": 0.8830,
+            "note": "Lower than sweep best (0.9014) due to different trial seed/warm-start behavior."
+        }
+    },
+    "summary_table": {
+        "headers": ["Task", "Metric", "Value", "Status"],
+        "rows": [
+            ["RTE",  "accuracy",              0.5271, "poor (random-level)"],
+            ["MRPC", "f1",                     0.8122, "ok"],
+            ["STS-B","spearmanr",              null,   "FAILED (loss diverged)"],
+            ["CoLA", "matthews_correlation",    0.0834, "poor (near-random)"],
+            ["SST-2","accuracy",               0.8830, "ok"]
+        ]
+    }
+}

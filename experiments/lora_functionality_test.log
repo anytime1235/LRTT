@@ -1,0 +1,157 @@
+
+================================================================================
+  ANALOG LORA FUNCTIONALITY TEST
+================================================================================
+
+Device: cuda
+Task: sst2
+Target: ['query', 'key', 'value']
+lora_alpha: 0.01
+
+[Creating model...]
+Some weights of MobileBertForSequenceClassification were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+
+Applied PEFT LoRA (alpha=0.01) to ['query', 'key', 'value']
+trainable params: 221,184 || all params: 24,804,098 || trainable%: 0.8917
+
+[Smart Conversion] Using SingleRPUConfig for both base_layer and lora
+  base_layer config: SingleRPUConfig + SoftBoundsDevice
+  lora config: SingleRPUConfig + LinearStepDevice (6T1C)
+
+================================================================================
+SMART CONVERSION: Base_layer + LoRA separate conversion
+================================================================================
+
+[Step 1] Found layers:
+  base_layer: 72
+  lora_A/B: 144
+
+[Step 2] Converting base_layer to SoftBounds analog (frozen)...
+✓ Converted 72 base_layer to SoftBounds analog (frozen)
+
+[Step 3] Converting lora_A/B to sixt1c analog (trainable=True)...
+✓ Converted 144 lora_A/B to sixt1c analog (trainable=True)
+
+[Step 4] Verifying architecture...
+  base_layer analog: 72 (should be 72)
+  lora_A/B analog: 144 (should be 144)
+  Trainable analog params: 144
+
+================================================================================
+✓ SMART CONVERSION COMPLETE!
+  Architecture:
+    - base_layer: SoftBounds AnalogLinear (frozen)
+    - lora_A/B: 6T1C AnalogLinear (trainable=True)
+================================================================================
+
+
+Final model structure:
+trainable params: 1,170 || all params: 22,223,834 || trainable%: 0.0053
+
+================================================================================
+  TEST 1: LoRA Contribution to Forward Pass
+================================================================================
+
+Found 144 analog LoRA layers
+Testing first layer: base_model.model.mobilebert.encoder.layer.0.attention.self.query.lora_A.default
+
+Output with LoRA:
+  Shape: torch.Size([1, 2])
+  Values: tensor([[-2691973.7500,  9368086.0000]], device='cuda:0')
+  Mean: 3338056.0000
+  Std: 8527750.0000
+
+[Attempting to disable LoRA for comparison...]
+
+Output WITHOUT LoRA (scaling=0):
+  Values: tensor([[-2691973.7500,  9368086.0000]], device='cuda:0')
+  Mean: 3338056.0000
+  Std: 8527750.0000
+
+Difference:
+  Max diff: 0.000000
+  Mean diff: 0.000000
+
+✗ LoRA NOT contributing (difference too small)
+
+================================================================================
+  TEST 2: LoRA Weight Magnitudes
+================================================================================
+
+LoRA A layers: 72
+  Sample: base_model.model.mobilebert.encoder.layer.0.attention.self.query.lora_A.default
+  Shape: torch.Size([8, 128])
+  Mean: -0.002949
+  Std: 0.051203
+  Max: 0.088289
+
+LoRA B layers: 72
+  Sample: base_model.model.mobilebert.encoder.layer.0.attention.self.query.lora_B.default
+  Shape: torch.Size([128, 8])
+  Mean: 0.000000
+  Std: 0.000000
+  Max: 0.000000
+
+✗ Weights properly initialized: False
+
+================================================================================
+  TEST 3: LoRA Learning Test
+================================================================================
+
+Tracking 144 LoRA layers
+
+Training on 10 samples (lr=0.01)...
+Average loss: 0.0000
+
+Top 5 weight changes:
+  base_model.model.mobilebert.encoder.layer.0.attention.self.query.lora_A.default: 0.000000
+  base_model.model.mobilebert.encoder.layer.0.attention.self.query.lora_B.default: 0.000000
+  base_model.model.mobilebert.encoder.layer.0.attention.self.key.lora_A.default: 0.000000
+  base_model.model.mobilebert.encoder.layer.0.attention.self.key.lora_B.default: 0.000000
+  base_model.model.mobilebert.encoder.layer.0.attention.self.value.lora_A.default: 0.000000
+
+Weight change statistics:
+  Max: 0.000000
+  Min: 0.000000
+  Avg: 0.000000
+
+✗ LoRA weights changed: False
+
+================================================================================
+  TEST 4: LoRA Scaling Factor
+================================================================================
+
+Found 72 layers with scaling
+Found 72 layers with rank
+
+Sample scaling values:
+  base_model.model.mobilebert.encoder.layer.0.attention.self.query: 0.00125
+  base_model.model.mobilebert.encoder.layer.0.attention.self.key: 0.00125
+  base_model.model.mobilebert.encoder.layer.0.attention.self.value: 0.00125
+
+Sample rank values:
+  base_model.model.mobilebert.encoder.layer.0.attention.self.query: 8
+  base_model.model.mobilebert.encoder.layer.0.attention.self.key: 8
+  base_model.model.mobilebert.encoder.layer.0.attention.self.value: 8
+
+Average scaling: 0.001250
+Average rank: 8.0
+Expected alpha (scaling * rank): 0.010000
+
+✓ Scaling configured: True
+
+================================================================================
+  TEST SUMMARY
+================================================================================
+
+✗ LoRA contributes to forward: False
+✗ LoRA weights initialized: False
+✗ LoRA learns from training: False
+✓ LoRA scaling configured: True
+
+================================================================================
+✗✗✗ SOME TESTS FAILED!
+Analog LoRA has functional issues.
+================================================================================
+

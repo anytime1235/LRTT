@@ -1,0 +1,189 @@
+[
+  {
+    "trial": 14,
+    "value": 0.5252293577981652,
+    "params": {
+      "learning_rate": 0.1,
+      "lora_alpha": 0.004070282875282828,
+      "ab_lr": 1.0,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 4,
+    "value": 0.5160550458715596,
+    "params": {
+      "learning_rate": 0.1,
+      "lora_alpha": 0.004622589001020831,
+      "ab_lr": 1.0,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 16,
+    "value": 0.5149082568807339,
+    "params": {
+      "learning_rate": 0.1,
+      "lora_alpha": 0.0033019087260881654,
+      "ab_lr": 1.0,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 12,
+    "value": 0.5126146788990825,
+    "params": {
+      "learning_rate": 0.1,
+      "lora_alpha": 0.005838997150037721,
+      "ab_lr": 1.0,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 13,
+    "value": 0.5126146788990825,
+    "params": {
+      "learning_rate": 0.1,
+      "lora_alpha": 0.007310504842814191,
+      "ab_lr": 1.0,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 1,
+    "value": 0.5091743119266054,
+    "params": {
+      "learning_rate": 0.1,
+      "lora_alpha": 0.0005611516415334506,
+      "ab_lr": 1.0,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 2,
+    "value": 0.5091743119266054,
+    "params": {
+      "learning_rate": 0.1,
+      "lora_alpha": 0.0002051338263087451,
+      "ab_lr": 0.01,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 3,
+    "value": 0.5091743119266054,
+    "params": {
+      "learning_rate": 0.1,
+      "lora_alpha": 0.0015930522616241021,
+      "ab_lr": 0.01,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 5,
+    "value": 0.5091743119266054,
+    "params": {
+      "learning_rate": 0.1,
+      "lora_alpha": 0.0004059611610484307,
+      "ab_lr": 1.0,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 6,
+    "value": 0.5091743119266054,
+    "params": {
+      "learning_rate": 0.1,
+      "lora_alpha": 0.0016738085788752138,
+      "ab_lr": 0.01,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 7,
+    "value": 0.5091743119266054,
+    "params": {
+      "learning_rate": 0.1,
+      "lora_alpha": 0.000816845589476017,
+      "ab_lr": 1.0,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 8,
+    "value": 0.5091743119266054,
+    "params": {
+      "learning_rate": 0.1,
+      "lora_alpha": 0.0015304852121831463,
+      "ab_lr": 0.1,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 9,
+    "value": 0.5091743119266054,
+    "params": {
+      "learning_rate": 0.1,
+      "lora_alpha": 0.00013492834268013249,
+      "ab_lr": 0.1,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 10,
+    "value": 0.5091743119266054,
+    "params": {
+      "learning_rate": 0.1,
+      "lora_alpha": 0.0004066563313514797,
+      "ab_lr": 0.1,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 11,
+    "value": 0.5091743119266054,
+    "params": {
+      "learning_rate": 0.1,
+      "lora_alpha": 0.0077673538162370695,
+      "ab_lr": 1.0,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 15,
+    "value": 0.5091743119266054,
+    "params": {
+      "learning_rate": 0.1,
+      "lora_alpha": 0.003691979171780842,
+      "ab_lr": 1.0,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 0,
+    "value": null,
+    "params": {
+      "learning_rate": 0.1,
+      "lora_alpha": 0.0005611516415334506,
+      "ab_lr": 1.0,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.RUNNING"
+  }
+]

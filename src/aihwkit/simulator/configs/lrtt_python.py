@@ -232,7 +232,16 @@ class PythonLRTTDevice(_PrintableMixin):
     
     columns_mode: bool = True
     """Transfer mode: True=columns (forward), False=rows (backward)."""
-    
+
+    ab_io_perfect: bool = False
+    """If True, use is_perfect=True IO for A/B tiles (no DAC/ADC quantization)."""
+
+    combined_out_scaling: bool = False
+    """If True, apply a shared learnable out_scaling to the combined LRTT output
+    y = C·x + α·A·(B·x) instead of scaling only the C path. This ensures
+    symmetric scaling across both the pretrained and LoRA paths.
+    When enabled, tile_c's individual learn_out_scaling is disabled."""
+
     # === Device Configuration ===
     unit_cell_devices: List[PulsedDevice] = field(default_factory=lambda: [
         ConstantStepDevice(dw_min=0.01, w_min=-1.0, w_max=1.0),

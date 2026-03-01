@@ -1,0 +1,25 @@
+{
+  "experiment": "classifier_frozen_single_trial",
+  "task": "sst2",
+  "best_metric": 0.8532110091743119,
+  "init_metric": 0.4908256880733945,
+  "params": {
+    "learning_rate": 0.0023065114558800644,
+    "transfer_lr": 3.986266963830462,
+    "fast_lr": 3.0,
+    "transfer_every": 491,
+    "auto_granularity": 169.0,
+    "in_chop_prob": 0.061
+  },
+  "classifier_frozen": true,
+  "bias_frozen": true,
+  "target_modules": [
+    "query",
+    "key",
+    "value"
+  ],
+  "num_epochs": 3,
+  "batch_size": 64,
+  "trainable_params": 9288,
+  "total_params": 22232906
+}

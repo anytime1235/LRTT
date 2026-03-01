@@ -1,0 +1,85 @@
+{
+  "extraction_date": "2026-02-05",
+  "source": "/data/AIMC_LoRA_results/tikitaka_sweep/sweep.log",
+  "tasks": {
+    "rte": {
+      "best_trial": 1,
+      "best_metric": 0.5199,
+      "metric_name": "accuracy",
+      "params": {
+        "learning_rate": 0.0001359509025334001,
+        "transfer_lr": 2.3775715876252055,
+        "transfer_every": 20,
+        "fast_lr": 0.4870605517756311,
+        "auto_granularity": 169.64263522078969,
+        "in_chop_prob": 0.03518750610694082
+      }
+    },
+    "mrpc": {
+      "best_trial": 0,
+      "best_metric": 0.6544,
+      "metric_name": "f1",
+      "params": {
+        "learning_rate": 0.000131,
+        "transfer_lr": 7.36,
+        "transfer_every": 160,
+        "fast_lr": 0.86,
+        "auto_granularity": 306.0,
+        "in_chop_prob": 0.02
+      }
+    },
+    "stsb": {
+      "best_trial": 0,
+      "best_metric": -0.0532,
+      "metric_name": "spearman",
+      "status": "FAILED - regression task",
+      "params": {
+        "learning_rate": 0.000131,
+        "transfer_lr": 7.36,
+        "transfer_every": 160,
+        "fast_lr": 0.86,
+        "auto_granularity": 306.0,
+        "in_chop_prob": 0.02
+      }
+    },
+    "cola": {
+      "best_trial": 8,
+      "best_metric": 0.6932,
+      "metric_name": "matthews",
+      "params": {
+        "learning_rate": 0.00019405561282604455,
+        "transfer_lr": 2.6369800321770858,
+        "transfer_every": 74,
+        "fast_lr": 0.4572790303781352,
+        "auto_granularity": 340.91120051962724,
+        "in_chop_prob": 0.02945071327666008
+      }
+    }
+  },
+  "parameter_patterns": {
+    "learning_rate": {
+      "range_used": [0.000102, 0.000194],
+      "observation": "Lower end of search space (5e-5 ~ 5e-4) works better"
+    },
+    "transfer_lr": {
+      "range_used": [2.38, 7.36],
+      "observation": "Mid-range values (2-8) effective"
+    },
+    "transfer_every": {
+      "range_used": [20, 160],
+      "observation": "Task-dependent - smaller for simpler tasks"
+    },
+    "fast_lr": {
+      "range_used": [0.46, 0.86],
+      "observation": "Mid-range values work well"
+    },
+    "auto_granularity": {
+      "range_used": [169.6, 340.9],
+      "observation": "Lower to mid values effective"
+    },
+    "in_chop_prob": {
+      "range_used": [0.02, 0.035],
+      "observation": "Around 0.02-0.035 seems optimal"
+    }
+  }
+}

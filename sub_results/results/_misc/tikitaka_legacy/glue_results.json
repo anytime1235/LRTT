@@ -1,0 +1,158 @@
+{
+    "model": "google/mobilebert-uncased",
+    "method": "TikiTaka v2 (ChoppedTransferCompound)",
+    "experiment_date": "2026-02-05",
+    "training_config": {
+        "num_epochs": 1,
+        "batch_size": 32,
+        "warmup_steps": 500,
+        "optimizer": "AnalogAdam",
+        "target_modules": ["query", "key", "value"],
+        "n_trials": 10
+    },
+    "tasks": {
+        "sst2": {
+            "metric": "accuracy",
+            "score": 0.8830275229357798,
+            "best_trial": 6,
+            "best_params": {
+                "learning_rate": 0.0002025418890664836,
+                "transfer_lr": 1.7881888245041864,
+                "transfer_every": 12,
+                "fast_lr": 1.4284397521546666,
+                "auto_granularity": 564.1671230331441,
+                "in_chop_prob": 0.04137788066524075
+            }
+        },
+        "qnli": {
+            "metric": "accuracy",
+            "score": 0.8266520226981512,
+            "best_trial": 6,
+            "best_params": {
+                "learning_rate": 0.0002025418890664836,
+                "transfer_lr": 1.7881888245041864,
+                "transfer_every": 12,
+                "fast_lr": 1.4284397521546666,
+                "auto_granularity": 564.1671230331441,
+                "in_chop_prob": 0.04137788066524075
+            }
+        },
+        "stsb": {
+            "metric": "spearmanr",
+            "score": 0.326287715697771,
+            "best_trial": 3,
+            "status": "suboptimal - regression task needs tuning",
+            "best_params": {
+                "learning_rate": 0.00033994812107955645,
+                "transfer_lr": 2.202157195714934,
+                "transfer_every": 18,
+                "fast_lr": 0.3567663137948074,
+                "auto_granularity": 172.48307328108964,
+                "in_chop_prob": 0.028614039423450706
+            }
+        },
+        "rte": {
+            "metric": "accuracy",
+            "score": 0.5198555956678701,
+            "best_trial": 1,
+            "best_params": {
+                "learning_rate": 0.0001359509025334001,
+                "transfer_lr": 2.3775715876252055,
+                "transfer_every": 20,
+                "fast_lr": 0.4870605517756311,
+                "auto_granularity": 169.64263522078969,
+                "in_chop_prob": 0.03518750610694082
+            }
+        },
+        "mrpc": {
+            "metric": "f1",
+            "score": 0.6544117647058824,
+            "best_trial": 0,
+            "best_params": {
+                "learning_rate": 0.000131,
+                "transfer_lr": 7.36,
+                "transfer_every": 160,
+                "fast_lr": 0.86,
+                "auto_granularity": 306.0,
+                "in_chop_prob": 0.02
+            }
+        },
+        "cola": {
+            "metric": "matthews_correlation",
+            "score": 0.6931934034538816,
+            "best_trial": 8,
+            "best_params": {
+                "learning_rate": 0.00019405561282604455,
+                "transfer_lr": 2.6369800321770858,
+                "transfer_every": 74,
+                "fast_lr": 0.4572790303781352,
+                "auto_granularity": 340.91120051962724,
+                "in_chop_prob": 0.02945071327666008
+            }
+        },
+        "qqp": {
+            "metric": "f1",
+            "score": 0.7696759831808063,
+            "best_trial": 0,
+            "status": "in_progress - 4/10 trials done, best so far",
+            "best_params": {
+                "learning_rate": 0.000131,
+                "transfer_lr": 7.36,
+                "transfer_every": 160,
+                "fast_lr": 0.86,
+                "auto_granularity": 306.0,
+                "in_chop_prob": 0.02
+            }
+        },
+        "mnli": {
+            "metric": "accuracy",
+            "score": null,
+            "status": "pending - waiting for QQP to finish"
+        },
+        "squad": {
+            "metric": "f1",
+            "score": 60.95174705976753,
+            "best_trial": 24,
+            "status": "in_progress - 37/50 trials done (3 epochs)",
+            "note": "Significant improvement from 13.7% (1ep) to 60.95% (3ep). Digital baseline: 89.48% (15ep)",
+            "best_params": {
+                "learning_rate": 0.00019309457791207612,
+                "transfer_lr": 1.8315021138603822,
+                "transfer_every": 63,
+                "fast_lr": 0.2628870678631465,
+                "auto_granularity": 483.07396584625275,
+                "in_chop_prob": 0.045133733242535556
+            }
+        }
+    },
+    "comparison_vs_digital": {
+        "digital_baseline": {
+            "source": "/data/results/Transformer/Digital/glue_results.json",
+            "epochs": 15
+        },
+        "summary": {
+            "sst2": {"tikitaka": 0.883, "digital": 0.908, "gap": -0.025},
+            "qnli": {"tikitaka": 0.827, "digital": 0.908, "gap": -0.082},
+            "stsb": {"tikitaka": 0.326, "digital": 0.877, "gap": -0.551},
+            "rte": {"tikitaka": 0.520, "digital": 0.563, "gap": -0.043},
+            "mrpc": {"tikitaka": 0.654, "digital": 0.900, "gap": -0.246},
+            "cola": {"tikitaka": 0.693, "digital": 0.521, "gap": 0.173},
+            "qqp": {"tikitaka": 0.770, "digital": 0.867, "gap": -0.097, "note": "in_progress 4/10 trials"},
+            "squad": {"tikitaka": 0.610, "digital": 0.895, "gap": -0.285, "note": "3 epochs vs 15 epochs, 37/50 trials"}
+        },
+        "observations": [
+            "CoLA: TikiTaka outperforms Digital by +17.3%",
+            "SST2, RTE: Comparable performance (gap < 5%)",
+            "QNLI, MRPC: Needs improvement",
+            "STSB: Regression task performs poorly with TikiTaka",
+            "SQuAD: 1 epoch insufficient for QA task (needs more epochs for fair comparison)"
+        ]
+    },
+    "tikitaka_config_description": {
+        "transfer_lr": "Learning rate for transfer from fast to slow tile",
+        "transfer_every": "Number of batches between transfers",
+        "fast_lr": "Learning rate multiplier for fast tile",
+        "auto_granularity": "Automatic buffer granularity scaling factor",
+        "in_chop_prob": "Input chopper probability for noise reduction"
+    }
+}

@@ -1,0 +1,23 @@
+{
+  "best_trial": 17,
+  "best_accuracy": 0.7614678899082569,
+  "best_params": {
+    "learning_rate": 0.00013138890968875328,
+    "transfer_lr": 7.361754560225038,
+    "transfer_every": 160,
+    "fast_lr": 0.8617279213948574,
+    "auto_granularity": 305.9129598939809,
+    "in_chop_prob": 0.020351526696345
+  },
+  "original_best_params": {
+    "learning_rate": 0.000371,
+    "transfer_lr": 1.362,
+    "transfer_every": 100,
+    "fast_lr": 0.926,
+    "auto_granularity": 107.09,
+    "in_chop_prob": 0.071
+  },
+  "n_trials": 50,
+  "csv_path": "/data/tikitaka_v2_refined_results_20260204_060150.csv",
+  "search_type": "refined"
+}

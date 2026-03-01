@@ -1,0 +1,209 @@
+{
+  "study_name": "tikitaka_bs256_mnli",
+  "command": "python sweep_tikitaka_batch256.py --tasks mnli --n_trials 20 --target_modules query key value classifier",
+  "working_dir": "/data/LRTT_transformer/tikitaka",
+  "total_completed_trials": 14,
+  "fixed_params": {
+    "learning_rate": 0.0022765456563752597,
+    "transfer_lr": 0.20709428549474193,
+    "fast_lr": 3.0,
+    "transfer_every": 475
+  },
+  "best_trial": {
+    "trial_number": 12,
+    "accuracy": 0.670606214977076,
+    "accuracy_pct": 67.06,
+    "datetime_start": "2026-02-14 08:14:10.892485",
+    "datetime_complete": "2026-02-14 12:34:06.619082",
+    "params": {
+      "learning_rate": 0.0930424069389568,
+      "transfer_every": 988,
+      "transfer_lr": 1.2613209240930499,
+      "fast_lr": 3.0
+    }
+  },
+  "all_trials": [
+    {
+      "trial_number": 12,
+      "accuracy": 0.670606214977076,
+      "accuracy_pct": 67.06,
+      "datetime_start": "2026-02-14 08:14:10.892485",
+      "datetime_complete": "2026-02-14 12:34:06.619082",
+      "params": {
+        "learning_rate": 0.0930424069389568,
+        "transfer_every": 988,
+        "transfer_lr": 1.2613209240930499,
+        "fast_lr": 3.0
+      }
+    },
+    {
+      "trial_number": 11,
+      "accuracy": 0.6604177279673968,
+      "accuracy_pct": 66.04,
+      "datetime_start": "2026-02-14 03:44:53.720851",
+      "datetime_complete": "2026-02-14 08:14:10.830831",
+      "params": {
+        "learning_rate": 0.07394802582852848,
+        "transfer_every": 954,
+        "transfer_lr": 1.1695445851644273,
+        "fast_lr": 3.0
+      }
+    },
+    {
+      "trial_number": 10,
+      "accuracy": 0.6602139582272033,
+      "accuracy_pct": 66.02,
+      "datetime_start": "2026-02-13 23:17:33.023260",
+      "datetime_complete": "2026-02-14 03:44:53.679865",
+      "params": {
+        "learning_rate": 0.08627323035687517,
+        "transfer_every": 979,
+        "transfer_lr": 1.2181190943915199,
+        "fast_lr": 3.0
+      }
+    },
+    {
+      "trial_number": 13,
+      "accuracy": 0.6591951095262354,
+      "accuracy_pct": 65.92,
+      "datetime_start": "2026-02-14 12:34:06.648711",
+      "datetime_complete": "2026-02-14 17:07:49.003714",
+      "params": {
+        "learning_rate": 0.09893813104935618,
+        "transfer_every": 846,
+        "transfer_lr": 1.133977740033178,
+        "fast_lr": 3.0
+      }
+    },
+    {
+      "trial_number": 4,
+      "accuracy": 0.6484971981660723,
+      "accuracy_pct": 64.85,
+      "datetime_start": "2026-02-12 16:00:58.630129",
+      "datetime_complete": "2026-02-12 20:39:58.012591",
+      "params": {
+        "learning_rate": 0.02607024758370768,
+        "transfer_every": 979,
+        "transfer_lr": 0.21272133025080567,
+        "fast_lr": 3.0
+      }
+    },
+    {
+      "trial_number": 5,
+      "accuracy": 0.6411614875191034,
+      "accuracy_pct": 64.12,
+      "datetime_start": "2026-02-12 20:39:58.048186",
+      "datetime_complete": "2026-02-13 00:40:51.112725",
+      "params": {
+        "learning_rate": 0.04622589001020832,
+        "transfer_every": 427,
+        "transfer_lr": 0.37782400552378775,
+        "fast_lr": 3.0
+      }
+    },
+    {
+      "trial_number": 9,
+      "accuracy": 0.6275089149261335,
+      "accuracy_pct": 62.75,
+      "datetime_start": "2026-02-13 18:35:01.301195",
+      "datetime_complete": "2026-02-13 23:17:32.997587",
+      "params": {
+        "learning_rate": 0.008168455894760165,
+        "transfer_every": 439,
+        "transfer_lr": 2.1016842677383525,
+        "fast_lr": 3.0
+      }
+    },
+    {
+      "trial_number": 2,
+      "accuracy": 0.6153846153846154,
+      "accuracy_pct": 61.54,
+      "datetime_start": "2026-02-12 05:02:15.574777",
+      "datetime_complete": "2026-02-12 09:33:08.299368",
+      "params": {
+        "learning_rate": 0.015751320499779727,
+        "transfer_every": 409,
+        "transfer_lr": 0.31916475505899494,
+        "fast_lr": 3.0
+      }
+    },
+    {
+      "trial_number": 7,
+      "accuracy": 0.6120224146714213,
+      "accuracy_pct": 61.2,
+      "datetime_start": "2026-02-13 07:19:33.890460",
+      "datetime_complete": "2026-02-13 12:36:38.677051",
+      "params": {
+        "learning_rate": 0.007309539835912915,
+        "transfer_every": 728,
+        "transfer_lr": 0.47855057531161266,
+        "fast_lr": 3.0
+      }
+    },
+    {
+      "trial_number": 1,
+      "accuracy": 0.6052980132450331,
+      "accuracy_pct": 60.53,
+      "datetime_start": "2026-02-11 23:27:26.373120",
+      "datetime_complete": "2026-02-12 05:02:15.509725",
+      "params": {
+        "learning_rate": 0.005611516415334507,
+        "transfer_every": 813,
+        "transfer_lr": 3.450943314656071,
+        "fast_lr": 3.0
+      }
+    },
+    {
+      "trial_number": 6,
+      "accuracy": 0.5853285787060621,
+      "accuracy_pct": 58.53,
+      "datetime_start": "2026-02-13 00:40:51.134806",
+      "datetime_complete": "2026-02-13 07:19:33.839089",
+      "params": {
+        "learning_rate": 0.002327067708383781,
+        "transfer_every": 667,
+        "transfer_lr": 0.49757468839628854,
+        "fast_lr": 3.0
+      }
+    },
+    {
+      "trial_number": 3,
+      "accuracy": 0.5843097300050942,
+      "accuracy_pct": 58.43,
+      "datetime_start": "2026-02-12 09:33:08.334223",
+      "datetime_complete": "2026-02-12 16:00:58.605043",
+      "params": {
+        "learning_rate": 0.0013066739238053278,
+        "transfer_every": 721,
+        "transfer_lr": 2.6788669413500963,
+        "fast_lr": 3.0
+      }
+    },
+    {
+      "trial_number": 0,
+      "accuracy": 0.5833927661742231,
+      "accuracy_pct": 58.34,
+      "datetime_start": "2026-02-11 17:25:02.375318",
+      "datetime_complete": "2026-02-11 23:27:26.319335",
+      "params": {
+        "learning_rate": 0.0022765456563752597,
+        "transfer_every": 475,
+        "transfer_lr": 0.20709428549474193,
+        "fast_lr": 3.0
+      }
+    },
+    {
+      "trial_number": 8,
+      "accuracy": 0.5764645950076414,
+      "accuracy_pct": 57.65,
+      "datetime_start": "2026-02-13 12:36:38.718899",
+      "datetime_complete": "2026-02-13 18:35:01.271652",
+      "params": {
+        "learning_rate": 0.0019010245319870357,
+        "transfer_every": 556,
+        "transfer_lr": 0.4798648581362543,
+        "fast_lr": 3.0
+      }
+    }
+  ]
+}

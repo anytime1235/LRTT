@@ -1,0 +1,152 @@
+[
+  {
+    "trial": 0,
+    "value": 85.0,
+    "params": {
+      "learning_rate": 0.2858051065806936,
+      "lora_alpha": 0.06097839109531514,
+      "target_ab_lr": 0.009093929525644107
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 11,
+    "value": 84.79937429803385,
+    "params": {
+      "learning_rate": 0.24980919693814435,
+      "lora_alpha": 0.05405474873032825,
+      "target_ab_lr": 0.008147989922417012
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 1,
+    "value": 84.78,
+    "params": {
+      "learning_rate": 0.2858051065806936,
+      "lora_alpha": 0.06097839109531514,
+      "target_ab_lr": 0.009093929525644107
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 13,
+    "value": 84.25806559769003,
+    "params": {
+      "learning_rate": 0.10869833116250659,
+      "lora_alpha": 0.04470338594781512,
+      "target_ab_lr": 0.011714640520150704
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 14,
+    "value": 82.8557505987571,
+    "params": {
+      "learning_rate": 0.08397275327574748,
+      "lora_alpha": 0.00807898405803726,
+      "target_ab_lr": 0.0037657344661872713
+    },
+    "state": "TrialState.PRUNED"
+  },
+  {
+    "trial": 10,
+    "value": 76.09945143948195,
+    "params": {
+      "learning_rate": 0.8537907861492415,
+      "lora_alpha": 0.001042297146664846,
+      "target_ab_lr": 0.0010535179945522738
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 2,
+    "value": 6.95,
+    "params": {
+      "learning_rate": 0.013292918943162165,
+      "lora_alpha": 0.711447600934342,
+      "target_ab_lr": 0.15702970884055384
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 8,
+    "value": 6.917517028310291,
+    "params": {
+      "learning_rate": 0.013292918943162165,
+      "lora_alpha": 0.711447600934342,
+      "target_ab_lr": 0.15702970884055384
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 3,
+    "value": 6.83,
+    "params": {
+      "learning_rate": 0.013292918943162165,
+      "lora_alpha": 0.711447600934342,
+      "target_ab_lr": 0.15702970884055384
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 7,
+    "value": 6.690413242142194,
+    "params": {
+      "learning_rate": 0.013292918943162165,
+      "lora_alpha": 0.711447600934342,
+      "target_ab_lr": 0.15702970884055384
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 5,
+    "value": 6.329226605023727,
+    "params": {
+      "learning_rate": 0.013292918943162165,
+      "lora_alpha": 0.711447600934342,
+      "target_ab_lr": 0.15702970884055384
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 4,
+    "value": 6.166663614589634,
+    "params": {
+      "learning_rate": 0.013292918943162165,
+      "lora_alpha": 0.711447600934342,
+      "target_ab_lr": 0.15702970884055384
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 6,
+    "value": 6.00378424273541,
+    "params": {
+      "learning_rate": 0.013292918943162165,
+      "lora_alpha": 0.711447600934342,
+      "target_ab_lr": 0.15702970884055384
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 9,
+    "value": 5.858516469047871,
+    "params": {
+      "learning_rate": 0.013292918943162165,
+      "lora_alpha": 0.711447600934342,
+      "target_ab_lr": 0.15702970884055384
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 12,
+    "value": null,
+    "params": {
+      "learning_rate": 0.10869833116250659,
+      "lora_alpha": 0.04470338594781512,
+      "target_ab_lr": 0.011714640520150704
+    },
+    "state": "TrialState.RUNNING"
+  }
+]

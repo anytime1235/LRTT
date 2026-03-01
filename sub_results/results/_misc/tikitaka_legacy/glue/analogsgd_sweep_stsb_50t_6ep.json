@@ -1,0 +1,48 @@
+{
+  "experiment": "AnalogSGD TikiTaka v2 HP Sweep - STS-B (6 epochs)",
+  "script": "sweep_tikitaka_batch256_sgd_lr2e4.py",
+  "source_dir": "Real_sweep_bias_frozen_20260211_114900",
+  "optimizer": "AnalogSGD (momentum=0)",
+  "model": "google/mobilebert-uncased",
+  "analog_layers": ["query", "key", "value"],
+  "classifier": "digital, trainable (requires_grad=True, num_labels=1)",
+  "bias": "frozen (requires_grad=False)",
+  "num_trials": 50,
+  "num_epochs": 6,
+  "batch_size": 64,
+  "warmup_ratio": 0.1,
+  "scheduler": "linear_warmup_decay_to_0",
+  "metric": "spearmanr",
+  "loss": "MSELoss (regression, labels 0-5)",
+  "search_space": {
+    "learning_rate": {"min": 1e-4, "max": 1e-2, "scale": "log"},
+    "transfer_lr": {"min": 0.01, "max": 4.0, "scale": "log"},
+    "fast_lr": {"min": 0.1, "max": 5.0, "scale": "linear"},
+    "transfer_every": {"min": 10, "max": 1000, "scale": "int"}
+  },
+  "fixed_params": {
+    "auto_granularity": 169.0,
+    "in_chop_prob": 0.061,
+    "noise_management": "ABS_MAX",
+    "bound_management": "ITERATIVE",
+    "io_noise": 0.0
+  },
+  "best_result": {
+    "trial": 12,
+    "spearmanr": 0.2652,
+    "params": {
+      "learning_rate": 0.003263,
+      "transfer_lr": 0.09353,
+      "fast_lr": 3.3262,
+      "transfer_every": 19
+    }
+  },
+  "top5_trials": [
+    {"trial": 12, "spearmanr": 0.2652, "lr": 0.00326, "t_lr": 0.094, "f_lr": 3.326, "te": 19},
+    {"trial": 11, "spearmanr": 0.2610, "lr": 0.00848, "t_lr": 0.013, "f_lr": 4.104, "te": 21},
+    {"trial": 16, "spearmanr": 0.2421, "lr": 0.00280, "t_lr": 0.066, "f_lr": 3.390, "te": 19},
+    {"trial": 8,  "spearmanr": 0.2279, "lr": 0.00153, "t_lr": 0.013, "f_lr": 3.077, "te": 178},
+    {"trial": 13, "spearmanr": 0.2236, "lr": 0.00395, "t_lr": 0.071, "f_lr": 4.969, "te": 20}
+  ],
+  "notes": "STS-B regression requires very different HP profile: very low TE (10-27), low transfer_lr (0.01-0.1), high fast_lr (>3.0). 3ep version (062916) produced all -inf due to loss threshold. Loss starts at ~1e13 but decreases over epochs."
+}

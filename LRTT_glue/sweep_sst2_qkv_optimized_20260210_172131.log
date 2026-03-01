@@ -1,0 +1,219 @@
+/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_glue_adam.py:595: ExperimentalWarning: BoTorchSampler is experimental (supported from v2.4.0). The interface can change in the future.
+  sampler = BoTorchSampler()
+[I 2026-02-10 17:21:46,388] A new study created in memory with name: sixt1c_lora_sst2_QKV
+============================================================
+Sixt1c-LoRA Bayesian Optimization - GLUE
+============================================================
+Architecture: Standardized Config (PEFT LoRA)
+Mode: sixt1c_lora (6T1C analog adapters)
+Trials: 30
+Epochs: 3
+Results dir: /data/results/sixt1c_lora_glue/sixt1c_lora_bias_frozen_20260210_172142
+
+Search Space:
+  learning_rate: [0.0001, 0.01] (log)
+  lora_alpha: [0.05, 10.0] (log)
+
+Fixed Parameters:
+  rank: 8
+  architecture: Standardized Config
+  base_layer: SoftBounds (frozen, analog)
+  lora_A/B: 6T1C sixt1c (trainable, analog)
+  noise_management: ABS_MAX
+  bound_management: ITERATIVE
+  optimizer: AnalogSGD
+
+Default starting point:
+  lr: 0.001
+  lora_alpha: 0.01
+
+Device: cuda
+
+Running task: sst2
+
+============================================================
+Task: SST2
+============================================================
+
+============================================================
+Starting Sixt1c-LoRA (6T1C analog adapters) sweep for: SST2 - QKV
+Target modules: ['query', 'key', 'value']
+============================================================
+Train batches: 1053, Eval batches: 14
+⚡ OPTIMIZATION: Skipping initial evaluation (will use first trial as baseline)
+  0%|                                                                                                                                                                                                                          | 0/30 [00:00<?, ?it/s]/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py:658: UserWarning: Fixed parameter 'lora_alpha' with value 0.01 is out of range for distribution FloatDistribution(high=10.0, log=True, low=0.05, step=None).
+  optuna_warn(
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: Tracking run with wandb version 0.24.1
+wandb: W&B syncing is set to `offline` in this directory. Run `wandb online` or set WANDB_MODE=online to enable cloud syncing.
+wandb: Run data is saved locally in /data/LRTT_transformer/LRTT_glue/wandb/offline-run-20260210_172146-98qx8bb2
+Some weights of MobileBertForSequenceClassification were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Applied PEFT LoRA to ['query', 'key', 'value']
+trainable params: 221,184 || all params: 24,804,098 || trainable%: 0.8917
+Step 1: Converted entire model to SoftBounds analog
+Step 2: Restoring 434 non-base layers to digital...
+  - LoRA layers (lora_A/B): 144
+  - Other layers: 290
+✓ Restored 434 non-base layers to digital
+Step 3: Found 144 LoRA layers to convert to sixt1c (6T1C)
+✓ Converted 144 LoRA layers to sixt1c (6T1C)
+
+Final model structure:
+trainable params: 1,026 || all params: 24,823,322 || trainable%: 0.0041
+
+Trial 0 sst2:   0%|                                                                                                                                                                                                          | 0/1053 [00:00<?, ?it/s][A
+                                                                                                                                                                                                                                                      [Awandb: 
+wandb: Run history:
+wandb:       epoch ▁
+wandb:   eval/loss ▁
+wandb: eval/metric ▁
+wandb: 
+wandb: Run summary:
+wandb:       epoch 0
+wandb:       error 'NoneType' object ha...
+wandb:   eval/loss 0
+wandb: eval/metric 0
+wandb: 
+wandb: You can sync this run to the cloud by running:
+wandb: wandb sync /data/LRTT_transformer/LRTT_glue/wandb/offline-run-20260210_172146-98qx8bb2
+wandb: Find logs at: ./wandb/offline-run-20260210_172146-98qx8bb2/logs
+                                                                                                                                                                                                                                                        0%|                                                                                                                                                                                                                          | 0/30 [03:53<?, ?it/s]                                                                                                                                                                                                                                                        0%|                                                                                                                                                                                                                          | 0/30 [03:53<?, ?it/s]  0%|                                                                                                                                                                                                                          | 0/30 [03:53<?, ?it/s]
+Traceback (most recent call last):
+  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_glue_adam.py", line 744, in main
+    result = run_task_sweep(task, args.target, device, results_dir, n_trials=N_TRIALS, fp_lora=args.fp_lora)
+  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_glue_adam.py", line 609, in run_task_sweep
+    study.optimize(objective, n_trials=n_trials, n_jobs=1, show_progress_bar=True)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/study.py", line 490, in optimize
+    _optimize(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 68, in _optimize
+    _optimize_sequential(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 165, in _optimize_sequential
+    frozen_trial_id = _run_trial(study, func, catch)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 263, in _run_trial
+    raise func_err
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_glue_adam.py", line 606, in objective
+    return run_trial(trial, task_name, train_loader, eval_loader, device, results_dir,
+  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_glue_adam.py", line 497, in run_trial
+    train_loss = train_epoch(model, optimizer, scheduler, train_loader, device, task_name, trial.number)
+  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_glue_adam.py", line 423, in train_epoch
+    outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/peft/peft_model.py", line 921, in forward
+    return self.get_base_model()(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 1286, in forward
+    outputs = self.mobilebert(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 898, in forward
+    encoder_outputs = self.encoder(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 580, in forward
+    layer_outputs = layer_module(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 523, in forward
+    self_attention_outputs = self.attention(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 357, in forward
+    self_outputs = self.self(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 275, in forward
+    mixed_query_layer = self.query(query_tensor)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/peft/tuners/lora/layer.py", line 805, in forward
+    x = self._cast_input_dtype(x, lora_A.weight.dtype)
+AttributeError: 'NoneType' object has no attribute 'dtype'
+Trial 0 failed: 'NoneType' object has no attribute 'dtype'
+[W 2026-02-10 17:25:39,988] Trial 0 failed with parameters: {'learning_rate': 0.001, 'lora_alpha': 0.01} because of the following error: AttributeError("'NoneType' object has no attribute 'dtype'").
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_glue_adam.py", line 606, in objective
+    return run_trial(trial, task_name, train_loader, eval_loader, device, results_dir,
+  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_glue_adam.py", line 497, in run_trial
+    train_loss = train_epoch(model, optimizer, scheduler, train_loader, device, task_name, trial.number)
+  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_glue_adam.py", line 423, in train_epoch
+    outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/peft/peft_model.py", line 921, in forward
+    return self.get_base_model()(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 1286, in forward
+    outputs = self.mobilebert(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 898, in forward
+    encoder_outputs = self.encoder(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 580, in forward
+    layer_outputs = layer_module(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 523, in forward
+    self_attention_outputs = self.attention(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 357, in forward
+    self_outputs = self.self(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 275, in forward
+    mixed_query_layer = self.query(query_tensor)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/peft/tuners/lora/layer.py", line 805, in forward
+    x = self._cast_input_dtype(x, lora_A.weight.dtype)
+AttributeError: 'NoneType' object has no attribute 'dtype'
+[W 2026-02-10 17:25:40,001] Trial 0 failed with value None.
+Failed to complete sst2: 'NoneType' object has no attribute 'dtype'
+
+============================================================
+ALL SWEEPS COMPLETE
+============================================================
+Summary saved to: /data/results/sixt1c_lora_glue/sixt1c_lora_bias_frozen_20260210_172142/all_tasks_summary.json
+  sst2: FAILED - 'NoneType' object has no attribute 'dtype'

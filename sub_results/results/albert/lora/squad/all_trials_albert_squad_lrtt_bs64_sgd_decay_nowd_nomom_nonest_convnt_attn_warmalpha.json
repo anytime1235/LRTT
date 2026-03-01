@@ -1,0 +1,12 @@
+[
+  {
+    "trial": 0,
+    "value": null,
+    "params": {
+      "learning_rate": 0.2858051065806936,
+      "lora_alpha": 0.06097839109531514,
+      "target_ab_lr": 0.009093929525644107
+    },
+    "state": "TrialState.FAIL"
+  }
+]

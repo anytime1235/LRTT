@@ -1,0 +1,1141 @@
+{
+  "config": {
+    "learning_rate": 0.1,
+    "lora_alpha": 0.1,
+    "lrtt_lr_multiplier": 0.1,
+    "lrtt_lr": 0.010000000000000002,
+    "min_lr_rate": 0.0,
+    "batch_size": 64,
+    "rank": 8,
+    "transfer_every": 10000000,
+    "reinit_mode": "decay",
+    "ab_device": "6t1c",
+    "lora_target": "qkv",
+    "head_layer": "train",
+    "optimizer": "AnalogSGD",
+    "n_steps": 10,
+    "task": "sst2"
+  },
+  "checks": {
+    "a_tiles_gradient": {
+      "pass": true,
+      "count": 72,
+      "total": 72
+    },
+    "b_tiles_gradient": {
+      "pass": true,
+      "count": 72,
+      "total": 72
+    },
+    "a_tiles_learning": {
+      "pass": true,
+      "count": 72,
+      "total": 72
+    },
+    "b_tiles_learning": {
+      "pass": true,
+      "count": 72,
+      "total": 72
+    },
+    "c_tiles_frozen": {
+      "pass": true,
+      "count": 72,
+      "total": 72
+    },
+    "gradient_flow": {
+      "pass": true,
+      "a_orig_update_calls": 30,
+      "b_orig_update_calls": 30,
+      "ctrl_num_a_updates": 720,
+      "ctrl_num_b_updates": 720,
+      "a_d_norm_sum": 2155810.996825478,
+      "b_d_norm_sum": 2348637.0204360653
+    }
+  },
+  "all_pass": true,
+  "losses": [
+    2547706.0,
+    19689878.0,
+    54370264.0,
+    964771520.0,
+    6379013632.0,
+    634068.125,
+    14237235200.0,
+    3826037248.0,
+    2271677184.0,
+    10825328.0
+  ],
+  "loss_decreasing": false,
+  "tile_results": [
+    {
+      "name": "mobilebert.encoder.layer.0.attention.self.query",
+      "cumul_dA": 9.689082145690918,
+      "cumul_dB": 5.686727523803711,
+      "cumul_dC": 0.0,
+      "norm_A": 9.689082145690918,
+      "norm_B": 5.678099155426025,
+      "norm_C": 19.95464515686035,
+      "rel_dA": 1.0,
+      "rel_dB": 1.0015195874783975
+    },
+    {
+      "name": "mobilebert.encoder.layer.0.attention.self.key",
+      "cumul_dA": 10.517086029052734,
+      "cumul_dB": 5.784662246704102,
+      "cumul_dC": 0.0,
+      "norm_A": 10.517086029052734,
+      "norm_B": 5.787020683288574,
+      "norm_C": 17.59489631652832,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9995924610065274
+    },
+    {
+      "name": "mobilebert.encoder.layer.0.attention.self.value",
+      "cumul_dA": 14.002433776855469,
+      "cumul_dB": 15.370567321777344,
+      "cumul_dC": 0.0,
+      "norm_A": 14.002433776855469,
+      "norm_B": 15.372979164123535,
+      "norm_C": 34.98271942138672,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9998431115842646
+    },
+    {
+      "name": "mobilebert.encoder.layer.1.attention.self.query",
+      "cumul_dA": 10.85622787475586,
+      "cumul_dB": 8.655308723449707,
+      "cumul_dC": 0.0,
+      "norm_A": 10.85622787475586,
+      "norm_B": 8.644375801086426,
+      "norm_C": 14.809469223022461,
+      "rel_dA": 1.0,
+      "rel_dB": 1.0012647439924935
+    },
+    {
+      "name": "mobilebert.encoder.layer.1.attention.self.key",
+      "cumul_dA": 10.481486320495605,
+      "cumul_dB": 8.278019905090332,
+      "cumul_dC": 0.0,
+      "norm_A": 10.481486320495605,
+      "norm_B": 8.26837158203125,
+      "norm_C": 14.145444869995117,
+      "rel_dA": 1.0,
+      "rel_dB": 1.0011668951937343
+    },
+    {
+      "name": "mobilebert.encoder.layer.1.attention.self.value",
+      "cumul_dA": 14.291147232055664,
+      "cumul_dB": 15.032339096069336,
+      "cumul_dC": 0.0,
+      "norm_A": 14.291147232055664,
+      "norm_B": 15.02847957611084,
+      "norm_C": 42.15031051635742,
+      "rel_dA": 1.0,
+      "rel_dB": 1.0002568137341472
+    },
+    {
+      "name": "mobilebert.encoder.layer.2.attention.self.query",
+      "cumul_dA": 10.487943649291992,
+      "cumul_dB": 8.626004219055176,
+      "cumul_dC": 0.0,
+      "norm_A": 10.487943649291992,
+      "norm_B": 8.605687141418457,
+      "norm_C": 16.392988204956055,
+      "rel_dA": 1.0,
+      "rel_dB": 1.0023608896422616
+    },
+    {
+      "name": "mobilebert.encoder.layer.2.attention.self.key",
+      "cumul_dA": 9.604901313781738,
+      "cumul_dB": 7.682890892028809,
+      "cumul_dC": 0.0,
+      "norm_A": 9.604901313781738,
+      "norm_B": 7.670838356018066,
+      "norm_C": 15.348795890808105,
+      "rel_dA": 1.0,
+      "rel_dB": 1.0015712149639142
+    },
+    {
+      "name": "mobilebert.encoder.layer.2.attention.self.value",
+      "cumul_dA": 13.26512336730957,
+      "cumul_dB": 15.94310474395752,
+      "cumul_dC": 0.0,
+      "norm_A": 13.26512336730957,
+      "norm_B": 15.9380464553833,
+      "norm_C": 43.36855697631836,
+      "rel_dA": 1.0,
+      "rel_dB": 1.0003173719306429
+    },
+    {
+      "name": "mobilebert.encoder.layer.3.attention.self.query",
+      "cumul_dA": 11.493698120117188,
+      "cumul_dB": 7.540140628814697,
+      "cumul_dC": 0.0,
+      "norm_A": 11.493698120117188,
+      "norm_B": 7.537242412567139,
+      "norm_C": 30.533185958862305,
+      "rel_dA": 1.0,
+      "rel_dB": 1.000384519442114
+    },
+    {
+      "name": "mobilebert.encoder.layer.3.attention.self.key",
+      "cumul_dA": 9.529855728149414,
+      "cumul_dB": 6.44672155380249,
+      "cumul_dC": 0.0,
+      "norm_A": 9.529855728149414,
+      "norm_B": 6.445316791534424,
+      "norm_C": 26.609968185424805,
+      "rel_dA": 1.0,
+      "rel_dB": 1.0002179508491982
+    },
+    {
+      "name": "mobilebert.encoder.layer.3.attention.self.value",
+      "cumul_dA": 13.176836013793945,
+      "cumul_dB": 15.305888175964355,
+      "cumul_dC": 0.0,
+      "norm_A": 13.176836013793945,
+      "norm_B": 15.313992500305176,
+      "norm_C": 44.48429489135742,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9994707895840579
+    },
+    {
+      "name": "mobilebert.encoder.layer.4.attention.self.query",
+      "cumul_dA": 10.281498908996582,
+      "cumul_dB": 6.944108486175537,
+      "cumul_dC": 0.0,
+      "norm_A": 10.281498908996582,
+      "norm_B": 6.928651809692383,
+      "norm_C": 16.011890411376953,
+      "rel_dA": 1.0,
+      "rel_dB": 1.0022308346425393
+    },
+    {
+      "name": "mobilebert.encoder.layer.4.attention.self.key",
+      "cumul_dA": 11.308221817016602,
+      "cumul_dB": 7.1423211097717285,
+      "cumul_dC": 0.0,
+      "norm_A": 11.308221817016602,
+      "norm_B": 7.152697563171387,
+      "norm_C": 14.151017189025879,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9985492951004827
+    },
+    {
+      "name": "mobilebert.encoder.layer.4.attention.self.value",
+      "cumul_dA": 17.07552146911621,
+      "cumul_dB": 19.293684005737305,
+      "cumul_dC": 0.0,
+      "norm_A": 17.07552146911621,
+      "norm_B": 19.29183578491211,
+      "norm_C": 40.965091705322266,
+      "rel_dA": 1.0,
+      "rel_dB": 1.0000958032634013
+    },
+    {
+      "name": "mobilebert.encoder.layer.5.attention.self.query",
+      "cumul_dA": 10.419285774230957,
+      "cumul_dB": 7.587557315826416,
+      "cumul_dC": 0.0,
+      "norm_A": 10.419285774230957,
+      "norm_B": 7.5716657638549805,
+      "norm_C": 15.32958698272705,
+      "rel_dA": 1.0,
+      "rel_dB": 1.0020988184723232
+    },
+    {
+      "name": "mobilebert.encoder.layer.5.attention.self.key",
+      "cumul_dA": 12.090475082397461,
+      "cumul_dB": 7.871811866760254,
+      "cumul_dC": 0.0,
+      "norm_A": 12.090475082397461,
+      "norm_B": 7.873563766479492,
+      "norm_C": 16.314424514770508,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9997774959635564
+    },
+    {
+      "name": "mobilebert.encoder.layer.5.attention.self.value",
+      "cumul_dA": 17.2026424407959,
+      "cumul_dB": 13.031062126159668,
+      "cumul_dC": 0.0,
+      "norm_A": 17.2026424407959,
+      "norm_B": 13.029013633728027,
+      "norm_C": 39.440711975097656,
+      "rel_dA": 1.0,
+      "rel_dB": 1.0001572254423265
+    },
+    {
+      "name": "mobilebert.encoder.layer.6.attention.self.query",
+      "cumul_dA": 10.688724517822266,
+      "cumul_dB": 6.850099563598633,
+      "cumul_dC": 0.0,
+      "norm_A": 10.688724517822266,
+      "norm_B": 6.8576202392578125,
+      "norm_C": 22.297487258911133,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9989033111492343
+    },
+    {
+      "name": "mobilebert.encoder.layer.6.attention.self.key",
+      "cumul_dA": 13.061659812927246,
+      "cumul_dB": 7.487123966217041,
+      "cumul_dC": 0.0,
+      "norm_A": 13.061659812927246,
+      "norm_B": 7.4748005867004395,
+      "norm_C": 20.793575286865234,
+      "rel_dA": 1.0,
+      "rel_dB": 1.001648656626175
+    },
+    {
+      "name": "mobilebert.encoder.layer.6.attention.self.value",
+      "cumul_dA": 14.882190704345703,
+      "cumul_dB": 19.02680015563965,
+      "cumul_dC": 0.0,
+      "norm_A": 14.882190704345703,
+      "norm_B": 19.012252807617188,
+      "norm_C": 41.70703125,
+      "rel_dA": 1.0,
+      "rel_dB": 1.0007651564582938
+    },
+    {
+      "name": "mobilebert.encoder.layer.7.attention.self.query",
+      "cumul_dA": 10.033190727233887,
+      "cumul_dB": 6.073057651519775,
+      "cumul_dC": 0.0,
+      "norm_A": 10.033190727233887,
+      "norm_B": 6.07402229309082,
+      "norm_C": 23.584379196166992,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9998411857045467
+    },
+    {
+      "name": "mobilebert.encoder.layer.7.attention.self.key",
+      "cumul_dA": 8.675346374511719,
+      "cumul_dB": 5.530704021453857,
+      "cumul_dC": 0.0,
+      "norm_A": 8.675346374511719,
+      "norm_B": 5.5400824546813965,
+      "norm_C": 19.510133743286133,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9983071672119944
+    },
+    {
+      "name": "mobilebert.encoder.layer.7.attention.self.value",
+      "cumul_dA": 15.618762016296387,
+      "cumul_dB": 17.331907272338867,
+      "cumul_dC": 0.0,
+      "norm_A": 15.618762016296387,
+      "norm_B": 17.329343795776367,
+      "norm_C": 41.62388229370117,
+      "rel_dA": 1.0,
+      "rel_dB": 1.0001479269262996
+    },
+    {
+      "name": "mobilebert.encoder.layer.8.attention.self.query",
+      "cumul_dA": 10.544340133666992,
+      "cumul_dB": 5.924891948699951,
+      "cumul_dC": 0.0,
+      "norm_A": 10.544340133666992,
+      "norm_B": 5.917827606201172,
+      "norm_C": 18.263246536254883,
+      "rel_dA": 1.0,
+      "rel_dB": 1.0011937391503898
+    },
+    {
+      "name": "mobilebert.encoder.layer.8.attention.self.key",
+      "cumul_dA": 9.572362899780273,
+      "cumul_dB": 5.967820167541504,
+      "cumul_dC": 0.0,
+      "norm_A": 9.572362899780273,
+      "norm_B": 5.9785661697387695,
+      "norm_C": 13.380057334899902,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9982025786966016
+    },
+    {
+      "name": "mobilebert.encoder.layer.8.attention.self.value",
+      "cumul_dA": 16.16922950744629,
+      "cumul_dB": 19.882343292236328,
+      "cumul_dC": 0.0,
+      "norm_A": 16.16922950744629,
+      "norm_B": 19.88906478881836,
+      "norm_C": 42.752410888671875,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9996620506467548
+    },
+    {
+      "name": "mobilebert.encoder.layer.9.attention.self.query",
+      "cumul_dA": 10.477994918823242,
+      "cumul_dB": 8.199207305908203,
+      "cumul_dC": 0.0,
+      "norm_A": 10.477994918823242,
+      "norm_B": 8.217527389526367,
+      "norm_C": 15.861578941345215,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9977706087549506
+    },
+    {
+      "name": "mobilebert.encoder.layer.9.attention.self.key",
+      "cumul_dA": 12.493276596069336,
+      "cumul_dB": 8.952083587646484,
+      "cumul_dC": 0.0,
+      "norm_A": 12.493276596069336,
+      "norm_B": 8.92850112915039,
+      "norm_C": 15.14358901977539,
+      "rel_dA": 1.0,
+      "rel_dB": 1.0026412561475857
+    },
+    {
+      "name": "mobilebert.encoder.layer.9.attention.self.value",
+      "cumul_dA": 16.964155197143555,
+      "cumul_dB": 24.87921905517578,
+      "cumul_dC": 0.0,
+      "norm_A": 16.964155197143555,
+      "norm_B": 24.879322052001953,
+      "norm_C": 41.32136535644531,
+      "rel_dA": 1.0,
+      "rel_dB": 0.999995860143377
+    },
+    {
+      "name": "mobilebert.encoder.layer.10.attention.self.query",
+      "cumul_dA": 10.165807723999023,
+      "cumul_dB": 6.016598224639893,
+      "cumul_dC": 0.0,
+      "norm_A": 10.165807723999023,
+      "norm_B": 5.995194435119629,
+      "norm_C": 17.410852432250977,
+      "rel_dA": 1.0,
+      "rel_dB": 1.00357015769078
+    },
+    {
+      "name": "mobilebert.encoder.layer.10.attention.self.key",
+      "cumul_dA": 11.5731840133667,
+      "cumul_dB": 7.113417625427246,
+      "cumul_dC": 0.0,
+      "norm_A": 11.5731840133667,
+      "norm_B": 7.104030132293701,
+      "norm_C": 13.330288887023926,
+      "rel_dA": 1.0,
+      "rel_dB": 1.0013214320545842
+    },
+    {
+      "name": "mobilebert.encoder.layer.10.attention.self.value",
+      "cumul_dA": 16.44550895690918,
+      "cumul_dB": 22.351703643798828,
+      "cumul_dC": 0.0,
+      "norm_A": 16.44550895690918,
+      "norm_B": 22.355276107788086,
+      "norm_C": 41.67327880859375,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9998401959353115
+    },
+    {
+      "name": "mobilebert.encoder.layer.11.attention.self.query",
+      "cumul_dA": 10.171934127807617,
+      "cumul_dB": 6.606130123138428,
+      "cumul_dC": 0.0,
+      "norm_A": 10.171934127807617,
+      "norm_B": 6.615610122680664,
+      "norm_C": 16.23444938659668,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9985670256610595
+    },
+    {
+      "name": "mobilebert.encoder.layer.11.attention.self.key",
+      "cumul_dA": 13.577139854431152,
+      "cumul_dB": 7.737811088562012,
+      "cumul_dC": 0.0,
+      "norm_A": 13.577139854431152,
+      "norm_B": 7.741868495941162,
+      "norm_C": 14.435096740722656,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9994759136788132
+    },
+    {
+      "name": "mobilebert.encoder.layer.11.attention.self.value",
+      "cumul_dA": 18.99262809753418,
+      "cumul_dB": 25.869150161743164,
+      "cumul_dC": 0.0,
+      "norm_A": 18.99262809753418,
+      "norm_B": 25.859682083129883,
+      "norm_C": 39.493221282958984,
+      "rel_dA": 1.0,
+      "rel_dB": 1.0003661328311324
+    },
+    {
+      "name": "mobilebert.encoder.layer.12.attention.self.query",
+      "cumul_dA": 9.725628852844238,
+      "cumul_dB": 7.767396450042725,
+      "cumul_dC": 0.0,
+      "norm_A": 9.725628852844238,
+      "norm_B": 7.781925201416016,
+      "norm_C": 15.136558532714844,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9981330132329405
+    },
+    {
+      "name": "mobilebert.encoder.layer.12.attention.self.key",
+      "cumul_dA": 14.59594440460205,
+      "cumul_dB": 8.545079231262207,
+      "cumul_dC": 0.0,
+      "norm_A": 14.59594440460205,
+      "norm_B": 8.538246154785156,
+      "norm_C": 14.64505672454834,
+      "rel_dA": 1.0,
+      "rel_dB": 1.0008002904054507
+    },
+    {
+      "name": "mobilebert.encoder.layer.12.attention.self.value",
+      "cumul_dA": 20.014671325683594,
+      "cumul_dB": 30.15230941772461,
+      "cumul_dC": 0.0,
+      "norm_A": 20.014671325683594,
+      "norm_B": 30.158489227294922,
+      "norm_C": 38.5084114074707,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9997950888877842
+    },
+    {
+      "name": "mobilebert.encoder.layer.13.attention.self.query",
+      "cumul_dA": 11.30212116241455,
+      "cumul_dB": 8.614273071289062,
+      "cumul_dC": 0.0,
+      "norm_A": 11.30212116241455,
+      "norm_B": 8.612855911254883,
+      "norm_C": 15.09658145904541,
+      "rel_dA": 1.0,
+      "rel_dB": 1.000164540083891
+    },
+    {
+      "name": "mobilebert.encoder.layer.13.attention.self.key",
+      "cumul_dA": 10.78219223022461,
+      "cumul_dB": 7.873762607574463,
+      "cumul_dC": 0.0,
+      "norm_A": 10.78219223022461,
+      "norm_B": 7.868252277374268,
+      "norm_C": 14.570274353027344,
+      "rel_dA": 1.0,
+      "rel_dB": 1.0007003245455208
+    },
+    {
+      "name": "mobilebert.encoder.layer.13.attention.self.value",
+      "cumul_dA": 20.03254508972168,
+      "cumul_dB": 23.920408248901367,
+      "cumul_dC": 0.0,
+      "norm_A": 20.03254508972168,
+      "norm_B": 23.93211555480957,
+      "norm_C": 39.212467193603516,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9995108119095701
+    },
+    {
+      "name": "mobilebert.encoder.layer.14.attention.self.query",
+      "cumul_dA": 11.111151695251465,
+      "cumul_dB": 7.95619010925293,
+      "cumul_dC": 0.0,
+      "norm_A": 11.111151695251465,
+      "norm_B": 7.933403491973877,
+      "norm_C": 19.37850570678711,
+      "rel_dA": 1.0,
+      "rel_dB": 1.0028722372815282
+    },
+    {
+      "name": "mobilebert.encoder.layer.14.attention.self.key",
+      "cumul_dA": 12.700542449951172,
+      "cumul_dB": 9.500787734985352,
+      "cumul_dC": 0.0,
+      "norm_A": 12.700542449951172,
+      "norm_B": 9.506569862365723,
+      "norm_C": 18.141664505004883,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9993917756389441
+    },
+    {
+      "name": "mobilebert.encoder.layer.14.attention.self.value",
+      "cumul_dA": 19.271825790405273,
+      "cumul_dB": 25.643400192260742,
+      "cumul_dC": 0.0,
+      "norm_A": 19.271825790405273,
+      "norm_B": 25.651296615600586,
+      "norm_C": 39.54381561279297,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9996921627994805
+    },
+    {
+      "name": "mobilebert.encoder.layer.15.attention.self.query",
+      "cumul_dA": 11.345602989196777,
+      "cumul_dB": 7.831669807434082,
+      "cumul_dC": 0.0,
+      "norm_A": 11.345602989196777,
+      "norm_B": 7.832597255706787,
+      "norm_C": 15.080400466918945,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9998815912216054
+    },
+    {
+      "name": "mobilebert.encoder.layer.15.attention.self.key",
+      "cumul_dA": 13.706402778625488,
+      "cumul_dB": 10.379462242126465,
+      "cumul_dC": 0.0,
+      "norm_A": 13.706402778625488,
+      "norm_B": 10.386069297790527,
+      "norm_C": 15.21098518371582,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9993638540746624
+    },
+    {
+      "name": "mobilebert.encoder.layer.15.attention.self.value",
+      "cumul_dA": 21.0576114654541,
+      "cumul_dB": 30.243690490722656,
+      "cumul_dC": 0.0,
+      "norm_A": 21.0576114654541,
+      "norm_B": 30.256458282470703,
+      "norm_C": 38.19338607788086,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9995780143323832
+    },
+    {
+      "name": "mobilebert.encoder.layer.16.attention.self.query",
+      "cumul_dA": 10.237872123718262,
+      "cumul_dB": 7.249783515930176,
+      "cumul_dC": 0.0,
+      "norm_A": 10.237872123718262,
+      "norm_B": 7.248770236968994,
+      "norm_C": 15.431815147399902,
+      "rel_dA": 1.0,
+      "rel_dB": 1.0001397863262398
+    },
+    {
+      "name": "mobilebert.encoder.layer.16.attention.self.key",
+      "cumul_dA": 9.299818992614746,
+      "cumul_dB": 7.037609100341797,
+      "cumul_dC": 0.0,
+      "norm_A": 9.299818992614746,
+      "norm_B": 7.052362442016602,
+      "norm_C": 14.588915824890137,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9979080284378314
+    },
+    {
+      "name": "mobilebert.encoder.layer.16.attention.self.value",
+      "cumul_dA": 18.405269622802734,
+      "cumul_dB": 29.044153213500977,
+      "cumul_dC": 0.0,
+      "norm_A": 18.405269622802734,
+      "norm_B": 29.055984497070312,
+      "norm_C": 42.09077072143555,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9995928107832475
+    },
+    {
+      "name": "mobilebert.encoder.layer.17.attention.self.query",
+      "cumul_dA": 11.018396377563477,
+      "cumul_dB": 7.21666955947876,
+      "cumul_dC": 0.0,
+      "norm_A": 11.018396377563477,
+      "norm_B": 7.228207111358643,
+      "norm_C": 15.25753402709961,
+      "rel_dA": 1.0,
+      "rel_dB": 0.998403815537915
+    },
+    {
+      "name": "mobilebert.encoder.layer.17.attention.self.key",
+      "cumul_dA": 12.170889854431152,
+      "cumul_dB": 8.16280460357666,
+      "cumul_dC": 0.0,
+      "norm_A": 12.170889854431152,
+      "norm_B": 8.186023712158203,
+      "norm_C": 14.601794242858887,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9971635669040322
+    },
+    {
+      "name": "mobilebert.encoder.layer.17.attention.self.value",
+      "cumul_dA": 16.93012809753418,
+      "cumul_dB": 25.17119026184082,
+      "cumul_dC": 0.0,
+      "norm_A": 16.93012809753418,
+      "norm_B": 25.193340301513672,
+      "norm_C": 41.14580535888672,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9991207978216561
+    },
+    {
+      "name": "mobilebert.encoder.layer.18.attention.self.query",
+      "cumul_dA": 10.684956550598145,
+      "cumul_dB": 6.039027214050293,
+      "cumul_dC": 0.0,
+      "norm_A": 10.684956550598145,
+      "norm_B": 6.061742305755615,
+      "norm_C": 15.094943046569824,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9962527124117839
+    },
+    {
+      "name": "mobilebert.encoder.layer.18.attention.self.key",
+      "cumul_dA": 10.164765357971191,
+      "cumul_dB": 6.872257232666016,
+      "cumul_dC": 0.0,
+      "norm_A": 10.164765357971191,
+      "norm_B": 6.862570285797119,
+      "norm_C": 14.783666610717773,
+      "rel_dA": 1.0,
+      "rel_dB": 1.0014115624999782
+    },
+    {
+      "name": "mobilebert.encoder.layer.18.attention.self.value",
+      "cumul_dA": 22.19013023376465,
+      "cumul_dB": 29.429044723510742,
+      "cumul_dC": 0.0,
+      "norm_A": 22.19013023376465,
+      "norm_B": 29.435779571533203,
+      "norm_C": 38.20924377441406,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9997712019820608
+    },
+    {
+      "name": "mobilebert.encoder.layer.19.attention.self.query",
+      "cumul_dA": 10.455283164978027,
+      "cumul_dB": 7.938492774963379,
+      "cumul_dC": 0.0,
+      "norm_A": 10.455283164978027,
+      "norm_B": 7.958354473114014,
+      "norm_C": 15.844254493713379,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9975042958669742
+    },
+    {
+      "name": "mobilebert.encoder.layer.19.attention.self.key",
+      "cumul_dA": 10.819016456604004,
+      "cumul_dB": 7.245028018951416,
+      "cumul_dC": 0.0,
+      "norm_A": 10.819016456604004,
+      "norm_B": 7.278021335601807,
+      "norm_C": 14.60885238647461,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9954667188884158
+    },
+    {
+      "name": "mobilebert.encoder.layer.19.attention.self.value",
+      "cumul_dA": 19.777374267578125,
+      "cumul_dB": 31.4212589263916,
+      "cumul_dC": 0.0,
+      "norm_A": 19.777374267578125,
+      "norm_B": 31.420503616333008,
+      "norm_C": 40.48702621459961,
+      "rel_dA": 1.0,
+      "rel_dB": 1.000024038763599
+    },
+    {
+      "name": "mobilebert.encoder.layer.20.attention.self.query",
+      "cumul_dA": 10.075581550598145,
+      "cumul_dB": 8.511861801147461,
+      "cumul_dC": 0.0,
+      "norm_A": 10.075581550598145,
+      "norm_B": 8.542825698852539,
+      "norm_C": 15.596528053283691,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9963754501383263
+    },
+    {
+      "name": "mobilebert.encoder.layer.20.attention.self.key",
+      "cumul_dA": 11.620186805725098,
+      "cumul_dB": 12.567045211791992,
+      "cumul_dC": 0.0,
+      "norm_A": 11.620186805725098,
+      "norm_B": 12.59557056427002,
+      "norm_C": 15.216874122619629,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9977352869937511
+    },
+    {
+      "name": "mobilebert.encoder.layer.20.attention.self.value",
+      "cumul_dA": 20.481792449951172,
+      "cumul_dB": 32.44316101074219,
+      "cumul_dC": 0.0,
+      "norm_A": 20.481792449951172,
+      "norm_B": 32.450557708740234,
+      "norm_C": 39.98133850097656,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9997720625308065
+    },
+    {
+      "name": "mobilebert.encoder.layer.21.attention.self.query",
+      "cumul_dA": 7.7667317390441895,
+      "cumul_dB": 5.438225269317627,
+      "cumul_dC": 0.0,
+      "norm_A": 7.7667317390441895,
+      "norm_B": 5.489104270935059,
+      "norm_C": 15.63875675201416,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9907309099798236
+    },
+    {
+      "name": "mobilebert.encoder.layer.21.attention.self.key",
+      "cumul_dA": 10.196582794189453,
+      "cumul_dB": 10.569711685180664,
+      "cumul_dC": 0.0,
+      "norm_A": 10.196582794189453,
+      "norm_B": 10.575345993041992,
+      "norm_C": 15.033479690551758,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9994672223617993
+    },
+    {
+      "name": "mobilebert.encoder.layer.21.attention.self.value",
+      "cumul_dA": 19.659929275512695,
+      "cumul_dB": 31.54636001586914,
+      "cumul_dC": 0.0,
+      "norm_A": 19.659929275512695,
+      "norm_B": 31.550142288208008,
+      "norm_C": 41.39784622192383,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9998801186915636
+    },
+    {
+      "name": "mobilebert.encoder.layer.22.attention.self.query",
+      "cumul_dA": 1.5196342468261719,
+      "cumul_dB": 0.5222616791725159,
+      "cumul_dC": 0.0,
+      "norm_A": 1.5196342468261719,
+      "norm_B": 0.656757652759552,
+      "norm_C": 15.993204116821289,
+      "rel_dA": 1.0,
+      "rel_dB": 0.7952121714578986
+    },
+    {
+      "name": "mobilebert.encoder.layer.22.attention.self.key",
+      "cumul_dA": 17.484577178955078,
+      "cumul_dB": 20.793581008911133,
+      "cumul_dC": 0.0,
+      "norm_A": 17.484577178955078,
+      "norm_B": 20.817914962768555,
+      "norm_C": 15.547089576721191,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9988311051370447
+    },
+    {
+      "name": "mobilebert.encoder.layer.22.attention.self.value",
+      "cumul_dA": 19.48752212524414,
+      "cumul_dB": 33.170867919921875,
+      "cumul_dC": 0.0,
+      "norm_A": 19.48752212524414,
+      "norm_B": 33.18052291870117,
+      "norm_C": 41.64314651489258,
+      "rel_dA": 1.0,
+      "rel_dB": 0.999709016075396
+    },
+    {
+      "name": "mobilebert.encoder.layer.23.attention.self.query",
+      "cumul_dA": 2.0271692276000977,
+      "cumul_dB": 0.5881385803222656,
+      "cumul_dC": 0.0,
+      "norm_A": 2.0271692276000977,
+      "norm_B": 0.7301981449127197,
+      "norm_C": 15.843035697937012,
+      "rel_dA": 1.0,
+      "rel_dB": 0.8054506635217015
+    },
+    {
+      "name": "mobilebert.encoder.layer.23.attention.self.key",
+      "cumul_dA": 1.1653316020965576,
+      "cumul_dB": 1.872061014175415,
+      "cumul_dC": 0.0,
+      "norm_A": 1.1653316020965576,
+      "norm_B": 1.9134745597839355,
+      "norm_C": 16.01234245300293,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9783568872673192
+    },
+    {
+      "name": "mobilebert.encoder.layer.23.attention.self.value",
+      "cumul_dA": 23.770885467529297,
+      "cumul_dB": 20.8310604095459,
+      "cumul_dC": 0.0,
+      "norm_A": 23.770885467529297,
+      "norm_B": 20.83382225036621,
+      "norm_C": 40.14163589477539,
+      "rel_dA": 1.0,
+      "rel_dB": 0.9998674347516686
+    }
+  ],
+  "repr_step_records": {
+    "mobilebert.encoder.layer.0.attention.self.query": [
+      {
+        "step": 0,
+        "loss": 2547706.0,
+        "norm_A": 2.4141194820404053,
+        "norm_B": 0.4151204526424408,
+        "delta_A": 2.4141194820404053,
+        "delta_B": 0.0,
+        "delta_C": 0.0
+      },
+      {
+        "step": 1,
+        "loss": 19689878.0,
+        "norm_A": 7.638314247131348,
+        "norm_B": 4.91417121887207,
+        "delta_A": 7.346545696258545,
+        "delta_B": 4.913109302520752,
+        "delta_C": 0.0
+      },
+      {
+        "step": 2,
+        "loss": 54370264.0,
+        "norm_A": 12.02468204498291,
+        "norm_B": 5.321878433227539,
+        "delta_A": 13.235162734985352,
+        "delta_B": 5.0554280281066895,
+        "delta_C": 0.0
+      },
+      {
+        "step": 3,
+        "loss": 964771520.0,
+        "norm_A": 9.497052192687988,
+        "norm_B": 5.435755252838135,
+        "delta_A": 13.604514122009277,
+        "delta_B": 4.868373394012451,
+        "delta_C": 0.0
+      },
+      {
+        "step": 4,
+        "loss": 6379013632.0,
+        "norm_A": 9.735986709594727,
+        "norm_B": 5.738097667694092,
+        "delta_A": 7.525442123413086,
+        "delta_B": 3.573211193084717,
+        "delta_C": 0.0
+      },
+      {
+        "step": 5,
+        "loss": 634068.125,
+        "norm_A": 9.736810684204102,
+        "norm_B": 5.7373223304748535,
+        "delta_A": 0.028878415003418922,
+        "delta_B": 0.02551800012588501,
+        "delta_C": 0.0
+      },
+      {
+        "step": 6,
+        "loss": 14237235200.0,
+        "norm_A": 9.761214256286621,
+        "norm_B": 5.596309185028076,
+        "delta_A": 9.555617332458496,
+        "delta_B": 3.338813304901123,
+        "delta_C": 0.0
+      },
+      {
+        "step": 7,
+        "loss": 3826037248.0,
+        "norm_A": 9.795074462890625,
+        "norm_B": 5.782872200012207,
+        "delta_A": 6.03390645980835,
+        "delta_B": 2.9346940517425537,
+        "delta_C": 0.0
+      },
+      {
+        "step": 8,
+        "loss": 2271677184.0,
+        "norm_A": 9.706441879272461,
+        "norm_B": 5.704245090484619,
+        "delta_A": 0.6581606268882751,
+        "delta_B": 0.5040639638900757,
+        "delta_C": 0.0
+      },
+      {
+        "step": 9,
+        "loss": 10825328.0,
+        "norm_A": 9.689082145690918,
+        "norm_B": 5.678099155426025,
+        "delta_A": 0.1436237394809723,
+        "delta_B": 0.12636655569076538,
+        "delta_C": 0.0
+      }
+    ],
+    "mobilebert.encoder.layer.12.attention.self.query": [
+      {
+        "step": 0,
+        "loss": 2547706.0,
+        "norm_A": 4.038987636566162,
+        "norm_B": 0.3992568254470825,
+        "delta_A": 4.038987636566162,
+        "delta_B": 0.0,
+        "delta_C": 0.0
+      },
+      {
+        "step": 1,
+        "loss": 19689878.0,
+        "norm_A": 11.612772941589355,
+        "norm_B": 10.996748924255371,
+        "delta_A": 9.615036010742188,
+        "delta_B": 10.968019485473633,
+        "delta_C": 0.0
+      },
+      {
+        "step": 2,
+        "loss": 54370264.0,
+        "norm_A": 12.191006660461426,
+        "norm_B": 8.469274520874023,
+        "delta_A": 14.962481498718262,
+        "delta_B": 7.696111679077148,
+        "delta_C": 0.0
+      },
+      {
+        "step": 3,
+        "loss": 964771520.0,
+        "norm_A": 10.558902740478516,
+        "norm_B": 8.585806846618652,
+        "delta_A": 11.50173282623291,
+        "delta_B": 7.428516387939453,
+        "delta_C": 0.0
+      },
+      {
+        "step": 4,
+        "loss": 6379013632.0,
+        "norm_A": 10.196247100830078,
+        "norm_B": 8.089219093322754,
+        "delta_A": 5.117059230804443,
+        "delta_B": 2.7189903259277344,
+        "delta_C": 0.0
+      },
+      {
+        "step": 5,
+        "loss": 634068.125,
+        "norm_A": 10.196754455566406,
+        "norm_B": 8.089533805847168,
+        "delta_A": 0.03875437006354332,
+        "delta_B": 0.018047498539090157,
+        "delta_C": 0.0
+      },
+      {
+        "step": 6,
+        "loss": 14237235200.0,
+        "norm_A": 10.009888648986816,
+        "norm_B": 8.128804206848145,
+        "delta_A": 5.142066955566406,
+        "delta_B": 3.5365357398986816,
+        "delta_C": 0.0
+      },
+      {
+        "step": 7,
+        "loss": 3826037248.0,
+        "norm_A": 9.664724349975586,
+        "norm_B": 7.79506254196167,
+        "delta_A": 3.5638396739959717,
+        "delta_B": 1.5418330430984497,
+        "delta_C": 0.0
+      },
+      {
+        "step": 8,
+        "loss": 2271677184.0,
+        "norm_A": 9.719280242919922,
+        "norm_B": 7.7860612869262695,
+        "delta_A": 1.396181583404541,
+        "delta_B": 0.5560339689254761,
+        "delta_C": 0.0
+      },
+      {
+        "step": 9,
+        "loss": 10825328.0,
+        "norm_A": 9.725628852844238,
+        "norm_B": 7.781925201416016,
+        "delta_A": 0.2174762338399887,
+        "delta_B": 0.0989239290356636,
+        "delta_C": 0.0
+      }
+    ],
+    "mobilebert.encoder.layer.23.attention.self.value": [
+      {
+        "step": 0,
+        "loss": 2547706.0,
+        "norm_A": 9.570476531982422,
+        "norm_B": 0.40034884214401245,
+        "delta_A": 9.570476531982422,
+        "delta_B": 0.0,
+        "delta_C": 0.0
+      },
+      {
+        "step": 1,
+        "loss": 19689878.0,
+        "norm_A": 12.993242263793945,
+        "norm_B": 2.894479274749756,
+        "delta_A": 6.1761698722839355,
+        "delta_B": 2.855404853820801,
+        "delta_C": 0.0
+      },
+      {
+        "step": 2,
+        "loss": 54370264.0,
+        "norm_A": 17.008251190185547,
+        "norm_B": 20.375459671020508,
+        "delta_A": 16.530437469482422,
+        "delta_B": 20.330989837646484,
+        "delta_C": 0.0
+      },
+      {
+        "step": 3,
+        "loss": 964771520.0,
+        "norm_A": 22.493478775024414,
+        "norm_B": 20.630525588989258,
+        "delta_A": 24.795373916625977,
+        "delta_B": 6.243836879730225,
+        "delta_C": 0.0
+      },
+      {
+        "step": 4,
+        "loss": 6379013632.0,
+        "norm_A": 21.122116088867188,
+        "norm_B": 20.69397735595703,
+        "delta_A": 28.43153953552246,
+        "delta_B": 2.489017963409424,
+        "delta_C": 0.0
+      },
+      {
+        "step": 5,
+        "loss": 634068.125,
+        "norm_A": 18.99395179748535,
+        "norm_B": 20.728824615478516,
+        "delta_A": 15.505186080932617,
+        "delta_B": 2.3739912509918213,
+        "delta_C": 0.0
+      },
+      {
+        "step": 6,
+        "loss": 14237235200.0,
+        "norm_A": 17.46441078186035,
+        "norm_B": 20.369226455688477,
+        "delta_A": 11.462457656860352,
+        "delta_B": 3.7445032596588135,
+        "delta_C": 0.0
+      },
+      {
+        "step": 7,
+        "loss": 3826037248.0,
+        "norm_A": 22.194677352905273,
+        "norm_B": 21.59362030029297,
+        "delta_A": 21.427461624145508,
+        "delta_B": 12.37050724029541,
+        "delta_C": 0.0
+      },
+      {
+        "step": 8,
+        "loss": 2271677184.0,
+        "norm_A": 21.071121215820312,
+        "norm_B": 21.234403610229492,
+        "delta_A": 14.229108810424805,
+        "delta_B": 7.285939693450928,
+        "delta_C": 0.0
+      },
+      {
+        "step": 9,
+        "loss": 10825328.0,
+        "norm_A": 23.770885467529297,
+        "norm_B": 20.83382225036621,
+        "delta_A": 23.560630798339844,
+        "delta_B": 3.260112762451172,
+        "delta_C": 0.0
+      }
+    ]
+  }
+}

@@ -1,0 +1,135 @@
+========================================
+ Full Run: SQuAD (ABD) + GLUE (ABDEF)
+ Seeds: 42,43,44
+ OUT_DIR: /data/main_results/results
+ Started: Sat Feb 28 01:49:58 PM UTC 2026
+ Log: /data/main_results/results/run_full_ABD_20260228_134957.log
+========================================
+
+[1/2] paper_figures.py --figures ABD --seeds 42,43,44
+  Out: /data/main_results/results/squad/seed_{42,43,44}/
+  Start: Sat Feb 28 01:49:58 PM UTC 2026
+2026-02-28 13:50:01.050958: I tensorflow/core/util/port.cc:111] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-02-28 13:50:01.053439: I tensorflow/tsl/cuda/cudart_stub.cc:28] Could not find cuda drivers on your machine, GPU will not be used.
+2026-02-28 13:50:01.082415: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-02-28 13:50:01.082451: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-02-28 13:50:01.082472: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-02-28 13:50:01.088528: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F AVX512_VNNI AVX512_BF16 AVX_VNNI AMX_TILE AMX_INT8 AMX_BF16 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2026-02-28 13:50:01.799009: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+Some weights of BertForQuestionAnswering were not initialized from the model checkpoint at bert-base-uncased and are newly initialized: ['qa_outputs.bias', 'qa_outputs.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+[Config] Device=cuda, N_STEP=200, N_STEP_SWEEP=100, BATCH=8, RUN_TAG=v3_ABD
+[Config] OUT_DIR=/data/main_results/results, Seeds=[42, 43, 44]
+[Config] Figures=ABD (A=True, B=True, C=False, D=True)
+
+[0] Loading tokenizer ...
+
+============================================================
+  SQuAD seed=42
+============================================================
+
+  [1] Loading data ...
+  Dataset: 1600 samples → 200 batches
+
+  [2] Baseline 7-bit, 200 steps ...
+  Analog tiles — target(QKVO):48, frozen(FFN):24, nm_thres=0, sto_round=False, dac=7b, adc=9b
+[Hook] 72 hooks, sublayers=['FFN1', 'FFN2', 'K', 'O', 'Q', 'V'], inp_res=0.007937, nm_thres=0
+A-baseline-s42:   0%|                                                                                                    | 0/200 [00:00<?, ?it/s]sys:1: UserWarning: Full backward hook is firing when gradients are computed with respect to module outputs since no inputs require gradients. See https://docs.pytorch.org/docs/main/generated/torch.nn.Module.html#torch.nn.Module.register_full_backward_hook for more details.
+A-baseline-s42:   0%|▍                                                                                           | 1/200 [00:04<15:19,  4.62s/it]A-baseline-s42:   1%|▉                                                                                           | 2/200 [00:09<16:22,  4.96s/it]A-baseline-s42:   2%|█▍                                                                                          | 3/200 [00:14<15:20,  4.67s/it]A-baseline-s42:   2%|█▊                                                                                          | 4/200 [00:19<15:32,  4.76s/it]A-baseline-s42:   2%|██▎                                                                                         | 5/200 [00:23<14:50,  4.57s/it]A-baseline-s42:   3%|██▊                                                                                         | 6/200 [00:27<13:59,  4.33s/it]A-baseline-s42:   4%|███▏                                                                                        | 7/200 [00:31<13:56,  4.34s/it]A-baseline-s42:   4%|███▋                                                                                        | 8/200 [00:36<14:28,  4.52s/it]A-baseline-s42:   4%|████▏                                                                                       | 9/200 [00:43<16:49,  5.29s/it]A-baseline-s42:   5%|████▌                                                                                      | 10/200 [00:49<17:30,  5.53s/it]A-baseline-s42:   6%|█████                                                                                      | 11/200 [00:53<16:19,  5.18s/it]A-baseline-s42:   6%|█████▍                                                                                     | 12/200 [00:58<15:45,  5.03s/it]A-baseline-s42:   6%|█████▍                                                                                     | 12/200 [01:01<16:09,  5.16s/it]
+Traceback (most recent call last):
+  File "/data/main_results/scripts/paper/paper_figures.py", line 1997, in <module>
+    main()
+  File "/data/main_results/scripts/paper/paper_figures.py", line 1949, in main
+    run_single_seed(seed, tokenizer, run_figures)
+  File "/data/main_results/scripts/paper/paper_figures.py", line 1592, in run_single_seed
+    run_diagnostic(model_a, loader, n_step=N_STEP, seed=seed,
+  File "/data/main_results/scripts/paper/paper_figures.py", line 981, in run_diagnostic
+    outputs.loss.backward()
+  File "/opt/conda/lib/python3.11/site-packages/torch/_tensor.py", line 630, in backward
+    torch.autograd.backward(
+  File "/opt/conda/lib/python3.11/site-packages/torch/autograd/__init__.py", line 364, in backward
+    _engine_run_backward(
+  File "/opt/conda/lib/python3.11/site-packages/torch/autograd/graph.py", line 865, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/autograd/function.py", line 317, in apply
+    return user_fn(self, *args)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/data/LRTT_transformer/src/aihwkit/simulator/tiles/functions.py", line 87, in backward
+    grad_input = analog_tile.backward(grad_output, ctx)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/LRTT_transformer/src/aihwkit/simulator/tiles/periphery.py", line 1146, in backward
+    d_output = self.tile.backward(  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: CUDA out of memory. Tried to allocate 20.00 MiB. GPU 0 has a total capacity of 139.81 GiB of which 15.69 MiB is free. Process 80220 has 139.79 GiB memory in use. Of the allocated memory 92.39 GiB is allocated by PyTorch, and 9.43 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+Exception raised from malloc at /pytorch/c10/cuda/CUDACachingAllocator.cpp:1574 (most recent call first):
+frame #0: c10::Error::Error(c10::SourceLocation, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) + 0x9d (0x7fff454ddfdd in /opt/conda/lib/python3.11/site-packages/torch/lib/libc10.so)
+frame #1: <unknown function> + 0x42555 (0x7fff455ad555 in /opt/conda/lib/python3.11/site-packages/torch/lib/libc10_cuda.so)
+frame #2: <unknown function> + 0x427e2 (0x7fff455ad7e2 in /opt/conda/lib/python3.11/site-packages/torch/lib/libc10_cuda.so)
+frame #3: <unknown function> + 0x42e9f (0x7fff455ade9f in /opt/conda/lib/python3.11/site-packages/torch/lib/libc10_cuda.so)
+frame #4: at::detail::empty_generic(c10::ArrayRef<long>, c10::Allocator*, c10::DispatchKeySet, c10::ScalarType, std::optional<c10::MemoryFormat>) + 0x5cc (0x7ffe674f4a7c in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #5: at::detail::empty_cuda(c10::ArrayRef<long>, c10::ScalarType, std::optional<c10::Device>, std::optional<c10::MemoryFormat>) + 0x7f (0x7ffe2949eacf in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
+frame #6: at::detail::empty_cuda(c10::ArrayRef<long>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) + 0x6e (0x7ffe2949ecde in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
+frame #7: at::native::empty_cuda(c10::ArrayRef<long>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) + 0x43 (0x7ffe297945a3 in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
+frame #8: <unknown function> + 0x3749652 (0x7ffe2bcb6652 in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
+frame #9: <unknown function> + 0x374976c (0x7ffe2bcb676c in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
+frame #10: at::_ops::empty_memory_format::redispatch(c10::DispatchKeySet, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) + 0xe6 (0x7ffe68624e36 in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #11: <unknown function> + 0x2ee5b19 (0x7ffe68a8cb19 in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #12: at::_ops::empty_memory_format::call(c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) + 0x154 (0x7ffe686f9974 in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #13: <unknown function> + 0x16cbec (0x7ff737b40bec in /data/LRTT_transformer/src/aihwkit/simulator/rpu_base.cpython-311-x86_64-linux-gnu.so)
+frame #14: RPU::CudaBuffer<float>::get(RPU::CudaContext*, unsigned long) + 0x10d (0x7ff737e8fe7d in /data/LRTT_transformer/src/aihwkit/simulator/rpu_base.cpython-311-x86_64-linux-gnu.so)
+frame #15: void RPU::InputOutputManager<float>::initWithInput<float const*>(float const*, RPU::IOMetaParameter<float> const&, int, int, bool, float, bool) + 0x2a7 (0x7ff737ecfb57 in /data/LRTT_transformer/src/aihwkit/simulator/rpu_base.cpython-311-x86_64-linux-gnu.so)
+frame #16: void RPU::ForwardBackwardPassIOManagedCuda<float>::backwardMatrixIterator<float const*, float*>(float*, float const*, int, bool, float*, int, bool, int, float, RPU::InputOutputManager<float>&, RPU::IOMetaParameter<float> const&) + 0x507 (0x7ff737c042f7 in /data/LRTT_transformer/src/aihwkit/simulator/rpu_base.cpython-311-x86_64-linux-gnu.so)
+frame #17: RPU::RPUCudaPulsed<float>::backwardMatrix(float const*, float*, int, bool, bool) + 0xbc (0x7ff737c0465c in /data/LRTT_transformer/src/aihwkit/simulator/rpu_base.cpython-311-x86_64-linux-gnu.so)
+frame #18: <unknown function> + 0x1d20c9 (0x7ff737ba60c9 in /data/LRTT_transformer/src/aihwkit/simulator/rpu_base.cpython-311-x86_64-linux-gnu.so)
+frame #19: <unknown function> + 0x1c4721 (0x7ff737b98721 in /data/LRTT_transformer/src/aihwkit/simulator/rpu_base.cpython-311-x86_64-linux-gnu.so)
+frame #20: <unknown function> + 0x1737dd (0x7ff737b477dd in /data/LRTT_transformer/src/aihwkit/simulator/rpu_base.cpython-311-x86_64-linux-gnu.so)
+<omitting python frames>
+frame #29: <unknown function> + 0x818c6e (0x7ffe7b829c6e in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_python.so)
+frame #30: <unknown function> + 0x5dfef2b (0x7ffe6b9a5f2b in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #31: torch::autograd::Engine::evaluate_function(std::shared_ptr<torch::autograd::GraphTask>&, torch::autograd::Node*, torch::autograd::InputBuffer&, std::shared_ptr<torch::autograd::ReadyQueue> const&) + 0xf35 (0x7ffe6b99f815 in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #32: torch::autograd::Engine::thread_main(std::shared_ptr<torch::autograd::GraphTask> const&) + 0x5c9 (0x7ffe6b9a06c9 in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #33: torch::autograd::Engine::thread_init(int, std::shared_ptr<torch::autograd::ReadyQueue> const&, bool) + 0x337 (0x7ffe6b995a77 in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #34: <unknown function> + 0x80c632 (0x7ffe7b81d632 in /opt/conda/lib/python3.11/site-packages/torch/lib/libtorch_python.so)
+frame #35: <unknown function> + 0xdc253 (0x7fff51351253 in /usr/lib/x86_64-linux-gnu/libstdc++.so.6)
+frame #36: <unknown function> + 0x94ac3 (0x7ffff7d2aac3 in /usr/lib/x86_64-linux-gnu/libc.so.6)
+frame #37: <unknown function> + 0x126a40 (0x7ffff7dbca40 in /usr/lib/x86_64-linux-gnu/libc.so.6)
+
+[1/2] SQuAD Done: Sat Feb 28 01:53:28 PM UTC 2026
+
+[2/2] paper_figures_glue.py --figures ABDEF --seeds 42,43,44
+  Out: /data/main_results/results/glue/{task}/seed_{seed}/
+  Start: Sat Feb 28 01:53:28 PM UTC 2026
+2026-02-28 13:53:32.036195: I tensorflow/core/util/port.cc:111] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-02-28 13:53:32.038858: I tensorflow/tsl/cuda/cudart_stub.cc:28] Could not find cuda drivers on your machine, GPU will not be used.
+2026-02-28 13:53:32.078850: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-02-28 13:53:32.078908: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-02-28 13:53:32.078936: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-02-28 13:53:32.088171: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F AVX512_VNNI AVX512_BF16 AVX_VNNI AMX_TILE AMX_INT8 AMX_BF16 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2026-02-28 13:53:32.832787: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+Some weights of BertForSequenceClassification were not initialized from the model checkpoint at bert-base-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+[Config] Device=cuda, N_STEP=200, N_STEP_SWEEP=100, BATCH=8, MAX_LEN=128, RUN_TAG=glue_v1
+[Config] OUT_DIR=/data/main_results/results
+[Config] Tasks=['cola', 'rte', 'mrpc', 'mnli', 'sst2', 'stsb', 'qqp', 'qnli'], Seeds=[42, 43, 44]
+[Config] Figures=ABDEF (A=True, B=True, D=True, E=True, F=True)
+[Config] Baseline DAC=7b, ADC=9b
+
+[0] Loading tokenizer ...
+
+============================================================
+  Task=COLA, Seed=42, num_labels=2
+  Output: /data/main_results/results/glue/cola/seed_42
+============================================================
+  Dataset(cola): 1600 samples -> 200 batches (seed=42, max_len=128)
+
+  [cola/42] Baseline 7-bit, 200 steps ...
+  Analog tiles -- target(QKVO):48, frozen(FFN):24, nm_thres=0, sto_round=False, dac=7b, adc=9b, num_labels=2
+[Hook] 72 hooks, sublayers=['FFN1', 'FFN2', 'K', 'O', 'Q', 'V'], inp_res=0.007937, nm_thres=0
+A-cola-s42:   0%|                                                                                                        | 0/200 [00:00<?, ?it/s]sys:1: UserWarning: Full backward hook is firing when gradients are computed with respect to module outputs since no inputs require gradients. See https://docs.pytorch.org/docs/main/generated/torch.nn.Module.html#torch.nn.Module.register_full_backward_hook for more details.
+A-cola-s42:   0%|▍                                                                                               | 1/200 [00:01<05:10,  1.56s/it]A-cola-s42:   1%|▉                                                                                               | 2/200 [00:02<03:15,  1.01it/s]A-cola-s42:   2%|█▍                                                                                              | 3/200 [00:02<02:48,  1.17it/s]A-cola-s42:   2%|█▉                                                                                              | 4/200 [00:03<02:32,  1.28it/s]A-cola-s42:   2%|██▍                                                                                             | 5/200 [00:04<02:20,  1.39it/s]A-cola-s42:   3%|██▉                                                                                             | 6/200 [00:04<02:15,  1.44it/s]A-cola-s42:   4%|███▎                                                                                            | 7/200 [00:06<03:02,  1.06it/s]A-cola-s42:   4%|███▊                                                                                            | 8/200 [00:06<02:31,  1.26it/s]A-cola-s42:   4%|████▎                                                                                           | 9/200 [00:07<02:24,  1.32it/s]A-cola-s42:   5%|████▊                                                                                          | 10/200 [00:07<02:10,  1.46it/s]A-cola-s42:   6%|█████▏                                                                                         | 11/200 [00:08<02:08,  1.48it/s]A-cola-s42:   6%|█████▋                                                                                         | 12/200 [00:09<02:14,  1.40it/s]A-cola-s42:   6%|██████▏                                                                                        | 13/200 [00:09<02:01,  1.54it/s]A-cola-s42:   7%|██████▋                                                                                        | 14/200 [00:10<01:55,  1.61it/s]A-cola-s42:   8%|███████▏                                                                                       | 15/200 [00:11<01:53,  1.63it/s]A-cola-s42:   8%|███████▌                                                                                       | 16/200 [00:11<02:07,  1.44it/s]A-cola-s42:   8%|████████                                                                                       | 17/200 [00:12<02:05,  1.45it/s]A-cola-s42:   9%|████████▌                                                                                      | 18/200 [00:13<01:57,  1.55it/s]A-cola-s42:  10%|█████████                                                                                      | 19/200 [00:13<02:04,  1.46it/s]A-cola-s42:  10%|█████████▌                                                                                     | 20/200 [00:14<01:58,  1.52it/s]A-cola-s42:  10%|█████████▉                                                                                     | 21/200 [00:15<01:50,  1.62it/s]A-cola-s42:  11%|██████████▍                                                                                    | 22/200 [00:15<01:51,  1.60it/s]A-cola-s42:  12%|██████████▉                                                                                    | 23/200 [00:16<01:46,  1.66it/s]A-cola-s42:  12%|███████████▍                                                                                   | 24/200 [00:16<01:45,  1.66it/s]A-cola-s42:  12%|███████████▉                                                                                   | 25/200 [00:17<01:50,  1.58it/s]A-cola-s42:  13%|████████████▎                                                                                  | 26/200 [00:18<02:04,  1.40it/s]A-cola-s42:  14%|████████████▊                                                                                  | 27/200 [00:19<02:00,  1.44it/s]A-cola-s42:  14%|█████████████▎                                                                                 | 28/200 [00:19<01:54,  1.50it/s]A-cola-s42:  14%|█████████████▊                                                                                 | 29/200 [00:20<01:51,  1.54it/s]A-cola-s42:  15%|██████████████▎                                                                                | 30/200 [00:20<01:47,  1.58it/s]A-cola-s42:  16%|██████████████▋                                                                                | 31/200 [00:21<01:44,  1.61it/s]A-cola-s42:  16%|███████████████▏                                                                               | 32/200 [00:22<01:43,  1.63it/s]A-cola-s42:  16%|███████████████▋                                                                               | 33/200 [00:22<01:44,  1.60it/s]A-cola-s42:  17%|████████████████▏                                                                              | 34/200 [00:23<01:40,  1.66it/s]A-cola-s42:  18%|████████████████▋                                                                              | 35/200 [00:23<01:43,  1.60it/s]A-cola-s42:  18%|█████████████████                                                                              | 36/200 [00:24<01:40,  1.64it/s]A-cola-s42:  18%|█████████████████▌                                                                             | 37/200 [00:25<01:37,  1.66it/s]A-cola-s42:  19%|██████████████████                                                                             | 38/200 [00:25<01:41,  1.59it/s]A-cola-s42:  20%|██████████████████▌                                                                            | 39/200 [00:26<01:38,  1.63it/s]A-cola-s42:  20%|███████████████████                                                                            | 40/200 [00:26<01:36,  1.65it/s]A-cola-s42:  20%|███████████████████▍                                                                           | 41/200 [00:27<01:38,  1.62it/s]A-cola-s42:  21%|███████████████████▉                                                                           | 42/200 [00:28<01:39,  1.59it/s]A-cola-s42:  22%|████████████████████▍                                                                          | 43/200 [00:28<01:38,  1.59it/s]A-cola-s42:  22%|████████████████████▉                                                                          | 44/200 [00:29<01:41,  1.54it/s]A-cola-s42:  22%|█████████████████████▍                                                                         | 45/200 [00:30<01:41,  1.53it/s]A-cola-s42:  23%|█████████████████████▊                                                                         | 46/200 [00:30<01:33,  1.65it/s]A-cola-s42:  24%|██████████████████████▎                                                                        | 47/200 [00:31<01:36,  1.58it/s]A-cola-s42:  24%|██████████████████████▊                                                                        | 48/200 [00:32<01:38,  1.54it/s]A-cola-s42:  24%|███████████████████████▎                                                                       | 49/200 [00:32<01:45,  1.43it/s]A-cola-s42:  25%|███████████████████████▊                                                                       | 50/200 [00:33<01:52,  1.33it/s]A-cola-s42:  26%|████████████████████████▏                                                                      | 51/200 [00:34<01:47,  1.38it/s]A-cola-s42:  26%|████████████████████████▋                                                                      | 52/200 [00:35<01:49,  1.36it/s]A-cola-s42:  26%|█████████████████████████▏                                                                     | 53/200 [00:35<01:46,  1.39it/s]A-cola-s42:  27%|█████████████████████████▋                                                                     | 54/200 [00:36<01:46,  1.37it/s]A-cola-s42:  28%|██████████████████████████▏                                                                    | 55/200 [00:38<02:39,  1.10s/it]A-cola-s42:  28%|██████████████████████████▌                                                                    | 56/200 [00:40<03:26,  1.44s/it]A-cola-s42:  28%|███████████████████████████                                                                    | 57/200 [00:42<03:45,  1.58s/it]A-cola-s42:  29%|███████████████████████████▌                                                                   | 58/200 [00:44<03:45,  1.59s/it]A-cola-s42:  30%|████████████████████████████                                                                   | 59/200 [00:46<03:50,  1.63s/it]A-cola-s42:  30%|████████████████████████████▌                                                                  | 60/200 [00:47<03:36,  1.54s/it]A-cola-s42:  30%|████████████████████████████▉                                                                  | 61/200 [00:49<03:42,  1.60s/it]A-cola-s42:  31%|█████████████████████████████▍                                                                 | 62/200 [00:50<03:38,  1.58s/it]A-cola-s42:  32%|█████████████████████████████▉                                                                 | 63/200 [00:51<03:02,  1.33s/it]A-cola-s42:  32%|██████████████████████████████▍                                                                | 64/200 [00:52<02:42,  1.20s/it]A-cola-s42:  32%|██████████████████████████████▉                                                                | 65/200 [00:52<02:19,  1.03s/it]A-cola-s42:  33%|███████████████████████████████▎                                                               | 66/200 [00:53<02:06,  1.06it/s]A-cola-s42:  34%|███████████████████████████████▊                                                               | 67/200 [00:54<02:15,  1.02s/it]

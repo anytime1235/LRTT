@@ -1,0 +1,49 @@
+{
+    "model": "google/mobilebert-uncased",
+    "method": "TikiTaka v2 (ChoppedTransferCompound)",
+    "task": "sst2",
+    "experiment_date": "2026-02-11",
+    "script": "sweep_tikitaka_batch256.py",
+    "optimizer": "AnalogSGD",
+    "status": "KILLED (replaced by no-pruning run)",
+    "description": "SST-2 50-trial sweep with AnalogSGD. Classifier frozen (seed=42 fixed init), bias frozen, QKV target. Pruning ENABLED (MedianPruner). 중단됨 - pruning이 학습 가능한 trial도 조기 종료시키는 문제로 재실행.",
+    "training_config": {
+        "num_epochs": 3,
+        "batch_size": 64,
+        "optimizer": "AnalogSGD",
+        "momentum": 0,
+        "weight_decay": 0,
+        "scheduler": "linear_warmup_decay_to_0",
+        "glue_warmup_ratio": 0.1,
+        "target_modules": ["query", "key", "value"],
+        "classifier_frozen": true,
+        "classifier_seed": 42,
+        "bias_frozen": true,
+        "pruning": true,
+        "n_trials": 50,
+        "n_complete": 9,
+        "n_pruned": 10
+    },
+    "fixed_params": {
+        "auto_granularity": 169.0,
+        "in_chop_prob": 0.061,
+        "fast_lr": 3.0,
+        "noise_management": "ABS_MAX",
+        "bound_management": "ITERATIVE",
+        "out_noise": 0.0
+    },
+    "all_completed_trials": [
+        {"trial": 0,  "accuracy": 0.8601, "lr": 0.00231, "transfer_lr": 3.986, "te": 491},
+        {"trial": 1,  "accuracy": 0.8532, "lr": 0.00118, "transfer_lr": 3.451, "te": 813},
+        {"trial": 2,  "accuracy": 0.8601, "lr": 0.00198, "transfer_lr": 0.319, "te": 409},
+        {"trial": 3,  "accuracy": 0.8555, "lr": 0.00057, "transfer_lr": 2.679, "te": 721},
+        {"trial": 4,  "accuracy": 0.8372, "lr": 0.00255, "transfer_lr": 0.213, "te": 979},
+        {"trial": 5,  "accuracy": 0.8567, "lr": 0.00340, "transfer_lr": 0.378, "te": 427},
+        {"trial": 8,  "accuracy": 0.8624, "lr": null, "note": "params not captured before kill"},
+        {"trial": 11, "accuracy": 0.8589, "lr": null, "note": "params not captured before kill"},
+        {"trial": 16, "accuracy": 0.8658, "lr": null, "note": "params not captured before kill"}
+    ],
+    "best_trial": 16,
+    "best_accuracy": 0.8658,
+    "note": "Trial 19에서 중단. Pruning으로 10/19 trial이 조기종료되어 no-pruning 버전으로 재실행."
+}

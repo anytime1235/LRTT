@@ -1,0 +1,105 @@
+================================================================================
+Output Scale Diagnosis: Sixt1c-LoRA
+================================================================================
+lora_alpha = 0.01
+rank = 8
+Device: cuda
+
+Some weights of MobileBertForQuestionAnswering were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['qa_outputs.bias', 'qa_outputs.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Converting QKV to analog sixt1c-LoRA...
+Registered hooks on 72 analog layers
+
+================================================================================
+Output Norms Analysis
+================================================================================
+Layer                                                            Output Norm
+--------------------------------------------------------------------------------
+mobilebert.encoder.layer.0.attention.self.key                       817.6686
+mobilebert.encoder.layer.0.attention.self.query                     267.1212
+mobilebert.encoder.layer.0.attention.self.value                     519.8203
+mobilebert.encoder.layer.1.attention.self.key                       838.2210
+mobilebert.encoder.layer.1.attention.self.query                     257.3440
+mobilebert.encoder.layer.1.attention.self.value                    1039.5890
+mobilebert.encoder.layer.10.attention.self.key                      585.6594
+mobilebert.encoder.layer.10.attention.self.query                    287.1180
+mobilebert.encoder.layer.10.attention.self.value                   1572.9390
+mobilebert.encoder.layer.11.attention.self.key                      538.6317
+mobilebert.encoder.layer.11.attention.self.query                    287.3565
+mobilebert.encoder.layer.11.attention.self.value                   1839.9576
+mobilebert.encoder.layer.12.attention.self.key                      458.8880
+mobilebert.encoder.layer.12.attention.self.query                    236.3432
+mobilebert.encoder.layer.12.attention.self.value                   1439.5870
+mobilebert.encoder.layer.13.attention.self.key                      519.6641
+mobilebert.encoder.layer.13.attention.self.query                    291.3316
+mobilebert.encoder.layer.13.attention.self.value                   1475.7169
+mobilebert.encoder.layer.14.attention.self.key                      537.6511
+mobilebert.encoder.layer.14.attention.self.query                    338.3000
+mobilebert.encoder.layer.14.attention.self.value                   1835.9486
+mobilebert.encoder.layer.15.attention.self.key                      498.9929
+mobilebert.encoder.layer.15.attention.self.query                    308.6326
+mobilebert.encoder.layer.15.attention.self.value                   1078.5361
+mobilebert.encoder.layer.16.attention.self.key                      590.5977
+mobilebert.encoder.layer.16.attention.self.query                    319.9994
+mobilebert.encoder.layer.16.attention.self.value                   1367.2433
+mobilebert.encoder.layer.17.attention.self.key                      487.8592
+mobilebert.encoder.layer.17.attention.self.query                    297.4417
+mobilebert.encoder.layer.17.attention.self.value                   1504.7803
+mobilebert.encoder.layer.18.attention.self.key                      478.5619
+mobilebert.encoder.layer.18.attention.self.query                    299.7972
+mobilebert.encoder.layer.18.attention.self.value                   1290.4775
+mobilebert.encoder.layer.19.attention.self.key                      522.3888
+mobilebert.encoder.layer.19.attention.self.query                    283.7092
+mobilebert.encoder.layer.19.attention.self.value                   1791.3218
+mobilebert.encoder.layer.2.attention.self.key                      1233.2222
+mobilebert.encoder.layer.2.attention.self.query                     302.7731
+mobilebert.encoder.layer.2.attention.self.value                    1030.8395
+mobilebert.encoder.layer.20.attention.self.key                      467.0735
+mobilebert.encoder.layer.20.attention.self.query                    298.5729
+mobilebert.encoder.layer.20.attention.self.value                   1808.5848
+mobilebert.encoder.layer.21.attention.self.key                      521.4636
+mobilebert.encoder.layer.21.attention.self.query                    292.4159
+mobilebert.encoder.layer.21.attention.self.value                   1677.8201
+mobilebert.encoder.layer.22.attention.self.key                      415.5358
+mobilebert.encoder.layer.22.attention.self.query                    289.5902
+mobilebert.encoder.layer.22.attention.self.value                   1610.6233
+mobilebert.encoder.layer.23.attention.self.key                      747.9247
+mobilebert.encoder.layer.23.attention.self.query                    552.6677
+mobilebert.encoder.layer.23.attention.self.value                   5756.8218
+mobilebert.encoder.layer.3.attention.self.key                       989.3109
+mobilebert.encoder.layer.3.attention.self.query                     362.3185
+mobilebert.encoder.layer.3.attention.self.value                    1595.2146
+mobilebert.encoder.layer.4.attention.self.key                      1038.8756
+mobilebert.encoder.layer.4.attention.self.query                     269.8758
+mobilebert.encoder.layer.4.attention.self.value                    1069.0916
+mobilebert.encoder.layer.5.attention.self.key                       707.1190
+mobilebert.encoder.layer.5.attention.self.query                     252.4278
+mobilebert.encoder.layer.5.attention.self.value                    1801.8541
+mobilebert.encoder.layer.6.attention.self.key                       956.8199
+mobilebert.encoder.layer.6.attention.self.query                     400.2740
+mobilebert.encoder.layer.6.attention.self.value                    1477.3331
+mobilebert.encoder.layer.7.attention.self.key                       794.9084
+mobilebert.encoder.layer.7.attention.self.query                     389.7631
+mobilebert.encoder.layer.7.attention.self.value                    1539.5066
+mobilebert.encoder.layer.8.attention.self.key                       962.1147
+mobilebert.encoder.layer.8.attention.self.query                     349.0706
+mobilebert.encoder.layer.8.attention.self.value                    1960.3021
+mobilebert.encoder.layer.9.attention.self.key                       552.7896
+mobilebert.encoder.layer.9.attention.self.query                     273.2099
+mobilebert.encoder.layer.9.attention.self.value                    1592.3812
+================================================================================
+
+Statistics:
+  Mean norm: 881.1901
+  Min norm:  236.3432
+  Max norm:  5756.8218
+
+NOTE: The measured outputs are COMBINED (C·x + α·A·(B·x))
+With α=0.01, the LoRA contribution is scaled by 0.01x
+
+To estimate C vs A·B contribution:
+  - C output scale ~ pretrained weight norms (typically O(1))
+  - A·B output scale ~ α × rank_scale ~ 0.01 × O(1)
+  - Ratio: C / (α·A·B) ~ 1 / 0.01 = 100x
+
+So with α=0.01, C output is ~100x larger than LoRA contribution.

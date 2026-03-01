@@ -1,0 +1,1114 @@
+layer_name,shape,num_params,min,max,mean,std,abs_mean,abs_max,pct_gt_1,pct_gt_5,pct_gt_10,model
+mobilebert.embeddings.word_embeddings.weight,"torch.Size([30522, 128])",3906816,-0.7049293,0.7449273,-0.0017788173,0.14724492,0.11708621,0.7449273,0.0,0.0,0.0,MobileBERT
+mobilebert.embeddings.position_embeddings.weight,"torch.Size([512, 512])",262144,-1.32192,2.8475378,-0.00032627746,0.120717846,0.089791946,2.8475378,0.0057220458984375,0.0,0.0,MobileBERT
+mobilebert.embeddings.token_type_embeddings.weight,"torch.Size([2, 512])",1024,-1.1398349,1.0644255,-0.00048706215,0.06275962,0.031652905,1.1398349,0.1953125,0.0,0.0,MobileBERT
+mobilebert.embeddings.embedding_transformation.weight,"torch.Size([512, 384])",196608,-1.2382205,1.0931444,-0.0003800035,0.16319501,0.11083289,1.2382205,0.010172526041666666,0.0,0.0,MobileBERT
+mobilebert.embeddings.embedding_transformation.bias,torch.Size([512]),512,-0.1815863,3.9257393,0.0057784803,0.18288548,0.052654356,3.9257393,0.1953125,0.0,0.0,MobileBERT
+mobilebert.embeddings.LayerNorm.bias,torch.Size([512]),512,-0.80849195,0.15760732,-0.0003033363,0.06347477,0.032977946,0.80849195,0.0,0.0,0.0,MobileBERT
+mobilebert.embeddings.LayerNorm.weight,torch.Size([512]),512,0.23172231,3.7331717,1.1700543,0.65315527,1.1700543,3.7331717,49.0234375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.attention.self.query.weight,"torch.Size([128, 128])",16384,-0.6950355,0.9048804,0.0016505042,0.15588696,0.1179194,0.9048804,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.attention.self.query.bias,torch.Size([128]),128,-1.6363145,2.370419,0.040589385,0.541932,0.37895963,2.370419,7.8125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.attention.self.key.weight,"torch.Size([128, 128])",16384,-0.87937343,0.6786807,0.0006461332,0.13745862,0.104429364,0.87937343,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.attention.self.key.bias,torch.Size([128]),128,-9.767221,13.909192,0.38820353,3.5703425,2.6315646,13.909192,73.4375,15.625,1.5625,MobileBERT
+mobilebert.encoder.layer.0.attention.self.value.weight,"torch.Size([128, 512])",65536,-0.88538134,0.7817225,0.00022350224,0.13665105,0.10706474,0.88538134,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.attention.self.value.bias,torch.Size([128]),128,-0.55872005,0.70977604,0.004076166,0.20549297,0.14642972,0.70977604,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.attention.output.dense.weight,"torch.Size([128, 128])",16384,-0.6254419,0.6522242,0.0002341519,0.1298395,0.10135423,0.6522242,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.attention.output.dense.bias,torch.Size([128]),128,-1.785827,2.107615,-0.016325604,0.42934278,0.25020063,2.107615,5.46875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.attention.output.LayerNorm.bias,torch.Size([128]),128,-1.9086078,2.1706378,-0.02200465,0.45689112,0.27163064,2.1706378,6.25,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.attention.output.LayerNorm.weight,torch.Size([128]),128,0.39651677,1.3195778,0.52384025,0.14107619,0.52384025,1.3195778,3.90625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.68936753,0.75833493,-0.00270952,0.13640644,0.10500469,0.75833493,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.intermediate.dense.bias,torch.Size([512]),512,-3.248122,0.6242845,-0.74744594,0.35897157,0.7516103,3.248122,19.921875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.output.dense.weight,"torch.Size([128, 512])",65536,-0.74068654,0.73257303,0.0008474705,0.12895203,0.0983269,0.74068654,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.output.dense.bias,torch.Size([128]),128,-0.65950567,0.21206093,-0.01087204,0.11287147,0.075823896,0.65950567,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.output.LayerNorm.bias,torch.Size([128]),128,-0.3545095,0.07144213,-0.005925105,0.042955685,0.020764232,0.3545095,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.output.LayerNorm.weight,torch.Size([128]),128,0.20942171,0.34293208,0.30455345,0.019058453,0.30455345,0.34293208,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.output.bottleneck.dense.weight,"torch.Size([512, 128])",65536,-1.0573987,1.6250273,-0.00064574135,0.14380552,0.110059336,1.6250273,0.00457763671875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.output.bottleneck.dense.bias,torch.Size([512]),512,-0.09002806,0.09597949,0.0008422814,0.02254108,0.017605029,0.09597949,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.output.bottleneck.LayerNorm.bias,torch.Size([512]),512,-0.24140461,0.07329264,0.000730937,0.023736013,0.017098367,0.24140461,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.output.bottleneck.LayerNorm.weight,torch.Size([512]),512,0.83980376,2.7054806,1.7332501,0.34541327,1.7332501,2.7054806,99.8046875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.bottleneck.input.dense.weight,"torch.Size([128, 512])",65536,-1.0335305,0.83330464,-0.0010860632,0.16800806,0.13141826,1.0335305,0.0030517578125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.bottleneck.input.dense.bias,torch.Size([128]),128,-1.7433454,2.0585504,-0.014966426,0.4258032,0.250647,2.0585504,3.90625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.bottleneck.input.LayerNorm.bias,torch.Size([128]),128,-1.785827,2.107615,-0.016325604,0.42934278,0.25020063,2.107615,5.46875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.bottleneck.input.LayerNorm.weight,torch.Size([128]),128,0.34659058,1.8696392,1.401793,0.28140768,1.401793,1.8696392,95.3125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.bottleneck.attention.dense.weight,"torch.Size([128, 512])",65536,-1.4182029,1.9878781,-0.00017123412,0.14626677,0.11226403,1.9878781,0.02899169921875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.bottleneck.attention.dense.bias,torch.Size([128]),128,-0.24862167,0.3282136,0.00885267,0.10349724,0.08099745,0.3282136,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.bottleneck.attention.LayerNorm.bias,torch.Size([128]),128,-0.26053134,0.27153522,0.0011308973,0.06860463,0.046261884,0.27153522,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.bottleneck.attention.LayerNorm.weight,torch.Size([128]),128,0.114433885,0.6310648,0.19144854,0.08472339,0.19144854,0.6310648,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.ffn.0.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.83450556,0.66162676,0.0017438029,0.119522534,0.093143746,0.83450556,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.ffn.0.intermediate.dense.bias,torch.Size([512]),512,-2.516656,0.25191012,-0.88513553,0.34894848,0.8863905,2.516656,32.03125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.ffn.0.output.dense.weight,"torch.Size([128, 512])",65536,-0.82023424,0.73717767,0.0006491165,0.10664726,0.0805641,0.82023424,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.ffn.0.output.dense.bias,torch.Size([128]),128,-0.58044785,1.1041876,0.011486022,0.25040138,0.18714157,1.1041876,0.78125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.ffn.0.output.LayerNorm.bias,torch.Size([128]),128,-0.49200094,0.9495951,0.011171505,0.20537908,0.15311773,0.9495951,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.ffn.0.output.LayerNorm.weight,torch.Size([128]),128,0.43972775,0.6577951,0.51602626,0.043101802,0.51602626,0.6577951,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.ffn.1.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.5483554,0.6830787,-0.00040946563,0.124252506,0.0968921,0.6830787,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.ffn.1.intermediate.dense.bias,torch.Size([512]),512,-2.9757078,0.30184424,-0.79275787,0.42378584,0.7976824,2.9757078,25.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.ffn.1.output.dense.weight,"torch.Size([128, 512])",65536,-0.85398525,0.8324056,0.0014602877,0.11495827,0.08752378,0.85398525,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.ffn.1.output.dense.bias,torch.Size([128]),128,-0.6225503,0.91906935,0.0003035511,0.24861525,0.1856263,0.91906935,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.ffn.1.output.LayerNorm.bias,torch.Size([128]),128,-0.47553015,0.7584113,0.0046470575,0.17920859,0.12321034,0.7584113,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.ffn.1.output.LayerNorm.weight,torch.Size([128]),128,0.39425102,0.601707,0.47090152,0.03283958,0.47090152,0.601707,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.ffn.2.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.70870465,0.6409121,-0.0015261853,0.12510182,0.096985765,0.70870465,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.ffn.2.intermediate.dense.bias,torch.Size([512]),512,-2.2154891,0.6775361,-0.820204,0.41577742,0.8289996,2.2154891,30.6640625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.ffn.2.output.dense.weight,"torch.Size([128, 512])",65536,-0.7403696,0.61546576,0.0012188514,0.117586955,0.08944373,0.7403696,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.ffn.2.output.dense.bias,torch.Size([128]),128,-1.0847832,0.45055658,-0.0060123233,0.18071966,0.119935855,1.0847832,0.78125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.ffn.2.output.LayerNorm.bias,torch.Size([128]),128,-0.9250534,0.28242645,-0.0065318095,0.115886144,0.0560785,0.9250534,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.0.ffn.2.output.LayerNorm.weight,torch.Size([128]),128,0.3287481,0.5813521,0.4269278,0.04359197,0.4269278,0.5813521,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.attention.self.query.weight,"torch.Size([128, 128])",16384,-0.5369872,0.54895914,0.0009542163,0.11569502,0.09023473,0.54895914,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.attention.self.query.bias,torch.Size([128]),128,-2.7476323,2.586033,-0.054585945,0.6095763,0.35493562,2.7476323,7.8125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.attention.self.key.weight,"torch.Size([128, 128])",16384,-0.4743629,0.53576326,0.00051581825,0.110510096,0.08605919,0.53576326,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.attention.self.key.bias,torch.Size([128]),128,-11.037981,10.670383,-0.42370805,3.627176,2.7972481,11.037981,74.21875,17.96875,1.5625,MobileBERT
+mobilebert.encoder.layer.1.attention.self.value.weight,"torch.Size([128, 512])",65536,-1.0170903,0.89820266,-0.0004864526,0.16464901,0.1266758,1.0170903,0.00152587890625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.attention.self.value.bias,torch.Size([128]),128,-0.6306207,1.6360196,0.012474984,0.34128317,0.26052588,1.6360196,1.5625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.attention.output.dense.weight,"torch.Size([128, 128])",16384,-0.5615339,0.5922519,-0.00042608392,0.12696823,0.100595504,0.5922519,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.attention.output.dense.bias,torch.Size([128]),128,-4.6127906,1.5485804,-0.14706366,0.81944746,0.5148413,4.6127906,12.5,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.attention.output.LayerNorm.bias,torch.Size([128]),128,-4.7117734,1.6130763,-0.1493406,0.85009605,0.5418306,4.7117734,14.0625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.attention.output.LayerNorm.weight,torch.Size([128]),128,0.3855533,0.978139,0.5098376,0.078266345,0.5098376,0.978139,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.6041487,0.5802898,-0.000461629,0.1354448,0.10784917,0.6041487,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.intermediate.dense.bias,torch.Size([512]),512,-2.3552272,0.10861259,-0.754745,0.31400713,0.7555523,2.3552272,21.2890625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.output.dense.weight,"torch.Size([128, 512])",65536,-0.79500675,1.0442364,9.4508156e-05,0.13191888,0.10393563,1.0442364,0.00152587890625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.output.dense.bias,torch.Size([128]),128,-0.26387194,0.7989343,0.006882606,0.1523785,0.093293175,0.7989343,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.output.LayerNorm.bias,torch.Size([128]),128,-0.09106712,0.32638547,0.0038057556,0.048876606,0.022941984,0.32638547,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.output.LayerNorm.weight,torch.Size([128]),128,0.21488552,0.38543373,0.30297634,0.023779329,0.30297634,0.38543373,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.output.bottleneck.dense.weight,"torch.Size([512, 128])",65536,-0.6499209,0.7689841,8.406576e-05,0.14140537,0.108640045,0.7689841,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.output.bottleneck.dense.bias,torch.Size([512]),512,-0.31804848,0.08842937,-0.0034291781,0.033631388,0.024039734,0.31804848,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.output.bottleneck.LayerNorm.bias,torch.Size([512]),512,-0.30306426,0.08142181,-0.0028228099,0.031000964,0.021938294,0.30306426,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.output.bottleneck.LayerNorm.weight,torch.Size([512]),512,0.65831107,1.3002635,0.97176576,0.08286226,0.97176576,1.3002635,35.15625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.bottleneck.input.dense.weight,"torch.Size([128, 512])",65536,-0.73294693,0.7137185,0.00056335307,0.15764597,0.12517026,0.73294693,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.bottleneck.input.dense.bias,torch.Size([128]),128,-4.5156097,1.5595528,-0.14849828,0.81270504,0.5112328,4.5156097,12.5,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.bottleneck.input.LayerNorm.bias,torch.Size([128]),128,-4.6127906,1.5485804,-0.14706366,0.81944746,0.5148413,4.6127906,12.5,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.bottleneck.input.LayerNorm.weight,torch.Size([128]),128,0.7005249,1.5337211,1.1296577,0.17209457,1.1296577,1.5337211,79.6875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.bottleneck.attention.dense.weight,"torch.Size([128, 512])",65536,-0.89400375,0.9485173,0.0007244203,0.13011816,0.10194459,0.9485173,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.bottleneck.attention.dense.bias,torch.Size([128]),128,-0.7182531,0.68083996,0.0034399417,0.15659727,0.112628,0.7182531,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.bottleneck.attention.LayerNorm.bias,torch.Size([128]),128,-0.7434359,0.404959,-0.001769449,0.10125812,0.05884817,0.7434359,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.bottleneck.attention.LayerNorm.weight,torch.Size([128]),128,0.11805205,0.2711681,0.1513814,0.028028086,0.1513814,0.2711681,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.ffn.0.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.47593698,0.51054436,0.0034187003,0.12028609,0.096066736,0.51054436,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.ffn.0.intermediate.dense.bias,torch.Size([512]),512,-2.42256,0.11249977,-0.9785668,0.3077771,0.97914976,2.42256,49.0234375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.ffn.0.output.dense.weight,"torch.Size([128, 512])",65536,-0.6541561,0.5340951,-0.0010141755,0.10541619,0.08319308,0.6541561,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.ffn.0.output.dense.bias,torch.Size([128]),128,-0.90728384,0.7106858,0.014913118,0.26910976,0.21203682,0.90728384,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.ffn.0.output.LayerNorm.bias,torch.Size([128]),128,-0.81303996,0.61566365,0.010246343,0.22910592,0.17964624,0.81303996,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.ffn.0.output.LayerNorm.weight,torch.Size([128]),128,0.4685145,0.71986073,0.5540665,0.035492435,0.5540665,0.71986073,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.ffn.1.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.6691702,0.66731197,0.002450591,0.12847462,0.10278748,0.6691702,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.ffn.1.intermediate.dense.bias,torch.Size([512]),512,-3.3323205,0.45046955,-0.7969754,0.35737902,0.8001115,3.3323205,27.5390625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.ffn.1.output.dense.weight,"torch.Size([128, 512])",65536,-0.7405961,0.5580868,-0.0011527181,0.11352243,0.08992752,0.7405961,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.ffn.1.output.dense.bias,torch.Size([128]),128,-0.67345995,1.0088812,0.01500152,0.25401756,0.17778918,1.0088812,0.78125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.ffn.1.output.LayerNorm.bias,torch.Size([128]),128,-0.544238,0.84141004,0.010655638,0.20020148,0.14087752,0.84141004,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.ffn.1.output.LayerNorm.weight,torch.Size([128]),128,0.39221856,0.5770313,0.47784853,0.028466262,0.47784853,0.5770313,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.ffn.2.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.6177787,0.528407,0.0026367684,0.13221486,0.105685286,0.6177787,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.ffn.2.intermediate.dense.bias,torch.Size([512]),512,-2.2212276,0.60354245,-0.8027066,0.35493904,0.81222904,2.2212276,28.125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.ffn.2.output.dense.weight,"torch.Size([128, 512])",65536,-0.56792575,0.5881697,-0.00045626925,0.120028295,0.09491381,0.5881697,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.ffn.2.output.dense.bias,torch.Size([128]),128,-0.37201893,1.0258484,0.028578036,0.20319167,0.123121694,1.0258484,0.78125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.ffn.2.output.LayerNorm.bias,torch.Size([128]),128,-0.23594007,0.79484004,0.02691999,0.13725369,0.07191889,0.79484004,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.1.ffn.2.output.LayerNorm.weight,torch.Size([128]),128,0.32946017,0.53004473,0.38956916,0.027092986,0.38956916,0.53004473,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.attention.self.query.weight,"torch.Size([128, 128])",16384,-0.6137028,0.48777872,-0.0011821347,0.12806478,0.10015185,0.6137028,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.attention.self.query.bias,torch.Size([128]),128,-3.4318483,3.0366826,-0.051796492,0.63907856,0.36369526,3.4318483,6.25,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.attention.self.key.weight,"torch.Size([128, 128])",16384,-0.58508295,0.6062372,0.0008022712,0.1199098,0.09328232,0.6062372,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.attention.self.key.bias,torch.Size([128]),128,-15.299581,21.931551,-0.25454155,5.5097485,3.9755316,21.931551,82.8125,25.78125,8.59375,MobileBERT
+mobilebert.encoder.layer.2.attention.self.value.weight,"torch.Size([128, 512])",65536,-1.0323104,0.9547842,0.00022500203,0.1694083,0.12885143,1.0323104,0.00152587890625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.attention.self.value.bias,torch.Size([128]),128,-1.6565073,0.86880815,-0.016682621,0.37434074,0.29212838,1.6565073,0.78125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.attention.output.dense.weight,"torch.Size([128, 128])",16384,-0.63060564,0.6098093,0.00047837524,0.13766648,0.10870216,0.63060564,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.attention.output.dense.bias,torch.Size([128]),128,-3.098277,3.5981143,0.0008395836,0.72824484,0.45907286,3.5981143,10.9375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.attention.output.LayerNorm.bias,torch.Size([128]),128,-3.2109277,3.7194996,-0.0016904399,0.768125,0.49169958,3.7194996,10.9375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.attention.output.LayerNorm.weight,torch.Size([128]),128,0.34148404,0.6255243,0.42803538,0.045425557,0.42803538,0.6255243,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.5754789,0.5674312,-0.00062843104,0.12850551,0.102210894,0.5754789,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.intermediate.dense.bias,torch.Size([512]),512,-2.1997845,0.04396332,-0.8045988,0.2898505,0.8047706,2.1997845,22.65625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.output.dense.weight,"torch.Size([128, 512])",65536,-0.5649886,0.6653357,0.0002857633,0.12396236,0.09774093,0.6653357,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.output.dense.bias,torch.Size([128]),128,-0.8384925,0.29240474,-0.0036651618,0.14104056,0.095177576,0.8384925,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.output.LayerNorm.bias,torch.Size([128]),128,-0.39606005,0.09879164,-0.004607572,0.05384316,0.027475744,0.39606005,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.output.LayerNorm.weight,torch.Size([128]),128,0.25813368,0.38634998,0.35277686,0.018877301,0.35277686,0.38634998,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.output.bottleneck.dense.weight,"torch.Size([512, 128])",65536,-0.7813185,0.8241655,0.0008283597,0.14882047,0.11230719,0.8241655,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.output.bottleneck.dense.bias,torch.Size([512]),512,-0.18166484,0.0920824,0.0007816248,0.025303502,0.018728286,0.18166484,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.output.bottleneck.LayerNorm.bias,torch.Size([512]),512,-0.18482786,0.099136636,0.0011720724,0.023771804,0.017336655,0.18482786,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.output.bottleneck.LayerNorm.weight,torch.Size([512]),512,0.56052727,1.5181506,0.96815515,0.11635807,0.96815515,1.5181506,44.921875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.bottleneck.input.dense.weight,"torch.Size([128, 512])",65536,-0.6149767,0.6555483,-0.0006231806,0.15442938,0.12277641,0.6555483,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.bottleneck.input.dense.bias,torch.Size([128]),128,-3.0799122,3.5510817,0.0004080534,0.7201801,0.45393562,3.5510817,10.15625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.bottleneck.input.LayerNorm.bias,torch.Size([128]),128,-3.098277,3.5981143,0.0008395836,0.72824484,0.45907286,3.5981143,10.9375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.bottleneck.input.LayerNorm.weight,torch.Size([128]),128,0.7480859,1.6508323,1.2132785,0.16887999,1.2132785,1.6508323,90.625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.bottleneck.attention.dense.weight,"torch.Size([128, 512])",65536,-1.1719236,0.8789783,0.0006912212,0.13876414,0.1066573,1.1719236,0.00457763671875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.bottleneck.attention.dense.bias,torch.Size([128]),128,-0.37349898,0.5962163,0.013558459,0.1324818,0.09118049,0.5962163,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.bottleneck.attention.LayerNorm.bias,torch.Size([128]),128,-0.44526088,0.35475743,0.0019027714,0.08780053,0.05443295,0.44526088,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.bottleneck.attention.LayerNorm.weight,torch.Size([128]),128,0.10701107,0.29264277,0.1450515,0.031104997,0.1450515,0.29264277,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.ffn.0.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.51628983,0.46228427,0.0009108323,0.110225305,0.08790376,0.51628983,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.ffn.0.intermediate.dense.bias,torch.Size([512]),512,-2.2158735,0.38861296,-1.0079547,0.33711183,1.0097448,2.2158735,50.9765625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.ffn.0.output.dense.weight,"torch.Size([128, 512])",65536,-0.5629863,0.47912744,-1.756895e-05,0.09160428,0.072493844,0.5629863,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.ffn.0.output.dense.bias,torch.Size([128]),128,-0.7223109,0.8194854,0.0004728036,0.24468954,0.19165635,0.8194854,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.ffn.0.output.LayerNorm.bias,torch.Size([128]),128,-0.58327883,0.6865533,-0.0019224165,0.20311901,0.15864015,0.6865533,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.ffn.0.output.LayerNorm.weight,torch.Size([128]),128,0.4758567,0.6241958,0.523429,0.02396622,0.523429,0.6241958,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.ffn.1.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.49930626,0.5064333,0.00027820177,0.11769339,0.09386452,0.5064333,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.ffn.1.intermediate.dense.bias,torch.Size([512]),512,-1.787517,0.021986336,-0.82431144,0.34284118,0.8245806,1.787517,30.078125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.ffn.1.output.dense.weight,"torch.Size([128, 512])",65536,-0.49527052,0.47843522,-4.250751e-05,0.09984017,0.079174116,0.49527052,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.ffn.1.output.dense.bias,torch.Size([128]),128,-0.89336824,0.60848325,-0.012062014,0.21104525,0.15155871,0.89336824,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.ffn.1.output.LayerNorm.bias,torch.Size([128]),128,-0.73446655,0.4562164,-0.012361504,0.1572887,0.11199704,0.73446655,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.ffn.1.output.LayerNorm.weight,torch.Size([128]),128,0.4132019,0.5407988,0.47146654,0.022216847,0.47146654,0.5407988,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.ffn.2.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.5559909,0.681862,0.00047016877,0.121395744,0.09660218,0.681862,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.ffn.2.intermediate.dense.bias,torch.Size([512]),512,-2.038576,0.8070737,-0.8265341,0.36432508,0.8325347,2.038576,28.90625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.ffn.2.output.dense.weight,"torch.Size([128, 512])",65536,-0.56343377,0.5143181,1.48070685e-05,0.10932219,0.08649023,0.56343377,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.ffn.2.output.dense.bias,torch.Size([128]),128,-0.77286965,0.6544504,0.008553936,0.18623802,0.13043633,0.77286965,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.ffn.2.output.LayerNorm.bias,torch.Size([128]),128,-0.599262,0.4021178,0.0056802384,0.11412517,0.07319675,0.599262,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.2.ffn.2.output.LayerNorm.weight,torch.Size([128]),128,0.36165088,0.5007941,0.4228075,0.024402246,0.4228075,0.5007941,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.attention.self.query.weight,"torch.Size([128, 128])",16384,-1.4552915,1.361556,0.0015072774,0.23853575,0.17048554,1.4552915,0.250244140625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.attention.self.query.bias,torch.Size([128]),128,-1.9935358,2.3415182,-0.14726928,0.63700765,0.39625058,2.3415182,13.28125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.attention.self.key.weight,"torch.Size([128, 128])",16384,-1.159164,1.1702898,0.0017201422,0.20788328,0.14860217,1.1702898,0.06103515625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.attention.self.key.bias,torch.Size([128]),128,-11.3806925,11.692745,-0.4595334,4.007093,3.1411452,11.692745,82.03125,24.21875,1.5625,MobileBERT
+mobilebert.encoder.layer.3.attention.self.value.weight,"torch.Size([128, 512])",65536,-1.3052236,1.0040222,0.0009357678,0.1737642,0.1292572,1.3052236,0.0030517578125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.attention.self.value.bias,torch.Size([128]),128,-0.83618295,1.1886499,0.011372321,0.3268379,0.26263496,1.1886499,0.78125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.attention.output.dense.weight,"torch.Size([128, 128])",16384,-0.6054407,0.64254713,0.00081709144,0.1457748,0.113804415,0.64254713,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.attention.output.dense.bias,torch.Size([128]),128,-4.196293,4.218992,-0.0055261776,0.9386548,0.58412445,4.218992,16.40625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.attention.output.LayerNorm.bias,torch.Size([128]),128,-4.2888184,4.331207,-0.0055897236,0.9773328,0.6126354,4.331207,17.1875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.attention.output.LayerNorm.weight,torch.Size([128]),128,0.33912745,0.68372244,0.44787106,0.07130507,0.44787106,0.68372244,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.4769223,0.6416479,0.001953469,0.10838391,0.0855318,0.6416479,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.intermediate.dense.bias,torch.Size([512]),512,-2.5589266,0.115865976,-0.7832921,0.37514627,0.7853029,2.5589266,25.78125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.output.dense.weight,"torch.Size([128, 512])",65536,-0.7188795,0.66700596,-0.00078884163,0.10370713,0.08072435,0.7188795,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.output.dense.bias,torch.Size([128]),128,-0.49177223,0.4740448,0.017445115,0.16435786,0.12718743,0.49177223,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.output.LayerNorm.bias,torch.Size([128]),128,-0.25219446,0.31437927,0.008130729,0.07435148,0.053062763,0.31437927,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.output.LayerNorm.weight,torch.Size([128]),128,0.31908962,0.4375674,0.383514,0.020339636,0.383514,0.4375674,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.output.bottleneck.dense.weight,"torch.Size([512, 128])",65536,-1.0477556,1.0486635,-8.47715e-05,0.15688954,0.1158706,1.0486635,0.0091552734375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.output.bottleneck.dense.bias,torch.Size([512]),512,-0.23729728,0.39409783,-0.0026376527,0.043373346,0.028648686,0.39409783,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.output.bottleneck.LayerNorm.bias,torch.Size([512]),512,-0.24595153,0.40723225,-0.0028334856,0.043654136,0.029044807,0.40723225,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.output.bottleneck.LayerNorm.weight,torch.Size([512]),512,0.13925499,1.1927191,0.88659763,0.15395859,0.88659763,1.1927191,25.9765625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.bottleneck.input.dense.weight,"torch.Size([128, 512])",65536,-0.7268831,0.6391577,0.00091066293,0.15780291,0.124592096,0.7268831,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.bottleneck.input.dense.bias,torch.Size([128]),128,-4.181922,4.1954103,-0.006029226,0.9313475,0.57863927,4.1954103,14.84375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.bottleneck.input.LayerNorm.bias,torch.Size([128]),128,-4.196293,4.218992,-0.0055261776,0.9386548,0.58412445,4.218992,16.40625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.bottleneck.input.LayerNorm.weight,torch.Size([128]),128,0.6211989,1.9635198,1.2989695,0.25477523,1.2989695,1.9635198,86.71875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.bottleneck.attention.dense.weight,"torch.Size([128, 512])",65536,-1.0891683,1.6007963,0.00013331944,0.13170873,0.09960441,1.6007963,0.0152587890625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.bottleneck.attention.dense.bias,torch.Size([128]),128,-0.2437622,0.29935974,-0.024643302,0.12337504,0.104713455,0.29935974,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.bottleneck.attention.LayerNorm.bias,torch.Size([128]),128,-0.13334253,0.09382877,-0.007115929,0.033492588,0.024318784,0.13334253,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.bottleneck.attention.LayerNorm.weight,torch.Size([128]),128,0.046316706,0.29642367,0.09648583,0.043717742,0.09648583,0.29642367,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.ffn.0.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.4186427,0.44757426,0.0002950871,0.097710505,0.077564,0.44757426,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.ffn.0.intermediate.dense.bias,torch.Size([512]),512,-2.1784325,0.19693275,-0.99384224,0.35207704,0.994797,2.1784325,49.0234375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.ffn.0.output.dense.weight,"torch.Size([128, 512])",65536,-0.62188345,0.66762507,-0.0006133348,0.07785464,0.060255364,0.66762507,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.ffn.0.output.dense.bias,torch.Size([128]),128,-0.81685525,0.7847416,0.017348742,0.31130934,0.2502441,0.81685525,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.ffn.0.output.LayerNorm.bias,torch.Size([128]),128,-0.7078362,0.6645379,0.015253748,0.27565494,0.2199943,0.7078362,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.ffn.0.output.LayerNorm.weight,torch.Size([128]),128,0.48528996,0.64316785,0.55310273,0.025679948,0.55310273,0.64316785,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.ffn.1.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.54199755,0.6306763,0.0008159325,0.1103211,0.08733984,0.6306763,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.ffn.1.intermediate.dense.bias,torch.Size([512]),512,-2.6290662,0.30790225,-0.7558218,0.37031788,0.7624033,2.6290662,25.5859375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.ffn.1.output.dense.weight,"torch.Size([128, 512])",65536,-0.57540894,0.46146983,-0.00010312686,0.09382355,0.07246508,0.57540894,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.ffn.1.output.dense.bias,torch.Size([128]),128,-0.83990383,0.7173261,0.002118703,0.28805828,0.22895637,0.83990383,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.ffn.1.output.LayerNorm.bias,torch.Size([128]),128,-0.6721928,0.5589708,0.0012808181,0.22807491,0.18146357,0.6721928,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.ffn.1.output.LayerNorm.weight,torch.Size([128]),128,0.42128816,0.6099225,0.501553,0.03245139,0.501553,0.6099225,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.ffn.2.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.5979364,0.54575026,0.0015128852,0.115092866,0.090827666,0.5979364,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.ffn.2.intermediate.dense.bias,torch.Size([512]),512,-3.3959188,0.58377635,-0.7711556,0.42706543,0.78421456,3.3959188,27.34375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.ffn.2.output.dense.weight,"torch.Size([128, 512])",65536,-0.8652722,0.63775134,-0.00065811625,0.103595965,0.079854295,0.8652722,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.ffn.2.output.dense.bias,torch.Size([128]),128,-0.8355167,0.94327456,0.020611536,0.23423178,0.1631332,0.94327456,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.ffn.2.output.LayerNorm.bias,torch.Size([128]),128,-0.6304246,0.7314078,0.014968535,0.15805326,0.09843288,0.7314078,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.3.ffn.2.output.LayerNorm.weight,torch.Size([128]),128,0.3969781,0.52214926,0.44710088,0.024492705,0.44710088,0.52214926,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.attention.self.query.weight,"torch.Size([128, 128])",16384,-0.5040141,0.54723233,-8.620665e-05,0.12509286,0.097960114,0.54723233,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.attention.self.query.bias,torch.Size([128]),128,-2.5579302,2.094704,0.041763082,0.5642776,0.32710057,2.5579302,8.59375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.attention.self.key.weight,"torch.Size([128, 128])",16384,-0.5165427,0.5368894,0.001720599,0.11054142,0.086424224,0.5368894,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.attention.self.key.bias,torch.Size([128]),128,-13.095663,16.770292,0.6843714,4.7540445,3.6925902,16.770292,89.84375,20.3125,7.03125,MobileBERT
+mobilebert.encoder.layer.4.attention.self.value.weight,"torch.Size([128, 512])",65536,-0.7323731,0.7973948,0.0001626126,0.16001977,0.12546308,0.7973948,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.attention.self.value.bias,torch.Size([128]),128,-0.53852403,0.475447,0.019649884,0.1880757,0.1392369,0.53852403,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.attention.output.dense.weight,"torch.Size([128, 128])",16384,-0.54837036,0.50268626,0.00083938346,0.13070376,0.10468279,0.54837036,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.attention.output.dense.bias,torch.Size([128]),128,-2.7177303,1.2760075,-0.06944196,0.5626768,0.38433033,2.7177303,7.03125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.attention.output.LayerNorm.bias,torch.Size([128]),128,-2.8122902,1.3482674,-0.07142542,0.602344,0.41875625,2.8122902,7.03125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.attention.output.LayerNorm.weight,torch.Size([128]),128,0.29207718,0.6040541,0.37443978,0.043252535,0.37443978,0.6040541,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.5941019,0.98244905,0.0041012373,0.13435881,0.10691951,0.98244905,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.intermediate.dense.bias,torch.Size([512]),512,-2.1087778,-0.12274583,-0.79891574,0.2523834,0.79891574,2.1087778,17.578125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.output.dense.weight,"torch.Size([128, 512])",65536,-0.8695752,0.7544497,-0.0009380061,0.13106936,0.10306892,0.8695752,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.output.dense.bias,torch.Size([128]),128,-0.28747454,0.5346358,0.028281802,0.1356061,0.10303477,0.5346358,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.output.LayerNorm.bias,torch.Size([128]),128,-0.14297475,0.28586245,0.010416033,0.05494222,0.03591507,0.28586245,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.output.LayerNorm.weight,torch.Size([128]),128,0.30193138,0.4420012,0.3800676,0.023423878,0.3800676,0.4420012,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.output.bottleneck.dense.weight,"torch.Size([512, 128])",65536,-0.6648333,0.76761967,0.00039655837,0.14403988,0.11209879,0.76761967,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.output.bottleneck.dense.bias,torch.Size([512]),512,-0.27772,0.15812331,0.0035075708,0.038620394,0.027696094,0.27772,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.output.bottleneck.LayerNorm.bias,torch.Size([512]),512,-0.26569006,0.1583997,0.0031413592,0.034023628,0.024159938,0.26569006,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.output.bottleneck.LayerNorm.weight,torch.Size([512]),512,0.4339737,2.192441,0.7686951,0.15454575,0.7686951,2.192441,3.3203125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.bottleneck.input.dense.weight,"torch.Size([128, 512])",65536,-0.6260573,0.6076924,-3.9461105e-05,0.14614777,0.116049424,0.6260573,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.bottleneck.input.dense.bias,torch.Size([128]),128,-2.6924343,1.2613261,-0.06906405,0.5562568,0.37920564,2.6924343,7.03125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.bottleneck.input.LayerNorm.bias,torch.Size([128]),128,-2.7177303,1.2760075,-0.06944196,0.5626768,0.38433033,2.7177303,7.03125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.bottleneck.input.LayerNorm.weight,torch.Size([128]),128,0.68850964,1.5272388,1.159233,0.14331426,1.159233,1.5272388,87.5,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.bottleneck.attention.dense.weight,"torch.Size([128, 512])",65536,-0.7727384,0.84852713,-0.0010185024,0.14565732,0.112399444,0.84852713,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.bottleneck.attention.dense.bias,torch.Size([128]),128,-0.27698037,0.2706511,-0.010583175,0.10294413,0.0798862,0.27698037,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.bottleneck.attention.LayerNorm.bias,torch.Size([128]),128,-0.17158218,0.2705474,-0.0026693596,0.06274886,0.04190425,0.2705474,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.bottleneck.attention.LayerNorm.weight,torch.Size([128]),128,0.0912716,0.26546785,0.11924737,0.026071465,0.11924737,0.26546785,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.ffn.0.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.55005246,0.50485694,0.0025002323,0.11531536,0.091930866,0.55005246,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.ffn.0.intermediate.dense.bias,torch.Size([512]),512,-2.5566037,0.14865004,-0.9653421,0.36062032,0.965932,2.5566037,44.140625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.ffn.0.output.dense.weight,"torch.Size([128, 512])",65536,-0.66405743,0.59408027,-0.0011444399,0.102430046,0.08080462,0.66405743,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.ffn.0.output.dense.bias,torch.Size([128]),128,-0.64429235,0.7709778,0.030013822,0.26932275,0.20799878,0.7709778,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.ffn.0.output.LayerNorm.bias,torch.Size([128]),128,-0.55456066,0.6278051,0.022665285,0.21532665,0.16582233,0.6278051,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.ffn.0.output.LayerNorm.weight,torch.Size([128]),128,0.42194903,0.5561808,0.4741348,0.02573822,0.4741348,0.5561808,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.ffn.1.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.5487653,0.5622472,0.0032163877,0.12361933,0.0982714,0.5622472,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.ffn.1.intermediate.dense.bias,torch.Size([512]),512,-2.1772175,0.35634837,-0.83098924,0.36607286,0.833905,2.1772175,27.734375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.ffn.1.output.dense.weight,"torch.Size([128, 512])",65536,-0.8537159,0.7141458,-0.00084860757,0.111403145,0.087780274,0.8537159,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.ffn.1.output.dense.bias,torch.Size([128]),128,-0.5196075,0.7462839,0.019007284,0.20879176,0.15130189,0.7462839,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.ffn.1.output.LayerNorm.bias,torch.Size([128]),128,-0.3800672,0.56798804,0.01289148,0.14582369,0.10484417,0.56798804,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.ffn.1.output.LayerNorm.weight,torch.Size([128]),128,0.38181627,0.5300204,0.43476075,0.027524957,0.43476075,0.5300204,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.ffn.2.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.63628674,0.54233986,0.0029229494,0.12861358,0.10236376,0.63628674,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.ffn.2.intermediate.dense.bias,torch.Size([512]),512,-1.947397,-0.11174141,-0.8695845,0.3104905,0.8695845,1.947397,32.8125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.ffn.2.output.dense.weight,"torch.Size([128, 512])",65536,-0.80906004,0.6762085,-0.0014510291,0.12131386,0.095264144,0.80906004,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.ffn.2.output.dense.bias,torch.Size([128]),128,-0.42290473,0.7236112,0.023572834,0.17051257,0.11835783,0.7236112,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.ffn.2.output.LayerNorm.bias,torch.Size([128]),128,-0.2529048,0.5414248,0.015098818,0.10502903,0.06582054,0.5414248,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.4.ffn.2.output.LayerNorm.weight,torch.Size([128]),128,0.36595392,0.5419732,0.41585672,0.030591229,0.41585672,0.5419732,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.attention.self.query.weight,"torch.Size([128, 128])",16384,-0.5879203,0.56507254,0.0006294994,0.119760744,0.09220608,0.5879203,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.attention.self.query.bias,torch.Size([128]),128,-2.977065,2.7017682,-0.0025091358,0.61223376,0.3143965,2.977065,8.59375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.attention.self.key.weight,"torch.Size([128, 128])",16384,-0.60703963,0.6427494,-0.0002954708,0.12745611,0.09775342,0.6427494,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.attention.self.key.bias,torch.Size([128]),128,-10.279854,8.874714,0.16368666,3.1248195,2.3615644,10.279854,75.78125,11.71875,1.5625,MobileBERT
+mobilebert.encoder.layer.5.attention.self.value.weight,"torch.Size([128, 512])",65536,-0.972957,0.9212967,0.0013701458,0.15405926,0.118176505,0.972957,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.attention.self.value.bias,torch.Size([128]),128,-0.8419479,1.1250365,0.058734775,0.3484496,0.27293885,1.1250365,0.78125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.attention.output.dense.weight,"torch.Size([128, 128])",16384,-0.5864041,0.60915667,0.0031368611,0.14089702,0.111676574,0.60915667,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.attention.output.dense.bias,torch.Size([128]),128,-1.5059031,3.786152,0.048277758,0.5702124,0.36238956,3.786152,7.03125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.attention.output.LayerNorm.bias,torch.Size([128]),128,-1.6186854,3.868234,0.049437486,0.596344,0.38218105,3.868234,7.03125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.attention.output.LayerNorm.weight,torch.Size([128]),128,0.3469456,0.7282513,0.4735539,0.06035634,0.4735539,0.7282513,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.63930607,0.562203,-0.0004553725,0.110709935,0.08719644,0.63930607,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.intermediate.dense.bias,torch.Size([512]),512,-2.1071005,0.50718683,-0.72072315,0.33400026,0.72352946,2.1071005,16.796875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.output.dense.weight,"torch.Size([128, 512])",65536,-0.65502816,0.60893,3.26437e-05,0.10696715,0.083154306,0.65502816,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.output.dense.bias,torch.Size([128]),128,-0.65725535,0.510395,-0.007974096,0.13407755,0.09365395,0.65725535,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.output.LayerNorm.bias,torch.Size([128]),128,-0.39627913,0.32856503,-0.0013306092,0.06296939,0.037599627,0.39627913,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.output.LayerNorm.weight,torch.Size([128]),128,0.3210757,0.46510336,0.39578706,0.021346578,0.39578706,0.46510336,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.output.bottleneck.dense.weight,"torch.Size([512, 128])",65536,-0.96291095,0.8524284,0.00053124595,0.14417996,0.107281215,0.96291095,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.output.bottleneck.dense.bias,torch.Size([512]),512,-0.6022213,0.378936,0.0010464189,0.045765106,0.024986584,0.6022213,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.output.bottleneck.LayerNorm.bias,torch.Size([512]),512,-0.5903853,0.3856694,0.000736024,0.0460636,0.025470857,0.5903853,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.output.bottleneck.LayerNorm.weight,torch.Size([512]),512,0.46728832,1.4775461,1.014574,0.09733836,1.014574,1.4775461,60.3515625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.bottleneck.input.dense.weight,"torch.Size([128, 512])",65536,-0.68103635,0.6603728,0.00043131685,0.14867821,0.117664985,0.68103635,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.bottleneck.input.dense.bias,torch.Size([128]),128,-1.4864724,3.7756667,0.04870586,0.5682712,0.36142856,3.7756667,7.03125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.bottleneck.input.LayerNorm.bias,torch.Size([128]),128,-1.5059031,3.786152,0.048277758,0.5702124,0.36238956,3.786152,7.03125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.bottleneck.input.LayerNorm.weight,torch.Size([128]),128,0.379376,1.5692068,1.0872455,0.20776568,1.0872455,1.5692068,65.625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.bottleneck.attention.dense.weight,"torch.Size([128, 512])",65536,-0.62293226,0.64791733,-0.0004492112,0.1344231,0.10605171,0.64791733,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.bottleneck.attention.dense.bias,torch.Size([128]),128,-0.42370212,0.21880947,-0.018822854,0.10692799,0.07717566,0.42370212,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.bottleneck.attention.LayerNorm.bias,torch.Size([128]),128,-0.37496227,0.18738663,-0.014103404,0.07538051,0.050798394,0.37496227,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.bottleneck.attention.LayerNorm.weight,torch.Size([128]),128,0.091965705,0.28847903,0.12259602,0.029651744,0.12259602,0.28847903,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.ffn.0.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.6130453,0.4013782,-0.0016245268,0.093930565,0.074215055,0.6130453,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.ffn.0.intermediate.dense.bias,torch.Size([512]),512,-3.9784539,0.43687934,-0.9791378,0.5861506,0.9829987,3.9784539,40.234375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.ffn.0.output.dense.weight,"torch.Size([128, 512])",65536,-0.4889802,0.53690815,-0.00024219221,0.07022109,0.05483521,0.53690815,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.ffn.0.output.dense.bias,torch.Size([128]),128,-1.5968866,1.8604153,-0.00999894,0.4806513,0.38051048,1.8604153,3.90625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.ffn.0.output.LayerNorm.bias,torch.Size([128]),128,-1.5150158,1.7377266,-0.0061641354,0.43335155,0.3410395,1.7377266,1.5625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.ffn.0.output.LayerNorm.weight,torch.Size([128]),128,0.47300532,0.6845735,0.5539111,0.030171355,0.5539111,0.6845735,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.ffn.1.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.57851225,0.42377195,-0.00087175064,0.10008349,0.07916616,0.57851225,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.ffn.1.intermediate.dense.bias,torch.Size([512]),512,-2.8874931,0.6385844,-0.77894264,0.451639,0.7874492,2.8874931,25.5859375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.ffn.1.output.dense.weight,"torch.Size([128, 512])",65536,-0.5961591,0.6608709,-4.6371715e-06,0.07811429,0.060348,0.6608709,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.ffn.1.output.dense.bias,torch.Size([128]),128,-0.61462194,1.0622858,0.0043401625,0.2425994,0.19076219,1.0622858,0.78125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.ffn.1.output.LayerNorm.bias,torch.Size([128]),128,-0.47517666,0.94663304,0.0058436412,0.19025947,0.14589873,0.94663304,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.ffn.1.output.LayerNorm.weight,torch.Size([128]),128,0.5237781,0.6109978,0.5599396,0.020084927,0.5599396,0.6109978,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.ffn.2.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.4832812,0.50996315,-0.00064898486,0.106740266,0.084380135,0.50996315,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.ffn.2.intermediate.dense.bias,torch.Size([512]),512,-2.2362363,0.97777915,-0.7598953,0.43028596,0.7773261,2.2362363,27.1484375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.ffn.2.output.dense.weight,"torch.Size([128, 512])",65536,-0.56016475,0.5747418,0.0001959416,0.093368545,0.07219856,0.5747418,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.ffn.2.output.dense.bias,torch.Size([128]),128,-0.70576596,0.77669877,-0.010350081,0.1810919,0.13426423,0.77669877,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.ffn.2.output.LayerNorm.bias,torch.Size([128]),128,-0.53809744,0.66132796,-0.005437908,0.122611694,0.08250159,0.66132796,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.5.ffn.2.output.LayerNorm.weight,torch.Size([128]),128,0.44550082,0.5851644,0.50766027,0.02496729,0.50766027,0.5851644,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.attention.self.query.weight,"torch.Size([128, 128])",16384,-1.025782,0.982252,9.685673e-05,0.17419909,0.13124934,1.025782,0.006103515625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.attention.self.query.bias,torch.Size([128]),128,-3.4038897,3.7839167,-0.072804056,0.7491103,0.42306477,3.7839167,9.375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.attention.self.key.weight,"torch.Size([128, 128])",16384,-0.9035649,0.93575376,0.0024362085,0.16243157,0.12230818,0.93575376,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.attention.self.key.bias,torch.Size([128]),128,-13.714272,15.419429,-0.13491264,4.044477,2.845695,15.419429,71.875,14.0625,3.90625,MobileBERT
+mobilebert.encoder.layer.6.attention.self.value.weight,"torch.Size([128, 512])",65536,-1.1114277,0.8383791,0.0011982974,0.16291367,0.12425065,1.1114277,0.00152587890625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.attention.self.value.bias,torch.Size([128]),128,-1.5060966,1.3032917,0.0047670826,0.41051683,0.30747664,1.5060966,2.34375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.attention.output.dense.weight,"torch.Size([128, 128])",16384,-0.5301909,0.56343967,-0.00041730583,0.14574553,0.11568584,0.56343967,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.attention.output.dense.bias,torch.Size([128]),128,-4.269268,2.846295,-0.0021574292,0.7666723,0.5038104,4.269268,8.59375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.attention.output.LayerNorm.bias,torch.Size([128]),128,-4.3528757,2.9498816,-0.0004807748,0.8001731,0.5306326,4.3528757,9.375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.attention.output.LayerNorm.weight,torch.Size([128]),128,0.37138933,0.7529025,0.45136714,0.041034263,0.45136714,0.7529025,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.5767765,0.7719578,-0.00036534772,0.112403415,0.08879343,0.7719578,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.intermediate.dense.bias,torch.Size([512]),512,-2.4240823,0.30683935,-0.7642552,0.3536651,0.7660874,2.4240823,21.09375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.output.dense.weight,"torch.Size([128, 512])",65536,-0.6916089,0.72968227,6.144725e-05,0.108069114,0.08442039,0.72968227,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.output.dense.bias,torch.Size([128]),128,-0.5734597,0.4543855,-0.0023197166,0.14985445,0.11221272,0.5734597,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.output.LayerNorm.bias,torch.Size([128]),128,-0.24212107,0.15828389,-0.0013813144,0.05434413,0.037945304,0.24212107,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.output.LayerNorm.weight,torch.Size([128]),128,0.31593496,0.43598956,0.3819459,0.018530553,0.3819459,0.43598956,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.output.bottleneck.dense.weight,"torch.Size([512, 128])",65536,-0.91702795,0.78946424,-0.00025307114,0.15113144,0.11154219,0.91702795,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.output.bottleneck.dense.bias,torch.Size([512]),512,-0.17319593,0.1470338,-0.00042329787,0.02817732,0.020954326,0.17319593,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.output.bottleneck.LayerNorm.bias,torch.Size([512]),512,-0.15940416,0.14462708,-0.00071828655,0.028729372,0.021449402,0.15940416,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.output.bottleneck.LayerNorm.weight,torch.Size([512]),512,0.6917907,1.2489129,0.98042476,0.08674167,0.98042476,1.2489129,45.8984375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.bottleneck.input.dense.weight,"torch.Size([128, 512])",65536,-0.74773866,0.7094554,0.0007562711,0.15394597,0.1211584,0.74773866,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.bottleneck.input.dense.bias,torch.Size([128]),128,-4.2776337,2.8214502,-0.0012746928,0.76177645,0.5002974,4.2776337,8.59375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.bottleneck.input.LayerNorm.bias,torch.Size([128]),128,-4.269268,2.846295,-0.0021574292,0.7666723,0.5038104,4.269268,8.59375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.bottleneck.input.LayerNorm.weight,torch.Size([128]),128,0.825987,1.654576,1.2418191,0.15414168,1.2418191,1.654576,93.75,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.bottleneck.attention.dense.weight,"torch.Size([128, 512])",65536,-0.90504605,0.78932387,0.0003530008,0.12954377,0.10125701,0.90504605,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.bottleneck.attention.dense.bias,torch.Size([128]),128,-0.35876516,0.81291056,0.0027274676,0.16199978,0.109388635,0.81291056,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.bottleneck.attention.LayerNorm.bias,torch.Size([128]),128,-0.21750256,0.56903905,0.0077624647,0.08577614,0.048970822,0.56903905,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.bottleneck.attention.LayerNorm.weight,torch.Size([128]),128,0.099635944,0.26640207,0.12743235,0.024538847,0.12743235,0.26640207,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.ffn.0.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.47328517,0.44225252,0.00017248571,0.09807705,0.077747524,0.47328517,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.ffn.0.intermediate.dense.bias,torch.Size([512]),512,-2.3021421,0.81315243,-0.9309584,0.40595996,0.9381594,2.3021421,39.6484375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.ffn.0.output.dense.weight,"torch.Size([128, 512])",65536,-0.4530017,0.5592199,0.00023766076,0.08051833,0.062702045,0.5592199,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.ffn.0.output.dense.bias,torch.Size([128]),128,-0.73696035,0.640051,-0.000986869,0.26109824,0.20870873,0.73696035,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.ffn.0.output.LayerNorm.bias,torch.Size([128]),128,-0.623352,0.52925825,-0.00031603454,0.22664571,0.1821735,0.623352,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.ffn.0.output.LayerNorm.weight,torch.Size([128]),128,0.48075372,0.6514922,0.5378767,0.026844764,0.5378767,0.6514922,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.ffn.1.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.54319066,0.70709926,0.00019078652,0.11302951,0.089532584,0.70709926,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.ffn.1.intermediate.dense.bias,torch.Size([512]),512,-3.342944,0.3852886,-0.7699621,0.43637088,0.7770297,3.342944,24.4140625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.ffn.1.output.dense.weight,"torch.Size([128, 512])",65536,-0.80263513,0.5866212,0.00031293646,0.10013402,0.07712545,0.80263513,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.ffn.1.output.dense.bias,torch.Size([128]),128,-0.71379364,0.8195375,-0.0009221141,0.23030971,0.17663929,0.8195375,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.ffn.1.output.LayerNorm.bias,torch.Size([128]),128,-0.54226327,0.62890095,-4.0628947e-05,0.16753381,0.12565836,0.62890095,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.ffn.1.output.LayerNorm.weight,torch.Size([128]),128,0.4177424,0.54017204,0.4738887,0.022673184,0.4738887,0.54017204,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.ffn.2.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.5670412,0.5690315,0.00037649617,0.11571856,0.091425925,0.5690315,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.ffn.2.intermediate.dense.bias,torch.Size([512]),512,-2.8319187,0.5546288,-0.80278873,0.4740884,0.81529653,2.8319187,30.078125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.ffn.2.output.dense.weight,"torch.Size([128, 512])",65536,-0.7118598,0.8451394,-0.0004129783,0.107071035,0.082771085,0.8451394,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.ffn.2.output.dense.bias,torch.Size([128]),128,-0.73043096,0.9679719,0.010826272,0.2213572,0.15606481,0.9679719,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.ffn.2.output.LayerNorm.bias,torch.Size([128]),128,-0.5227381,0.73072886,0.0074801743,0.14057808,0.08968541,0.73072886,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.6.ffn.2.output.LayerNorm.weight,torch.Size([128]),128,0.35076234,0.51379895,0.44256684,0.023749676,0.44256684,0.51379895,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.attention.self.query.weight,"torch.Size([128, 128])",16384,-1.0395554,1.0079861,0.0035398423,0.18421896,0.13743745,1.0395554,0.0244140625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.attention.self.query.bias,torch.Size([128]),128,-2.2319505,3.9807525,0.17092429,0.7615793,0.43065116,3.9807525,12.5,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.attention.self.key.weight,"torch.Size([128, 128])",16384,-0.84066767,0.7540154,-0.00014135719,0.15242283,0.11326425,0.84066767,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.attention.self.key.bias,torch.Size([128]),128,-10.7578,11.215585,0.34573013,2.949346,2.1216002,11.215585,64.0625,10.15625,1.5625,MobileBERT
+mobilebert.encoder.layer.7.attention.self.value.weight,"torch.Size([128, 512])",65536,-1.0136293,0.9463807,0.000324553,0.16259302,0.12283744,1.0136293,0.00152587890625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.attention.self.value.bias,torch.Size([128]),128,-1.3746755,0.9701777,-0.0075120563,0.33436698,0.24327649,1.3746755,1.5625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.attention.output.dense.weight,"torch.Size([128, 128])",16384,-0.66204107,0.57660335,-0.00105454,0.14462814,0.11456363,0.66204107,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.attention.output.dense.bias,torch.Size([128]),128,-5.0936737,2.5242953,-0.045552067,0.84378153,0.48634252,5.0936737,9.375,0.78125,0.0,MobileBERT
+mobilebert.encoder.layer.7.attention.output.LayerNorm.bias,torch.Size([128]),128,-5.1852427,2.5893042,-0.04963243,0.87129843,0.50761414,5.1852427,9.375,0.78125,0.0,MobileBERT
+mobilebert.encoder.layer.7.attention.output.LayerNorm.weight,torch.Size([128]),128,0.3452233,0.8156011,0.44122887,0.053176563,0.44122887,0.8156011,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.66685754,0.67594963,-0.0023370145,0.11299893,0.089210555,0.67594963,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.intermediate.dense.bias,torch.Size([512]),512,-3.0984144,0.20096524,-0.74253625,0.36421362,0.7455764,3.0984144,19.53125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.output.dense.weight,"torch.Size([128, 512])",65536,-0.69294214,0.73481613,6.6322216e-05,0.109015524,0.08522014,0.73481613,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.output.dense.bias,torch.Size([128]),128,-0.55151826,0.65521467,-0.01246595,0.16271795,0.12263865,0.65521467,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.output.LayerNorm.bias,torch.Size([128]),128,-0.23771739,0.27152658,-0.0034991596,0.065516315,0.04573497,0.27152658,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.output.LayerNorm.weight,torch.Size([128]),128,0.3140081,0.42424986,0.38218608,0.019198835,0.38218608,0.42424986,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.output.bottleneck.dense.weight,"torch.Size([512, 128])",65536,-0.91624266,0.9214824,0.0004898146,0.15431191,0.1145041,0.9214824,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.output.bottleneck.dense.bias,torch.Size([512]),512,-0.3656429,0.24185508,0.0022597248,0.04586843,0.031840608,0.3656429,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.output.bottleneck.LayerNorm.bias,torch.Size([512]),512,-0.3524602,0.2522804,0.002606051,0.04544009,0.031054145,0.3524602,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.output.bottleneck.LayerNorm.weight,torch.Size([512]),512,0.60340226,1.2805262,0.97533035,0.119138256,0.97533035,1.2805262,49.21875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.bottleneck.input.dense.weight,"torch.Size([128, 512])",65536,-0.65040994,0.66187173,5.475439e-05,0.15216298,0.119927555,0.66187173,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.bottleneck.input.dense.bias,torch.Size([128]),128,-5.061507,2.5365484,-0.04279082,0.83931637,0.48432577,5.061507,8.59375,0.78125,0.0,MobileBERT
+mobilebert.encoder.layer.7.bottleneck.input.LayerNorm.bias,torch.Size([128]),128,-5.0936737,2.5242953,-0.045552067,0.84378153,0.48634252,5.0936737,9.375,0.78125,0.0,MobileBERT
+mobilebert.encoder.layer.7.bottleneck.input.LayerNorm.weight,torch.Size([128]),128,0.7331682,1.6232022,1.1457083,0.1611583,1.1457083,1.6232022,82.8125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.bottleneck.attention.dense.weight,"torch.Size([128, 512])",65536,-1.1225328,0.9651062,-4.366944e-05,0.12725931,0.09800353,1.1225328,0.0030517578125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.bottleneck.attention.dense.bias,torch.Size([128]),128,-0.4327719,0.40922973,0.0167984,0.15955734,0.12750494,0.4327719,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.bottleneck.attention.LayerNorm.bias,torch.Size([128]),128,-0.15750377,0.16125406,2.1068496e-05,0.042858347,0.031051066,0.16125406,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.bottleneck.attention.LayerNorm.weight,torch.Size([128]),128,0.06657203,0.29076055,0.09512816,0.03637756,0.09512816,0.29076055,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.ffn.0.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.4755913,0.39633882,0.0013458699,0.096345805,0.07639673,0.4755913,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.ffn.0.intermediate.dense.bias,torch.Size([512]),512,-3.0080037,0.21933517,-0.9493848,0.45316023,0.95117086,3.0080037,40.0390625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.ffn.0.output.dense.weight,"torch.Size([128, 512])",65536,-0.610868,0.4988771,-0.00021705349,0.07993209,0.061910365,0.610868,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.ffn.0.output.dense.bias,torch.Size([128]),128,-0.87436,0.8025958,0.019059082,0.3106588,0.24932614,0.87436,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.ffn.0.output.LayerNorm.bias,torch.Size([128]),128,-0.74981934,0.6850923,0.016828138,0.27647182,0.22424367,0.74981934,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.ffn.0.output.LayerNorm.weight,torch.Size([128]),128,0.47663805,0.63048524,0.53441024,0.031886358,0.53441024,0.63048524,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.ffn.1.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.54145515,0.5022067,0.00022943376,0.10960104,0.086526126,0.54145515,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.ffn.1.intermediate.dense.bias,torch.Size([512]),512,-2.7876318,0.59926057,-0.6983192,0.46900415,0.7163565,2.7876318,21.875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.ffn.1.output.dense.weight,"torch.Size([128, 512])",65536,-0.85982364,0.80845773,0.0001050414,0.1008287,0.07693607,0.85982364,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.ffn.1.output.dense.bias,torch.Size([128]),128,-0.6550958,1.0797973,-0.011561266,0.25383717,0.19191745,1.0797973,0.78125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.ffn.1.output.LayerNorm.bias,torch.Size([128]),128,-0.4953456,0.89342856,-0.010497486,0.19463675,0.14512976,0.89342856,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.ffn.1.output.LayerNorm.weight,torch.Size([128]),128,0.40602702,0.54369634,0.4653663,0.026613072,0.4653663,0.54369634,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.ffn.2.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.56473947,0.6419344,0.00021174748,0.11709507,0.092307314,0.6419344,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.ffn.2.intermediate.dense.bias,torch.Size([512]),512,-2.2841043,1.095054,-0.76389074,0.48954713,0.78626823,2.2841043,30.859375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.ffn.2.output.dense.weight,"torch.Size([128, 512])",65536,-1.0289415,0.98612946,0.00034504937,0.113035984,0.08682105,1.0289415,0.00152587890625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.ffn.2.output.dense.bias,torch.Size([128]),128,-0.6622924,1.5025911,-0.0067194942,0.25416154,0.17086259,1.5025911,0.78125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.ffn.2.output.LayerNorm.bias,torch.Size([128]),128,-0.4807653,1.2565713,-0.00062975474,0.17957583,0.108544216,1.2565713,0.78125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.7.ffn.2.output.LayerNorm.weight,torch.Size([128]),128,0.35761943,0.532003,0.431259,0.0216021,0.431259,0.532003,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.attention.self.query.weight,"torch.Size([128, 128])",16384,-0.58319354,0.65016896,0.0019861537,0.1426678,0.11063418,0.65016896,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.attention.self.query.bias,torch.Size([128]),128,-2.685843,2.0942647,-0.05195814,0.676841,0.41694254,2.685843,12.5,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.attention.self.key.weight,"torch.Size([128, 128])",16384,-0.44114915,0.46780697,0.00057168386,0.10453014,0.08102314,0.46780697,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.attention.self.key.bias,torch.Size([128]),128,-14.296442,10.377103,-0.1600802,4.147904,3.016138,14.296442,74.21875,20.3125,3.125,MobileBERT
+mobilebert.encoder.layer.8.attention.self.value.weight,"torch.Size([128, 512])",65536,-0.936662,0.96084166,0.00037048472,0.16700123,0.122826144,0.96084166,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.attention.self.value.bias,torch.Size([128]),128,-0.7478391,0.81903416,0.001406325,0.32762888,0.25182134,0.81903416,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.attention.output.dense.weight,"torch.Size([128, 128])",16384,-0.57528406,0.6153424,-0.00035352173,0.14778796,0.11804816,0.6153424,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.attention.output.dense.bias,torch.Size([128]),128,-2.6013618,2.8311021,0.020168744,0.7469689,0.5375405,2.8311021,15.625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.attention.output.LayerNorm.bias,torch.Size([128]),128,-2.6827114,2.9270425,0.023687104,0.7832625,0.56540304,2.9270425,16.40625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.attention.output.LayerNorm.weight,torch.Size([128]),128,0.3395756,0.63157374,0.42605835,0.037069272,0.42605835,0.63157374,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.6026435,0.6159301,-0.0030502263,0.10503944,0.08278822,0.6159301,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.intermediate.dense.bias,torch.Size([512]),512,-2.4745831,0.23748063,-0.7810923,0.392438,0.7835314,2.4745831,24.8046875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.output.dense.weight,"torch.Size([128, 512])",65536,-0.89608544,0.72993475,0.00022816622,0.10612851,0.08219354,0.89608544,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.output.dense.bias,torch.Size([128]),128,-0.4853041,0.3269877,-0.010006214,0.14702001,0.11578557,0.4853041,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.output.LayerNorm.bias,torch.Size([128]),128,-0.28713495,0.19179377,-0.005558967,0.07540716,0.05746638,0.28713495,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.output.LayerNorm.weight,torch.Size([128]),128,0.37585282,0.5035678,0.44339633,0.022403993,0.44339633,0.5035678,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.output.bottleneck.dense.weight,"torch.Size([512, 128])",65536,-1.5417453,1.4708127,-0.00159485,0.16092919,0.11387196,1.5417453,0.0274658203125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.output.bottleneck.dense.bias,torch.Size([512]),512,-0.40753466,0.25150833,-0.00076728116,0.04388207,0.02893272,0.40753466,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.output.bottleneck.LayerNorm.bias,torch.Size([512]),512,-0.41856292,0.24932486,-0.00020595489,0.04392537,0.029242575,0.41856292,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.output.bottleneck.LayerNorm.weight,torch.Size([512]),512,0.040586248,1.0332842,0.86103904,0.11474614,0.86103904,1.0332842,2.734375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.bottleneck.input.dense.weight,"torch.Size([128, 512])",65536,-0.65424615,0.67114097,-4.0646086e-05,0.14772539,0.1161369,0.67114097,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.bottleneck.input.dense.bias,torch.Size([128]),128,-2.548103,2.8161294,0.019017417,0.7405212,0.5330487,2.8161294,15.625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.bottleneck.input.LayerNorm.bias,torch.Size([128]),128,-2.6013618,2.8311021,0.020168744,0.7469689,0.5375405,2.8311021,15.625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.bottleneck.input.LayerNorm.weight,torch.Size([128]),128,0.5922863,1.3475312,0.9566159,0.13622092,0.9566159,1.3475312,35.15625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.bottleneck.attention.dense.weight,"torch.Size([128, 512])",65536,-1.4429015,1.7136692,0.00021651856,0.12579502,0.09424506,1.7136692,0.018310546875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.bottleneck.attention.dense.bias,torch.Size([128]),128,-0.3989242,0.46994004,-0.0034748628,0.14734218,0.109533146,0.46994004,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.bottleneck.attention.LayerNorm.bias,torch.Size([128]),128,-0.31180346,0.26493213,0.004879916,0.08504764,0.05167578,0.31180346,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.bottleneck.attention.LayerNorm.weight,torch.Size([128]),128,0.05728429,0.3258064,0.091100805,0.040352978,0.091100805,0.3258064,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.ffn.0.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.43639985,0.3970163,-0.0012037826,0.09042774,0.071412,0.43639985,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.ffn.0.intermediate.dense.bias,torch.Size([512]),512,-3.0839884,0.6908817,-1.0182025,0.504441,1.0227398,3.0839884,48.828125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.ffn.0.output.dense.weight,"torch.Size([128, 512])",65536,-0.5100244,0.5697904,0.0011511348,0.07377801,0.05702519,0.5697904,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.ffn.0.output.dense.bias,torch.Size([128]),128,-1.0563675,0.88197213,-0.037879054,0.3578802,0.28747463,1.0563675,0.78125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.ffn.0.output.LayerNorm.bias,torch.Size([128]),128,-0.94044995,0.78651404,-0.030759426,0.3144867,0.24984816,0.94044995,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.ffn.0.output.LayerNorm.weight,torch.Size([128]),128,0.47986564,0.64117503,0.5522473,0.025198728,0.5522473,0.64117503,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.ffn.1.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.55132914,0.6026481,-0.0022261338,0.1042357,0.08212178,0.6026481,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.ffn.1.intermediate.dense.bias,torch.Size([512]),512,-3.2638729,0.9550565,-0.76115113,0.5325044,0.7883669,3.2638729,27.734375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.ffn.1.output.dense.weight,"torch.Size([128, 512])",65536,-0.6731609,0.7200326,0.0018392795,0.09211325,0.07034156,0.7200326,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.ffn.1.output.dense.bias,torch.Size([128]),128,-0.7527591,0.5645636,-0.009215442,0.2518272,0.20760848,0.7527591,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.ffn.1.output.LayerNorm.bias,torch.Size([128]),128,-0.6206101,0.43761155,-0.0032373257,0.19942728,0.16228095,0.6206101,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.ffn.1.output.LayerNorm.weight,torch.Size([128]),128,0.4567962,0.6067797,0.5259496,0.02888472,0.5259496,0.6067797,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.ffn.2.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.570314,0.5836678,-0.0024459334,0.106605224,0.084185615,0.5836678,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.ffn.2.intermediate.dense.bias,torch.Size([512]),512,-2.3617988,0.41536874,-0.8093237,0.48175785,0.8183366,2.3617988,32.421875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.ffn.2.output.dense.weight,"torch.Size([128, 512])",65536,-0.85019475,0.63595015,0.0015242079,0.09815911,0.07520027,0.85019475,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.ffn.2.output.dense.bias,torch.Size([128]),128,-0.61138856,0.60229033,-0.021610785,0.19520707,0.14649013,0.61138856,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.ffn.2.output.LayerNorm.bias,torch.Size([128]),128,-0.41964194,0.4415023,-0.013056135,0.13128814,0.09683992,0.4415023,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.8.ffn.2.output.LayerNorm.weight,torch.Size([128]),128,0.44076592,0.5673212,0.5027887,0.026480433,0.5027887,0.5673212,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.attention.self.query.weight,"torch.Size([128, 128])",16384,-0.5231007,0.5075338,-0.0011053004,0.12391365,0.0969109,0.5231007,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.attention.self.query.bias,torch.Size([128]),128,-2.1510978,3.2936232,0.017170338,0.67036563,0.36094332,3.2936232,8.59375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.attention.self.key.weight,"torch.Size([128, 128])",16384,-0.5182175,0.5310467,0.0012025776,0.11830318,0.09208615,0.5310467,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.attention.self.key.bias,torch.Size([128]),128,-5.6682997,6.979483,0.0068835095,2.3104782,1.836098,6.979483,65.625,3.125,0.0,MobileBERT
+mobilebert.encoder.layer.9.attention.self.value.weight,"torch.Size([128, 512])",65536,-1.0369309,0.9370499,0.00044726173,0.16141099,0.124015525,1.0369309,0.00152587890625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.attention.self.value.bias,torch.Size([128]),128,-1.0316154,0.9502469,0.003214017,0.33997455,0.26060233,1.0316154,0.78125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.attention.output.dense.weight,"torch.Size([128, 128])",16384,-0.62228125,0.7123803,-0.0010094143,0.14638937,0.11598042,0.7123803,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.attention.output.dense.bias,torch.Size([128]),128,-1.8362312,2.9931269,0.0009191483,0.6091373,0.4253177,2.9931269,10.9375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.attention.output.LayerNorm.bias,torch.Size([128]),128,-1.9678975,3.1072474,-0.000797268,0.6499754,0.45738322,3.1072474,11.71875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.attention.output.LayerNorm.weight,torch.Size([128]),128,0.32168987,0.5827699,0.411894,0.04274077,0.411894,0.5827699,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.53302574,0.64291793,-0.002713536,0.117029235,0.09265421,0.64291793,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.intermediate.dense.bias,torch.Size([512]),512,-2.4684372,0.16621543,-0.80401015,0.3333386,0.80525756,2.4684372,23.828125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.output.dense.weight,"torch.Size([128, 512])",65536,-0.75996,0.6534582,0.0008856087,0.11543407,0.09010117,0.75996,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.output.dense.bias,torch.Size([128]),128,-0.54622483,0.30624342,-0.015393708,0.13320339,0.101174064,0.54622483,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.output.LayerNorm.bias,torch.Size([128]),128,-0.32508162,0.11910472,-0.005258043,0.055420585,0.038762733,0.32508162,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.output.LayerNorm.weight,torch.Size([128]),128,0.36700746,0.5115421,0.44703856,0.026832163,0.44703856,0.5115421,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.output.bottleneck.dense.weight,"torch.Size([512, 128])",65536,-0.81498736,0.8960287,0.0004129669,0.15263706,0.11209419,0.8960287,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.output.bottleneck.dense.bias,torch.Size([512]),512,-0.090181425,0.09241803,-0.0010981009,0.028524838,0.022409717,0.09241803,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.output.bottleneck.LayerNorm.bias,torch.Size([512]),512,-0.083280884,0.106674306,-0.000827545,0.029407699,0.023256097,0.106674306,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.output.bottleneck.LayerNorm.weight,torch.Size([512]),512,0.6640793,1.2386621,0.9121431,0.07444781,0.9121431,1.2386621,8.3984375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.bottleneck.input.dense.weight,"torch.Size([128, 512])",65536,-0.76831204,0.9247968,-0.0006064075,0.14775941,0.11725487,0.9247968,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.bottleneck.input.dense.bias,torch.Size([128]),128,-1.8010299,2.9581249,0.0025129393,0.60319626,0.42197067,2.9581249,10.15625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.bottleneck.input.LayerNorm.bias,torch.Size([128]),128,-1.8362312,2.9931269,0.0009191483,0.6091373,0.4253177,2.9931269,10.9375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.bottleneck.input.LayerNorm.weight,torch.Size([128]),128,0.6969704,1.3224287,0.94419813,0.13733649,0.94419813,1.3224287,32.8125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.bottleneck.attention.dense.weight,"torch.Size([128, 512])",65536,-0.9827187,0.8910899,-0.00012365547,0.12809268,0.098332666,0.9827187,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.bottleneck.attention.dense.bias,torch.Size([128]),128,-0.46154845,0.30342907,-0.0110215135,0.13089299,0.10053065,0.46154845,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.bottleneck.attention.LayerNorm.bias,torch.Size([128]),128,-0.44597384,0.26594952,-0.0035369548,0.093795806,0.06310986,0.44597384,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.bottleneck.attention.LayerNorm.weight,torch.Size([128]),128,0.07637533,0.18714479,0.10266693,0.022575857,0.10266693,0.18714479,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.ffn.0.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.47298893,0.48688176,0.0011062539,0.0995739,0.07912076,0.48688176,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.ffn.0.intermediate.dense.bias,torch.Size([512]),512,-2.5373523,0.43299872,-1.0345628,0.38567048,1.0368891,2.5373523,51.171875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.ffn.0.output.dense.weight,"torch.Size([128, 512])",65536,-0.6654901,0.5072349,-0.00033016218,0.08538777,0.06681964,0.6654901,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.ffn.0.output.dense.bias,torch.Size([128]),128,-1.0613052,0.6691185,0.026456868,0.27884525,0.21372825,1.0613052,0.78125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.ffn.0.output.LayerNorm.bias,torch.Size([128]),128,-0.9340797,0.5850058,0.025110703,0.23702137,0.17989367,0.9340797,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.ffn.0.output.LayerNorm.weight,torch.Size([128]),128,0.49697906,0.71050626,0.5462877,0.027041115,0.5462877,0.71050626,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.ffn.1.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.5388759,0.5494189,-0.00039430987,0.11184633,0.08866784,0.5494189,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.ffn.1.intermediate.dense.bias,torch.Size([512]),512,-2.3220046,1.1357117,-0.79185075,0.43586117,0.8054116,2.3220046,28.3203125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.ffn.1.output.dense.weight,"torch.Size([128, 512])",65536,-0.5454199,0.60372996,8.4948304e-05,0.09873589,0.0767282,0.60372996,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.ffn.1.output.dense.bias,torch.Size([128]),128,-1.0928738,0.46754804,-0.0009908383,0.18776928,0.13922721,1.0928738,0.78125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.ffn.1.output.LayerNorm.bias,torch.Size([128]),128,-0.9327577,0.33292723,0.0021091152,0.13415842,0.091078654,0.9327577,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.ffn.1.output.LayerNorm.weight,torch.Size([128]),128,0.46551648,0.57341874,0.5168785,0.02088295,0.5168785,0.57341874,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.ffn.2.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.50249046,0.5214154,-0.0016789807,0.11481704,0.090991355,0.5214154,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.ffn.2.intermediate.dense.bias,torch.Size([512]),512,-3.1806827,0.9258103,-0.8462915,0.39872268,0.8525303,3.1806827,25.9765625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.ffn.2.output.dense.weight,"torch.Size([128, 512])",65536,-0.68889284,0.66423976,0.00027370884,0.10478139,0.08155048,0.68889284,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.ffn.2.output.dense.bias,torch.Size([128]),128,-0.93269813,0.46134794,-0.013675488,0.16759127,0.123624064,0.93269813,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.ffn.2.output.LayerNorm.bias,torch.Size([128]),128,-0.7773811,0.3135335,-0.0072452677,0.10771726,0.069503285,0.7773811,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.9.ffn.2.output.LayerNorm.weight,torch.Size([128]),128,0.44004297,0.57911015,0.49935925,0.025217831,0.49935925,0.57911015,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.attention.self.query.weight,"torch.Size([128, 128])",16384,-0.64143556,0.5895616,-0.00056029996,0.13602112,0.10580434,0.64143556,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.attention.self.query.bias,torch.Size([128]),128,-1.9820633,3.0631955,-0.00011603162,0.62480325,0.33018157,3.0631955,7.8125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.attention.self.key.weight,"torch.Size([128, 128])",16384,-0.47222644,0.56272256,-0.00062591175,0.10414102,0.08103653,0.56272256,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.attention.self.key.bias,torch.Size([128]),128,-7.035934,7.345434,-0.1985876,2.3896444,1.8115203,7.345434,58.59375,5.46875,0.0,MobileBERT
+mobilebert.encoder.layer.10.attention.self.value.weight,"torch.Size([128, 512])",65536,-0.8748083,0.82464707,0.000697228,0.16278477,0.12533623,0.8748083,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.attention.self.value.bias,torch.Size([128]),128,-0.4833186,0.4553182,-0.011401872,0.18255572,0.14717573,0.4833186,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.attention.output.dense.weight,"torch.Size([128, 128])",16384,-0.61659133,0.6663204,0.00032115553,0.15178978,0.12095401,0.6663204,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.attention.output.dense.bias,torch.Size([128]),128,-3.0516553,3.5419848,-0.009919949,0.6097811,0.39633352,3.5419848,4.6875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.attention.output.LayerNorm.bias,torch.Size([128]),128,-3.157889,3.6275911,-0.010568377,0.6408977,0.42299473,3.6275911,6.25,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.attention.output.LayerNorm.weight,torch.Size([128]),128,0.32292262,0.5550346,0.41733986,0.033136334,0.41733986,0.5550346,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.7366339,0.629793,-0.0019944042,0.11767478,0.09276054,0.7366339,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.intermediate.dense.bias,torch.Size([512]),512,-2.269772,0.23874485,-0.8018413,0.3721513,0.80288136,2.269772,24.609375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.output.dense.weight,"torch.Size([128, 512])",65536,-0.932632,1.2334876,0.0006983825,0.11870136,0.09157514,1.2334876,0.00152587890625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.output.dense.bias,torch.Size([128]),128,-0.33044517,0.43764293,-0.016574766,0.12785603,0.099877045,0.43764293,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.output.LayerNorm.bias,torch.Size([128]),128,-0.152468,0.20748594,-0.0062492704,0.054447073,0.040831886,0.20748594,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.output.LayerNorm.weight,torch.Size([128]),128,0.34492332,0.48891225,0.4375217,0.02517966,0.4375217,0.48891225,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.output.bottleneck.dense.weight,"torch.Size([512, 128])",65536,-0.92989016,0.934563,-0.00019821004,0.15708862,0.11611376,0.934563,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.output.bottleneck.dense.bias,torch.Size([512]),512,-0.2388676,0.28453356,0.0019307733,0.04725194,0.03296911,0.28453356,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.output.bottleneck.LayerNorm.bias,torch.Size([512]),512,-0.24279132,0.26567563,0.00266649,0.04340988,0.029854221,0.26567563,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.output.bottleneck.LayerNorm.weight,torch.Size([512]),512,0.5851655,1.1769819,0.8605372,0.07368788,0.8605372,1.1769819,1.171875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.bottleneck.input.dense.weight,"torch.Size([128, 512])",65536,-0.7072275,0.7453262,-0.0005135677,0.14686215,0.115474686,0.7453262,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.bottleneck.input.dense.bias,torch.Size([128]),128,-3.0186875,3.519136,-0.010764372,0.6056752,0.39472067,3.519136,4.6875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.bottleneck.input.LayerNorm.bias,torch.Size([128]),128,-3.0516553,3.5419848,-0.009919949,0.6097811,0.39633352,3.5419848,4.6875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.bottleneck.input.LayerNorm.weight,torch.Size([128]),128,0.5006084,1.131514,0.76576173,0.11763347,0.76576173,1.131514,3.90625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.bottleneck.attention.dense.weight,"torch.Size([128, 512])",65536,-1.0042254,1.2538031,0.0011722706,0.12307609,0.09446413,1.2538031,0.00457763671875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.bottleneck.attention.dense.bias,torch.Size([128]),128,-0.38147458,0.4003919,0.041254677,0.14649595,0.11824106,0.4003919,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.bottleneck.attention.LayerNorm.bias,torch.Size([128]),128,-0.32697153,0.33645952,0.010498619,0.07863557,0.050566927,0.33645952,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.bottleneck.attention.LayerNorm.weight,torch.Size([128]),128,0.0654951,0.27766684,0.09015897,0.037207756,0.09015897,0.27766684,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.ffn.0.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.46871606,0.49264455,0.0007174287,0.097423956,0.07717219,0.49264455,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.ffn.0.intermediate.dense.bias,torch.Size([512]),512,-2.6200747,0.20806295,-0.97514534,0.49065602,0.9767346,2.6200747,43.75,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.ffn.0.output.dense.weight,"torch.Size([128, 512])",65536,-0.5136666,0.4787499,0.00021547705,0.08127655,0.063460395,0.5136666,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.ffn.0.output.dense.bias,torch.Size([128]),128,-0.5253351,0.50015265,0.0055652894,0.254831,0.21358804,0.5253351,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.ffn.0.output.LayerNorm.bias,torch.Size([128]),128,-0.4451076,0.45203477,0.007354891,0.20489344,0.16848135,0.45203477,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.ffn.0.output.LayerNorm.weight,torch.Size([128]),128,0.5026771,0.6280786,0.54489946,0.021783844,0.54489946,0.6280786,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.ffn.1.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.5600547,0.539722,-0.0004796945,0.11356758,0.08959336,0.5600547,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.ffn.1.intermediate.dense.bias,torch.Size([512]),512,-3.0822449,0.4902089,-0.7821595,0.4929611,0.79379594,3.0822449,29.296875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.ffn.1.output.dense.weight,"torch.Size([128, 512])",65536,-0.69105405,0.736035,0.0010755899,0.10465859,0.07989516,0.736035,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.ffn.1.output.dense.bias,torch.Size([128]),128,-0.46000162,0.6504606,-0.008061696,0.19069053,0.14871156,0.6504606,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.ffn.1.output.LayerNorm.bias,torch.Size([128]),128,-0.34407514,0.49825373,-0.0042760205,0.13622576,0.103462145,0.49825373,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.ffn.1.output.LayerNorm.weight,torch.Size([128]),128,0.4536173,0.57087064,0.50348765,0.021960724,0.50348765,0.57087064,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.ffn.2.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.58690065,0.5626187,-0.0020826734,0.11412219,0.089993626,0.58690065,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.ffn.2.intermediate.dense.bias,torch.Size([512]),512,-2.3140228,2.2528033,-0.8446803,0.42290133,0.858292,2.3140228,33.0078125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.ffn.2.output.dense.weight,"torch.Size([128, 512])",65536,-0.716348,0.7916837,0.0013581751,0.10583609,0.08146643,0.7916837,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.ffn.2.output.dense.bias,torch.Size([128]),128,-0.5649616,0.65155625,-0.015088417,0.16631988,0.122858055,0.65155625,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.ffn.2.output.LayerNorm.bias,torch.Size([128]),128,-0.42081922,0.48991847,-0.009094637,0.10342989,0.07050367,0.48991847,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.10.ffn.2.output.LayerNorm.weight,torch.Size([128]),128,0.43210083,0.5415093,0.4877287,0.02280438,0.4877287,0.5415093,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.attention.self.query.weight,"torch.Size([128, 128])",16384,-0.5085727,0.48477563,-0.0018774343,0.12681775,0.10024534,0.5085727,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.attention.self.query.bias,torch.Size([128]),128,-1.8686005,2.8751755,0.008617092,0.6654538,0.40057713,2.8751755,11.71875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.attention.self.key.weight,"torch.Size([128, 128])",16384,-0.5196575,0.6818472,-0.0017454671,0.1127607,0.08797432,0.6818472,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.attention.self.key.bias,torch.Size([128]),128,-7.508896,5.7853627,0.04489918,2.0744433,1.5484557,7.508896,58.59375,2.34375,0.0,MobileBERT
+mobilebert.encoder.layer.11.attention.self.value.weight,"torch.Size([128, 512])",65536,-1.0417118,0.8385825,-0.00027512,0.15427016,0.11807315,1.0417118,0.00152587890625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.attention.self.value.bias,torch.Size([128]),128,-0.60780025,0.69876987,0.0013424666,0.287967,0.23775926,0.69876987,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.attention.output.dense.weight,"torch.Size([128, 128])",16384,-0.57047755,0.5488754,0.0014521714,0.14984079,0.119894676,0.57047755,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.attention.output.dense.bias,torch.Size([128]),128,-1.6299897,3.8672462,0.03510997,0.65733504,0.43462944,3.8672462,10.15625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.attention.output.LayerNorm.bias,torch.Size([128]),128,-1.7127963,3.9577663,0.035798308,0.6847718,0.45289683,3.9577663,10.15625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.attention.output.LayerNorm.weight,torch.Size([128]),128,0.38484412,0.58365303,0.46290496,0.03365623,0.46290496,0.58365303,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.5444388,0.54456925,-0.001218997,0.11261664,0.08903701,0.54456925,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.intermediate.dense.bias,torch.Size([512]),512,-2.3686874,0.042042904,-0.7829327,0.38556793,0.7831897,2.3686874,25.1953125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.output.dense.weight,"torch.Size([128, 512])",65536,-0.7257858,0.64644015,-0.00017929982,0.11315207,0.0879415,0.7257858,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.output.dense.bias,torch.Size([128]),128,-0.46106875,0.33447996,-0.013978496,0.12189299,0.09396617,0.46106875,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.output.LayerNorm.bias,torch.Size([128]),128,-0.21003714,0.21681388,-0.005075292,0.0562059,0.041641854,0.21681388,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.output.LayerNorm.weight,torch.Size([128]),128,0.3416251,0.4923769,0.43932924,0.024798186,0.43932924,0.4923769,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.output.bottleneck.dense.weight,"torch.Size([512, 128])",65536,-1.0253216,1.1281606,0.00040189453,0.15986289,0.11670786,1.1281606,0.0030517578125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.output.bottleneck.dense.bias,torch.Size([512]),512,-0.11540882,0.45202118,-0.0020941559,0.04842215,0.031128997,0.45202118,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.output.bottleneck.LayerNorm.bias,torch.Size([512]),512,-0.117040694,0.45949823,-0.0016723057,0.04575543,0.028988753,0.45949823,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.output.bottleneck.LayerNorm.weight,torch.Size([512]),512,0.44097385,1.1943226,0.86563367,0.14053403,0.86563367,1.1943226,24.609375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.bottleneck.input.dense.weight,"torch.Size([128, 512])",65536,-0.8143684,0.91308796,-0.00022091673,0.14213775,0.111025065,0.91308796,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.bottleneck.input.dense.bias,torch.Size([128]),128,-1.6177617,3.8690848,0.033617772,0.6564769,0.43430153,3.8690848,10.15625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.bottleneck.input.LayerNorm.bias,torch.Size([128]),128,-1.6299897,3.8672462,0.03510997,0.65733504,0.43462944,3.8672462,10.15625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.bottleneck.input.LayerNorm.weight,torch.Size([128]),128,0.6382137,1.2039628,0.8815332,0.12067824,0.8815332,1.2039628,14.0625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.bottleneck.attention.dense.weight,"torch.Size([128, 512])",65536,-1.0390866,0.840441,0.0007595961,0.12355589,0.094493315,1.0390866,0.00152587890625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.bottleneck.attention.dense.bias,torch.Size([128]),128,-0.5997265,0.43995538,-0.022912579,0.14143471,0.100691356,0.5997265,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.bottleneck.attention.LayerNorm.bias,torch.Size([128]),128,-0.5543913,0.46577278,-0.018703934,0.102800995,0.055956572,0.5543913,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.bottleneck.attention.LayerNorm.weight,torch.Size([128]),128,0.066477016,0.2672984,0.0972518,0.03484369,0.0972518,0.2672984,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.ffn.0.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.45736638,0.5392511,-0.00038989872,0.091430284,0.07254964,0.5392511,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.ffn.0.intermediate.dense.bias,torch.Size([512]),512,-2.8332672,0.4182868,-0.9632956,0.44252846,0.9669297,2.8332672,42.3828125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.ffn.0.output.dense.weight,"torch.Size([128, 512])",65536,-0.4603317,0.40483943,-6.856024e-05,0.071705684,0.055800755,0.4603317,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.ffn.0.output.dense.bias,torch.Size([128]),128,-0.62299687,0.76625866,0.024399808,0.28236908,0.22400299,0.76625866,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.ffn.0.output.LayerNorm.bias,torch.Size([128]),128,-0.538257,0.66608876,0.023943793,0.24325038,0.19383144,0.66608876,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.ffn.0.output.LayerNorm.weight,torch.Size([128]),128,0.5110205,0.6131238,0.5500352,0.020336885,0.5500352,0.6131238,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.ffn.1.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.47693798,0.51555187,9.137617e-05,0.10114094,0.08024351,0.51555187,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.ffn.1.intermediate.dense.bias,torch.Size([512]),512,-2.7684295,0.2666001,-0.77817166,0.47401276,0.7855078,2.7684295,28.7109375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.ffn.1.output.dense.weight,"torch.Size([128, 512])",65536,-0.70082784,0.52292997,-0.0004091513,0.08356238,0.06479606,0.70082784,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.ffn.1.output.dense.bias,torch.Size([128]),128,-0.6655507,0.45753658,0.016471148,0.200944,0.15403813,0.6655507,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.ffn.1.output.LayerNorm.bias,torch.Size([128]),128,-0.4949985,0.35953644,0.016424622,0.14664139,0.1111673,0.4949985,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.ffn.1.output.LayerNorm.weight,torch.Size([128]),128,0.44741374,0.5493921,0.50604945,0.021508764,0.50604945,0.5493921,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.ffn.2.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.4932124,0.48263925,-0.0006539234,0.10570307,0.08385938,0.4932124,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.ffn.2.intermediate.dense.bias,torch.Size([512]),512,-2.7651837,0.6481451,-0.8213491,0.4701975,0.82584167,2.7651837,30.859375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.ffn.2.output.dense.weight,"torch.Size([128, 512])",65536,-0.7103802,0.8380453,0.00014855921,0.09561372,0.07409563,0.8380453,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.ffn.2.output.dense.bias,torch.Size([128]),128,-0.613294,0.3718139,-0.0052700806,0.16130489,0.12243651,0.613294,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.ffn.2.output.LayerNorm.bias,torch.Size([128]),128,-0.43716142,0.24619815,-0.001512629,0.10411224,0.07605591,0.43716142,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.11.ffn.2.output.LayerNorm.weight,torch.Size([128]),128,0.4330729,0.5569449,0.48787916,0.02557076,0.48787916,0.5569449,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.attention.self.query.weight,"torch.Size([128, 128])",16384,-0.5204333,0.4661947,-0.0010359704,0.11824982,0.0932893,0.5204333,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.attention.self.query.bias,torch.Size([128]),128,-1.518209,1.9545317,-0.034297943,0.53272486,0.33007163,1.9545317,8.59375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.attention.self.key.weight,"torch.Size([128, 128])",16384,-0.47259504,0.4551485,-0.00026888825,0.1144142,0.09032905,0.47259504,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.attention.self.key.bias,torch.Size([128]),128,-3.7793667,6.142407,-0.1836837,1.8285636,1.4987962,6.142407,61.71875,0.78125,0.0,MobileBERT
+mobilebert.encoder.layer.12.attention.self.value.weight,"torch.Size([128, 512])",65536,-0.7728075,0.6724226,-0.0010431439,0.1504199,0.11715519,0.7728075,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.attention.self.value.bias,torch.Size([128]),128,-0.48151398,0.61500835,0.016020173,0.22411495,0.17173482,0.61500835,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.attention.output.dense.weight,"torch.Size([128, 128])",16384,-0.58047736,0.61658597,0.0004053836,0.14583841,0.11500122,0.61658597,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.attention.output.dense.bias,torch.Size([128]),128,-3.4458382,1.7584879,-0.047187418,0.6346325,0.40873912,3.4458382,5.46875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.attention.output.LayerNorm.bias,torch.Size([128]),128,-3.525131,1.8640164,-0.051304698,0.6617375,0.43215555,3.525131,5.46875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.attention.output.LayerNorm.weight,torch.Size([128]),128,0.33835107,0.8089924,0.4673534,0.069683924,0.4673534,0.8089924,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.7137722,0.78236026,0.0035113604,0.11821412,0.09281315,0.78236026,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.intermediate.dense.bias,torch.Size([512]),512,-2.6132812,0.079399526,-0.8463658,0.37526706,0.84667593,2.6132812,30.078125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.output.dense.weight,"torch.Size([128, 512])",65536,-1.0229667,1.0352689,-0.0006222413,0.11861082,0.09151594,1.0352689,0.0030517578125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.output.dense.bias,torch.Size([128]),128,-0.2956175,0.7210051,0.027546935,0.13907385,0.09754926,0.7210051,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.output.LayerNorm.bias,torch.Size([128]),128,-0.123578556,0.47524974,0.013919048,0.06973988,0.041228257,0.47524974,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.output.LayerNorm.weight,torch.Size([128]),128,0.32086182,0.5031545,0.45564836,0.02561577,0.45564836,0.5031545,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.output.bottleneck.dense.weight,"torch.Size([512, 128])",65536,-0.75625783,0.74503237,0.0004276518,0.15231846,0.11692253,0.75625783,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.output.bottleneck.dense.bias,torch.Size([512]),512,-0.3887374,0.1868083,-0.00023289866,0.039615262,0.025880486,0.3887374,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.output.bottleneck.LayerNorm.bias,torch.Size([512]),512,-0.3932036,0.1753501,-0.0005776548,0.038447246,0.025152994,0.3932036,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.output.bottleneck.LayerNorm.weight,torch.Size([512]),512,0.67756516,1.2288673,0.8783877,0.070486665,0.8783877,1.2288673,2.734375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.bottleneck.input.dense.weight,"torch.Size([128, 512])",65536,-0.6128337,0.6058551,-0.00015579762,0.1448158,0.11508693,0.6128337,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.bottleneck.input.dense.bias,torch.Size([128]),128,-3.4201446,1.7164505,-0.04562267,0.6311025,0.40749943,3.4201446,5.46875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.bottleneck.input.LayerNorm.bias,torch.Size([128]),128,-3.4458382,1.7584879,-0.047187418,0.6346325,0.40873912,3.4458382,5.46875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.bottleneck.input.LayerNorm.weight,torch.Size([128]),128,0.6111604,1.4819182,1.0153184,0.15891033,1.0153184,1.4819182,53.125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.bottleneck.attention.dense.weight,"torch.Size([128, 512])",65536,-0.6750205,0.6230173,-0.00063612696,0.12991439,0.10006983,0.6750205,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.bottleneck.attention.dense.bias,torch.Size([128]),128,-0.559452,0.25606528,-0.02087253,0.1207406,0.09085435,0.559452,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.bottleneck.attention.LayerNorm.bias,torch.Size([128]),128,-0.51586086,0.14590357,-0.01616956,0.07600304,0.04953438,0.51586086,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.bottleneck.attention.LayerNorm.weight,torch.Size([128]),128,0.079787694,0.23049776,0.1051018,0.024598822,0.1051018,0.23049776,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.ffn.0.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.53486145,0.5432522,0.0016058465,0.10011456,0.07918976,0.5432522,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.ffn.0.intermediate.dense.bias,torch.Size([512]),512,-2.9213686,0.1870909,-0.9631568,0.4171621,0.9654541,2.9213686,46.875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.ffn.0.output.dense.weight,"torch.Size([128, 512])",65536,-0.8828942,0.9278781,-0.0006429845,0.090718925,0.068981275,0.9278781,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.ffn.0.output.dense.bias,torch.Size([128]),128,-0.65205103,0.6079835,0.017913751,0.2635862,0.21281913,0.65205103,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.ffn.0.output.LayerNorm.bias,torch.Size([128]),128,-0.5663038,0.49885494,0.010827881,0.22501716,0.17984441,0.5663038,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.ffn.0.output.LayerNorm.weight,torch.Size([128]),128,0.50950843,0.67160493,0.5760137,0.025700204,0.5760137,0.67160493,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.ffn.1.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.59479827,0.7896319,0.0027844238,0.1109286,0.087925345,0.7896319,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.ffn.1.intermediate.dense.bias,torch.Size([512]),512,-2.4751306,0.311405,-0.78765714,0.43502265,0.7966701,2.4751306,29.4921875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.ffn.1.output.dense.weight,"torch.Size([128, 512])",65536,-1.0777513,1.2510856,-0.0009056758,0.09923171,0.07597474,1.2510856,0.0030517578125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.ffn.1.output.dense.bias,torch.Size([128]),128,-0.5816459,0.64296275,0.020553216,0.20183076,0.16410093,0.64296275,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.ffn.1.output.LayerNorm.bias,torch.Size([128]),128,-0.47097287,0.5107248,0.011242999,0.15202564,0.12130132,0.5107248,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.ffn.1.output.LayerNorm.weight,torch.Size([128]),128,0.45774183,0.58181775,0.5224501,0.02107245,0.5224501,0.58181775,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.ffn.2.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.5270277,0.6402706,0.0031615566,0.11271952,0.08915654,0.6402706,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.ffn.2.intermediate.dense.bias,torch.Size([512]),512,-3.0218768,0.7272642,-0.8378699,0.41647184,0.84663045,3.0218768,31.640625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.ffn.2.output.dense.weight,"torch.Size([128, 512])",65536,-0.8387178,0.84708107,-0.00090377603,0.10476295,0.08063367,0.84708107,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.ffn.2.output.dense.bias,torch.Size([128]),128,-0.4591326,0.74154794,0.023278438,0.17031556,0.12050023,0.74154794,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.ffn.2.output.LayerNorm.bias,torch.Size([128]),128,-0.33344468,0.5879168,0.013782418,0.11000075,0.070544615,0.5879168,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.12.ffn.2.output.LayerNorm.weight,torch.Size([128]),128,0.4077733,0.53370184,0.48273888,0.023267847,0.48273888,0.53370184,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.attention.self.query.weight,"torch.Size([128, 128])",16384,-0.4769883,0.44954807,-0.0011076916,0.11793683,0.09352338,0.4769883,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.attention.self.query.bias,torch.Size([128]),128,-2.3523343,2.191876,0.027623178,0.6547356,0.3906847,2.3523343,10.9375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.attention.self.key.weight,"torch.Size([128, 128])",16384,-0.6225935,0.4634936,-0.00013922833,0.11383017,0.08994843,0.6225935,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.attention.self.key.bias,torch.Size([128]),128,-6.392205,6.6417527,0.09070242,2.0973725,1.6307038,6.6417527,61.71875,3.125,0.0,MobileBERT
+mobilebert.encoder.layer.13.attention.self.value.weight,"torch.Size([128, 512])",65536,-0.8923358,0.8947342,0.0009348635,0.15317088,0.11837877,0.8947342,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.attention.self.value.bias,torch.Size([128]),128,-0.7912795,1.4822252,0.08091712,0.36696103,0.29064694,1.4822252,1.5625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.attention.output.dense.weight,"torch.Size([128, 128])",16384,-0.6416915,0.55009896,-0.0013180713,0.14288875,0.11372539,0.6416915,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.attention.output.dense.bias,torch.Size([128]),128,-2.0626993,2.4794824,-0.009904975,0.68251586,0.4867584,2.4794824,12.5,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.attention.output.LayerNorm.bias,torch.Size([128]),128,-2.1217828,2.5800276,-0.0082220305,0.7134327,0.51145685,2.5800276,12.5,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.attention.output.LayerNorm.weight,torch.Size([128]),128,0.34193626,0.6112607,0.4366405,0.03702337,0.4366405,0.6112607,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.5770951,0.49096823,-0.0014342723,0.10996104,0.08721014,0.5770951,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.intermediate.dense.bias,torch.Size([512]),512,-2.7897491,0.22193359,-0.7722699,0.37796953,0.77423567,2.7897491,25.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.output.dense.weight,"torch.Size([128, 512])",65536,-0.59976995,0.6260901,0.000811461,0.105140544,0.08255173,0.6260901,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.output.dense.bias,torch.Size([128]),128,-0.55170673,0.40937266,-0.00041161384,0.13649239,0.1024103,0.55170673,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.output.LayerNorm.bias,torch.Size([128]),128,-0.28544334,0.21445581,0.0012228992,0.0667603,0.048288796,0.28544334,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.output.LayerNorm.weight,torch.Size([128]),128,0.34454915,0.51504964,0.43951112,0.023015002,0.43951112,0.51504964,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.output.bottleneck.dense.weight,"torch.Size([512, 128])",65536,-0.8903338,0.85443926,0.00042476755,0.15318416,0.11628705,0.8903338,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.output.bottleneck.dense.bias,torch.Size([512]),512,-0.118242994,0.11126703,-0.0027789697,0.030610675,0.023725402,0.118242994,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.output.bottleneck.LayerNorm.bias,torch.Size([512]),512,-0.12296259,0.106655076,-0.0029683874,0.030322516,0.02349434,0.12296259,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.output.bottleneck.LayerNorm.weight,torch.Size([512]),512,0.6474418,1.1119416,0.8934701,0.09690249,0.8934701,1.1119416,19.140625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.bottleneck.input.dense.weight,"torch.Size([128, 512])",65536,-0.73292315,0.6057258,-0.00024258133,0.14683579,0.1165297,0.73292315,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.bottleneck.input.dense.bias,torch.Size([128]),128,-2.0761163,2.4405859,-0.011115795,0.6808824,0.48590127,2.4405859,12.5,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.bottleneck.input.LayerNorm.bias,torch.Size([128]),128,-2.0626993,2.4794824,-0.009904975,0.68251586,0.4867584,2.4794824,12.5,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.bottleneck.input.LayerNorm.weight,torch.Size([128]),128,0.968441,1.5978758,1.2356368,0.13358788,1.2356368,1.5978758,97.65625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.bottleneck.attention.dense.weight,"torch.Size([128, 512])",65536,-0.91623753,0.83384603,0.00019741693,0.12658088,0.09911036,0.91623753,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.bottleneck.attention.dense.bias,torch.Size([128]),128,-0.69713706,0.48586518,-0.010370476,0.16946329,0.123794034,0.69713706,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.bottleneck.attention.LayerNorm.bias,torch.Size([128]),128,-0.4371082,0.30170745,-0.014192365,0.118390016,0.08079052,0.4371082,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.bottleneck.attention.LayerNorm.weight,torch.Size([128]),128,0.102945216,0.24811406,0.13504824,0.022092853,0.13504824,0.24811406,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.ffn.0.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.48291433,0.46550804,5.909289e-05,0.096623406,0.07671797,0.48291433,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.ffn.0.intermediate.dense.bias,torch.Size([512]),512,-2.2224123,0.14196919,-0.987888,0.40461665,0.9894379,2.2224123,46.09375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.ffn.0.output.dense.weight,"torch.Size([128, 512])",65536,-0.3974982,0.46745652,0.0004197213,0.078301,0.061284557,0.46745652,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.ffn.0.output.dense.bias,torch.Size([128]),128,-0.64950615,0.96236247,-0.021893423,0.28168824,0.2217823,0.96236247,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.ffn.0.output.LayerNorm.bias,torch.Size([128]),128,-0.5609938,0.8436213,-0.018537749,0.2416368,0.19278963,0.8436213,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.ffn.0.output.LayerNorm.weight,torch.Size([128]),128,0.48665658,0.6270515,0.5543047,0.022266809,0.5543047,0.6270515,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.ffn.1.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.532497,0.54784113,0.00018696161,0.10604778,0.08414963,0.54784113,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.ffn.1.intermediate.dense.bias,torch.Size([512]),512,-2.8343632,0.5487943,-0.76310116,0.434105,0.7751645,2.8343632,25.9765625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.ffn.1.output.dense.weight,"torch.Size([128, 512])",65536,-0.8120486,0.6842651,0.00056542986,0.09057527,0.070115685,0.8120486,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.ffn.1.output.dense.bias,torch.Size([128]),128,-0.99049526,0.7094567,-0.0055248225,0.25391614,0.1946755,0.99049526,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.ffn.1.output.LayerNorm.bias,torch.Size([128]),128,-0.81800365,0.6011582,-0.005775583,0.19551437,0.14380936,0.81800365,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.ffn.1.output.LayerNorm.weight,torch.Size([128]),128,0.4500895,0.55378205,0.49710172,0.018362002,0.49710172,0.55378205,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.ffn.2.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.60600156,0.50611395,0.00021846415,0.10727983,0.085208,0.60600156,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.ffn.2.intermediate.dense.bias,torch.Size([512]),512,-2.9613175,0.7715169,-0.81866074,0.480877,0.82657105,2.9613175,31.8359375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.ffn.2.output.dense.weight,"torch.Size([128, 512])",65536,-0.57431036,0.5938526,0.0007350511,0.092612885,0.07254362,0.5938526,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.ffn.2.output.dense.bias,torch.Size([128]),128,-0.78696275,0.59791845,0.008358884,0.20619823,0.14929283,0.78696275,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.ffn.2.output.LayerNorm.bias,torch.Size([128]),128,-0.5928852,0.43174526,0.0058240276,0.13798746,0.09361498,0.5928852,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.13.ffn.2.output.LayerNorm.weight,torch.Size([128]),128,0.43891183,0.5683735,0.49121472,0.021474177,0.49121472,0.5683735,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.attention.self.query.weight,"torch.Size([128, 128])",16384,-0.7281551,0.8077889,-0.00065982627,0.15139313,0.11597924,0.8077889,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.attention.self.query.bias,torch.Size([128]),128,-3.8205788,1.9820226,-0.07589692,0.73155636,0.4440689,3.8205788,12.5,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.attention.self.key.weight,"torch.Size([128, 128])",16384,-0.59933007,0.8218203,8.4520434e-07,0.14173177,0.10864155,0.8218203,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.attention.self.key.bias,torch.Size([128]),128,-4.4427376,6.2537055,-0.12780562,1.8658041,1.4526117,6.2537055,55.46875,0.78125,0.0,MobileBERT
+mobilebert.encoder.layer.14.attention.self.value.weight,"torch.Size([128, 512])",65536,-0.92670065,0.7928155,0.00010620845,0.15446801,0.11959733,0.92670065,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.attention.self.value.bias,torch.Size([128]),128,-0.77937186,0.7031916,-0.017683895,0.2902759,0.22885606,0.77937186,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.attention.output.dense.weight,"torch.Size([128, 128])",16384,-0.67856276,0.6303388,0.0011685279,0.14471388,0.11488279,0.67856276,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.attention.output.dense.bias,torch.Size([128]),128,-2.5787802,3.0903466,0.052732278,0.81294966,0.61237085,3.0903466,13.28125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.attention.output.LayerNorm.bias,torch.Size([128]),128,-2.64277,3.1675172,0.05184836,0.83904934,0.63443613,3.1675172,14.0625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.attention.output.LayerNorm.weight,torch.Size([128]),128,0.37110296,0.69365925,0.45679697,0.0434423,0.45679697,0.69365925,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.55298674,0.5832448,-0.0017727503,0.10001367,0.078689225,0.5832448,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.intermediate.dense.bias,torch.Size([512]),512,-3.1225643,0.4613289,-0.8473094,0.44613218,0.8526049,3.1225643,30.46875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.output.dense.weight,"torch.Size([128, 512])",65536,-0.7251301,0.68371665,-0.00012597127,0.100395195,0.07812989,0.7251301,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.output.dense.bias,torch.Size([128]),128,-0.50233734,0.54577243,-0.010874938,0.1571869,0.115246646,0.54577243,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.output.LayerNorm.bias,torch.Size([128]),128,-0.36033094,0.39742884,-0.0044948086,0.10588134,0.075007536,0.39742884,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.output.LayerNorm.weight,torch.Size([128]),128,0.45506155,0.535175,0.49857903,0.01660543,0.49857903,0.535175,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.output.bottleneck.dense.weight,"torch.Size([512, 128])",65536,-1.0293576,0.9092774,0.00016758688,0.15349181,0.119159,1.0293576,0.00152587890625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.output.bottleneck.dense.bias,torch.Size([512]),512,-0.6526621,0.13093455,0.001853857,0.049140263,0.029722186,0.6526621,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.output.bottleneck.LayerNorm.bias,torch.Size([512]),512,-0.66080993,0.15062606,0.0023089251,0.050100338,0.030277658,0.66080993,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.output.bottleneck.LayerNorm.weight,torch.Size([512]),512,0.46876007,1.2754107,0.8775333,0.19862142,0.8775333,1.2754107,31.4453125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.bottleneck.input.dense.weight,"torch.Size([128, 512])",65536,-0.610292,0.7432955,0.0004456534,0.13946477,0.11054807,0.7432955,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.bottleneck.input.dense.bias,torch.Size([128]),128,-2.5866718,3.0630157,0.052578166,0.81240666,0.6113866,3.0630157,13.28125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.bottleneck.input.LayerNorm.bias,torch.Size([128]),128,-2.5787802,3.0903466,0.052732278,0.81294966,0.61237085,3.0903466,13.28125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.bottleneck.input.LayerNorm.weight,torch.Size([128]),128,0.8153287,1.88215,1.210881,0.15170275,1.210881,1.88215,92.96875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.bottleneck.attention.dense.weight,"torch.Size([128, 512])",65536,-0.8786646,1.1367358,-0.0004541081,0.12610681,0.09747458,1.1367358,0.00152587890625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.bottleneck.attention.dense.bias,torch.Size([128]),128,-0.43936276,0.57626164,0.012935468,0.17512618,0.13648973,0.57626164,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.bottleneck.attention.LayerNorm.bias,torch.Size([128]),128,-0.20102133,0.44937342,0.010220956,0.09532458,0.068098076,0.44937342,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.bottleneck.attention.LayerNorm.weight,torch.Size([128]),128,0.080296405,0.23368762,0.11213287,0.027541155,0.11213287,0.23368762,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.ffn.0.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.5978031,0.46543738,-0.0023186624,0.08840756,0.069963306,0.5978031,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.ffn.0.intermediate.dense.bias,torch.Size([512]),512,-3.4141283,0.30460778,-1.0425777,0.5129895,1.0467336,3.4141283,51.5625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.ffn.0.output.dense.weight,"torch.Size([128, 512])",65536,-0.5353445,0.58407414,0.00079006597,0.06886928,0.053168546,0.58407414,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.ffn.0.output.dense.bias,torch.Size([128]),128,-1.120744,1.1861256,-0.020435879,0.39557588,0.31745705,1.1861256,3.125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.ffn.0.output.LayerNorm.bias,torch.Size([128]),128,-1.0147809,1.1054715,-0.017514387,0.35948357,0.28517795,1.1054715,1.5625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.ffn.0.output.LayerNorm.weight,torch.Size([128]),128,0.44443002,0.6223507,0.5627092,0.023527574,0.5627092,0.6223507,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.ffn.1.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.61343944,0.501733,-0.0028962838,0.09746901,0.07697743,0.61343944,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.ffn.1.intermediate.dense.bias,torch.Size([512]),512,-2.5354176,0.8360684,-0.7645476,0.50715864,0.79551107,2.5354176,30.2734375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.ffn.1.output.dense.weight,"torch.Size([128, 512])",65536,-0.5957019,0.53605735,0.0011184716,0.081399634,0.062989414,0.5957019,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.ffn.1.output.dense.bias,torch.Size([128]),128,-0.93254477,0.900808,-0.03303937,0.34006152,0.26172078,0.93254477,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.ffn.1.output.LayerNorm.bias,torch.Size([128]),128,-0.79085225,0.78502226,-0.030097611,0.29119515,0.22157165,0.79085225,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.ffn.1.output.LayerNorm.weight,torch.Size([128]),128,0.4641678,0.63157135,0.5263267,0.029136091,0.5263267,0.63157135,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.ffn.2.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.5957391,0.6481506,-0.0022120855,0.097562164,0.07714748,0.6481506,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.ffn.2.intermediate.dense.bias,torch.Size([512]),512,-2.4719963,1.203874,-0.7919936,0.50965977,0.81900954,2.4719963,32.2265625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.ffn.2.output.dense.weight,"torch.Size([128, 512])",65536,-0.53231114,0.59369373,0.00067444507,0.086834855,0.06756714,0.59369373,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.ffn.2.output.dense.bias,torch.Size([128]),128,-0.6337973,0.6418704,-0.0025270786,0.21799466,0.16669518,0.6418704,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.ffn.2.output.LayerNorm.bias,torch.Size([128]),128,-0.48410618,0.49699622,-0.0006769467,0.16168094,0.12375848,0.49699622,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.14.ffn.2.output.LayerNorm.weight,torch.Size([128]),128,0.44505966,0.57956344,0.51819706,0.02792652,0.51819706,0.57956344,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.attention.self.query.weight,"torch.Size([128, 128])",16384,-0.52145904,0.60345113,0.00045707112,0.11781473,0.09222988,0.60345113,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.attention.self.query.bias,torch.Size([128]),128,-2.593741,3.8312023,0.03919397,0.8214135,0.5185333,3.8312023,14.0625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.attention.self.key.weight,"torch.Size([128, 128])",16384,-0.5718352,0.56609446,8.645622e-05,0.11883579,0.09357567,0.5718352,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.attention.self.key.bias,torch.Size([128]),128,-4.9352584,5.933087,0.09692381,1.7854744,1.3519855,5.933087,49.21875,2.34375,0.0,MobileBERT
+mobilebert.encoder.layer.15.attention.self.value.weight,"torch.Size([128, 512])",65536,-0.8594519,0.92384946,0.00010137815,0.14919287,0.11336084,0.92384946,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.attention.self.value.bias,torch.Size([128]),128,-1.9138422,1.1179308,-0.05329142,0.41228074,0.25165707,1.9138422,6.25,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.attention.output.dense.weight,"torch.Size([128, 128])",16384,-0.9427557,0.7364423,5.8943522e-05,0.17420278,0.13605106,0.9427557,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.attention.output.dense.bias,torch.Size([128]),128,-2.638859,2.1472147,-0.060953703,0.5476802,0.3532743,2.638859,6.25,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.attention.output.LayerNorm.bias,torch.Size([128]),128,-2.714857,2.2471888,-0.065804645,0.5681096,0.36882424,2.714857,7.03125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.attention.output.LayerNorm.weight,torch.Size([128]),128,0.52402806,0.94192505,0.6016056,0.052951593,0.6016056,0.94192505,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.5048801,0.59087014,0.0037046324,0.102494396,0.08070862,0.59087014,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.intermediate.dense.bias,torch.Size([512]),512,-2.9052243,-0.01387063,-0.83980185,0.47504285,0.83980185,2.9052243,30.859375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.output.dense.weight,"torch.Size([128, 512])",65536,-0.7481644,0.6290961,0.00083759066,0.1010797,0.078039005,0.7481644,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.output.dense.bias,torch.Size([128]),128,-0.24115491,0.932422,0.020597596,0.14735946,0.099870846,0.932422,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.output.LayerNorm.bias,torch.Size([128]),128,-0.1396669,0.57456845,0.012001766,0.08196331,0.051319104,0.57456845,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.output.LayerNorm.weight,torch.Size([128]),128,0.20989291,0.46837592,0.4352433,0.02645965,0.4352433,0.46837592,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.output.bottleneck.dense.weight,"torch.Size([512, 128])",65536,-0.72972447,0.67248744,0.00018039922,0.13881002,0.109105475,0.72972447,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.output.bottleneck.dense.bias,torch.Size([512]),512,-0.20839405,0.50412905,-0.0030014887,0.05343113,0.03714338,0.50412905,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.output.bottleneck.LayerNorm.bias,torch.Size([512]),512,-0.17995657,0.5056321,-0.0018765291,0.052463908,0.035889518,0.5056321,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.output.bottleneck.LayerNorm.weight,torch.Size([512]),512,0.6795095,1.2246075,0.98269826,0.0901905,0.98269826,1.2246075,46.6796875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.bottleneck.input.dense.weight,"torch.Size([128, 512])",65536,-0.7245704,0.6503279,-0.0006609523,0.13405563,0.10459715,0.7245704,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.bottleneck.input.dense.bias,torch.Size([128]),128,-2.6435034,2.117858,-0.058971662,0.54842335,0.3547815,2.6435034,6.25,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.bottleneck.input.LayerNorm.bias,torch.Size([128]),128,-2.638859,2.1472147,-0.060953703,0.5476802,0.3532743,2.638859,6.25,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.bottleneck.input.LayerNorm.weight,torch.Size([128]),128,0.68383306,1.4714731,0.89764994,0.1109158,0.89764994,1.4714731,17.1875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.bottleneck.attention.dense.weight,"torch.Size([128, 512])",65536,-0.62690556,0.7283151,0.00038955937,0.13174121,0.10005372,0.7283151,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.bottleneck.attention.dense.bias,torch.Size([128]),128,-1.4905134,1.5301775,-0.0059809983,0.36089724,0.22360377,1.5301775,3.90625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.bottleneck.attention.LayerNorm.bias,torch.Size([128]),128,-1.1959664,1.294575,-0.011132548,0.27876446,0.14970323,1.294575,2.34375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.bottleneck.attention.LayerNorm.weight,torch.Size([128]),128,0.06981846,0.18758537,0.09350307,0.023509134,0.09350307,0.18758537,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.ffn.0.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.4957928,0.53680366,0.0037919525,0.094196774,0.07474297,0.53680366,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.ffn.0.intermediate.dense.bias,torch.Size([512]),512,-3.6987855,0.59112734,-0.98949516,0.619796,1.0098903,3.6987855,46.6796875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.ffn.0.output.dense.weight,"torch.Size([128, 512])",65536,-0.5039841,0.5274224,-0.0007963735,0.083981894,0.06557062,0.5274224,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.ffn.0.output.dense.bias,torch.Size([128]),128,-0.67688996,0.44544837,0.00074419146,0.21328972,0.16925134,0.67688996,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.ffn.0.output.LayerNorm.bias,torch.Size([128]),128,-0.63203055,0.436553,-0.0036197035,0.19564956,0.15574127,0.63203055,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.ffn.0.output.LayerNorm.weight,torch.Size([128]),128,0.6450876,0.86407864,0.6960716,0.029977586,0.6960716,0.86407864,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.ffn.1.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.489711,0.4769511,0.0025395863,0.1056768,0.08352932,0.489711,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.ffn.1.intermediate.dense.bias,torch.Size([512]),512,-2.7638414,0.54988426,-0.79070526,0.55199033,0.82040036,2.7638414,31.8359375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.ffn.1.output.dense.weight,"torch.Size([128, 512])",65536,-0.5356353,0.5455556,-0.00089431996,0.092411526,0.07195347,0.5455556,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.ffn.1.output.dense.bias,torch.Size([128]),128,-0.5226456,0.76810026,0.014279451,0.16337691,0.12313313,0.76810026,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.ffn.1.output.LayerNorm.bias,torch.Size([128]),128,-0.37807524,0.62267894,0.007888885,0.12783453,0.09485942,0.62267894,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.ffn.1.output.LayerNorm.weight,torch.Size([128]),128,0.5486925,0.67967856,0.6213836,0.020033278,0.6213836,0.67967856,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.ffn.2.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.4996835,0.48788962,0.0040916577,0.10446332,0.08279788,0.4996835,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.ffn.2.intermediate.dense.bias,torch.Size([512]),512,-2.6569128,0.38787177,-0.825608,0.5462058,0.83754396,2.6569128,34.765625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.ffn.2.output.dense.weight,"torch.Size([128, 512])",65536,-0.6261216,0.5826904,-0.0004270111,0.092674725,0.072082475,0.6261216,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.ffn.2.output.dense.bias,torch.Size([128]),128,-0.31770548,0.5934399,0.014580817,0.13373221,0.094989866,0.5934399,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.ffn.2.output.LayerNorm.bias,torch.Size([128]),128,-0.18121073,0.41875246,0.008572819,0.084982954,0.060641706,0.41875246,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.15.ffn.2.output.LayerNorm.weight,torch.Size([128]),128,0.43835473,0.5891929,0.5448216,0.021262532,0.5448216,0.5891929,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.attention.self.query.weight,"torch.Size([128, 128])",16384,-0.52539814,0.6086798,0.0015740655,0.120550804,0.094776176,0.6086798,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.attention.self.query.bias,torch.Size([128]),128,-3.18961,2.8897562,-0.098452866,0.7186587,0.44361702,3.18961,10.15625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.attention.self.key.weight,"torch.Size([128, 128])",16384,-0.50705713,0.6293913,0.00056847784,0.11397448,0.089261115,0.6293913,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.attention.self.key.bias,torch.Size([128]),128,-6.007353,6.907235,-0.17569092,2.1255462,1.5665996,6.907235,53.125,2.34375,0.0,MobileBERT
+mobilebert.encoder.layer.16.attention.self.value.weight,"torch.Size([128, 512])",65536,-1.0137714,0.9306099,0.00060177705,0.164416,0.12671521,1.0137714,0.00152587890625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.attention.self.value.bias,torch.Size([128]),128,-0.48734337,0.91531426,0.025171379,0.23663996,0.17935699,0.91531426,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.attention.output.dense.weight,"torch.Size([128, 128])",16384,-0.55782956,0.6058475,-0.00044435126,0.15357772,0.12214139,0.6058475,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.attention.output.dense.bias,torch.Size([128]),128,-2.8043828,1.5646755,-0.049326926,0.71158266,0.52399796,2.8043828,13.28125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.attention.output.LayerNorm.bias,torch.Size([128]),128,-2.8828614,1.6424191,-0.05290623,0.74392694,0.5505226,2.8828614,14.84375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.attention.output.LayerNorm.weight,torch.Size([128]),128,0.36975414,0.54204994,0.46372485,0.034749124,0.46372485,0.54204994,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.81812465,0.60676706,0.0024661266,0.10309779,0.081489936,0.81812465,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.intermediate.dense.bias,torch.Size([512]),512,-2.8752213,0.06035009,-0.8343036,0.43902618,0.83463573,2.8752213,30.6640625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.output.dense.weight,"torch.Size([128, 512])",65536,-0.7021292,0.53921944,0.0008445283,0.09338957,0.073302075,0.7021292,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.output.dense.bias,torch.Size([128]),128,-0.27389917,0.5877325,0.0030538319,0.11136555,0.0822175,0.5877325,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.output.LayerNorm.bias,torch.Size([128]),128,-0.14008121,0.3141135,0.0014358195,0.05960023,0.043927614,0.3141135,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.output.LayerNorm.weight,torch.Size([128]),128,0.32629874,0.45126286,0.42197704,0.016865943,0.42197704,0.45126286,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.output.bottleneck.dense.weight,"torch.Size([512, 128])",65536,-0.7044219,0.6420273,0.00067155936,0.14825432,0.11663838,0.7044219,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.output.bottleneck.dense.bias,torch.Size([512]),512,-0.20773943,0.20505421,-0.0018315098,0.043063566,0.03315791,0.20773943,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.output.bottleneck.LayerNorm.bias,torch.Size([512]),512,-0.2241169,0.23926675,7.615899e-05,0.042258777,0.031767264,0.23926675,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.output.bottleneck.LayerNorm.weight,torch.Size([512]),512,0.6985569,1.0913503,0.9169881,0.07753317,0.9169881,1.0913503,14.0625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.bottleneck.input.dense.weight,"torch.Size([128, 512])",65536,-0.7924989,0.69041264,0.00045617888,0.15092698,0.118374385,0.7924989,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.bottleneck.input.dense.bias,torch.Size([128]),128,-2.8231442,1.5457212,-0.048535254,0.7071973,0.52050644,2.8231442,12.5,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.bottleneck.input.LayerNorm.bias,torch.Size([128]),128,-2.8043828,1.5646755,-0.049326926,0.71158266,0.52399796,2.8043828,13.28125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.bottleneck.input.LayerNorm.weight,torch.Size([128]),128,0.4760356,1.0280983,0.70314026,0.10767648,0.70314026,1.0280983,0.78125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.bottleneck.attention.dense.weight,"torch.Size([128, 512])",65536,-0.8103552,0.81901467,0.00016018687,0.13946909,0.106583804,0.81901467,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.bottleneck.attention.dense.bias,torch.Size([128]),128,-1.0996065,1.4918864,0.01651498,0.3634115,0.2690655,1.4918864,2.34375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.bottleneck.attention.LayerNorm.bias,torch.Size([128]),128,-0.7219418,1.1567045,0.015304623,0.23715164,0.15258048,1.1567045,1.5625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.bottleneck.attention.LayerNorm.weight,torch.Size([128]),128,0.068251334,0.20120558,0.09342241,0.022767162,0.09342241,0.20120558,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.ffn.0.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.5528079,0.43498838,0.0021119784,0.09650072,0.0768878,0.5528079,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.ffn.0.intermediate.dense.bias,torch.Size([512]),512,-4.550014,0.4537261,-1.0648971,0.59853625,1.075252,4.550014,55.078125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.ffn.0.output.dense.weight,"torch.Size([128, 512])",65536,-0.46830338,0.4748118,-0.00082716986,0.083408825,0.06583678,0.4748118,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.ffn.0.output.dense.bias,torch.Size([128]),128,-0.77055806,1.0318912,0.02453937,0.29450637,0.23707008,1.0318912,0.78125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.ffn.0.output.LayerNorm.bias,torch.Size([128]),128,-0.66375244,0.9281067,0.01774319,0.2515501,0.20069827,0.9281067,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.ffn.0.output.LayerNorm.weight,torch.Size([128]),128,0.5418194,0.7281558,0.5904143,0.025402805,0.5904143,0.7281558,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.ffn.1.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.670311,0.5977802,0.0035638232,0.10361091,0.08214656,0.670311,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.ffn.1.intermediate.dense.bias,torch.Size([512]),512,-2.5734599,1.3857069,-0.75109124,0.59495336,0.8009707,2.5734599,32.6171875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.ffn.1.output.dense.weight,"torch.Size([128, 512])",65536,-0.8209293,0.5828542,-0.0006537576,0.088814944,0.06959661,0.8209293,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.ffn.1.output.dense.bias,torch.Size([128]),128,-0.4074917,0.6401283,0.009021541,0.1820998,0.1446386,0.6401283,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.ffn.1.output.LayerNorm.bias,torch.Size([128]),128,-0.31749874,0.48517343,0.0030117314,0.1385364,0.10863937,0.48517343,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.ffn.1.output.LayerNorm.weight,torch.Size([128]),128,0.49961174,0.599213,0.5579572,0.019115195,0.5579572,0.599213,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.ffn.2.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.675468,0.76305604,0.0029729297,0.108874545,0.08549996,0.76305604,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.ffn.2.intermediate.dense.bias,torch.Size([512]),512,-3.0589077,0.79277116,-0.8119804,0.56089586,0.83468497,3.0589077,31.640625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.ffn.2.output.dense.weight,"torch.Size([128, 512])",65536,-0.5989937,0.5726485,-0.0005433569,0.09378404,0.0729285,0.5989937,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.ffn.2.output.dense.bias,torch.Size([128]),128,-0.28956285,0.57713896,0.01445475,0.13922451,0.10848322,0.57713896,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.ffn.2.output.LayerNorm.bias,torch.Size([128]),128,-0.19060898,0.38857037,0.008673271,0.09096025,0.07317807,0.38857037,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.16.ffn.2.output.LayerNorm.weight,torch.Size([128]),128,0.4482559,0.55710167,0.5125208,0.019905355,0.5125208,0.55710167,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.attention.self.query.weight,"torch.Size([128, 128])",16384,-0.50732625,0.5411853,-0.00018928148,0.11919932,0.09347681,0.5411853,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.attention.self.query.bias,torch.Size([128]),128,-2.7435703,2.885215,-0.079345345,0.6761228,0.4099995,2.885215,10.9375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.attention.self.key.weight,"torch.Size([128, 128])",16384,-0.5244141,0.4809553,-0.00089290226,0.11407304,0.089351594,0.5244141,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.attention.self.key.bias,torch.Size([128]),128,-5.0707846,6.852057,-0.2104896,1.8103919,1.352607,6.852057,48.4375,1.5625,0.0,MobileBERT
+mobilebert.encoder.layer.17.attention.self.value.weight,"torch.Size([128, 512])",65536,-0.7316925,0.81434476,0.00025564118,0.16072565,0.1263572,0.81434476,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.attention.self.value.bias,torch.Size([128]),128,-0.8738915,0.8377432,0.0016007731,0.2704988,0.1969656,0.8738915,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.attention.output.dense.weight,"torch.Size([128, 128])",16384,-0.62312865,0.5750327,-0.0006794476,0.15228553,0.12170948,0.62312865,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.attention.output.dense.bias,torch.Size([128]),128,-1.76879,2.5644088,0.0142683145,0.7486577,0.5506659,2.5644088,20.3125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.attention.output.LayerNorm.bias,torch.Size([128]),128,-1.8776442,2.6791556,0.011391398,0.7851543,0.57894456,2.6791556,21.09375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.attention.output.LayerNorm.weight,torch.Size([128]),128,0.41656348,0.5930892,0.47792852,0.030943472,0.47792852,0.5930892,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.680787,0.68124634,-0.002950942,0.102847,0.08115421,0.68124634,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.intermediate.dense.bias,torch.Size([512]),512,-2.4172168,0.042322755,-0.92455447,0.3652461,0.92471975,2.4172168,39.6484375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.output.dense.weight,"torch.Size([128, 512])",65536,-0.67368335,0.6281969,0.00010587004,0.095608644,0.07436723,0.67368335,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.output.dense.bias,torch.Size([128]),128,-0.3740406,0.3710339,-0.017625084,0.11559364,0.08887788,0.3740406,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.output.LayerNorm.bias,torch.Size([128]),128,-0.1890747,0.17716515,-0.010148177,0.05759948,0.045390554,0.1890747,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.output.LayerNorm.weight,torch.Size([128]),128,0.3946518,0.49681923,0.44929665,0.01830854,0.44929665,0.49681923,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.output.bottleneck.dense.weight,"torch.Size([512, 128])",65536,-0.757185,0.6186437,-0.00026981678,0.14795673,0.11657781,0.757185,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.output.bottleneck.dense.bias,torch.Size([512]),512,-0.49291456,0.26590466,0.00021003699,0.052424893,0.034167312,0.49291456,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.output.bottleneck.LayerNorm.bias,torch.Size([512]),512,-0.5013713,0.31580463,0.0031523644,0.054201268,0.03500337,0.5013713,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.output.bottleneck.LayerNorm.weight,torch.Size([512]),512,0.71734947,1.1304998,0.91706634,0.09041138,0.91706634,1.1304998,21.6796875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.bottleneck.input.dense.weight,"torch.Size([128, 512])",65536,-0.60841084,0.64654225,0.0006661794,0.1501337,0.11777041,0.64654225,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.bottleneck.input.dense.bias,torch.Size([128]),128,-1.7262753,2.521619,0.01674174,0.73887455,0.5429423,2.521619,19.53125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.bottleneck.input.LayerNorm.bias,torch.Size([128]),128,-1.76879,2.5644088,0.0142683145,0.7486577,0.5506659,2.5644088,20.3125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.bottleneck.input.LayerNorm.weight,torch.Size([128]),128,0.49971178,0.94962466,0.7050774,0.08118344,0.7050774,0.94962466,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.bottleneck.attention.dense.weight,"torch.Size([128, 512])",65536,-0.9640516,0.77735835,-0.00015255333,0.12973247,0.10005477,0.9640516,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.bottleneck.attention.dense.bias,torch.Size([128]),128,-0.98167914,0.73873466,-0.014628498,0.2866585,0.21216853,0.98167914,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.bottleneck.attention.LayerNorm.bias,torch.Size([128]),128,-1.0277796,0.60678566,0.0006070854,0.19297801,0.116052076,1.0277796,0.78125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.bottleneck.attention.LayerNorm.weight,torch.Size([128]),128,0.060812477,0.17965841,0.08276129,0.02457232,0.08276129,0.17965841,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.ffn.0.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.4051129,0.4706552,0.0012532535,0.09500699,0.075604066,0.4706552,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.ffn.0.intermediate.dense.bias,torch.Size([512]),512,-2.9116533,0.46222785,-1.1064798,0.534235,1.1130972,2.9116533,58.203125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.ffn.0.output.dense.weight,"torch.Size([128, 512])",65536,-0.41910678,0.46192822,0.0008448099,0.08071208,0.06378638,0.46192822,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.ffn.0.output.dense.bias,torch.Size([128]),128,-0.7391507,0.7652014,-0.011965856,0.24718134,0.18802617,0.7652014,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.ffn.0.output.LayerNorm.bias,torch.Size([128]),128,-0.61808336,0.66974604,-0.009125207,0.2167146,0.17261562,0.66974604,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.ffn.0.output.LayerNorm.weight,torch.Size([128]),128,0.53692895,0.6443096,0.5921213,0.019912874,0.5921213,0.6443096,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.ffn.1.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.49253812,0.5019416,-0.0012445821,0.10112234,0.08035189,0.5019416,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.ffn.1.intermediate.dense.bias,torch.Size([512]),512,-3.0262346,0.49209067,-0.85385585,0.5393782,0.8790136,3.0262346,38.671875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.ffn.1.output.dense.weight,"torch.Size([128, 512])",65536,-0.52832323,0.51281995,0.001087372,0.08417286,0.06623021,0.52832323,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.ffn.1.output.dense.bias,torch.Size([128]),128,-0.56985825,0.44861627,-0.0101882685,0.17654043,0.13823096,0.56985825,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.ffn.1.output.LayerNorm.bias,torch.Size([128]),128,-0.4271083,0.31540462,-0.002837021,0.13551621,0.10854086,0.4271083,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.ffn.1.output.LayerNorm.weight,torch.Size([128]),128,0.49815553,0.5954773,0.5447792,0.017370485,0.5447792,0.5954773,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.ffn.2.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.6634028,0.50137573,-0.0033409088,0.10254668,0.08112651,0.6634028,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.ffn.2.intermediate.dense.bias,torch.Size([512]),512,-2.5450468,0.38676417,-0.90366906,0.4644756,0.909191,2.5450468,42.7734375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.ffn.2.output.dense.weight,"torch.Size([128, 512])",65536,-0.7602227,0.62766147,0.0006267523,0.089696944,0.07004609,0.7602227,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.ffn.2.output.dense.bias,torch.Size([128]),128,-0.44353348,0.28327405,-0.024288464,0.14282641,0.11563819,0.44353348,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.ffn.2.output.LayerNorm.bias,torch.Size([128]),128,-0.2919202,0.20345886,-0.013654045,0.089072905,0.07010059,0.2919202,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.17.ffn.2.output.LayerNorm.weight,torch.Size([128]),128,0.4458234,0.53532386,0.49904847,0.0153100565,0.49904847,0.53532386,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.attention.self.query.weight,"torch.Size([128, 128])",16384,-0.50412285,0.52594376,0.0016550595,0.11791764,0.092919946,0.52594376,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.attention.self.query.bias,torch.Size([128]),128,-2.593065,2.7112374,0.063543946,0.707269,0.44170845,2.7112374,11.71875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.attention.self.key.weight,"torch.Size([128, 128])",16384,-0.5313937,0.5301252,-0.0004859782,0.11549636,0.09064919,0.5313937,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.attention.self.key.bias,torch.Size([128]),128,-4.7818313,5.21238,0.12811542,1.7614738,1.3076177,5.21238,46.875,0.78125,0.0,MobileBERT
+mobilebert.encoder.layer.18.attention.self.value.weight,"torch.Size([128, 512])",65536,-0.8609313,0.8412995,0.00030359993,0.14925456,0.11516709,0.8609313,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.attention.self.value.bias,torch.Size([128]),128,-0.40143436,0.73859376,0.007331012,0.18145059,0.1424527,0.73859376,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.attention.output.dense.weight,"torch.Size([128, 128])",16384,-0.7764722,0.6537135,0.0009628046,0.16304271,0.12844273,0.7764722,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.attention.output.dense.bias,torch.Size([128]),128,-2.8550825,1.228706,-0.11213195,0.60745883,0.43071574,2.8550825,4.6875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.attention.output.LayerNorm.bias,torch.Size([128]),128,-2.9581366,1.3083607,-0.11900699,0.6461927,0.46352774,2.9581366,7.8125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.attention.output.LayerNorm.weight,torch.Size([128]),128,0.3981478,0.6705401,0.5346757,0.049986027,0.5346757,0.6705401,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.5762296,0.5280761,0.006141831,0.11785307,0.093313664,0.5762296,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.intermediate.dense.bias,torch.Size([512]),512,-2.8095589,0.10977895,-0.8773864,0.37044063,0.87787944,2.8095589,32.2265625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.output.dense.weight,"torch.Size([128, 512])",65536,-0.76528716,0.6869966,0.00018872948,0.115666516,0.090282395,0.76528716,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.output.dense.bias,torch.Size([128]),128,-0.4927462,1.1100608,0.033428103,0.2065558,0.1481798,1.1100608,0.78125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.output.LayerNorm.bias,torch.Size([128]),128,-0.24804565,0.66835356,0.016773827,0.10688963,0.07009792,0.66835356,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.output.LayerNorm.weight,torch.Size([128]),128,0.21987264,0.5006605,0.44646424,0.031664323,0.44646424,0.5006605,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.output.bottleneck.dense.weight,"torch.Size([512, 128])",65536,-0.8358375,0.74273515,0.00014551311,0.14509258,0.114205986,0.8358375,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.output.bottleneck.dense.bias,torch.Size([512]),512,-0.13372959,0.26604512,-0.0044627357,0.048956405,0.035906523,0.26604512,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.output.bottleneck.LayerNorm.bias,torch.Size([512]),512,-0.1271051,0.2584485,-0.0013300634,0.045021143,0.0328742,0.2584485,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.output.bottleneck.LayerNorm.weight,torch.Size([512]),512,0.7227139,1.2043656,0.8986465,0.06654406,0.8986465,1.2043656,6.640625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.bottleneck.input.dense.weight,"torch.Size([128, 512])",65536,-0.6026734,0.59955424,-0.00040999404,0.13994361,0.11096435,0.6026734,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.bottleneck.input.dense.bias,torch.Size([128]),128,-2.8078816,1.1873859,-0.10857863,0.59350884,0.41974604,2.8078816,4.6875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.bottleneck.input.LayerNorm.bias,torch.Size([128]),128,-2.8550825,1.228706,-0.11213195,0.60745883,0.43071574,2.8550825,4.6875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.bottleneck.input.LayerNorm.weight,torch.Size([128]),128,0.532371,1.1956129,0.75546473,0.12361156,0.75546473,1.1956129,4.6875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.bottleneck.attention.dense.weight,"torch.Size([128, 512])",65536,-0.67113835,0.707375,0.00022933411,0.13811387,0.10640773,0.707375,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.bottleneck.attention.dense.bias,torch.Size([128]),128,-1.0314754,0.9129507,-0.03147949,0.34239364,0.25173903,1.0314754,0.78125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.bottleneck.attention.LayerNorm.bias,torch.Size([128]),128,-0.9723668,0.78386116,-0.031372763,0.25443125,0.15832973,0.9723668,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.bottleneck.attention.LayerNorm.weight,torch.Size([128]),128,0.058507998,0.18362087,0.083557695,0.022528566,0.083557695,0.18362087,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.ffn.0.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.43429485,0.45442775,0.005194149,0.101050556,0.080266654,0.45442775,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.ffn.0.intermediate.dense.bias,torch.Size([512]),512,-3.0654492,1.2283782,-1.0368744,0.55940676,1.0507227,3.0654492,54.1015625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.ffn.0.output.dense.weight,"torch.Size([128, 512])",65536,-0.7696465,0.7713961,-0.0011952217,0.09073984,0.07077019,0.7713961,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.ffn.0.output.dense.bias,torch.Size([128]),128,-0.64564383,0.5552118,0.008264311,0.22868629,0.18516752,0.64564383,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.ffn.0.output.LayerNorm.bias,torch.Size([128]),128,-0.5743194,0.46091712,-0.00036241254,0.18685785,0.14943716,0.5743194,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.ffn.0.output.LayerNorm.weight,torch.Size([128]),128,0.5818916,0.7316095,0.6547735,0.027149478,0.6547735,0.7316095,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.ffn.1.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.53296745,0.5564048,0.0064305277,0.11298545,0.08961445,0.5564048,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.ffn.1.intermediate.dense.bias,torch.Size([512]),512,-2.0962894,0.8610625,-0.802985,0.5016334,0.83035946,2.0962894,33.203125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.ffn.1.output.dense.weight,"torch.Size([128, 512])",65536,-0.6541647,0.53498435,-0.001923278,0.10352088,0.080338284,0.6541647,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.ffn.1.output.dense.bias,torch.Size([128]),128,-0.5332137,0.7591788,0.013883312,0.18667468,0.14346448,0.7591788,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.ffn.1.output.LayerNorm.bias,torch.Size([128]),128,-0.43612105,0.5839029,0.0010360049,0.14430307,0.11362955,0.5839029,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.ffn.1.output.LayerNorm.weight,torch.Size([128]),128,0.53285056,0.68720084,0.59571016,0.023555242,0.59571016,0.68720084,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.ffn.2.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.58435905,0.5605386,0.007099565,0.113533914,0.09002546,0.58435905,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.ffn.2.intermediate.dense.bias,torch.Size([512]),512,-3.5225873,0.34096858,-0.8674859,0.48374426,0.8713325,3.5225873,37.3046875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.ffn.2.output.dense.weight,"torch.Size([128, 512])",65536,-0.6612245,0.63787436,-0.0012581368,0.10430295,0.08134866,0.6612245,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.ffn.2.output.dense.bias,torch.Size([128]),128,-0.34984004,0.6708146,0.040768925,0.16138695,0.12748113,0.6708146,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.ffn.2.output.LayerNorm.bias,torch.Size([128]),128,-0.19400294,0.47099462,0.023792922,0.10357069,0.08090162,0.47099462,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.18.ffn.2.output.LayerNorm.weight,torch.Size([128]),128,0.45178744,0.5816568,0.5348946,0.02353193,0.5348946,0.5816568,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.attention.self.query.weight,"torch.Size([128, 128])",16384,-0.5090851,0.5091357,0.00018948149,0.1237831,0.09680529,0.5091357,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.attention.self.query.bias,torch.Size([128]),128,-2.377526,2.0945435,0.06383203,0.6594609,0.41802827,2.377526,14.0625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.attention.self.key.weight,"torch.Size([128, 128])",16384,-0.4701269,0.5814883,7.821509e-05,0.114131644,0.08883319,0.5814883,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.attention.self.key.bias,torch.Size([128]),128,-5.9200583,5.3763943,0.045687854,2.1509922,1.623021,5.9200583,52.34375,3.90625,0.0,MobileBERT
+mobilebert.encoder.layer.19.attention.self.value.weight,"torch.Size([128, 512])",65536,-0.6762704,0.79387444,-0.0005225155,0.15815167,0.12450239,0.79387444,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.attention.self.value.bias,torch.Size([128]),128,-0.7273743,0.60064924,-0.02410001,0.19477926,0.15569516,0.7273743,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.attention.output.dense.weight,"torch.Size([128, 128])",16384,-0.6380688,0.52844757,-0.0017989355,0.1511559,0.120944045,0.6380688,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.attention.output.dense.bias,torch.Size([128]),128,-3.4607403,2.1604252,-0.14957795,0.8554629,0.6292966,3.4607403,17.96875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.attention.output.LayerNorm.bias,torch.Size([128]),128,-3.5749612,2.2511237,-0.15346077,0.8967036,0.6642797,3.5749612,22.65625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.attention.output.LayerNorm.weight,torch.Size([128]),128,0.36634102,0.668117,0.4303215,0.03887331,0.4303215,0.668117,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.729098,0.6855869,0.003015291,0.1153755,0.08993589,0.729098,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.intermediate.dense.bias,torch.Size([512]),512,-2.3092952,-0.03496644,-0.96758294,0.35154837,0.96758294,2.3092952,42.578125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.output.dense.weight,"torch.Size([128, 512])",65536,-0.7538757,0.77093595,0.00024301445,0.108663656,0.08342164,0.77093595,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.output.dense.bias,torch.Size([128]),128,-0.37312952,0.5221549,0.019264007,0.15811816,0.12432271,0.5221549,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.output.LayerNorm.bias,torch.Size([128]),128,-0.19392116,0.29884437,0.010521388,0.07856347,0.05896488,0.29884437,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.output.LayerNorm.weight,torch.Size([128]),128,0.3506642,0.4790591,0.44174418,0.01899719,0.44174418,0.4790591,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.output.bottleneck.dense.weight,"torch.Size([512, 128])",65536,-0.67760843,0.6219992,-6.312417e-05,0.14520018,0.11493273,0.67760843,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.output.bottleneck.dense.bias,torch.Size([512]),512,-0.23144227,0.24468221,-0.0016681193,0.04494309,0.03230165,0.24468221,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.output.bottleneck.LayerNorm.bias,torch.Size([512]),512,-0.18110561,0.19975856,0.0014618542,0.042266037,0.031551935,0.19975856,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.output.bottleneck.LayerNorm.weight,torch.Size([512]),512,0.7440489,1.0448308,0.89889395,0.046514932,0.89889395,1.0448308,1.171875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.bottleneck.input.dense.weight,"torch.Size([128, 512])",65536,-0.64809763,0.7806286,-7.042989e-05,0.15076631,0.118827246,0.7806286,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.bottleneck.input.dense.bias,torch.Size([128]),128,-3.3959794,2.138619,-0.1495945,0.84100914,0.6177041,3.3959794,17.1875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.bottleneck.input.LayerNorm.bias,torch.Size([128]),128,-3.4607403,2.1604252,-0.14957795,0.8554629,0.6292966,3.4607403,17.96875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.bottleneck.input.LayerNorm.weight,torch.Size([128]),128,0.5789904,1.1856691,0.79465485,0.096044295,0.79465485,1.1856691,1.5625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.bottleneck.attention.dense.weight,"torch.Size([128, 512])",65536,-0.8921022,0.6894191,0.00033771317,0.12631507,0.098542385,0.8921022,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.bottleneck.attention.dense.bias,torch.Size([128]),128,-1.1127248,0.8574293,-0.03731538,0.3085007,0.24034317,1.1127248,0.78125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.bottleneck.attention.LayerNorm.bias,torch.Size([128]),128,-0.9270783,0.5383304,-0.010227838,0.19024484,0.12048583,0.9270783,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.bottleneck.attention.LayerNorm.weight,torch.Size([128]),128,0.05387572,0.20819834,0.07739422,0.026240366,0.07739422,0.20819834,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.ffn.0.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.60213107,0.5768078,0.0040570335,0.10386888,0.08239834,0.60213107,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.ffn.0.intermediate.dense.bias,torch.Size([512]),512,-2.7222607,0.48419106,-1.071533,0.5173022,1.0800378,2.7222607,55.46875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.ffn.0.output.dense.weight,"torch.Size([128, 512])",65536,-0.66552293,0.6016707,-0.0010387552,0.09289282,0.07230407,0.66552293,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.ffn.0.output.dense.bias,torch.Size([128]),128,-0.8488666,0.70331717,0.013879313,0.2583048,0.19672582,0.8488666,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.ffn.0.output.LayerNorm.bias,torch.Size([128]),128,-0.7436757,0.5974944,0.0063695256,0.22186765,0.1694512,0.7436757,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.ffn.0.output.LayerNorm.weight,torch.Size([128]),128,0.50516546,0.6153107,0.54979664,0.020360595,0.54979664,0.6153107,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.ffn.1.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.6753208,0.6628336,0.0040085763,0.110688925,0.08756447,0.6753208,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.ffn.1.intermediate.dense.bias,torch.Size([512]),512,-2.5307772,2.2094293,-0.8385538,0.5258751,0.8649967,2.5307772,38.8671875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.ffn.1.output.dense.weight,"torch.Size([128, 512])",65536,-0.7387614,0.7893308,-0.0005020225,0.09973769,0.07675422,0.7893308,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.ffn.1.output.dense.bias,torch.Size([128]),128,-0.46765393,0.4152399,0.006672097,0.17140159,0.13492852,0.46765393,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.ffn.1.output.LayerNorm.bias,torch.Size([128]),128,-0.35301805,0.27124107,-0.0016180077,0.12623405,0.10030538,0.35301805,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.ffn.1.output.LayerNorm.weight,torch.Size([128]),128,0.45345435,0.5637029,0.51226604,0.019727306,0.51226604,0.5637029,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.ffn.2.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.57669044,0.6828381,0.003921753,0.11266228,0.08867513,0.6828381,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.ffn.2.intermediate.dense.bias,torch.Size([512]),512,-2.0390246,1.9630094,-0.92806214,0.48523584,0.95546365,2.0390246,44.921875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.ffn.2.output.dense.weight,"torch.Size([128, 512])",65536,-0.881223,0.64255077,-0.0003332239,0.10327373,0.07972502,0.881223,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.ffn.2.output.dense.bias,torch.Size([128]),128,-0.5413171,0.55880976,0.011553101,0.15508184,0.11101328,0.55880976,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.ffn.2.output.LayerNorm.bias,torch.Size([128]),128,-0.3468721,0.33296025,0.002857114,0.097089164,0.07055117,0.3468721,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.19.ffn.2.output.LayerNorm.weight,torch.Size([128]),128,0.38111284,0.52893484,0.48665464,0.020590872,0.48665464,0.52893484,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.attention.self.query.weight,"torch.Size([128, 128])",16384,-0.611191,0.51036304,-0.00028767146,0.121847555,0.09553127,0.611191,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.attention.self.query.bias,torch.Size([128]),128,-3.3815775,3.2672231,-0.015876673,0.79355556,0.49827075,3.3815775,10.9375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.attention.self.key.weight,"torch.Size([128, 128])",16384,-0.5759962,0.52422607,0.0012815305,0.11887491,0.0930295,0.5759962,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.attention.self.key.bias,torch.Size([128]),128,-5.335084,5.164876,0.099018015,1.7853053,1.3393004,5.335084,43.75,2.34375,0.0,MobileBERT
+mobilebert.encoder.layer.20.attention.self.value.weight,"torch.Size([128, 512])",65536,-0.6917732,0.65583825,0.00042067643,0.15617658,0.123655155,0.6917732,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.attention.self.value.bias,torch.Size([128]),128,-1.0683234,1.1586999,0.034920625,0.40186033,0.30144244,1.1586999,2.34375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.attention.output.dense.weight,"torch.Size([128, 128])",16384,-0.57956135,0.57205474,2.4459529e-05,0.15297969,0.121946946,0.57956135,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.attention.output.dense.bias,torch.Size([128]),128,-2.1281524,3.9956865,0.09794036,0.89675003,0.6835108,3.9956865,18.75,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.attention.output.LayerNorm.bias,torch.Size([128]),128,-2.2275398,4.1231027,0.10144081,0.9366379,0.71632284,4.1231027,20.3125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.attention.output.LayerNorm.weight,torch.Size([128]),128,0.39644212,0.6700359,0.4630487,0.033290554,0.4630487,0.6700359,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.46178532,0.5567116,-0.002316504,0.10238576,0.08182372,0.5567116,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.intermediate.dense.bias,torch.Size([512]),512,-2.3830364,-0.13487032,-0.9429643,0.32340863,0.9429643,2.3830364,37.890625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.output.dense.weight,"torch.Size([128, 512])",65536,-0.5800102,0.45784497,-3.8260594e-05,0.088361256,0.0700209,0.5800102,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.output.dense.bias,torch.Size([128]),128,-0.6767727,0.33318785,-0.013617745,0.11178707,0.07878217,0.6767727,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.output.LayerNorm.bias,torch.Size([128]),128,-0.37543434,0.15666835,-0.0070573417,0.054105174,0.036263276,0.37543434,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.output.LayerNorm.weight,torch.Size([128]),128,0.32842183,0.47129416,0.42588186,0.017529072,0.42588186,0.47129416,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.output.bottleneck.dense.weight,"torch.Size([512, 128])",65536,-0.5757064,0.69225585,0.00014348353,0.14444908,0.11485106,0.69225585,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.output.bottleneck.dense.bias,torch.Size([512]),512,-0.1657507,0.15875156,-0.0025065711,0.031955246,0.02466835,0.1657507,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.output.bottleneck.LayerNorm.bias,torch.Size([512]),512,-0.10128059,0.1245942,0.00082342804,0.02973193,0.023344368,0.1245942,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.output.bottleneck.LayerNorm.weight,torch.Size([512]),512,0.7818309,1.0771176,0.9164345,0.047714017,0.9164345,1.0771176,4.4921875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.bottleneck.input.dense.weight,"torch.Size([128, 512])",65536,-0.788431,0.6188959,-0.0009521803,0.15042698,0.118736625,0.788431,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.bottleneck.input.dense.bias,torch.Size([128]),128,-2.1006656,3.9318392,0.09537178,0.8840997,0.67389894,3.9318392,18.75,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.bottleneck.input.LayerNorm.bias,torch.Size([128]),128,-2.1281524,3.9956865,0.09794036,0.89675003,0.6835108,3.9956865,18.75,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.bottleneck.input.LayerNorm.weight,torch.Size([128]),128,0.61322296,1.0299368,0.7951813,0.075491674,0.7951813,1.0299368,1.5625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.bottleneck.attention.dense.weight,"torch.Size([128, 512])",65536,-0.7066105,0.77146703,0.00023801997,0.12103489,0.095093,0.77146703,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.bottleneck.attention.dense.bias,torch.Size([128]),128,-0.8685796,0.9838051,-0.05439211,0.3991703,0.32415634,0.9838051,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.bottleneck.attention.LayerNorm.bias,torch.Size([128]),128,-0.6294004,0.8994549,-0.030698411,0.22923075,0.16366257,0.8994549,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.bottleneck.attention.LayerNorm.weight,torch.Size([128]),128,0.04726573,0.25642425,0.07797344,0.02939108,0.07797344,0.25642425,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.ffn.0.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.46929044,0.40791443,-0.0023378723,0.0975335,0.0778494,0.46929044,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.ffn.0.intermediate.dense.bias,torch.Size([512]),512,-3.2913485,0.33573478,-1.16465,0.49618602,1.1677341,3.2913485,63.8671875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.ffn.0.output.dense.weight,"torch.Size([128, 512])",65536,-0.3873382,0.36966616,0.00024967286,0.08136487,0.06458844,0.3873382,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.ffn.0.output.dense.bias,torch.Size([128]),128,-0.58816546,0.76268065,0.009281844,0.26772904,0.2140066,0.76268065,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.ffn.0.output.LayerNorm.bias,torch.Size([128]),128,-0.53799164,0.92977846,0.015037689,0.24421813,0.18805128,0.92977846,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.ffn.0.output.LayerNorm.weight,torch.Size([128]),128,0.5211296,0.6469893,0.56730986,0.021211846,0.56730986,0.6469893,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.ffn.1.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.4572099,0.4131193,-0.0020067606,0.10105095,0.08044462,0.4572099,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.ffn.1.intermediate.dense.bias,torch.Size([512]),512,-2.4575694,1.9143546,-0.94324553,0.50810856,0.96462107,2.4575694,46.484375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.ffn.1.output.dense.weight,"torch.Size([128, 512])",65536,-0.54838747,0.42057618,0.0002086407,0.08231234,0.06509121,0.54838747,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.ffn.1.output.dense.bias,torch.Size([128]),128,-0.3776787,0.48398998,-0.021135114,0.18093278,0.14834923,0.48398998,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.ffn.1.output.LayerNorm.bias,torch.Size([128]),128,-0.36327466,0.40059763,-0.013744038,0.14732869,0.120141484,0.40059763,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.ffn.1.output.LayerNorm.weight,torch.Size([128]),128,0.5009886,0.5855856,0.5377142,0.016951906,0.5377142,0.5855856,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.ffn.2.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.51489997,0.53088343,-0.0017784111,0.102253705,0.08141337,0.53088343,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.ffn.2.intermediate.dense.bias,torch.Size([512]),512,-2.3328385,1.1726499,-0.97244334,0.41963094,0.9782316,2.3328385,46.09375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.ffn.2.output.dense.weight,"torch.Size([128, 512])",65536,-0.6865973,0.5365273,0.00013418641,0.08561055,0.06736036,0.6865973,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.ffn.2.output.dense.bias,torch.Size([128]),128,-0.6801045,0.45495817,0.0033304458,0.1423648,0.10711691,0.6801045,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.ffn.2.output.LayerNorm.bias,torch.Size([128]),128,-0.400062,0.24669634,0.009774313,0.08900577,0.06949066,0.400062,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.20.ffn.2.output.LayerNorm.weight,torch.Size([128]),128,0.4068122,0.536259,0.4947608,0.017488342,0.4947608,0.536259,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.attention.self.query.weight,"torch.Size([128, 128])",16384,-0.49964032,0.5373874,-4.923086e-05,0.12217778,0.09551142,0.5373874,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.attention.self.query.bias,torch.Size([128]),128,-2.6248531,2.314972,-0.1480988,0.6854324,0.4342937,2.6248531,10.9375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.attention.self.key.weight,"torch.Size([128, 128])",16384,-0.4783803,0.47483882,0.0005417369,0.11744781,0.092444226,0.4783803,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.attention.self.key.bias,torch.Size([128]),128,-5.886717,5.7885227,-0.27233464,2.0826313,1.5723153,5.886717,54.6875,3.125,0.0,MobileBERT
+mobilebert.encoder.layer.21.attention.self.value.weight,"torch.Size([128, 512])",65536,-0.77060455,0.75698006,-0.00027983414,0.16171013,0.12803707,0.77060455,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.attention.self.value.bias,torch.Size([128]),128,-0.6754637,0.66587687,-0.0068872496,0.22537795,0.17593402,0.6754637,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.attention.output.dense.weight,"torch.Size([128, 128])",16384,-0.5640457,0.6190402,0.0026177699,0.15478,0.12372054,0.6190402,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.attention.output.dense.bias,torch.Size([128]),128,-2.8942215,2.5905566,-0.0975185,0.92445064,0.72696507,2.8942215,28.90625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.attention.output.LayerNorm.bias,torch.Size([128]),128,-3.010053,2.6972187,-0.10626225,0.9690588,0.76298296,3.010053,31.25,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.attention.output.LayerNorm.weight,torch.Size([128]),128,0.38287842,0.5720802,0.47370175,0.031298324,0.47370175,0.5720802,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.4629978,0.429695,0.00031298376,0.09872262,0.078728005,0.4629978,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.intermediate.dense.bias,torch.Size([512]),512,-2.3802433,-0.027451368,-0.9404374,0.3271842,0.9404374,2.3802433,39.84375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.output.dense.weight,"torch.Size([128, 512])",65536,-0.46858686,0.3973566,0.00028808176,0.08193335,0.0649363,0.46858686,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.output.dense.bias,torch.Size([128]),128,-0.37825784,0.283952,-0.0010014751,0.13055775,0.10452598,0.37825784,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.output.LayerNorm.bias,torch.Size([128]),128,-0.18379796,0.12356932,-0.0020229104,0.056032732,0.043519598,0.18379796,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.output.LayerNorm.weight,torch.Size([128]),128,0.36480817,0.45648897,0.42795533,0.015167718,0.42795533,0.45648897,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.output.bottleneck.dense.weight,"torch.Size([512, 128])",65536,-0.5954045,0.662696,7.547598e-05,0.14418541,0.114696376,0.662696,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.output.bottleneck.dense.bias,torch.Size([512]),512,-0.28200552,0.23975427,-0.00046119382,0.04839161,0.034434974,0.28200552,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.output.bottleneck.LayerNorm.bias,torch.Size([512]),512,-0.32577443,0.29391348,0.0028824466,0.05166154,0.036968723,0.32577443,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.output.bottleneck.LayerNorm.weight,torch.Size([512]),512,0.77266526,1.0581754,0.8915621,0.040225163,0.8915621,1.0581754,0.9765625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.bottleneck.input.dense.weight,"torch.Size([128, 512])",65536,-0.6542738,0.7966504,-0.0006546358,0.14864789,0.11757514,0.7966504,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.bottleneck.input.dense.bias,torch.Size([128]),128,-2.8454807,2.5583787,-0.09151854,0.9121415,0.7178562,2.8454807,27.34375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.bottleneck.input.LayerNorm.bias,torch.Size([128]),128,-2.8942215,2.5905566,-0.0975185,0.92445064,0.72696507,2.8942215,28.90625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.bottleneck.input.LayerNorm.weight,torch.Size([128]),128,0.6383465,1.1014911,0.84986717,0.09222695,0.84986717,1.1014911,5.46875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.bottleneck.attention.dense.weight,"torch.Size([128, 512])",65536,-0.78157467,0.83946186,0.00011266433,0.119691454,0.09415054,0.83946186,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.bottleneck.attention.dense.bias,torch.Size([128]),128,-0.90767133,0.9423411,0.0012430977,0.40697652,0.3368008,0.9423411,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.bottleneck.attention.LayerNorm.bias,torch.Size([128]),128,-0.8253688,0.8064634,0.0056814533,0.24303721,0.17505813,0.8253688,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.bottleneck.attention.LayerNorm.weight,torch.Size([128]),128,0.054170232,0.23171738,0.0778493,0.027844364,0.0778493,0.23171738,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.ffn.0.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.42370823,0.41850707,0.00428515,0.0969781,0.07743094,0.42370823,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.ffn.0.intermediate.dense.bias,torch.Size([512]),512,-3.0641658,0.40439266,-1.1907445,0.4671035,1.1938679,3.0641658,65.0390625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.ffn.0.output.dense.weight,"torch.Size([128, 512])",65536,-0.36116725,0.35872427,0.00010294536,0.07823431,0.062295772,0.36116725,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.ffn.0.output.dense.bias,torch.Size([128]),128,-0.46004102,0.51584303,0.025034837,0.23042898,0.18659742,0.51584303,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.ffn.0.output.LayerNorm.bias,torch.Size([128]),128,-0.4422114,0.55615073,0.019535434,0.20515622,0.16844545,0.55615073,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.ffn.0.output.LayerNorm.weight,torch.Size([128]),128,0.5382989,0.6264133,0.5797844,0.017840052,0.5797844,0.6264133,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.ffn.1.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.41720283,0.45412534,0.001994403,0.100440376,0.08023799,0.45412534,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.ffn.1.intermediate.dense.bias,torch.Size([512]),512,-2.2887063,0.49409896,-0.8973974,0.4725494,0.90705645,2.2887063,40.234375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.ffn.1.output.dense.weight,"torch.Size([128, 512])",65536,-0.34582213,0.36636478,6.447043e-05,0.07820922,0.062134307,0.36636478,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.ffn.1.output.dense.bias,torch.Size([128]),128,-0.35750407,0.7151003,0.0111250775,0.17475666,0.13963668,0.7151003,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.ffn.1.output.LayerNorm.bias,torch.Size([128]),128,-0.35688764,0.5510293,0.007241927,0.13905346,0.11206447,0.5510293,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.ffn.1.output.LayerNorm.weight,torch.Size([128]),128,0.4814115,0.58455354,0.5289693,0.017525494,0.5289693,0.58455354,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.ffn.2.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.42963314,0.43958482,0.0012194444,0.101446785,0.080784835,0.43958482,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.ffn.2.intermediate.dense.bias,torch.Size([512]),512,-2.356794,1.2620511,-0.9634682,0.4369089,0.9710926,2.356794,46.09375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.ffn.2.output.dense.weight,"torch.Size([128, 512])",65536,-0.4076061,0.4309484,-0.00012037932,0.079930164,0.063345544,0.4309484,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.ffn.2.output.dense.bias,torch.Size([128]),128,-0.58272344,0.47370136,0.00924548,0.16953672,0.12820056,0.58272344,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.ffn.2.output.LayerNorm.bias,torch.Size([128]),128,-0.4109199,0.2946474,0.005998013,0.10665274,0.079971954,0.4109199,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.21.ffn.2.output.LayerNorm.weight,torch.Size([128]),128,0.434598,0.5241862,0.4804129,0.017103538,0.4804129,0.5241862,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.attention.self.query.weight,"torch.Size([128, 128])",16384,-0.5039276,0.50561994,0.0013870283,0.12493922,0.09793303,0.50561994,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.attention.self.query.bias,torch.Size([128]),128,-2.721623,2.871405,0.02665253,0.6748886,0.38996032,2.871405,9.375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.attention.self.key.weight,"torch.Size([128, 128])",16384,-0.4726605,0.51193327,0.0010340958,0.12145721,0.09525426,0.51193327,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.attention.self.key.bias,torch.Size([128]),128,-4.8587756,4.6563687,-0.050842136,1.5581889,1.1599188,4.8587756,48.4375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.attention.self.value.weight,"torch.Size([128, 512])",65536,-0.7231458,0.69557744,6.297484e-05,0.16266851,0.12880594,0.7231458,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.attention.self.value.bias,torch.Size([128]),128,-0.4762863,0.4580105,-0.014861254,0.19254883,0.15487005,0.4762863,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.attention.output.dense.weight,"torch.Size([128, 128])",16384,-0.7492978,0.67786306,0.00027596543,0.15592176,0.12419594,0.7492978,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.attention.output.dense.bias,torch.Size([128]),128,-2.4882925,3.263691,0.14351347,0.9300688,0.72700596,3.263691,24.21875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.attention.output.LayerNorm.bias,torch.Size([128]),128,-2.5841308,3.3451653,0.14466998,0.9683969,0.75886464,3.3451653,28.125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.attention.output.LayerNorm.weight,torch.Size([128]),128,0.4113362,0.74173933,0.52373,0.053477686,0.52373,0.74173933,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.intermediate.dense.weight,"torch.Size([512, 128])",65536,-1.041029,0.61348104,-0.004211034,0.10254364,0.08138773,1.041029,0.00152587890625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.intermediate.dense.bias,torch.Size([512]),512,-3.1286914,0.100010276,-0.9574449,0.34777743,0.9579586,3.1286914,40.8203125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.output.dense.weight,"torch.Size([128, 512])",65536,-0.67448294,0.5870426,0.00045291326,0.08853365,0.06954237,0.67448294,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.output.dense.bias,torch.Size([128]),128,-1.2622635,0.32032838,-0.04131592,0.18813914,0.1316124,1.2622635,0.78125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.output.LayerNorm.bias,torch.Size([128]),128,-0.83464205,0.1453789,-0.02050243,0.10335024,0.063867286,0.83464205,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.output.LayerNorm.weight,torch.Size([128]),128,0.27034768,0.491718,0.43340597,0.026337944,0.43340597,0.491718,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.output.bottleneck.dense.weight,"torch.Size([512, 128])",65536,-0.6576726,0.56425047,0.0010288071,0.14271183,0.113937765,0.6576726,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.output.bottleneck.dense.bias,torch.Size([512]),512,-0.45677388,0.55307406,0.00025757583,0.07323111,0.051481046,0.55307406,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.output.bottleneck.LayerNorm.bias,torch.Size([512]),512,-0.44471833,0.5039166,0.0019179729,0.07501796,0.054987583,0.5039166,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.output.bottleneck.LayerNorm.weight,torch.Size([512]),512,0.83394927,1.218196,1.0460466,0.04546962,1.0460466,1.218196,85.15625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.bottleneck.input.dense.weight,"torch.Size([128, 512])",65536,-0.7466668,0.6693744,0.00036684575,0.14294101,0.113581166,0.7466668,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.bottleneck.input.dense.bias,torch.Size([128]),128,-2.4490654,3.2301292,0.14719889,0.9216606,0.7233182,3.2301292,25.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.bottleneck.input.LayerNorm.bias,torch.Size([128]),128,-2.4882925,3.263691,0.14351347,0.9300688,0.72700596,3.263691,24.21875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.bottleneck.input.LayerNorm.weight,torch.Size([128]),128,0.62047905,1.2784362,0.89089257,0.13661087,0.89089257,1.2784362,22.65625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.bottleneck.attention.dense.weight,"torch.Size([128, 512])",65536,-0.7655632,0.68302613,0.00060607935,0.120679274,0.095071785,0.7655632,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.bottleneck.attention.dense.bias,torch.Size([128]),128,-0.88439304,0.91404355,0.033871576,0.405527,0.3260479,0.91404355,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.bottleneck.attention.LayerNorm.bias,torch.Size([128]),128,-0.9733748,0.8561068,0.024134908,0.2571709,0.18380602,0.9733748,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.bottleneck.attention.LayerNorm.weight,torch.Size([128]),128,0.054160215,0.2802125,0.08201805,0.03252283,0.08201805,0.2802125,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.ffn.0.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.5168118,0.41737455,-0.001673483,0.099737115,0.07957343,0.5168118,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.ffn.0.intermediate.dense.bias,torch.Size([512]),512,-3.284588,0.9900458,-1.1443957,0.5031497,1.1540424,3.284588,63.28125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.ffn.0.output.dense.weight,"torch.Size([128, 512])",65536,-0.54235965,0.37331203,0.00030705545,0.07422656,0.058744445,0.54235965,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.ffn.0.output.dense.bias,torch.Size([128]),128,-0.87638336,0.6927843,0.02528679,0.33760434,0.27804887,0.87638336,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.ffn.0.output.LayerNorm.bias,torch.Size([128]),128,-0.8000848,0.62963575,0.03069682,0.3167791,0.25665277,0.8000848,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.ffn.0.output.LayerNorm.weight,torch.Size([128]),128,0.52687263,0.6674564,0.5950433,0.025956618,0.5950433,0.6674564,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.ffn.1.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.95374954,0.6958708,-0.0026056909,0.101044685,0.08032864,0.95374954,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.ffn.1.intermediate.dense.bias,torch.Size([512]),512,-3.2692986,1.2632142,-0.9214983,0.51989967,0.9441215,3.2692986,42.1875,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.ffn.1.output.dense.weight,"torch.Size([128, 512])",65536,-0.6413356,0.632289,0.00028589583,0.079040006,0.062116258,0.6413356,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.ffn.1.output.dense.bias,torch.Size([128]),128,-0.6646364,0.5449462,-0.009284701,0.21611583,0.17313288,0.6646364,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.ffn.1.output.LayerNorm.bias,torch.Size([128]),128,-0.55958074,0.48629913,-0.00019098865,0.19211136,0.15212813,0.55958074,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.ffn.1.output.LayerNorm.weight,torch.Size([128]),128,0.47096023,0.62072325,0.54645467,0.022769786,0.54645467,0.62072325,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.ffn.2.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.4761477,0.5310177,-0.0029516723,0.1024831,0.08157329,0.5310177,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.ffn.2.intermediate.dense.bias,torch.Size([512]),512,-2.6239378,0.59736747,-0.9717837,0.4396781,0.97521365,2.6239378,45.703125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.ffn.2.output.dense.weight,"torch.Size([128, 512])",65536,-0.43982777,0.3850662,0.0003544634,0.0817161,0.06455404,0.43982777,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.ffn.2.output.dense.bias,torch.Size([128]),128,-0.5831887,0.45914304,-0.015379792,0.17967714,0.1408141,0.5831887,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.ffn.2.output.LayerNorm.bias,torch.Size([128]),128,-0.41320562,0.2855924,-4.259497e-05,0.13492706,0.102166235,0.41320562,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.22.ffn.2.output.LayerNorm.weight,torch.Size([128]),128,0.438417,0.5349567,0.48644447,0.021626651,0.48644447,0.5349567,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.attention.self.query.weight,"torch.Size([128, 128])",16384,-0.48743203,0.49237484,-0.0010208804,0.123769484,0.09721476,0.49237484,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.attention.self.query.bias,torch.Size([128]),128,-2.9790316,2.7846444,0.055126537,0.7589636,0.48049694,2.9790316,10.9375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.attention.self.key.weight,"torch.Size([128, 128])",16384,-0.51022154,0.5138136,-0.00035379367,0.12509592,0.09852488,0.5138136,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.attention.self.key.bias,torch.Size([128]),128,-6.219779,7.3461103,0.19989677,2.4538047,1.899214,7.3461103,70.3125,7.8125,0.0,MobileBERT
+mobilebert.encoder.layer.23.attention.self.value.weight,"torch.Size([128, 512])",65536,-0.8293889,0.7180858,-0.00024091761,0.15680307,0.124036886,0.8293889,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.attention.self.value.bias,torch.Size([128]),128,-0.7807687,0.5271934,0.0058747116,0.22835675,0.17924047,0.7807687,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.attention.output.dense.weight,"torch.Size([128, 128])",16384,-0.668909,0.7438655,0.0013895442,0.15291329,0.12195415,0.7438655,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.attention.output.dense.bias,torch.Size([128]),128,-2.3589532,2.7991216,0.059764728,1.0013376,0.7666031,2.7991216,28.125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.attention.output.LayerNorm.bias,torch.Size([128]),128,-2.4312036,2.8313332,0.059079107,1.0346147,0.7946621,2.8313332,28.90625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.attention.output.LayerNorm.weight,torch.Size([128]),128,0.44947183,0.7218448,0.5788363,0.052780624,0.5788363,0.7218448,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.intermediate.dense.weight,"torch.Size([512, 128])",65536,-1.2580352,1.0719415,-0.0007954862,0.099457376,0.07703741,1.2580352,0.006103515625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.intermediate.dense.bias,torch.Size([512]),512,-7.53826,0.5093563,-0.9497355,0.5501008,0.9523525,7.53826,41.2109375,0.390625,0.0,MobileBERT
+mobilebert.encoder.layer.23.output.dense.weight,"torch.Size([128, 512])",65536,-1.125471,0.8409491,0.00030472066,0.087525316,0.0678254,1.125471,0.0030517578125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.output.dense.bias,torch.Size([128]),128,-0.4389046,1.0158141,-0.008827124,0.1964826,0.13941288,1.0158141,0.78125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.output.LayerNorm.bias,torch.Size([128]),128,-0.26041868,0.7831823,-0.002261445,0.12002964,0.07702564,0.7831823,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.output.LayerNorm.weight,torch.Size([128]),128,0.3419185,0.57198906,0.44204503,0.030662695,0.44204503,0.57198906,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.output.bottleneck.dense.weight,"torch.Size([512, 128])",65536,-0.5561157,0.58379483,0.00044823246,0.13799588,0.10996666,0.58379483,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.output.bottleneck.dense.bias,torch.Size([512]),512,-0.9615801,1.0541975,-0.006377013,0.36837935,0.3230383,1.0541975,0.1953125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.output.bottleneck.LayerNorm.bias,torch.Size([512]),512,-0.97723573,1.1007382,-0.006081151,0.40220076,0.35559952,1.1007382,0.1953125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.output.bottleneck.LayerNorm.weight,torch.Size([512]),512,0.059783902,1.6206372,0.92290735,0.09728533,0.92290735,1.6206372,14.84375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.bottleneck.input.dense.weight,"torch.Size([128, 512])",65536,-0.6780511,0.57620126,-0.00027856513,0.14396468,0.11452343,0.6780511,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.bottleneck.input.dense.bias,torch.Size([128]),128,-2.386414,2.831692,0.06132335,0.9954321,0.76097304,2.831692,28.125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.bottleneck.input.LayerNorm.bias,torch.Size([128]),128,-2.3589532,2.7991216,0.059764728,1.0013376,0.7666031,2.7991216,28.125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.bottleneck.input.LayerNorm.weight,torch.Size([128]),128,0.8072471,1.6380165,1.1037402,0.13896209,1.1037402,1.6380165,78.125,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.bottleneck.attention.dense.weight,"torch.Size([128, 512])",65536,-0.7730192,0.82466537,0.00018528762,0.12017441,0.09446594,0.82466537,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.bottleneck.attention.dense.bias,torch.Size([128]),128,-1.663522,1.1572655,-0.019830067,0.56549364,0.45568633,1.663522,8.59375,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.bottleneck.attention.LayerNorm.bias,torch.Size([128]),128,-1.5993944,0.89114255,-0.022156456,0.3471087,0.23140755,1.5993944,1.5625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.bottleneck.attention.LayerNorm.weight,torch.Size([128]),128,0.04991932,0.25575727,0.07829507,0.03689808,0.07829507,0.25575727,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.ffn.0.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.77532583,0.78910595,-7.523094e-05,0.09769762,0.07711438,0.78910595,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.ffn.0.intermediate.dense.bias,torch.Size([512]),512,-5.491349,2.2156048,-1.0326045,0.52714294,1.044167,5.491349,51.953125,0.1953125,0.0,MobileBERT
+mobilebert.encoder.layer.23.ffn.0.output.dense.weight,"torch.Size([128, 512])",65536,-0.71418846,0.84171736,0.00019707535,0.0771244,0.05942498,0.84171736,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.ffn.0.output.dense.bias,torch.Size([128]),128,-0.67203385,0.7643442,-0.016373558,0.27072167,0.21412194,0.7643442,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.ffn.0.output.LayerNorm.bias,torch.Size([128]),128,-0.6811322,0.67854494,-0.01402555,0.24904183,0.19753462,0.6811322,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.ffn.0.output.LayerNorm.weight,torch.Size([128]),128,0.57388735,0.6927038,0.62639767,0.022519344,0.62639767,0.6927038,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.ffn.1.intermediate.dense.weight,"torch.Size([512, 128])",65536,-1.2137103,1.0366468,-0.00035068888,0.10302079,0.0798062,1.2137103,0.006103515625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.ffn.1.intermediate.dense.bias,torch.Size([512]),512,-6.5989985,0.7096294,-0.7906024,0.54058737,0.8087478,6.5989985,30.6640625,0.1953125,0.0,MobileBERT
+mobilebert.encoder.layer.23.ffn.1.output.dense.weight,"torch.Size([128, 512])",65536,-0.9102391,0.8598725,-5.3132477e-05,0.07953474,0.060873948,0.9102391,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.ffn.1.output.dense.bias,torch.Size([128]),128,-0.8366163,0.73717105,0.009319548,0.2794323,0.21618994,0.8366163,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.ffn.1.output.LayerNorm.bias,torch.Size([128]),128,-0.70216495,0.6323189,0.014363477,0.23552914,0.1837349,0.70216495,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.ffn.1.output.LayerNorm.weight,torch.Size([128]),128,0.49892235,0.61482996,0.549672,0.020742541,0.549672,0.61482996,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.ffn.2.intermediate.dense.weight,"torch.Size([512, 128])",65536,-0.66112554,0.96284354,-0.0011470243,0.099110864,0.078365654,0.96284354,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.ffn.2.intermediate.dense.bias,torch.Size([512]),512,-4.6311893,2.0327327,-0.8666302,0.5295889,0.89221406,4.6311893,38.4765625,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.ffn.2.output.dense.weight,"torch.Size([128, 512])",65536,-0.61643404,0.6532003,0.00020641468,0.0789388,0.061583042,0.6532003,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.ffn.2.output.dense.bias,torch.Size([128]),128,-0.5149493,0.71812785,-0.019399248,0.20474255,0.16621327,0.71812785,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.ffn.2.output.LayerNorm.bias,torch.Size([128]),128,-0.36648223,0.5476524,-0.011900683,0.14270715,0.11174811,0.5476524,0.0,0.0,0.0,MobileBERT
+mobilebert.encoder.layer.23.ffn.2.output.LayerNorm.weight,torch.Size([128]),128,0.43287838,0.51615834,0.47224033,0.017905308,0.47224033,0.51615834,0.0,0.0,0.0,MobileBERT
+classifier.weight,"torch.Size([2, 512])",1024,-0.058625646,0.066530906,-0.00025717384,0.019834334,0.015823137,0.066530906,0.0,0.0,0.0,MobileBERT
+classifier.bias,torch.Size([2]),2,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,MobileBERT

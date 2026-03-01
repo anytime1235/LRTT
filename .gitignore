@@ -75,7 +75,6 @@ cover/
 *.pot
 
 # Django stuff:
-*.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
@@ -180,11 +179,9 @@ checkpoints/
 # Excel and data files
 *.xlsx
 *.xls
-*.csv
 
 # Test outputs and results
 *_RESULTS/
-*.log
 
 # Compiled shared libraries (CUDA, BLAS, etc.)
 src/aihwkit.libs/
@@ -200,3 +197,21 @@ nohup.out
 
 # Large result directories
 experiments/hybrid_results_*/
+
+# Large data files (analysis results)
+*.npz
+*.bin
+*.safetensors
+*_steps.csv
+
+# Large log files (>50MB sweep/experiment logs)
+tikitaka/results/sweep_squad_15ep.log
+experiments/sweep_frozen_classifier.log
+tikitaka_v2_sweep.log
+tikitaka/tikitaka_v2_sweep.log
+sweep_output.log
+tikitaka_v2_refined_sweep.log
+tikitaka/tikitaka_v2_refined_sweep.log
+sweep_digital_merge_output.log
+tikitaka/sweep_batch256_glue_bias_freeze.log
+LRTT_glue/safe_mode_qkv_batch256_15ep_linear.log

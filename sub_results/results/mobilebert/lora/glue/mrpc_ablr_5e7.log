@@ -1,0 +1,1113 @@
+2026-02-24 14:47:40.091822: I tensorflow/core/util/port.cc:111] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-02-24 14:47:40.095231: I tensorflow/tsl/cuda/cudart_stub.cc:28] Could not find cuda drivers on your machine, GPU will not be used.
+2026-02-24 14:47:40.131676: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-02-24 14:47:40.131721: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-02-24 14:47:40.131750: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-02-24 14:47:40.139169: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F AVX512_VNNI AVX512_BF16 AVX_VNNI AMX_TILE AMX_INT8 AMX_BF16 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2026-02-24 14:47:41.160498: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+[I 2026-02-24 14:47:47,133] A new study created in RDB with name: mrpc_ablr_5e7
+/opt/conda/lib/python3.11/site-packages/optuna/trial/_trial.py:658: UserWarning: Fixed parameter 'target_ab_lr' with value 5e-07 is out of range for distribution FloatDistribution(high=0.1, log=True, low=0.0001, step=None).
+  optuna_warn(
+  [Task Config] mrpc: batch_size=32, max_seq=128, epochs=7, lr=0.006
+  GLUE mrpc: Train=3668, Eval=408
+Train batches: 115, Eval batches: 7
+  Early stop patience: 2, Pruner: Median, startup=5, warmup=2
+
+Study: mrpc_ablr_5e7, Device: cuda, New trials: 1
+
+======================================================================
+Trial 0 Starting
+======================================================================
+  rank=8, transfer_every=10000000, transfer_lr=1.0000e-01
+  lora_alpha=1.0000, lr=6.0000e-03, wd=0.00e+00
+  target_ab_lr=0.0000, lr_multiplier=0.000083
+  effective_ab_lr = lr*alpha*mult = 0.0000
+  momentum=0.00, nesterov=False, reinit_mode=decay
+  tau_sec=0.0, optimizer=AnalogAdam
+======================================================================
+Some weights of MobileBertForSequenceClassification were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+  [FIX] Reinitialized classifier with FIXED seed=42
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  LRTT Analog layers: 96, Total params: 21,842,978, Trainable (before grad set): 21,842,978
+  Trainable (after grad set): 13,602
+  LoRA target: qkv -> ['attention.self.query', 'attention.self.key', 'attention.self.value', 'attention.output.dense']
+
+Optimizer configuration:
+  Forward scaling (lora_alpha): 1.0
+  Classifier LR: 0.006
+  LRTT LR (optimizer): 5e-07 (= 0.006 * 8.333333333333333e-05)
+  Effective A,B LR: 5e-07 (= 5e-07 * 1.0)
+  LRTT_LR_MULTIPLIER: 8.333333333333333e-05
+  LRTT tile params: 288
+  Other params: 98
+  Collected 96 tile_c contexts for post-step reset
+  Collected 192 tile_a/b contexts for post-step reset
+  AB LR Warmup: 1e-07 → 5e-07 over 40 steps (scheduler warmup: 40 steps)
+Trial 0 Ep1:   0%|                                                                                            | 0/115 [00:00<?, ?it/s]Trial 0 Ep1:   0%|                                                                         | 0/115 [00:01<?, ?it/s, loss=3982584.5000]Trial 0 Ep1:   1%|▌                                                                | 1/115 [00:01<02:40,  1.41s/it, loss=3982584.5000]Trial 0 Ep1:   1%|▌                                                                | 1/115 [00:01<02:40,  1.41s/it, loss=3803819.0000]Trial 0 Ep1:   2%|█▏                                                               | 2/115 [00:01<01:27,  1.30it/s, loss=3803819.0000]Trial 0 Ep1:   2%|█▏                                                               | 2/115 [00:02<01:27,  1.30it/s, loss=2673006.5000]Trial 0 Ep1:   3%|█▋                                                               | 3/115 [00:02<01:04,  1.73it/s, loss=2673006.5000]Trial 0 Ep1:   3%|█▋                                                                 | 3/115 [00:02<01:04,  1.73it/s, loss=83240.3594]Trial 0 Ep1:   3%|██▎                                                                | 4/115 [00:02<00:47,  2.34it/s, loss=83240.3594]Trial 0 Ep1:   3%|██▎                                                              | 4/115 [00:02<00:47,  2.34it/s, loss=1584300.0000]Trial 0 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:38,  2.87it/s, loss=1584300.0000]Trial 0 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:38,  2.87it/s, loss=3554612.0000]Trial 0 Ep1:   5%|███▍                                                             | 6/115 [00:02<00:34,  3.18it/s, loss=3554612.0000]Trial 0 Ep1:   5%|███▍                                                             | 6/115 [00:03<00:34,  3.18it/s, loss=2914548.0000]Trial 0 Ep1:   6%|███▉                                                             | 7/115 [00:03<00:36,  3.00it/s, loss=2914548.0000]Trial 0 Ep1:   6%|███▉                                                             | 7/115 [00:03<00:36,  3.00it/s, loss=2503964.5000]Trial 0 Ep1:   7%|████▌                                                            | 8/115 [00:03<00:32,  3.33it/s, loss=2503964.5000]Trial 0 Ep1:   7%|████▌                                                            | 8/115 [00:03<00:32,  3.33it/s, loss=2147300.0000]Trial 0 Ep1:   8%|█████                                                            | 9/115 [00:03<00:29,  3.62it/s, loss=2147300.0000]Trial 0 Ep1:   8%|█████                                                            | 9/115 [00:03<00:29,  3.62it/s, loss=1265570.8750]Trial 0 Ep1:   9%|█████▌                                                          | 10/115 [00:03<00:27,  3.88it/s, loss=1265570.8750]Trial 0 Ep1:   9%|█████▌                                                          | 10/115 [00:03<00:27,  3.88it/s, loss=2321242.0000]Trial 0 Ep1:  10%|██████                                                          | 11/115 [00:03<00:25,  4.13it/s, loss=2321242.0000]Trial 0 Ep1:  10%|██████                                                          | 11/115 [00:04<00:25,  4.13it/s, loss=5321369.0000]Trial 0 Ep1:  10%|██████▋                                                         | 12/115 [00:04<00:24,  4.24it/s, loss=5321369.0000]Trial 0 Ep1:  10%|██████▋                                                         | 12/115 [00:04<00:24,  4.24it/s, loss=5694977.0000]Trial 0 Ep1:  11%|███████▏                                                        | 13/115 [00:04<00:23,  4.33it/s, loss=5694977.0000]Trial 0 Ep1:  11%|███████▏                                                        | 13/115 [00:04<00:23,  4.33it/s, loss=4977606.0000]Trial 0 Ep1:  12%|███████▊                                                        | 14/115 [00:04<00:23,  4.39it/s, loss=4977606.0000]Trial 0 Ep1:  12%|███████▊                                                        | 14/115 [00:04<00:23,  4.39it/s, loss=1817649.7500]Trial 0 Ep1:  13%|████████▎                                                       | 15/115 [00:04<00:22,  4.51it/s, loss=1817649.7500]Trial 0 Ep1:  13%|████████▎                                                       | 15/115 [00:05<00:22,  4.51it/s, loss=1573898.0000]Trial 0 Ep1:  14%|████████▉                                                       | 16/115 [00:05<00:31,  3.18it/s, loss=1573898.0000]Trial 0 Ep1:  14%|████████▉                                                       | 16/115 [00:05<00:31,  3.18it/s, loss=2231412.5000]Trial 0 Ep1:  15%|█████████▍                                                      | 17/115 [00:05<00:27,  3.55it/s, loss=2231412.5000]Trial 0 Ep1:  15%|█████████▍                                                      | 17/115 [00:05<00:27,  3.55it/s, loss=2828644.0000]Trial 0 Ep1:  16%|██████████                                                      | 18/115 [00:05<00:25,  3.85it/s, loss=2828644.0000]Trial 0 Ep1:  16%|██████████                                                      | 18/115 [00:06<00:25,  3.85it/s, loss=1564541.7500]Trial 0 Ep1:  17%|██████████▌                                                     | 19/115 [00:06<00:23,  4.09it/s, loss=1564541.7500]Trial 0 Ep1:  17%|██████████▋                                                      | 19/115 [00:06<00:23,  4.09it/s, loss=832538.6875]Trial 0 Ep1:  17%|███████████▎                                                     | 20/115 [00:06<00:22,  4.27it/s, loss=832538.6875]Trial 0 Ep1:  17%|███████████▏                                                    | 20/115 [00:06<00:22,  4.27it/s, loss=1868513.2500]Trial 0 Ep1:  18%|███████████▋                                                    | 21/115 [00:06<00:21,  4.45it/s, loss=1868513.2500]Trial 0 Ep1:  18%|███████████▊                                                     | 21/115 [00:06<00:21,  4.45it/s, loss=831877.3750]Trial 0 Ep1:  19%|████████████▍                                                    | 22/115 [00:06<00:20,  4.44it/s, loss=831877.3750]Trial 0 Ep1:  19%|████████████▍                                                    | 22/115 [00:06<00:20,  4.44it/s, loss=193515.8281]Trial 0 Ep1:  20%|█████████████                                                    | 23/115 [00:06<00:20,  4.60it/s, loss=193515.8281]Trial 0 Ep1:  20%|█████████████                                                    | 23/115 [00:07<00:20,  4.60it/s, loss=113672.7344]Trial 0 Ep1:  21%|█████████████▌                                                   | 24/115 [00:07<00:19,  4.61it/s, loss=113672.7344]Trial 0 Ep1:  21%|██████████████▏                                                     | 24/115 [00:07<00:19,  4.61it/s, loss=685.3508]Trial 0 Ep1:  22%|██████████████▊                                                     | 25/115 [00:07<00:20,  4.41it/s, loss=685.3508]Trial 0 Ep1:  22%|██████████████▎                                                   | 25/115 [00:07<00:20,  4.41it/s, loss=20492.3320]Trial 0 Ep1:  23%|██████████████▉                                                   | 26/115 [00:07<00:20,  4.28it/s, loss=20492.3320]Trial 0 Ep1:  23%|██████████████▉                                                   | 26/115 [00:08<00:20,  4.28it/s, loss=13962.2646]Trial 0 Ep1:  23%|███████████████▍                                                  | 27/115 [00:08<00:29,  2.99it/s, loss=13962.2646]Trial 0 Ep1:  23%|███████████████▋                                                   | 27/115 [00:08<00:29,  2.99it/s, loss=6112.7852]Trial 0 Ep1:  24%|████████████████▎                                                  | 28/115 [00:08<00:26,  3.26it/s, loss=6112.7852]Trial 0 Ep1:  24%|████████████████▎                                                  | 28/115 [00:08<00:26,  3.26it/s, loss=2713.8047]Trial 0 Ep1:  25%|████████████████▉                                                  | 29/115 [00:08<00:24,  3.50it/s, loss=2713.8047]Trial 0 Ep1:  25%|████████████████▉                                                  | 29/115 [00:08<00:24,  3.50it/s, loss=3270.2805]Trial 0 Ep1:  26%|█████████████████▍                                                 | 30/115 [00:08<00:22,  3.74it/s, loss=3270.2805]Trial 0 Ep1:  26%|████████████████▉                                                | 30/115 [00:09<00:22,  3.74it/s, loss=109154.6406]Trial 0 Ep1:  27%|█████████████████▌                                               | 31/115 [00:09<00:21,  4.00it/s, loss=109154.6406]Trial 0 Ep1:  27%|██████████████████                                                 | 31/115 [00:09<00:21,  4.00it/s, loss=6065.0732]Trial 0 Ep1:  28%|██████████████████▋                                                | 32/115 [00:09<00:20,  4.07it/s, loss=6065.0732]Trial 0 Ep1:  28%|██████████████████▋                                                | 32/115 [00:09<00:20,  4.07it/s, loss=2959.7502]Trial 0 Ep1:  29%|███████████████████▏                                               | 33/115 [00:09<00:21,  3.90it/s, loss=2959.7502]Trial 0 Ep1:  29%|███████████████████▌                                                | 33/115 [00:09<00:21,  3.90it/s, loss=300.4297]Trial 0 Ep1:  30%|████████████████████                                                | 34/115 [00:09<00:19,  4.10it/s, loss=300.4297]Trial 0 Ep1:  30%|███████████████████▌                                              | 34/115 [00:10<00:19,  4.10it/s, loss=11082.5635]Trial 0 Ep1:  30%|████████████████████                                              | 35/115 [00:10<00:19,  4.12it/s, loss=11082.5635]Trial 0 Ep1:  30%|████████████████████                                              | 35/115 [00:10<00:19,  4.12it/s, loss=17800.1113]Trial 0 Ep1:  31%|████████████████████▋                                             | 36/115 [00:10<00:18,  4.30it/s, loss=17800.1113]Trial 0 Ep1:  31%|████████████████████▋                                             | 36/115 [00:10<00:18,  4.30it/s, loss=17280.2461]Trial 0 Ep1:  32%|█████████████████████▏                                            | 37/115 [00:10<00:17,  4.50it/s, loss=17280.2461]Trial 0 Ep1:  32%|█████████████████████▏                                            | 37/115 [00:10<00:17,  4.50it/s, loss=15437.5176]Trial 0 Ep1:  33%|█████████████████████▊                                            | 38/115 [00:10<00:17,  4.35it/s, loss=15437.5176]Trial 0 Ep1:  33%|██████████████████████▏                                            | 38/115 [00:10<00:17,  4.35it/s, loss=7379.6968]Trial 0 Ep1:  34%|██████████████████████▋                                            | 39/115 [00:10<00:17,  4.46it/s, loss=7379.6968]Trial 0 Ep1:  34%|██████████████████████▋                                            | 39/115 [00:11<00:17,  4.46it/s, loss=2434.8042]Trial 0 Ep1:  35%|███████████████████████▎                                           | 40/115 [00:11<00:16,  4.51it/s, loss=2434.8042]Trial 0 Ep1:  35%|███████████████████████▎                                           | 40/115 [00:11<00:16,  4.51it/s, loss=4054.6538]Trial 0 Ep1:  36%|███████████████████████▉                                           | 41/115 [00:11<00:17,  4.32it/s, loss=4054.6538]Trial 0 Ep1:  36%|███████████████████████▉                                           | 41/115 [00:11<00:17,  4.32it/s, loss=5950.7676]Trial 0 Ep1:  37%|████████████████████████▍                                          | 42/115 [00:11<00:16,  4.40it/s, loss=5950.7676]Trial 0 Ep1:  37%|████████████████████████▍                                          | 42/115 [00:11<00:16,  4.40it/s, loss=1751.1443]Trial 0 Ep1:  37%|█████████████████████████                                          | 43/115 [00:11<00:16,  4.47it/s, loss=1751.1443]Trial 0 Ep1:  37%|█████████████████████████                                          | 43/115 [00:11<00:16,  4.47it/s, loss=1801.0812]Trial 0 Ep1:  38%|█████████████████████████▋                                         | 44/115 [00:11<00:15,  4.59it/s, loss=1801.0812]Trial 0 Ep1:  38%|█████████████████████████▋                                         | 44/115 [00:12<00:15,  4.59it/s, loss=3518.4045]Trial 0 Ep1:  39%|██████████████████████████▏                                        | 45/115 [00:12<00:15,  4.52it/s, loss=3518.4045]Trial 0 Ep1:  39%|██████████████████████████▏                                        | 45/115 [00:12<00:15,  4.52it/s, loss=1841.6676]Trial 0 Ep1:  40%|██████████████████████████▊                                        | 46/115 [00:12<00:15,  4.48it/s, loss=1841.6676]Trial 0 Ep1:  40%|███████████████████████████▏                                        | 46/115 [00:12<00:15,  4.48it/s, loss=949.1481]Trial 0 Ep1:  41%|███████████████████████████▊                                        | 47/115 [00:12<00:16,  4.23it/s, loss=949.1481]Trial 0 Ep1:  41%|███████████████████████████▍                                       | 47/115 [00:12<00:16,  4.23it/s, loss=1563.3379]Trial 0 Ep1:  42%|███████████████████████████▉                                       | 48/115 [00:12<00:15,  4.33it/s, loss=1563.3379]Trial 0 Ep1:  42%|████████████████████████████▍                                       | 48/115 [00:13<00:15,  4.33it/s, loss=261.9332]Trial 0 Ep1:  43%|████████████████████████████▉                                       | 49/115 [00:13<00:15,  4.39it/s, loss=261.9332]Trial 0 Ep1:  43%|████████████████████████████▌                                      | 49/115 [00:13<00:15,  4.39it/s, loss=2734.3992]Trial 0 Ep1:  43%|█████████████████████████████▏                                     | 50/115 [00:13<00:15,  4.29it/s, loss=2734.3992]Trial 0 Ep1:  43%|█████████████████████████████▏                                     | 50/115 [00:13<00:15,  4.29it/s, loss=3884.0178]Trial 0 Ep1:  44%|█████████████████████████████▋                                     | 51/115 [00:13<00:15,  4.15it/s, loss=3884.0178]Trial 0 Ep1:  44%|█████████████████████████████▋                                     | 51/115 [00:13<00:15,  4.15it/s, loss=2271.1152]Trial 0 Ep1:  45%|██████████████████████████████▎                                    | 52/115 [00:13<00:14,  4.28it/s, loss=2271.1152]Trial 0 Ep1:  45%|███████████████████████████████▋                                      | 52/115 [00:14<00:14,  4.28it/s, loss=2.0272]Trial 0 Ep1:  46%|████████████████████████████████▎                                     | 53/115 [00:14<00:17,  3.47it/s, loss=2.0272]Trial 0 Ep1:  46%|███████████████████████████████▎                                    | 53/115 [00:14<00:17,  3.47it/s, loss=128.0563]Trial 0 Ep1:  47%|███████████████████████████████▉                                    | 54/115 [00:14<00:16,  3.72it/s, loss=128.0563]Trial 0 Ep1:  47%|███████████████████████████████▉                                    | 54/115 [00:14<00:16,  3.72it/s, loss=431.9352]Trial 0 Ep1:  48%|████████████████████████████████▌                                   | 55/115 [00:14<00:15,  3.76it/s, loss=431.9352]Trial 0 Ep1:  48%|█████████████████████████████████                                    | 55/115 [00:14<00:15,  3.76it/s, loss=11.8713]Trial 0 Ep1:  49%|█████████████████████████████████▌                                   | 56/115 [00:14<00:14,  3.98it/s, loss=11.8713]Trial 0 Ep1:  49%|█████████████████████████████████                                   | 56/115 [00:15<00:14,  3.98it/s, loss=280.8802]Trial 0 Ep1:  50%|█████████████████████████████████▋                                  | 57/115 [00:15<00:14,  4.11it/s, loss=280.8802]Trial 0 Ep1:  50%|█████████████████████████████████▋                                  | 57/115 [00:15<00:14,  4.11it/s, loss=313.6859]Trial 0 Ep1:  50%|██████████████████████████████████▎                                 | 58/115 [00:15<00:14,  3.82it/s, loss=313.6859]Trial 0 Ep1:  50%|██████████████████████████████████▎                                 | 58/115 [00:15<00:14,  3.82it/s, loss=159.9957]Trial 0 Ep1:  51%|██████████████████████████████████▉                                 | 59/115 [00:15<00:13,  4.05it/s, loss=159.9957]Trial 0 Ep1:  51%|██████████████████████████████████▉                                 | 59/115 [00:15<00:13,  4.05it/s, loss=179.6202]Trial 0 Ep1:  52%|███████████████████████████████████▍                                | 60/115 [00:15<00:13,  4.19it/s, loss=179.6202]Trial 0 Ep1:  52%|███████████████████████████████████▍                                | 60/115 [00:16<00:13,  4.19it/s, loss=114.6708]Trial 0 Ep1:  53%|████████████████████████████████████                                | 61/115 [00:16<00:12,  4.30it/s, loss=114.6708]Trial 0 Ep1:  53%|████████████████████████████████████▌                                | 61/115 [00:16<00:12,  4.30it/s, loss=46.7748]Trial 0 Ep1:  54%|█████████████████████████████████████▏                               | 62/115 [00:16<00:12,  4.22it/s, loss=46.7748]Trial 0 Ep1:  54%|█████████████████████████████████████▋                                | 62/115 [00:16<00:12,  4.22it/s, loss=2.4239]Trial 0 Ep1:  55%|██████████████████████████████████████▎                               | 63/115 [00:16<00:12,  4.26it/s, loss=2.4239]Trial 0 Ep1:  55%|██████████████████████████████████████▎                               | 63/115 [00:16<00:12,  4.26it/s, loss=2.0911]Trial 0 Ep1:  56%|██████████████████████████████████████▉                               | 64/115 [00:16<00:11,  4.32it/s, loss=2.0911]Trial 0 Ep1:  56%|██████████████████████████████████████▉                               | 64/115 [00:17<00:11,  4.32it/s, loss=5.4141]Trial 0 Ep1:  57%|███████████████████████████████████████▌                              | 65/115 [00:17<00:11,  4.34it/s, loss=5.4141]Trial 0 Ep1:  57%|███████████████████████████████████████▌                              | 65/115 [00:17<00:11,  4.34it/s, loss=0.5826]Trial 0 Ep1:  57%|████████████████████████████████████████▏                             | 66/115 [00:17<00:11,  4.16it/s, loss=0.5826]Trial 0 Ep1:  57%|████████████████████████████████████████▏                             | 66/115 [00:17<00:11,  4.16it/s, loss=2.0731]Trial 0 Ep1:  58%|████████████████████████████████████████▊                             | 67/115 [00:17<00:11,  4.23it/s, loss=2.0731]Trial 0 Ep1:  58%|████████████████████████████████████████▊                             | 67/115 [00:17<00:11,  4.23it/s, loss=3.6065]Trial 0 Ep1:  59%|█████████████████████████████████████████▍                            | 68/115 [00:17<00:10,  4.38it/s, loss=3.6065]Trial 0 Ep1:  59%|█████████████████████████████████████████▍                            | 68/115 [00:18<00:10,  4.38it/s, loss=0.6727]Trial 0 Ep1:  60%|██████████████████████████████████████████                            | 69/115 [00:18<00:10,  4.33it/s, loss=0.6727]Trial 0 Ep1:  60%|██████████████████████████████████████████                            | 69/115 [00:18<00:10,  4.33it/s, loss=9.8635]Trial 0 Ep1:  61%|██████████████████████████████████████████▌                           | 70/115 [00:18<00:10,  4.40it/s, loss=9.8635]Trial 0 Ep1:  61%|██████████████████████████████████████████                           | 70/115 [00:18<00:10,  4.40it/s, loss=12.3187]Trial 0 Ep1:  62%|██████████████████████████████████████████▌                          | 71/115 [00:18<00:10,  4.38it/s, loss=12.3187]Trial 0 Ep1:  62%|███████████████████████████████████████████▏                          | 71/115 [00:18<00:10,  4.38it/s, loss=3.9873]Trial 0 Ep1:  63%|███████████████████████████████████████████▊                          | 72/115 [00:18<00:10,  4.11it/s, loss=3.9873]Trial 0 Ep1:  63%|███████████████████████████████████████████▊                          | 72/115 [00:18<00:10,  4.11it/s, loss=5.1788]Trial 0 Ep1:  63%|████████████████████████████████████████████▍                         | 73/115 [00:18<00:09,  4.30it/s, loss=5.1788]Trial 0 Ep1:  63%|████████████████████████████████████████████▍                         | 73/115 [00:19<00:09,  4.30it/s, loss=7.2807]Trial 0 Ep1:  64%|█████████████████████████████████████████████                         | 74/115 [00:19<00:09,  4.32it/s, loss=7.2807]Trial 0 Ep1:  64%|█████████████████████████████████████████████                         | 74/115 [00:19<00:09,  4.32it/s, loss=4.3476]Trial 0 Ep1:  65%|█████████████████████████████████████████████▋                        | 75/115 [00:19<00:10,  3.83it/s, loss=4.3476]Trial 0 Ep1:  65%|█████████████████████████████████████████████▋                        | 75/115 [00:19<00:10,  3.83it/s, loss=2.0084]Trial 0 Ep1:  66%|██████████████████████████████████████████████▎                       | 76/115 [00:19<00:09,  4.05it/s, loss=2.0084]Trial 0 Ep1:  66%|██████████████████████████████████████████████▎                       | 76/115 [00:19<00:09,  4.05it/s, loss=3.6855]Trial 0 Ep1:  67%|██████████████████████████████████████████████▊                       | 77/115 [00:19<00:09,  4.17it/s, loss=3.6855]Trial 0 Ep1:  67%|██████████████████████████████████████████████▊                       | 77/115 [00:20<00:09,  4.17it/s, loss=1.2133]Trial 0 Ep1:  68%|███████████████████████████████████████████████▍                      | 78/115 [00:20<00:08,  4.29it/s, loss=1.2133]Trial 0 Ep1:  68%|███████████████████████████████████████████████▍                      | 78/115 [00:20<00:08,  4.29it/s, loss=1.4885]Trial 0 Ep1:  69%|████████████████████████████████████████████████                      | 79/115 [00:20<00:08,  4.24it/s, loss=1.4885]Trial 0 Ep1:  69%|████████████████████████████████████████████████                      | 79/115 [00:20<00:08,  4.24it/s, loss=2.3457]Trial 0 Ep1:  70%|████████████████████████████████████████████████▋                     | 80/115 [00:20<00:08,  4.01it/s, loss=2.3457]Trial 0 Ep1:  70%|████████████████████████████████████████████████▋                     | 80/115 [00:20<00:08,  4.01it/s, loss=1.2578]Trial 0 Ep1:  70%|█████████████████████████████████████████████████▎                    | 81/115 [00:20<00:08,  4.16it/s, loss=1.2578]Trial 0 Ep1:  70%|█████████████████████████████████████████████████▎                    | 81/115 [00:21<00:08,  4.16it/s, loss=5.6706]Trial 0 Ep1:  71%|█████████████████████████████████████████████████▉                    | 82/115 [00:21<00:07,  4.27it/s, loss=5.6706]Trial 0 Ep1:  71%|█████████████████████████████████████████████████▉                    | 82/115 [00:21<00:07,  4.27it/s, loss=4.4851]Trial 0 Ep1:  72%|██████████████████████████████████████████████████▌                   | 83/115 [00:21<00:08,  3.69it/s, loss=4.4851]Trial 0 Ep1:  72%|██████████████████████████████████████████████████▌                   | 83/115 [00:21<00:08,  3.69it/s, loss=1.7361]Trial 0 Ep1:  73%|███████████████████████████████████████████████████▏                  | 84/115 [00:21<00:08,  3.78it/s, loss=1.7361]Trial 0 Ep1:  73%|███████████████████████████████████████████████████▏                  | 84/115 [00:21<00:08,  3.78it/s, loss=1.4359]Trial 0 Ep1:  74%|███████████████████████████████████████████████████▋                  | 85/115 [00:21<00:07,  3.96it/s, loss=1.4359]Trial 0 Ep1:  74%|███████████████████████████████████████████████████▋                  | 85/115 [00:22<00:07,  3.96it/s, loss=2.9551]Trial 0 Ep1:  75%|████████████████████████████████████████████████████▎                 | 86/115 [00:22<00:07,  4.10it/s, loss=2.9551]Trial 0 Ep1:  75%|████████████████████████████████████████████████████▎                 | 86/115 [00:22<00:07,  4.10it/s, loss=2.1710]Trial 0 Ep1:  76%|████████████████████████████████████████████████████▉                 | 87/115 [00:22<00:06,  4.08it/s, loss=2.1710]Trial 0 Ep1:  76%|████████████████████████████████████████████████████▉                 | 87/115 [00:22<00:06,  4.08it/s, loss=1.8099]Trial 0 Ep1:  77%|█████████████████████████████████████████████████████▌                | 88/115 [00:22<00:06,  3.97it/s, loss=1.8099]                                                                                                                                      [W 2026-02-24 14:48:18,252] Trial 0 failed with parameters: {'learning_rate': 0.006, 'target_ab_lr': 5e-07} because of the following error: OutOfMemoryError('CUDA out of memory. Tried to allocate 20.00 MiB. GPU 0 has a total capacity of 139.81 GiB of which 17.69 MiB is free. Process 3010496 has 139.79 GiB memory in use. Of the allocated memory 115.21 GiB is allocated by PyTorch, and 1.27 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)').
+Traceback (most recent call last):
+  File "/opt/conda/lib/python3.11/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+                      ^^^^^^^^^^^
+  File "/data/optuna_mobilebert_glue_lora.py", line 1477, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_loader, tokenizer),
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/optuna_mobilebert_glue_lora.py", line 1141, in objective
+    outputs = model(**model_inputs)
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 1286, in forward
+    outputs = self.mobilebert(
+              ^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 898, in forward
+    encoder_outputs = self.encoder(
+                      ^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 580, in forward
+    layer_outputs = layer_module(
+                    ^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 538, in forward
+    attention_output = ffn_module(attention_output)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 492, in forward
+    intermediate_output = self.intermediate(hidden_states)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 383, in forward
+    hidden_states = self.intermediate_act_fn(hidden_states)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/activation.py", line 143, in forward
+    return F.relu(input, inplace=self.inplace)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/functional.py", line 1721, in relu
+    result = torch.relu(input)
+             ^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 20.00 MiB. GPU 0 has a total capacity of 139.81 GiB of which 17.69 MiB is free. Process 3010496 has 139.79 GiB memory in use. Of the allocated memory 115.21 GiB is allocated by PyTorch, and 1.27 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+[W 2026-02-24 14:48:18,257] Trial 0 failed with value None.
+2026-02-24 14:48:21.589613: I tensorflow/core/util/port.cc:111] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-02-24 14:48:21.592173: I tensorflow/tsl/cuda/cudart_stub.cc:28] Could not find cuda drivers on your machine, GPU will not be used.
+2026-02-24 14:48:21.619866: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-02-24 14:48:21.619895: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-02-24 14:48:21.619916: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-02-24 14:48:21.625436: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F AVX512_VNNI AVX512_BF16 AVX_VNNI AMX_TILE AMX_INT8 AMX_BF16 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2026-02-24 14:48:22.331556: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+[I 2026-02-24 14:48:28,032] Using an existing study with name 'mrpc_ablr_5e7' instead of creating a new one.
+/opt/conda/lib/python3.11/site-packages/optuna/trial/_trial.py:658: UserWarning: Fixed parameter 'target_ab_lr' with value 5e-07 is out of range for distribution FloatDistribution(high=0.1, log=True, low=0.0001, step=None).
+  optuna_warn(
+  [Task Config] mrpc: batch_size=32, max_seq=128, epochs=7, lr=0.006
+  GLUE mrpc: Train=3668, Eval=408
+Train batches: 115, Eval batches: 7
+  Early stop patience: 2, Pruner: Median, startup=5, warmup=2
+
+Study: mrpc_ablr_5e7, Device: cuda, New trials: 1
+
+======================================================================
+Trial 1 Starting
+======================================================================
+  rank=8, transfer_every=10000000, transfer_lr=1.0000e-01
+  lora_alpha=1.0000, lr=6.0000e-03, wd=0.00e+00
+  target_ab_lr=0.0000, lr_multiplier=0.000083
+  effective_ab_lr = lr*alpha*mult = 0.0000
+  momentum=0.00, nesterov=False, reinit_mode=decay
+  tau_sec=0.0, optimizer=AnalogAdam
+======================================================================
+Some weights of MobileBertForSequenceClassification were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+  [FIX] Reinitialized classifier with FIXED seed=42
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  LRTT Analog layers: 96, Total params: 21,842,978, Trainable (before grad set): 21,842,978
+  Trainable (after grad set): 13,602
+  LoRA target: qkv -> ['attention.self.query', 'attention.self.key', 'attention.self.value', 'attention.output.dense']
+
+Optimizer configuration:
+  Forward scaling (lora_alpha): 1.0
+  Classifier LR: 0.006
+  LRTT LR (optimizer): 5e-07 (= 0.006 * 8.333333333333333e-05)
+  Effective A,B LR: 5e-07 (= 5e-07 * 1.0)
+  LRTT_LR_MULTIPLIER: 8.333333333333333e-05
+  LRTT tile params: 288
+  Other params: 98
+  Collected 96 tile_c contexts for post-step reset
+  Collected 192 tile_a/b contexts for post-step reset
+  AB LR Warmup: 1e-07 → 5e-07 over 40 steps (scheduler warmup: 40 steps)
+Trial 1 Ep1:   0%|                                                                                            | 0/115 [00:00<?, ?it/s]Trial 1 Ep1:   0%|                                                                         | 0/115 [00:01<?, ?it/s, loss=3982584.5000]Trial 1 Ep1:   1%|▌                                                                | 1/115 [00:01<02:35,  1.36s/it, loss=3982584.5000]Trial 1 Ep1:   1%|▌                                                                | 1/115 [00:01<02:35,  1.36s/it, loss=3803819.0000]Trial 1 Ep1:   2%|█▏                                                               | 2/115 [00:01<01:29,  1.27it/s, loss=3803819.0000]Trial 1 Ep1:   2%|█▏                                                               | 2/115 [00:02<01:29,  1.27it/s, loss=2673006.5000]Trial 1 Ep1:   3%|█▋                                                               | 3/115 [00:02<01:05,  1.72it/s, loss=2673006.5000]Trial 1 Ep1:   3%|█▋                                                                 | 3/115 [00:02<01:05,  1.72it/s, loss=83240.3594]Trial 1 Ep1:   3%|██▎                                                                | 4/115 [00:02<00:48,  2.29it/s, loss=83240.3594]Trial 1 Ep1:   3%|██▎                                                              | 4/115 [00:02<00:48,  2.29it/s, loss=1584300.0000]Trial 1 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:40,  2.70it/s, loss=1584300.0000]Trial 1 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:40,  2.70it/s, loss=3554612.0000]Trial 1 Ep1:   5%|███▍                                                             | 6/115 [00:02<00:34,  3.17it/s, loss=3554612.0000]Trial 1 Ep1:   5%|███▍                                                             | 6/115 [00:03<00:34,  3.17it/s, loss=2914548.0000]Trial 1 Ep1:   6%|███▉                                                             | 7/115 [00:03<00:34,  3.10it/s, loss=2914548.0000]Trial 1 Ep1:   6%|███▉                                                             | 7/115 [00:03<00:34,  3.10it/s, loss=2503964.5000]Trial 1 Ep1:   7%|████▌                                                            | 8/115 [00:03<00:30,  3.55it/s, loss=2503964.5000]Trial 1 Ep1:   7%|████▌                                                            | 8/115 [00:03<00:30,  3.55it/s, loss=2147300.0000]Trial 1 Ep1:   8%|█████                                                            | 9/115 [00:03<00:27,  3.89it/s, loss=2147300.0000]Trial 1 Ep1:   8%|█████                                                            | 9/115 [00:03<00:27,  3.89it/s, loss=1265570.8750]Trial 1 Ep1:   9%|█████▌                                                          | 10/115 [00:03<00:27,  3.89it/s, loss=1265570.8750]Trial 1 Ep1:   9%|█████▌                                                          | 10/115 [00:03<00:27,  3.89it/s, loss=2321242.0000]Trial 1 Ep1:  10%|██████                                                          | 11/115 [00:03<00:24,  4.17it/s, loss=2321242.0000]Trial 1 Ep1:  10%|██████                                                          | 11/115 [00:04<00:24,  4.17it/s, loss=5321369.0000]Trial 1 Ep1:  10%|██████▋                                                         | 12/115 [00:04<00:23,  4.30it/s, loss=5321369.0000]Trial 1 Ep1:  10%|██████▋                                                         | 12/115 [00:04<00:23,  4.30it/s, loss=5694977.0000]Trial 1 Ep1:  11%|███████▏                                                        | 13/115 [00:04<00:24,  4.12it/s, loss=5694977.0000]Trial 1 Ep1:  11%|███████▏                                                        | 13/115 [00:04<00:24,  4.12it/s, loss=4977606.0000]Trial 1 Ep1:  12%|███████▊                                                        | 14/115 [00:04<00:23,  4.35it/s, loss=4977606.0000]Trial 1 Ep1:  12%|███████▊                                                        | 14/115 [00:04<00:23,  4.35it/s, loss=1817649.7500]Trial 1 Ep1:  13%|████████▎                                                       | 15/115 [00:04<00:22,  4.35it/s, loss=1817649.7500]Trial 1 Ep1:  13%|████████▎                                                       | 15/115 [00:05<00:22,  4.35it/s, loss=1573898.0000]Trial 1 Ep1:  14%|████████▉                                                       | 16/115 [00:05<00:27,  3.57it/s, loss=1573898.0000]Trial 1 Ep1:  14%|████████▉                                                       | 16/115 [00:05<00:27,  3.57it/s, loss=2235169.0000]Trial 1 Ep1:  15%|█████████▍                                                      | 17/115 [00:05<00:25,  3.90it/s, loss=2235169.0000]Trial 1 Ep1:  15%|█████████▍                                                      | 17/115 [00:05<00:25,  3.90it/s, loss=2792366.0000]Trial 1 Ep1:  16%|██████████                                                      | 18/115 [00:05<00:23,  4.08it/s, loss=2792366.0000]Trial 1 Ep1:  16%|██████████                                                      | 18/115 [00:05<00:23,  4.08it/s, loss=1558556.6250]Trial 1 Ep1:  17%|██████████▌                                                     | 19/115 [00:05<00:22,  4.33it/s, loss=1558556.6250]Trial 1 Ep1:  17%|██████████▋                                                      | 19/115 [00:06<00:22,  4.33it/s, loss=820481.2500]Trial 1 Ep1:  17%|███████████▎                                                     | 20/115 [00:06<00:21,  4.43it/s, loss=820481.2500]Trial 1 Ep1:  17%|███████████▏                                                    | 20/115 [00:06<00:21,  4.43it/s, loss=1902991.7500]Trial 1 Ep1:  18%|███████████▋                                                    | 21/115 [00:06<00:21,  4.28it/s, loss=1902991.7500]Trial 1 Ep1:  18%|███████████▊                                                     | 21/115 [00:06<00:21,  4.28it/s, loss=792043.5625]Trial 1 Ep1:  19%|████████████▍                                                    | 22/115 [00:06<00:22,  4.19it/s, loss=792043.5625]Trial 1 Ep1:  19%|████████████▍                                                    | 22/115 [00:06<00:22,  4.19it/s, loss=182208.4531]Trial 1 Ep1:  20%|█████████████                                                    | 23/115 [00:06<00:20,  4.43it/s, loss=182208.4531]Trial 1 Ep1:  20%|█████████████                                                    | 23/115 [00:07<00:20,  4.43it/s, loss=128151.4141]Trial 1 Ep1:  21%|█████████████▌                                                   | 24/115 [00:07<00:20,  4.49it/s, loss=128151.4141]Trial 1 Ep1:  21%|██████████████▏                                                     | 24/115 [00:07<00:20,  4.49it/s, loss=201.7029]Trial 1 Ep1:  22%|██████████████▊                                                     | 25/115 [00:07<00:19,  4.57it/s, loss=201.7029]Trial 1 Ep1:  22%|██████████████▎                                                   | 25/115 [00:07<00:19,  4.57it/s, loss=18997.7305]Trial 1 Ep1:  23%|██████████████▉                                                   | 26/115 [00:07<00:30,  2.90it/s, loss=18997.7305]Trial 1 Ep1:  23%|██████████████▉                                                   | 26/115 [00:08<00:30,  2.90it/s, loss=14258.5479]Trial 1 Ep1:  23%|███████████████▍                                                  | 27/115 [00:08<00:26,  3.32it/s, loss=14258.5479]Trial 1 Ep1:  23%|███████████████▋                                                   | 27/115 [00:08<00:26,  3.32it/s, loss=6951.1846]Trial 1 Ep1:  24%|████████████████▎                                                  | 28/115 [00:08<00:24,  3.59it/s, loss=6951.1846]Trial 1 Ep1:  24%|████████████████▎                                                  | 28/115 [00:08<00:24,  3.59it/s, loss=2319.1980]Trial 1 Ep1:  25%|████████████████▉                                                  | 29/115 [00:08<00:23,  3.70it/s, loss=2319.1980]Trial 1 Ep1:  25%|████████████████▉                                                  | 29/115 [00:08<00:23,  3.70it/s, loss=3071.0945]Trial 1 Ep1:  26%|█████████████████▍                                                 | 30/115 [00:08<00:21,  3.92it/s, loss=3071.0945]Trial 1 Ep1:  26%|████████████████▉                                                | 30/115 [00:08<00:21,  3.92it/s, loss=100083.5000]Trial 1 Ep1:  27%|█████████████████▌                                               | 31/115 [00:08<00:20,  4.06it/s, loss=100083.5000]Trial 1 Ep1:  27%|██████████████████                                                 | 31/115 [00:09<00:20,  4.06it/s, loss=6090.3584]Trial 1 Ep1:  28%|██████████████████▋                                                | 32/115 [00:09<00:19,  4.28it/s, loss=6090.3584]Trial 1 Ep1:  28%|██████████████████▋                                                | 32/115 [00:09<00:19,  4.28it/s, loss=2858.5518]Trial 1 Ep1:  29%|███████████████████▏                                               | 33/115 [00:09<00:19,  4.31it/s, loss=2858.5518]Trial 1 Ep1:  29%|███████████████████▌                                                | 33/115 [00:09<00:19,  4.31it/s, loss=172.8651]Trial 1 Ep1:  30%|████████████████████                                                | 34/115 [00:09<00:18,  4.31it/s, loss=172.8651]Trial 1 Ep1:  30%|███████████████████▌                                              | 34/115 [00:09<00:18,  4.31it/s, loss=11542.3525]Trial 1 Ep1:  30%|████████████████████                                              | 35/115 [00:09<00:18,  4.41it/s, loss=11542.3525]Trial 1 Ep1:  30%|████████████████████                                              | 35/115 [00:10<00:18,  4.41it/s, loss=18345.2148]Trial 1 Ep1:  31%|████████████████████▋                                             | 36/115 [00:10<00:17,  4.48it/s, loss=18345.2148]Trial 1 Ep1:  31%|████████████████████▋                                             | 36/115 [00:10<00:17,  4.48it/s, loss=17373.5684]Trial 1 Ep1:  32%|█████████████████████▏                                            | 37/115 [00:10<00:17,  4.48it/s, loss=17373.5684]Trial 1 Ep1:  32%|█████████████████████▏                                            | 37/115 [00:10<00:17,  4.48it/s, loss=15871.2285]Trial 1 Ep1:  33%|█████████████████████▊                                            | 38/115 [00:10<00:18,  4.17it/s, loss=15871.2285]Trial 1 Ep1:  33%|██████████████████████▏                                            | 38/115 [00:10<00:18,  4.17it/s, loss=7764.1689]Trial 1 Ep1:  34%|██████████████████████▋                                            | 39/115 [00:10<00:17,  4.33it/s, loss=7764.1689]Trial 1 Ep1:  34%|██████████████████████▋                                            | 39/115 [00:11<00:17,  4.33it/s, loss=2320.3618]Trial 1 Ep1:  35%|███████████████████████▎                                           | 40/115 [00:11<00:17,  4.31it/s, loss=2320.3618]Trial 1 Ep1:  35%|███████████████████████▎                                           | 40/115 [00:11<00:17,  4.31it/s, loss=3949.7788]Trial 1 Ep1:  36%|███████████████████████▉                                           | 41/115 [00:11<00:17,  4.25it/s, loss=3949.7788]Trial 1 Ep1:  36%|███████████████████████▉                                           | 41/115 [00:11<00:17,  4.25it/s, loss=5764.7246]Trial 1 Ep1:  37%|████████████████████████▍                                          | 42/115 [00:11<00:16,  4.41it/s, loss=5764.7246]Trial 1 Ep1:  37%|████████████████████████▍                                          | 42/115 [00:11<00:16,  4.41it/s, loss=1667.4813]Trial 1 Ep1:  37%|█████████████████████████                                          | 43/115 [00:11<00:17,  4.13it/s, loss=1667.4813]Trial 1 Ep1:  37%|█████████████████████████                                          | 43/115 [00:11<00:17,  4.13it/s, loss=2114.7344]Trial 1 Ep1:  38%|█████████████████████████▋                                         | 44/115 [00:11<00:16,  4.34it/s, loss=2114.7344]Trial 1 Ep1:  38%|█████████████████████████▋                                         | 44/115 [00:12<00:16,  4.34it/s, loss=3768.9868]Trial 1 Ep1:  39%|██████████████████████████▏                                        | 45/115 [00:12<00:16,  4.27it/s, loss=3768.9868]Trial 1 Ep1:  39%|██████████████████████████▏                                        | 45/115 [00:12<00:16,  4.27it/s, loss=2070.2358]Trial 1 Ep1:  40%|██████████████████████████▊                                        | 46/115 [00:12<00:17,  4.02it/s, loss=2070.2358]Trial 1 Ep1:  40%|███████████████████████████▏                                        | 46/115 [00:12<00:17,  4.02it/s, loss=903.3496]Trial 1 Ep1:  41%|███████████████████████████▊                                        | 47/115 [00:12<00:16,  4.17it/s, loss=903.3496]Trial 1 Ep1:  41%|███████████████████████████▍                                       | 47/115 [00:12<00:16,  4.17it/s, loss=1499.3578]Trial 1 Ep1:  42%|███████████████████████████▉                                       | 48/115 [00:12<00:15,  4.23it/s, loss=1499.3578]Trial 1 Ep1:  42%|████████████████████████████▍                                       | 48/115 [00:13<00:15,  4.23it/s, loss=194.0885]Trial 1 Ep1:  43%|████████████████████████████▉                                       | 49/115 [00:13<00:15,  4.31it/s, loss=194.0885]Trial 1 Ep1:  43%|████████████████████████████▌                                      | 49/115 [00:13<00:15,  4.31it/s, loss=2962.2339]Trial 1 Ep1:  43%|█████████████████████████████▏                                     | 50/115 [00:13<00:14,  4.39it/s, loss=2962.2339]Trial 1 Ep1:  43%|█████████████████████████████▏                                     | 50/115 [00:13<00:14,  4.39it/s, loss=4278.9033]Trial 1 Ep1:  44%|█████████████████████████████▋                                     | 51/115 [00:13<00:15,  4.19it/s, loss=4278.9033]Trial 1 Ep1:  44%|█████████████████████████████▋                                     | 51/115 [00:13<00:15,  4.19it/s, loss=2667.1399]Trial 1 Ep1:  45%|██████████████████████████████▎                                    | 52/115 [00:13<00:14,  4.32it/s, loss=2667.1399]Trial 1 Ep1:  45%|██████████████████████████████▋                                     | 52/115 [00:14<00:14,  4.32it/s, loss=100.9169]Trial 1 Ep1:  46%|███████████████████████████████▎                                    | 53/115 [00:14<00:18,  3.28it/s, loss=100.9169]Trial 1 Ep1:  46%|██████████████████████████████▉                                    | 53/115 [00:14<00:18,  3.28it/s, loss=1065.3396]Trial 1 Ep1:  47%|███████████████████████████████▍                                   | 54/115 [00:14<00:18,  3.37it/s, loss=1065.3396]Trial 1 Ep1:  47%|███████████████████████████████▍                                   | 54/115 [00:14<00:18,  3.37it/s, loss=2230.1899]Trial 1 Ep1:  48%|████████████████████████████████                                   | 55/115 [00:14<00:16,  3.59it/s, loss=2230.1899]Trial 1 Ep1:  48%|████████████████████████████████                                   | 55/115 [00:15<00:16,  3.59it/s, loss=1730.6907]Trial 1 Ep1:  49%|████████████████████████████████▋                                  | 56/115 [00:15<00:15,  3.70it/s, loss=1730.6907]Trial 1 Ep1:  49%|█████████████████████████████████                                   | 56/115 [00:15<00:15,  3.70it/s, loss=477.7063]Trial 1 Ep1:  50%|█████████████████████████████████▋                                  | 57/115 [00:15<00:14,  3.93it/s, loss=477.7063]Trial 1 Ep1:  50%|██████████████████████████████████▏                                  | 57/115 [00:15<00:14,  3.93it/s, loss=86.7581]Trial 1 Ep1:  50%|██████████████████████████████████▊                                  | 58/115 [00:15<00:14,  4.05it/s, loss=86.7581]Trial 1 Ep1:  50%|██████████████████████████████████▎                                 | 58/115 [00:15<00:14,  4.05it/s, loss=500.2375]Trial 1 Ep1:  51%|██████████████████████████████████▉                                 | 59/115 [00:15<00:13,  4.06it/s, loss=500.2375]Trial 1 Ep1:  51%|██████████████████████████████████▉                                 | 59/115 [00:15<00:13,  4.06it/s, loss=514.9755]Trial 1 Ep1:  52%|███████████████████████████████████▍                                | 60/115 [00:15<00:13,  4.18it/s, loss=514.9755]Trial 1 Ep1:  52%|███████████████████████████████████▍                                | 60/115 [00:16<00:13,  4.18it/s, loss=149.1020]Trial 1 Ep1:  53%|████████████████████████████████████                                | 61/115 [00:16<00:12,  4.26it/s, loss=149.1020]Trial 1 Ep1:  53%|████████████████████████████████████                                | 61/115 [00:16<00:12,  4.26it/s, loss=119.1936]Trial 1 Ep1:  54%|████████████████████████████████████▋                               | 62/115 [00:16<00:12,  4.08it/s, loss=119.1936]Trial 1 Ep1:  54%|█████████████████████████████████████▏                               | 62/115 [00:16<00:12,  4.08it/s, loss=46.6319]Trial 1 Ep1:  55%|█████████████████████████████████████▊                               | 63/115 [00:16<00:12,  4.23it/s, loss=46.6319]Trial 1 Ep1:  55%|██████████████████████████████████████▎                               | 63/115 [00:16<00:12,  4.23it/s, loss=2.8013]Trial 1 Ep1:  56%|██████████████████████████████████████▉                               | 64/115 [00:16<00:11,  4.28it/s, loss=2.8013]Trial 1 Ep1:  56%|██████████████████████████████████████▍                              | 64/115 [00:17<00:11,  4.28it/s, loss=11.8921]Trial 1 Ep1:  57%|███████████████████████████████████████                              | 65/115 [00:17<00:11,  4.30it/s, loss=11.8921]Trial 1 Ep1:  57%|███████████████████████████████████████▌                              | 65/115 [00:17<00:11,  4.30it/s, loss=9.3819]Trial 1 Ep1:  57%|████████████████████████████████████████▏                             | 66/115 [00:17<00:11,  4.35it/s, loss=9.3819]Trial 1 Ep1:  57%|████████████████████████████████████████▏                             | 66/115 [00:17<00:11,  4.35it/s, loss=7.2708]Trial 1 Ep1:  58%|████████████████████████████████████████▊                             | 67/115 [00:17<00:11,  4.24it/s, loss=7.2708]Trial 1 Ep1:  58%|████████████████████████████████████████▊                             | 67/115 [00:17<00:11,  4.24it/s, loss=7.7514]Trial 1 Ep1:  59%|█████████████████████████████████████████▍                            | 68/115 [00:17<00:10,  4.35it/s, loss=7.7514]Trial 1 Ep1:  59%|████████████████████████████████████████▊                            | 68/115 [00:18<00:10,  4.35it/s, loss=18.4749]Trial 1 Ep1:  60%|█████████████████████████████████████████▍                           | 69/115 [00:18<00:10,  4.35it/s, loss=18.4749]Trial 1 Ep1:  60%|██████████████████████████████████████████                            | 69/115 [00:18<00:10,  4.35it/s, loss=9.7117]Trial 1 Ep1:  61%|██████████████████████████████████████████▌                           | 70/115 [00:18<00:10,  4.26it/s, loss=9.7117]Trial 1 Ep1:  61%|██████████████████████████████████████████▌                           | 70/115 [00:18<00:10,  4.26it/s, loss=8.8180]Trial 1 Ep1:  62%|███████████████████████████████████████████▏                          | 71/115 [00:18<00:10,  4.00it/s, loss=8.8180]Trial 1 Ep1:  62%|███████████████████████████████████████████▏                          | 71/115 [00:18<00:10,  4.00it/s, loss=1.8806]Trial 1 Ep1:  63%|███████████████████████████████████████████▊                          | 72/115 [00:18<00:10,  4.08it/s, loss=1.8806]Trial 1 Ep1:  63%|███████████████████████████████████████████▊                          | 72/115 [00:19<00:10,  4.08it/s, loss=3.4917]Trial 1 Ep1:  63%|████████████████████████████████████████████▍                         | 73/115 [00:19<00:10,  4.16it/s, loss=3.4917]Trial 1 Ep1:  63%|████████████████████████████████████████████▍                         | 73/115 [00:19<00:10,  4.16it/s, loss=1.3204]Trial 1 Ep1:  64%|█████████████████████████████████████████████                         | 74/115 [00:19<00:09,  4.24it/s, loss=1.3204]Trial 1 Ep1:  64%|█████████████████████████████████████████████                         | 74/115 [00:19<00:09,  4.24it/s, loss=4.0006]Trial 1 Ep1:  65%|█████████████████████████████████████████████▋                        | 75/115 [00:19<00:09,  4.22it/s, loss=4.0006]Trial 1 Ep1:  65%|█████████████████████████████████████████████▋                        | 75/115 [00:19<00:09,  4.22it/s, loss=6.0256]Trial 1 Ep1:  66%|██████████████████████████████████████████████▎                       | 76/115 [00:19<00:10,  3.82it/s, loss=6.0256]Trial 1 Ep1:  66%|██████████████████████████████████████████████▎                       | 76/115 [00:20<00:10,  3.82it/s, loss=1.3072]Trial 1 Ep1:  67%|██████████████████████████████████████████████▊                       | 77/115 [00:20<00:09,  4.00it/s, loss=1.3072]Trial 1 Ep1:  67%|██████████████████████████████████████████████▊                       | 77/115 [00:20<00:09,  4.00it/s, loss=9.9459]Trial 1 Ep1:  68%|███████████████████████████████████████████████▍                      | 78/115 [00:20<00:09,  3.96it/s, loss=9.9459]Trial 1 Ep1:  68%|██████████████████████████████████████████████▊                      | 78/115 [00:20<00:09,  3.96it/s, loss=12.8073]Trial 1 Ep1:  69%|███████████████████████████████████████████████▍                     | 79/115 [00:20<00:09,  3.89it/s, loss=12.8073]Trial 1 Ep1:  69%|████████████████████████████████████████████████                      | 79/115 [00:20<00:09,  3.89it/s, loss=7.4105]Trial 1 Ep1:  70%|████████████████████████████████████████████████▋                     | 80/115 [00:20<00:08,  4.02it/s, loss=7.4105]Trial 1 Ep1:  70%|████████████████████████████████████████████████▋                     | 80/115 [00:21<00:08,  4.02it/s, loss=1.1407]Trial 1 Ep1:  70%|█████████████████████████████████████████████████▎                    | 81/115 [00:21<00:08,  4.06it/s, loss=1.1407]Trial 1 Ep1:  70%|█████████████████████████████████████████████████▎                    | 81/115 [00:21<00:08,  4.06it/s, loss=4.0325]Trial 1 Ep1:  71%|█████████████████████████████████████████████████▉                    | 82/115 [00:21<00:07,  4.18it/s, loss=4.0325]Trial 1 Ep1:  71%|█████████████████████████████████████████████████▉                    | 82/115 [00:21<00:07,  4.18it/s, loss=5.4930]Trial 1 Ep1:  72%|██████████████████████████████████████████████████▌                   | 83/115 [00:21<00:07,  4.22it/s, loss=5.4930]Trial 1 Ep1:  72%|██████████████████████████████████████████████████▌                   | 83/115 [00:21<00:07,  4.22it/s, loss=6.9444]Trial 1 Ep1:  73%|███████████████████████████████████████████████████▏                  | 84/115 [00:21<00:07,  3.92it/s, loss=6.9444]Trial 1 Ep1:  73%|███████████████████████████████████████████████████▏                  | 84/115 [00:22<00:07,  3.92it/s, loss=3.5759]Trial 1 Ep1:  74%|███████████████████████████████████████████████████▋                  | 85/115 [00:22<00:07,  4.04it/s, loss=3.5759]Trial 1 Ep1:  74%|███████████████████████████████████████████████████▋                  | 85/115 [00:22<00:07,  4.04it/s, loss=1.0519]Trial 1 Ep1:  75%|████████████████████████████████████████████████████▎                 | 86/115 [00:22<00:07,  3.93it/s, loss=1.0519]Trial 1 Ep1:  75%|████████████████████████████████████████████████████▎                 | 86/115 [00:22<00:07,  3.93it/s, loss=1.6957]Trial 1 Ep1:  76%|████████████████████████████████████████████████████▉                 | 87/115 [00:22<00:07,  3.84it/s, loss=1.6957]Trial 1 Ep1:  76%|████████████████████████████████████████████████████▉                 | 87/115 [00:22<00:07,  3.84it/s, loss=0.7666]Trial 1 Ep1:  77%|█████████████████████████████████████████████████████▌                | 88/115 [00:22<00:06,  3.99it/s, loss=0.7666]                                                                                                                                      [W 2026-02-24 14:48:59,334] Trial 1 failed with parameters: {'learning_rate': 0.006, 'target_ab_lr': 5e-07} because of the following error: OutOfMemoryError('CUDA out of memory. Tried to allocate 20.00 MiB. GPU 0 has a total capacity of 139.81 GiB of which 17.69 MiB is free. Process 3010496 has 139.79 GiB memory in use. Of the allocated memory 115.21 GiB is allocated by PyTorch, and 1.27 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)').
+Traceback (most recent call last):
+  File "/opt/conda/lib/python3.11/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+                      ^^^^^^^^^^^
+  File "/data/optuna_mobilebert_glue_lora.py", line 1477, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_loader, tokenizer),
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/optuna_mobilebert_glue_lora.py", line 1141, in objective
+    outputs = model(**model_inputs)
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 1286, in forward
+    outputs = self.mobilebert(
+              ^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 898, in forward
+    encoder_outputs = self.encoder(
+                      ^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 580, in forward
+    layer_outputs = layer_module(
+                    ^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 538, in forward
+    attention_output = ffn_module(attention_output)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 492, in forward
+    intermediate_output = self.intermediate(hidden_states)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 383, in forward
+    hidden_states = self.intermediate_act_fn(hidden_states)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/activation.py", line 143, in forward
+    return F.relu(input, inplace=self.inplace)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/functional.py", line 1721, in relu
+    result = torch.relu(input)
+             ^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 20.00 MiB. GPU 0 has a total capacity of 139.81 GiB of which 17.69 MiB is free. Process 3010496 has 139.79 GiB memory in use. Of the allocated memory 115.21 GiB is allocated by PyTorch, and 1.27 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+[W 2026-02-24 14:48:59,337] Trial 1 failed with value None.
+2026-02-24 14:49:02.810279: I tensorflow/core/util/port.cc:111] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-02-24 14:49:02.812653: I tensorflow/tsl/cuda/cudart_stub.cc:28] Could not find cuda drivers on your machine, GPU will not be used.
+2026-02-24 14:49:02.840762: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-02-24 14:49:02.840812: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-02-24 14:49:02.840835: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-02-24 14:49:02.846826: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F AVX512_VNNI AVX512_BF16 AVX_VNNI AMX_TILE AMX_INT8 AMX_BF16 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2026-02-24 14:49:03.558015: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+[I 2026-02-24 14:49:09,185] Using an existing study with name 'mrpc_ablr_5e7' instead of creating a new one.
+/opt/conda/lib/python3.11/site-packages/optuna/trial/_trial.py:658: UserWarning: Fixed parameter 'target_ab_lr' with value 5e-07 is out of range for distribution FloatDistribution(high=0.1, log=True, low=0.0001, step=None).
+  optuna_warn(
+  [Task Config] mrpc: batch_size=32, max_seq=128, epochs=7, lr=0.006
+  GLUE mrpc: Train=3668, Eval=408
+Train batches: 115, Eval batches: 7
+  Early stop patience: 2, Pruner: Median, startup=5, warmup=2
+
+Study: mrpc_ablr_5e7, Device: cuda, New trials: 1
+
+======================================================================
+Trial 2 Starting
+======================================================================
+  rank=8, transfer_every=10000000, transfer_lr=1.0000e-01
+  lora_alpha=1.0000, lr=6.0000e-03, wd=0.00e+00
+  target_ab_lr=0.0000, lr_multiplier=0.000083
+  effective_ab_lr = lr*alpha*mult = 0.0000
+  momentum=0.00, nesterov=False, reinit_mode=decay
+  tau_sec=0.0, optimizer=AnalogAdam
+======================================================================
+Some weights of MobileBertForSequenceClassification were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+  [FIX] Reinitialized classifier with FIXED seed=42
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  LRTT Analog layers: 96, Total params: 21,842,978, Trainable (before grad set): 21,842,978
+  Trainable (after grad set): 13,602
+  LoRA target: qkv -> ['attention.self.query', 'attention.self.key', 'attention.self.value', 'attention.output.dense']
+
+Optimizer configuration:
+  Forward scaling (lora_alpha): 1.0
+  Classifier LR: 0.006
+  LRTT LR (optimizer): 5e-07 (= 0.006 * 8.333333333333333e-05)
+  Effective A,B LR: 5e-07 (= 5e-07 * 1.0)
+  LRTT_LR_MULTIPLIER: 8.333333333333333e-05
+  LRTT tile params: 288
+  Other params: 98
+  Collected 96 tile_c contexts for post-step reset
+  Collected 192 tile_a/b contexts for post-step reset
+  AB LR Warmup: 1e-07 → 5e-07 over 40 steps (scheduler warmup: 40 steps)
+Trial 2 Ep1:   0%|                                                                                            | 0/115 [00:00<?, ?it/s]Trial 2 Ep1:   0%|                                                                         | 0/115 [00:01<?, ?it/s, loss=3982584.5000]Trial 2 Ep1:   1%|▌                                                                | 1/115 [00:01<02:23,  1.26s/it, loss=3982584.5000]Trial 2 Ep1:   1%|▌                                                                | 1/115 [00:01<02:23,  1.26s/it, loss=3803819.0000]Trial 2 Ep1:   2%|█▏                                                               | 2/115 [00:01<01:27,  1.30it/s, loss=3803819.0000]Trial 2 Ep1:   2%|█▏                                                               | 2/115 [00:02<01:27,  1.30it/s, loss=2673006.5000]Trial 2 Ep1:   3%|█▋                                                               | 3/115 [00:02<01:03,  1.75it/s, loss=2673006.5000]Trial 2 Ep1:   3%|█▋                                                                 | 3/115 [00:02<01:03,  1.75it/s, loss=83240.3594]Trial 2 Ep1:   3%|██▎                                                                | 4/115 [00:02<00:46,  2.37it/s, loss=83240.3594]Trial 2 Ep1:   3%|██▎                                                              | 4/115 [00:02<00:46,  2.37it/s, loss=1584300.0000]Trial 2 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:39,  2.82it/s, loss=1584300.0000]Trial 2 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:39,  2.82it/s, loss=3554612.0000]Trial 2 Ep1:   5%|███▍                                                             | 6/115 [00:02<00:33,  3.23it/s, loss=3554612.0000]Trial 2 Ep1:   5%|███▍                                                             | 6/115 [00:03<00:33,  3.23it/s, loss=2914548.0000]Trial 2 Ep1:   6%|███▉                                                             | 7/115 [00:03<00:34,  3.11it/s, loss=2914548.0000]Trial 2 Ep1:   6%|███▉                                                             | 7/115 [00:03<00:34,  3.11it/s, loss=2503964.5000]Trial 2 Ep1:   7%|████▌                                                            | 8/115 [00:03<00:30,  3.53it/s, loss=2503964.5000]Trial 2 Ep1:   7%|████▌                                                            | 8/115 [00:03<00:30,  3.53it/s, loss=2147300.0000]Trial 2 Ep1:   8%|█████                                                            | 9/115 [00:03<00:30,  3.47it/s, loss=2147300.0000]Trial 2 Ep1:   8%|█████                                                            | 9/115 [00:03<00:30,  3.47it/s, loss=1265570.8750]Trial 2 Ep1:   9%|█████▌                                                          | 10/115 [00:03<00:27,  3.79it/s, loss=1265570.8750]Trial 2 Ep1:   9%|█████▌                                                          | 10/115 [00:03<00:27,  3.79it/s, loss=2321242.0000]Trial 2 Ep1:  10%|██████                                                          | 11/115 [00:03<00:25,  4.09it/s, loss=2321242.0000]Trial 2 Ep1:  10%|██████                                                          | 11/115 [00:04<00:25,  4.09it/s, loss=5321369.0000]Trial 2 Ep1:  10%|██████▋                                                         | 12/115 [00:04<00:24,  4.19it/s, loss=5321369.0000]Trial 2 Ep1:  10%|██████▋                                                         | 12/115 [00:04<00:24,  4.19it/s, loss=5694977.0000]Trial 2 Ep1:  11%|███████▏                                                        | 13/115 [00:04<00:24,  4.16it/s, loss=5694977.0000]Trial 2 Ep1:  11%|███████▏                                                        | 13/115 [00:04<00:24,  4.16it/s, loss=4977606.0000]Trial 2 Ep1:  12%|███████▊                                                        | 14/115 [00:04<00:23,  4.22it/s, loss=4977606.0000]Trial 2 Ep1:  12%|███████▊                                                        | 14/115 [00:04<00:23,  4.22it/s, loss=1817649.7500]Trial 2 Ep1:  13%|████████▎                                                       | 15/115 [00:04<00:23,  4.28it/s, loss=1817649.7500]Trial 2 Ep1:  13%|████████▎                                                       | 15/115 [00:05<00:23,  4.28it/s, loss=1573898.0000]Trial 2 Ep1:  14%|████████▉                                                       | 16/115 [00:05<00:26,  3.67it/s, loss=1573898.0000]Trial 2 Ep1:  14%|████████▉                                                       | 16/115 [00:05<00:26,  3.67it/s, loss=2239716.5000]Trial 2 Ep1:  15%|█████████▍                                                      | 17/115 [00:05<00:27,  3.54it/s, loss=2239716.5000]Trial 2 Ep1:  15%|█████████▍                                                      | 17/115 [00:05<00:27,  3.54it/s, loss=2801124.5000]Trial 2 Ep1:  16%|██████████                                                      | 18/115 [00:05<00:25,  3.84it/s, loss=2801124.5000]Trial 2 Ep1:  16%|██████████                                                      | 18/115 [00:05<00:25,  3.84it/s, loss=1562954.0000]Trial 2 Ep1:  17%|██████████▌                                                     | 19/115 [00:05<00:24,  3.94it/s, loss=1562954.0000]Trial 2 Ep1:  17%|██████████▋                                                      | 19/115 [00:06<00:24,  3.94it/s, loss=812157.2500]Trial 2 Ep1:  17%|███████████▎                                                     | 20/115 [00:06<00:23,  3.97it/s, loss=812157.2500]Trial 2 Ep1:  17%|███████████▏                                                    | 20/115 [00:06<00:23,  3.97it/s, loss=1864678.1250]Trial 2 Ep1:  18%|███████████▋                                                    | 21/115 [00:06<00:23,  3.95it/s, loss=1864678.1250]Trial 2 Ep1:  18%|███████████▊                                                     | 21/115 [00:06<00:23,  3.95it/s, loss=780015.2500]Trial 2 Ep1:  19%|████████████▍                                                    | 22/115 [00:06<00:23,  3.96it/s, loss=780015.2500]Trial 2 Ep1:  19%|████████████▍                                                    | 22/115 [00:06<00:23,  3.96it/s, loss=161813.5000]Trial 2 Ep1:  20%|█████████████                                                    | 23/115 [00:06<00:21,  4.22it/s, loss=161813.5000]Trial 2 Ep1:  20%|█████████████                                                    | 23/115 [00:07<00:21,  4.22it/s, loss=116996.4062]Trial 2 Ep1:  21%|█████████████▌                                                   | 24/115 [00:07<00:20,  4.34it/s, loss=116996.4062]Trial 2 Ep1:  21%|██████████████▏                                                     | 24/115 [00:07<00:20,  4.34it/s, loss=880.3804]Trial 2 Ep1:  22%|██████████████▊                                                     | 25/115 [00:07<00:20,  4.47it/s, loss=880.3804]Trial 2 Ep1:  22%|██████████████▎                                                   | 25/115 [00:07<00:20,  4.47it/s, loss=23020.3223]Trial 2 Ep1:  23%|██████████████▉                                                   | 26/115 [00:07<00:29,  2.97it/s, loss=23020.3223]Trial 2 Ep1:  23%|██████████████▉                                                   | 26/115 [00:08<00:29,  2.97it/s, loss=16437.2168]Trial 2 Ep1:  23%|███████████████▍                                                  | 27/115 [00:08<00:26,  3.37it/s, loss=16437.2168]Trial 2 Ep1:  23%|███████████████▋                                                   | 27/115 [00:08<00:26,  3.37it/s, loss=6209.0112]Trial 2 Ep1:  24%|████████████████▎                                                  | 28/115 [00:08<00:23,  3.63it/s, loss=6209.0112]Trial 2 Ep1:  24%|████████████████▎                                                  | 28/115 [00:08<00:23,  3.63it/s, loss=5679.9644]Trial 2 Ep1:  25%|████████████████▉                                                  | 29/115 [00:08<00:23,  3.71it/s, loss=5679.9644]Trial 2 Ep1:  25%|████████████████▉                                                  | 29/115 [00:08<00:23,  3.71it/s, loss=3337.8335]Trial 2 Ep1:  26%|█████████████████▍                                                 | 30/115 [00:08<00:21,  3.89it/s, loss=3337.8335]Trial 2 Ep1:  26%|████████████████▉                                                | 30/115 [00:09<00:21,  3.89it/s, loss=105448.9219]Trial 2 Ep1:  27%|█████████████████▌                                               | 31/115 [00:09<00:21,  3.93it/s, loss=105448.9219]Trial 2 Ep1:  27%|██████████████████                                                 | 31/115 [00:09<00:21,  3.93it/s, loss=6039.6118]Trial 2 Ep1:  28%|██████████████████▋                                                | 32/115 [00:09<00:19,  4.16it/s, loss=6039.6118]Trial 2 Ep1:  28%|██████████████████▋                                                | 32/115 [00:09<00:19,  4.16it/s, loss=2907.4241]Trial 2 Ep1:  29%|███████████████████▏                                               | 33/115 [00:09<00:20,  3.95it/s, loss=2907.4241]Trial 2 Ep1:  29%|███████████████████▌                                                | 33/115 [00:09<00:20,  3.95it/s, loss=263.6353]Trial 2 Ep1:  30%|████████████████████                                                | 34/115 [00:09<00:19,  4.15it/s, loss=263.6353]Trial 2 Ep1:  30%|███████████████████▌                                              | 34/115 [00:10<00:19,  4.15it/s, loss=11291.2578]Trial 2 Ep1:  30%|████████████████████                                              | 35/115 [00:10<00:18,  4.31it/s, loss=11291.2578]Trial 2 Ep1:  30%|████████████████████                                              | 35/115 [00:10<00:18,  4.31it/s, loss=17935.3828]Trial 2 Ep1:  31%|████████████████████▋                                             | 36/115 [00:10<00:17,  4.44it/s, loss=17935.3828]Trial 2 Ep1:  31%|████████████████████▋                                             | 36/115 [00:10<00:17,  4.44it/s, loss=17532.4961]Trial 2 Ep1:  32%|█████████████████████▏                                            | 37/115 [00:10<00:17,  4.50it/s, loss=17532.4961]Trial 2 Ep1:  32%|█████████████████████▏                                            | 37/115 [00:10<00:17,  4.50it/s, loss=15364.4082]Trial 2 Ep1:  33%|█████████████████████▊                                            | 38/115 [00:10<00:19,  4.05it/s, loss=15364.4082]Trial 2 Ep1:  33%|██████████████████████▏                                            | 38/115 [00:10<00:19,  4.05it/s, loss=7556.4775]Trial 2 Ep1:  34%|██████████████████████▋                                            | 39/115 [00:10<00:17,  4.22it/s, loss=7556.4775]Trial 2 Ep1:  34%|██████████████████████▋                                            | 39/115 [00:11<00:17,  4.22it/s, loss=2594.0698]Trial 2 Ep1:  35%|███████████████████████▎                                           | 40/115 [00:11<00:17,  4.32it/s, loss=2594.0698]Trial 2 Ep1:  35%|███████████████████████▎                                           | 40/115 [00:11<00:17,  4.32it/s, loss=3982.9834]Trial 2 Ep1:  36%|███████████████████████▉                                           | 41/115 [00:11<00:17,  4.11it/s, loss=3982.9834]Trial 2 Ep1:  36%|███████████████████████▉                                           | 41/115 [00:11<00:17,  4.11it/s, loss=5936.8486]Trial 2 Ep1:  37%|████████████████████████▍                                          | 42/115 [00:11<00:16,  4.31it/s, loss=5936.8486]Trial 2 Ep1:  37%|████████████████████████▍                                          | 42/115 [00:11<00:16,  4.31it/s, loss=1701.3909]Trial 2 Ep1:  37%|█████████████████████████                                          | 43/115 [00:11<00:16,  4.38it/s, loss=1701.3909]Trial 2 Ep1:  37%|█████████████████████████                                          | 43/115 [00:12<00:16,  4.38it/s, loss=1951.6458]Trial 2 Ep1:  38%|█████████████████████████▋                                         | 44/115 [00:12<00:15,  4.56it/s, loss=1951.6458]Trial 2 Ep1:  38%|█████████████████████████▋                                         | 44/115 [00:12<00:15,  4.56it/s, loss=4569.5840]Trial 2 Ep1:  39%|██████████████████████████▏                                        | 45/115 [00:12<00:16,  4.31it/s, loss=4569.5840]Trial 2 Ep1:  39%|██████████████████████████▏                                        | 45/115 [00:12<00:16,  4.31it/s, loss=1996.6738]Trial 2 Ep1:  40%|██████████████████████████▊                                        | 46/115 [00:12<00:15,  4.32it/s, loss=1996.6738]Trial 2 Ep1:  40%|███████████████████████████▏                                        | 46/115 [00:12<00:15,  4.32it/s, loss=964.6738]Trial 2 Ep1:  41%|███████████████████████████▊                                        | 47/115 [00:12<00:16,  4.21it/s, loss=964.6738]Trial 2 Ep1:  41%|███████████████████████████▍                                       | 47/115 [00:13<00:16,  4.21it/s, loss=1632.6290]Trial 2 Ep1:  42%|███████████████████████████▉                                       | 48/115 [00:13<00:15,  4.33it/s, loss=1632.6290]Trial 2 Ep1:  42%|████████████████████████████▍                                       | 48/115 [00:13<00:15,  4.33it/s, loss=238.2283]Trial 2 Ep1:  43%|████████████████████████████▉                                       | 49/115 [00:13<00:14,  4.40it/s, loss=238.2283]Trial 2 Ep1:  43%|████████████████████████████▌                                      | 49/115 [00:13<00:14,  4.40it/s, loss=3206.8403]Trial 2 Ep1:  43%|█████████████████████████████▏                                     | 50/115 [00:13<00:16,  4.00it/s, loss=3206.8403]Trial 2 Ep1:  43%|█████████████████████████████▏                                     | 50/115 [00:13<00:16,  4.00it/s, loss=4908.1924]Trial 2 Ep1:  44%|█████████████████████████████▋                                     | 51/115 [00:13<00:15,  4.10it/s, loss=4908.1924]Trial 2 Ep1:  44%|█████████████████████████████▋                                     | 51/115 [00:14<00:15,  4.10it/s, loss=3162.9790]Trial 2 Ep1:  45%|██████████████████████████████▎                                    | 52/115 [00:14<00:14,  4.24it/s, loss=3162.9790]Trial 2 Ep1:  45%|██████████████████████████████▋                                     | 52/115 [00:14<00:14,  4.24it/s, loss=146.9891]Trial 2 Ep1:  46%|███████████████████████████████▎                                    | 53/115 [00:14<00:17,  3.46it/s, loss=146.9891]Trial 2 Ep1:  46%|██████████████████████████████▉                                    | 53/115 [00:14<00:17,  3.46it/s, loss=1508.9058]Trial 2 Ep1:  47%|███████████████████████████████▍                                   | 54/115 [00:14<00:16,  3.62it/s, loss=1508.9058]Trial 2 Ep1:  47%|███████████████████████████████▍                                   | 54/115 [00:14<00:16,  3.62it/s, loss=2675.6113]Trial 2 Ep1:  48%|████████████████████████████████                                   | 55/115 [00:14<00:15,  3.83it/s, loss=2675.6113]Trial 2 Ep1:  48%|████████████████████████████████                                   | 55/115 [00:15<00:15,  3.83it/s, loss=2342.6519]Trial 2 Ep1:  49%|████████████████████████████████▋                                  | 56/115 [00:15<00:14,  4.00it/s, loss=2342.6519]Trial 2 Ep1:  49%|████████████████████████████████▋                                  | 56/115 [00:15<00:14,  4.00it/s, loss=1011.8799]Trial 2 Ep1:  50%|█████████████████████████████████▏                                 | 57/115 [00:15<00:13,  4.19it/s, loss=1011.8799]Trial 2 Ep1:  50%|█████████████████████████████████▋                                  | 57/115 [00:15<00:13,  4.19it/s, loss=164.4054]Trial 2 Ep1:  50%|██████████████████████████████████▎                                 | 58/115 [00:15<00:14,  3.93it/s, loss=164.4054]Trial 2 Ep1:  50%|█████████████████████████████████▊                                 | 58/115 [00:15<00:14,  3.93it/s, loss=1235.7439]Trial 2 Ep1:  51%|██████████████████████████████████▎                                | 59/115 [00:15<00:13,  4.14it/s, loss=1235.7439]Trial 2 Ep1:  51%|██████████████████████████████████▎                                | 59/115 [00:16<00:13,  4.14it/s, loss=2807.3247]Trial 2 Ep1:  52%|██████████████████████████████████▉                                | 60/115 [00:16<00:13,  4.22it/s, loss=2807.3247]Trial 2 Ep1:  52%|███████████████████████████████████▍                                | 60/115 [00:16<00:13,  4.22it/s, loss=966.2253]Trial 2 Ep1:  53%|████████████████████████████████████                                | 61/115 [00:16<00:12,  4.28it/s, loss=966.2253]Trial 2 Ep1:  53%|████████████████████████████████████                                | 61/115 [00:16<00:12,  4.28it/s, loss=646.7339]Trial 2 Ep1:  54%|████████████████████████████████████▋                               | 62/115 [00:16<00:12,  4.33it/s, loss=646.7339]Trial 2 Ep1:  54%|████████████████████████████████████▋                               | 62/115 [00:16<00:12,  4.33it/s, loss=181.4618]Trial 2 Ep1:  55%|█████████████████████████████████████▎                              | 63/115 [00:16<00:12,  4.04it/s, loss=181.4618]Trial 2 Ep1:  55%|█████████████████████████████████████▊                               | 63/115 [00:17<00:12,  4.04it/s, loss=18.6388]Trial 2 Ep1:  56%|██████████████████████████████████████▍                              | 64/115 [00:17<00:12,  4.13it/s, loss=18.6388]Trial 2 Ep1:  56%|██████████████████████████████████████▍                              | 64/115 [00:17<00:12,  4.13it/s, loss=27.4396]Trial 2 Ep1:  57%|███████████████████████████████████████                              | 65/115 [00:17<00:11,  4.18it/s, loss=27.4396]Trial 2 Ep1:  57%|███████████████████████████████████████                              | 65/115 [00:17<00:11,  4.18it/s, loss=10.0058]Trial 2 Ep1:  57%|███████████████████████████████████████▌                             | 66/115 [00:17<00:12,  3.94it/s, loss=10.0058]Trial 2 Ep1:  57%|████████████████████████████████████████▏                             | 66/115 [00:17<00:12,  3.94it/s, loss=7.8669]Trial 2 Ep1:  58%|████████████████████████████████████████▊                             | 67/115 [00:17<00:11,  4.06it/s, loss=7.8669]Trial 2 Ep1:  58%|████████████████████████████████████████▊                             | 67/115 [00:18<00:11,  4.06it/s, loss=7.1446]Trial 2 Ep1:  59%|█████████████████████████████████████████▍                            | 68/115 [00:18<00:11,  4.15it/s, loss=7.1446]Trial 2 Ep1:  59%|████████████████████████████████████████▊                            | 68/115 [00:18<00:11,  4.15it/s, loss=17.7467]Trial 2 Ep1:  60%|█████████████████████████████████████████▍                           | 69/115 [00:18<00:11,  4.18it/s, loss=17.7467]Trial 2 Ep1:  60%|██████████████████████████████████████████                            | 69/115 [00:18<00:11,  4.18it/s, loss=8.5960]Trial 2 Ep1:  61%|██████████████████████████████████████████▌                           | 70/115 [00:18<00:10,  4.21it/s, loss=8.5960]Trial 2 Ep1:  61%|██████████████████████████████████████████                           | 70/115 [00:18<00:10,  4.21it/s, loss=13.0707]Trial 2 Ep1:  62%|██████████████████████████████████████████▌                          | 71/115 [00:18<00:10,  4.03it/s, loss=13.0707]Trial 2 Ep1:  62%|███████████████████████████████████████████▏                          | 71/115 [00:18<00:10,  4.03it/s, loss=2.7365]Trial 2 Ep1:  63%|███████████████████████████████████████████▊                          | 72/115 [00:18<00:10,  4.08it/s, loss=2.7365]Trial 2 Ep1:  63%|███████████████████████████████████████████▊                          | 72/115 [00:19<00:10,  4.08it/s, loss=1.9489]Trial 2 Ep1:  63%|████████████████████████████████████████████▍                         | 73/115 [00:19<00:09,  4.28it/s, loss=1.9489]Trial 2 Ep1:  63%|████████████████████████████████████████████▍                         | 73/115 [00:19<00:09,  4.28it/s, loss=0.6301]Trial 2 Ep1:  64%|█████████████████████████████████████████████                         | 74/115 [00:19<00:10,  3.85it/s, loss=0.6301]Trial 2 Ep1:  64%|█████████████████████████████████████████████                         | 74/115 [00:19<00:10,  3.85it/s, loss=4.4440]Trial 2 Ep1:  65%|█████████████████████████████████████████████▋                        | 75/115 [00:19<00:09,  4.00it/s, loss=4.4440]Trial 2 Ep1:  65%|█████████████████████████████████████████████▋                        | 75/115 [00:19<00:09,  4.00it/s, loss=6.4640]Trial 2 Ep1:  66%|██████████████████████████████████████████████▎                       | 76/115 [00:19<00:09,  4.16it/s, loss=6.4640]Trial 2 Ep1:  66%|██████████████████████████████████████████████▎                       | 76/115 [00:20<00:09,  4.16it/s, loss=2.1172]Trial 2 Ep1:  67%|██████████████████████████████████████████████▊                       | 77/115 [00:20<00:08,  4.25it/s, loss=2.1172]Trial 2 Ep1:  67%|██████████████████████████████████████████████▊                       | 77/115 [00:20<00:08,  4.25it/s, loss=7.1726]Trial 2 Ep1:  68%|███████████████████████████████████████████████▍                      | 78/115 [00:20<00:08,  4.17it/s, loss=7.1726]Trial 2 Ep1:  68%|███████████████████████████████████████████████▍                      | 78/115 [00:20<00:08,  4.17it/s, loss=9.7599]Trial 2 Ep1:  69%|████████████████████████████████████████████████                      | 79/115 [00:20<00:08,  4.15it/s, loss=9.7599]Trial 2 Ep1:  69%|████████████████████████████████████████████████                      | 79/115 [00:20<00:08,  4.15it/s, loss=5.1396]Trial 2 Ep1:  70%|████████████████████████████████████████████████▋                     | 80/115 [00:20<00:08,  4.06it/s, loss=5.1396]Trial 2 Ep1:  70%|████████████████████████████████████████████████▋                     | 80/115 [00:21<00:08,  4.06it/s, loss=0.7712]Trial 2 Ep1:  70%|█████████████████████████████████████████████████▎                    | 81/115 [00:21<00:08,  4.19it/s, loss=0.7712]Trial 2 Ep1:  70%|█████████████████████████████████████████████████▎                    | 81/115 [00:21<00:08,  4.19it/s, loss=0.9681]Trial 2 Ep1:  71%|█████████████████████████████████████████████████▉                    | 82/115 [00:21<00:07,  4.23it/s, loss=0.9681]Trial 2 Ep1:  71%|█████████████████████████████████████████████████▉                    | 82/115 [00:21<00:07,  4.23it/s, loss=1.0333]Trial 2 Ep1:  72%|██████████████████████████████████████████████████▌                   | 83/115 [00:21<00:07,  4.13it/s, loss=1.0333]Trial 2 Ep1:  72%|██████████████████████████████████████████████████▌                   | 83/115 [00:21<00:07,  4.13it/s, loss=0.9578]Trial 2 Ep1:  73%|███████████████████████████████████████████████████▏                  | 84/115 [00:21<00:07,  4.09it/s, loss=0.9578]Trial 2 Ep1:  73%|███████████████████████████████████████████████████▏                  | 84/115 [00:22<00:07,  4.09it/s, loss=1.5534]Trial 2 Ep1:  74%|███████████████████████████████████████████████████▋                  | 85/115 [00:22<00:07,  4.15it/s, loss=1.5534]Trial 2 Ep1:  74%|███████████████████████████████████████████████████▋                  | 85/115 [00:22<00:07,  4.15it/s, loss=0.5845]Trial 2 Ep1:  75%|████████████████████████████████████████████████████▎                 | 86/115 [00:22<00:06,  4.24it/s, loss=0.5845]Trial 2 Ep1:  75%|████████████████████████████████████████████████████▎                 | 86/115 [00:22<00:06,  4.24it/s, loss=0.8677]Trial 2 Ep1:  76%|████████████████████████████████████████████████████▉                 | 87/115 [00:22<00:06,  4.14it/s, loss=0.8677]Trial 2 Ep1:  76%|████████████████████████████████████████████████████▉                 | 87/115 [00:22<00:06,  4.14it/s, loss=0.6663]Trial 2 Ep1:  77%|█████████████████████████████████████████████████████▌                | 88/115 [00:22<00:06,  3.98it/s, loss=0.6663]                                                                                                                                      [W 2026-02-24 14:49:40,403] Trial 2 failed with parameters: {'learning_rate': 0.006, 'target_ab_lr': 5e-07} because of the following error: OutOfMemoryError('CUDA out of memory. Tried to allocate 20.00 MiB. GPU 0 has a total capacity of 139.81 GiB of which 17.69 MiB is free. Process 3010496 has 139.79 GiB memory in use. Of the allocated memory 115.21 GiB is allocated by PyTorch, and 1.27 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)').
+Traceback (most recent call last):
+  File "/opt/conda/lib/python3.11/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+                      ^^^^^^^^^^^
+  File "/data/optuna_mobilebert_glue_lora.py", line 1477, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_loader, tokenizer),
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/optuna_mobilebert_glue_lora.py", line 1141, in objective
+    outputs = model(**model_inputs)
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 1286, in forward
+    outputs = self.mobilebert(
+              ^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 898, in forward
+    encoder_outputs = self.encoder(
+                      ^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 580, in forward
+    layer_outputs = layer_module(
+                    ^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 538, in forward
+    attention_output = ffn_module(attention_output)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 492, in forward
+    intermediate_output = self.intermediate(hidden_states)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 383, in forward
+    hidden_states = self.intermediate_act_fn(hidden_states)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/activation.py", line 143, in forward
+    return F.relu(input, inplace=self.inplace)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/functional.py", line 1721, in relu
+    result = torch.relu(input)
+             ^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 20.00 MiB. GPU 0 has a total capacity of 139.81 GiB of which 17.69 MiB is free. Process 3010496 has 139.79 GiB memory in use. Of the allocated memory 115.21 GiB is allocated by PyTorch, and 1.27 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+[W 2026-02-24 14:49:40,405] Trial 2 failed with value None.
+2026-02-24 14:49:43.885501: I tensorflow/core/util/port.cc:111] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-02-24 14:49:43.887919: I tensorflow/tsl/cuda/cudart_stub.cc:28] Could not find cuda drivers on your machine, GPU will not be used.
+2026-02-24 14:49:43.915945: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-02-24 14:49:43.915984: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-02-24 14:49:43.916008: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-02-24 14:49:43.922085: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F AVX512_VNNI AVX512_BF16 AVX_VNNI AMX_TILE AMX_INT8 AMX_BF16 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2026-02-24 14:49:44.685737: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+[I 2026-02-24 14:49:50,330] Using an existing study with name 'mrpc_ablr_5e7' instead of creating a new one.
+/opt/conda/lib/python3.11/site-packages/optuna/trial/_trial.py:658: UserWarning: Fixed parameter 'target_ab_lr' with value 5e-07 is out of range for distribution FloatDistribution(high=0.1, log=True, low=0.0001, step=None).
+  optuna_warn(
+  [Task Config] mrpc: batch_size=32, max_seq=128, epochs=7, lr=0.006
+  GLUE mrpc: Train=3668, Eval=408
+Train batches: 115, Eval batches: 7
+  Early stop patience: 2, Pruner: Median, startup=5, warmup=2
+
+Study: mrpc_ablr_5e7, Device: cuda, New trials: 1
+
+======================================================================
+Trial 3 Starting
+======================================================================
+  rank=8, transfer_every=10000000, transfer_lr=1.0000e-01
+  lora_alpha=1.0000, lr=6.0000e-03, wd=0.00e+00
+  target_ab_lr=0.0000, lr_multiplier=0.000083
+  effective_ab_lr = lr*alpha*mult = 0.0000
+  momentum=0.00, nesterov=False, reinit_mode=decay
+  tau_sec=0.0, optimizer=AnalogAdam
+======================================================================
+Some weights of MobileBertForSequenceClassification were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+  [FIX] Reinitialized classifier with FIXED seed=42
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  LRTT Analog layers: 96, Total params: 21,842,978, Trainable (before grad set): 21,842,978
+  Trainable (after grad set): 13,602
+  LoRA target: qkv -> ['attention.self.query', 'attention.self.key', 'attention.self.value', 'attention.output.dense']
+
+Optimizer configuration:
+  Forward scaling (lora_alpha): 1.0
+  Classifier LR: 0.006
+  LRTT LR (optimizer): 5e-07 (= 0.006 * 8.333333333333333e-05)
+  Effective A,B LR: 5e-07 (= 5e-07 * 1.0)
+  LRTT_LR_MULTIPLIER: 8.333333333333333e-05
+  LRTT tile params: 288
+  Other params: 98
+  Collected 96 tile_c contexts for post-step reset
+  Collected 192 tile_a/b contexts for post-step reset
+  AB LR Warmup: 1e-07 → 5e-07 over 40 steps (scheduler warmup: 40 steps)
+Trial 3 Ep1:   0%|                                                                                            | 0/115 [00:00<?, ?it/s]Trial 3 Ep1:   0%|                                                                         | 0/115 [00:01<?, ?it/s, loss=3982584.5000]Trial 3 Ep1:   1%|▌                                                                | 1/115 [00:01<02:25,  1.28s/it, loss=3982584.5000]Trial 3 Ep1:   1%|▌                                                                | 1/115 [00:01<02:25,  1.28s/it, loss=3803819.0000]Trial 3 Ep1:   2%|█▏                                                               | 2/115 [00:01<01:22,  1.36it/s, loss=3803819.0000]Trial 3 Ep1:   2%|█▏                                                               | 2/115 [00:02<01:22,  1.36it/s, loss=2673006.5000]Trial 3 Ep1:   3%|█▋                                                               | 3/115 [00:02<01:08,  1.64it/s, loss=2673006.5000]Trial 3 Ep1:   3%|█▋                                                                 | 3/115 [00:02<01:08,  1.64it/s, loss=83240.3594]Trial 3 Ep1:   3%|██▎                                                                | 4/115 [00:02<00:49,  2.24it/s, loss=83240.3594]Trial 3 Ep1:   3%|██▎                                                              | 4/115 [00:02<00:49,  2.24it/s, loss=1584300.0000]Trial 3 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:39,  2.79it/s, loss=1584300.0000]Trial 3 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:39,  2.79it/s, loss=3554612.0000]Trial 3 Ep1:   5%|███▍                                                             | 6/115 [00:02<00:33,  3.27it/s, loss=3554612.0000]Trial 3 Ep1:   5%|███▍                                                             | 6/115 [00:03<00:33,  3.27it/s, loss=2914548.0000]Trial 3 Ep1:   6%|███▉                                                             | 7/115 [00:03<00:37,  2.85it/s, loss=2914548.0000]Trial 3 Ep1:   6%|███▉                                                             | 7/115 [00:03<00:37,  2.85it/s, loss=2503964.5000]Trial 3 Ep1:   7%|████▌                                                            | 8/115 [00:03<00:33,  3.23it/s, loss=2503964.5000]Trial 3 Ep1:   7%|████▌                                                            | 8/115 [00:03<00:33,  3.23it/s, loss=2147300.0000]Trial 3 Ep1:   8%|█████                                                            | 9/115 [00:03<00:29,  3.58it/s, loss=2147300.0000]Trial 3 Ep1:   8%|█████                                                            | 9/115 [00:03<00:29,  3.58it/s, loss=1265570.8750]Trial 3 Ep1:   9%|█████▌                                                          | 10/115 [00:03<00:27,  3.86it/s, loss=1265570.8750]Trial 3 Ep1:   9%|█████▌                                                          | 10/115 [00:04<00:27,  3.86it/s, loss=2321242.0000]Trial 3 Ep1:  10%|██████                                                          | 11/115 [00:04<00:28,  3.60it/s, loss=2321242.0000]Trial 3 Ep1:  10%|██████                                                          | 11/115 [00:04<00:28,  3.60it/s, loss=5321369.0000]Trial 3 Ep1:  10%|██████▋                                                         | 12/115 [00:04<00:26,  3.83it/s, loss=5321369.0000]Trial 3 Ep1:  10%|██████▋                                                         | 12/115 [00:04<00:26,  3.83it/s, loss=5694977.0000]Trial 3 Ep1:  11%|███████▏                                                        | 13/115 [00:04<00:25,  4.04it/s, loss=5694977.0000]Trial 3 Ep1:  11%|███████▏                                                        | 13/115 [00:04<00:25,  4.04it/s, loss=4977606.0000]Trial 3 Ep1:  12%|███████▊                                                        | 14/115 [00:04<00:23,  4.22it/s, loss=4977606.0000]Trial 3 Ep1:  12%|███████▊                                                        | 14/115 [00:04<00:23,  4.22it/s, loss=1817649.7500]Trial 3 Ep1:  13%|████████▎                                                       | 15/115 [00:04<00:23,  4.21it/s, loss=1817649.7500]Trial 3 Ep1:  13%|████████▎                                                       | 15/115 [00:05<00:23,  4.21it/s, loss=1573898.0000]Trial 3 Ep1:  14%|████████▉                                                       | 16/115 [00:05<00:28,  3.47it/s, loss=1573898.0000]Trial 3 Ep1:  14%|████████▉                                                       | 16/115 [00:05<00:28,  3.47it/s, loss=2241934.5000]Trial 3 Ep1:  15%|█████████▍                                                      | 17/115 [00:05<00:25,  3.80it/s, loss=2241934.5000]Trial 3 Ep1:  15%|█████████▍                                                      | 17/115 [00:05<00:25,  3.80it/s, loss=2826870.7500]Trial 3 Ep1:  16%|██████████                                                      | 18/115 [00:05<00:23,  4.08it/s, loss=2826870.7500]Trial 3 Ep1:  16%|██████████                                                      | 18/115 [00:06<00:23,  4.08it/s, loss=1570860.5000]Trial 3 Ep1:  17%|██████████▌                                                     | 19/115 [00:06<00:25,  3.81it/s, loss=1570860.5000]Trial 3 Ep1:  17%|██████████▋                                                      | 19/115 [00:06<00:25,  3.81it/s, loss=845166.0625]Trial 3 Ep1:  17%|███████████▎                                                     | 20/115 [00:06<00:23,  3.99it/s, loss=845166.0625]Trial 3 Ep1:  17%|███████████▏                                                    | 20/115 [00:06<00:23,  3.99it/s, loss=1928492.6250]Trial 3 Ep1:  18%|███████████▋                                                    | 21/115 [00:06<00:22,  4.12it/s, loss=1928492.6250]Trial 3 Ep1:  18%|███████████▊                                                     | 21/115 [00:06<00:22,  4.12it/s, loss=878548.2500]Trial 3 Ep1:  19%|████████████▍                                                    | 22/115 [00:06<00:21,  4.28it/s, loss=878548.2500]Trial 3 Ep1:  19%|████████████▍                                                    | 22/115 [00:07<00:21,  4.28it/s, loss=256660.0312]Trial 3 Ep1:  20%|█████████████                                                    | 23/115 [00:07<00:21,  4.31it/s, loss=256660.0312]Trial 3 Ep1:  20%|█████████████                                                    | 23/115 [00:07<00:21,  4.31it/s, loss=128298.6875]Trial 3 Ep1:  21%|█████████████▌                                                   | 24/115 [00:07<00:21,  4.30it/s, loss=128298.6875]Trial 3 Ep1:  21%|█████████████▉                                                     | 24/115 [00:07<00:21,  4.30it/s, loss=1443.7303]Trial 3 Ep1:  22%|██████████████▌                                                    | 25/115 [00:07<00:20,  4.36it/s, loss=1443.7303]Trial 3 Ep1:  22%|██████████████▎                                                   | 25/115 [00:08<00:20,  4.36it/s, loss=42268.7344]Trial 3 Ep1:  23%|██████████████▉                                                   | 26/115 [00:08<00:32,  2.75it/s, loss=42268.7344]Trial 3 Ep1:  23%|██████████████▉                                                   | 26/115 [00:08<00:32,  2.75it/s, loss=13972.8398]Trial 3 Ep1:  23%|███████████████▍                                                  | 27/115 [00:08<00:27,  3.17it/s, loss=13972.8398]Trial 3 Ep1:  23%|███████████████▋                                                   | 27/115 [00:08<00:27,  3.17it/s, loss=6005.8809]Trial 3 Ep1:  24%|████████████████▎                                                  | 28/115 [00:08<00:24,  3.50it/s, loss=6005.8809]Trial 3 Ep1:  24%|████████████████▎                                                  | 28/115 [00:08<00:24,  3.50it/s, loss=2042.2207]Trial 3 Ep1:  25%|████████████████▉                                                  | 29/115 [00:08<00:22,  3.83it/s, loss=2042.2207]Trial 3 Ep1:  25%|████████████████▉                                                  | 29/115 [00:09<00:22,  3.83it/s, loss=3239.2158]Trial 3 Ep1:  26%|█████████████████▍                                                 | 30/115 [00:09<00:22,  3.84it/s, loss=3239.2158]Trial 3 Ep1:  26%|████████████████▉                                                | 30/115 [00:09<00:22,  3.84it/s, loss=118073.1875]Trial 3 Ep1:  27%|█████████████████▌                                               | 31/115 [00:09<00:21,  3.93it/s, loss=118073.1875]Trial 3 Ep1:  27%|██████████████████                                                 | 31/115 [00:09<00:21,  3.93it/s, loss=6008.2246]Trial 3 Ep1:  28%|██████████████████▋                                                | 32/115 [00:09<00:20,  4.12it/s, loss=6008.2246]Trial 3 Ep1:  28%|██████████████████▋                                                | 32/115 [00:09<00:20,  4.12it/s, loss=2926.1333]Trial 3 Ep1:  29%|███████████████████▏                                               | 33/115 [00:09<00:19,  4.27it/s, loss=2926.1333]Trial 3 Ep1:  29%|███████████████████▌                                                | 33/115 [00:09<00:19,  4.27it/s, loss=263.4130]Trial 3 Ep1:  30%|████████████████████                                                | 34/115 [00:09<00:18,  4.30it/s, loss=263.4130]Trial 3 Ep1:  30%|███████████████████▌                                              | 34/115 [00:10<00:18,  4.30it/s, loss=11148.1504]Trial 3 Ep1:  30%|████████████████████                                              | 35/115 [00:10<00:18,  4.23it/s, loss=11148.1504]Trial 3 Ep1:  30%|████████████████████                                              | 35/115 [00:10<00:18,  4.23it/s, loss=17659.4082]Trial 3 Ep1:  31%|████████████████████▋                                             | 36/115 [00:10<00:18,  4.38it/s, loss=17659.4082]Trial 3 Ep1:  31%|████████████████████▋                                             | 36/115 [00:10<00:18,  4.38it/s, loss=17205.0586]Trial 3 Ep1:  32%|█████████████████████▏                                            | 37/115 [00:10<00:17,  4.50it/s, loss=17205.0586]Trial 3 Ep1:  32%|█████████████████████▏                                            | 37/115 [00:10<00:17,  4.50it/s, loss=15577.4570]Trial 3 Ep1:  33%|█████████████████████▊                                            | 38/115 [00:10<00:17,  4.40it/s, loss=15577.4570]Trial 3 Ep1:  33%|██████████████████████▏                                            | 38/115 [00:11<00:17,  4.40it/s, loss=7443.1650]Trial 3 Ep1:  34%|██████████████████████▋                                            | 39/115 [00:11<00:17,  4.40it/s, loss=7443.1650]Trial 3 Ep1:  34%|██████████████████████▋                                            | 39/115 [00:11<00:17,  4.40it/s, loss=2428.0693]Trial 3 Ep1:  35%|███████████████████████▎                                           | 40/115 [00:11<00:18,  4.16it/s, loss=2428.0693]Trial 3 Ep1:  35%|███████████████████████▎                                           | 40/115 [00:11<00:18,  4.16it/s, loss=3960.3418]Trial 3 Ep1:  36%|███████████████████████▉                                           | 41/115 [00:11<00:17,  4.30it/s, loss=3960.3418]Trial 3 Ep1:  36%|███████████████████████▉                                           | 41/115 [00:11<00:17,  4.30it/s, loss=5925.0283]Trial 3 Ep1:  37%|████████████████████████▍                                          | 42/115 [00:11<00:16,  4.39it/s, loss=5925.0283]Trial 3 Ep1:  37%|████████████████████████▍                                          | 42/115 [00:12<00:16,  4.39it/s, loss=1740.7053]Trial 3 Ep1:  37%|█████████████████████████                                          | 43/115 [00:12<00:18,  3.81it/s, loss=1740.7053]Trial 3 Ep1:  37%|█████████████████████████                                          | 43/115 [00:12<00:18,  3.81it/s, loss=1901.3558]Trial 3 Ep1:  38%|█████████████████████████▋                                         | 44/115 [00:12<00:17,  4.03it/s, loss=1901.3558]Trial 3 Ep1:  38%|█████████████████████████▋                                         | 44/115 [00:12<00:17,  4.03it/s, loss=3582.0432]Trial 3 Ep1:  39%|██████████████████████████▏                                        | 45/115 [00:12<00:17,  4.05it/s, loss=3582.0432]Trial 3 Ep1:  39%|██████████████████████████▏                                        | 45/115 [00:12<00:17,  4.05it/s, loss=1864.3932]Trial 3 Ep1:  40%|██████████████████████████▊                                        | 46/115 [00:12<00:16,  4.12it/s, loss=1864.3932]Trial 3 Ep1:  40%|███████████████████████████▏                                        | 46/115 [00:13<00:16,  4.12it/s, loss=924.4988]Trial 3 Ep1:  41%|███████████████████████████▊                                        | 47/115 [00:13<00:16,  4.00it/s, loss=924.4988]Trial 3 Ep1:  41%|███████████████████████████▍                                       | 47/115 [00:13<00:16,  4.00it/s, loss=1537.9077]Trial 3 Ep1:  42%|███████████████████████████▉                                       | 48/115 [00:13<00:17,  3.92it/s, loss=1537.9077]Trial 3 Ep1:  42%|████████████████████████████▍                                       | 48/115 [00:13<00:17,  3.92it/s, loss=230.6361]Trial 3 Ep1:  43%|████████████████████████████▉                                       | 49/115 [00:13<00:16,  4.02it/s, loss=230.6361]Trial 3 Ep1:  43%|████████████████████████████▌                                      | 49/115 [00:13<00:16,  4.02it/s, loss=2606.4512]Trial 3 Ep1:  43%|█████████████████████████████▏                                     | 50/115 [00:13<00:15,  4.22it/s, loss=2606.4512]Trial 3 Ep1:  43%|█████████████████████████████▏                                     | 50/115 [00:14<00:15,  4.22it/s, loss=4070.1533]Trial 3 Ep1:  44%|█████████████████████████████▋                                     | 51/115 [00:14<00:17,  3.67it/s, loss=4070.1533]Trial 3 Ep1:  44%|█████████████████████████████▋                                     | 51/115 [00:14<00:17,  3.67it/s, loss=2456.8267]Trial 3 Ep1:  45%|██████████████████████████████▎                                    | 52/115 [00:14<00:16,  3.81it/s, loss=2456.8267]Trial 3 Ep1:  45%|███████████████████████████████▏                                     | 52/115 [00:14<00:16,  3.81it/s, loss=39.8977]Trial 3 Ep1:  46%|███████████████████████████████▊                                     | 53/115 [00:14<00:18,  3.31it/s, loss=39.8977]Trial 3 Ep1:  46%|███████████████████████████████▎                                    | 53/115 [00:14<00:18,  3.31it/s, loss=907.1591]Trial 3 Ep1:  47%|███████████████████████████████▉                                    | 54/115 [00:14<00:17,  3.50it/s, loss=907.1591]Trial 3 Ep1:  47%|███████████████████████████████▍                                   | 54/115 [00:15<00:17,  3.50it/s, loss=1853.6416]Trial 3 Ep1:  48%|████████████████████████████████                                   | 55/115 [00:15<00:16,  3.65it/s, loss=1853.6416]Trial 3 Ep1:  48%|████████████████████████████████                                   | 55/115 [00:15<00:16,  3.65it/s, loss=1337.0565]Trial 3 Ep1:  49%|████████████████████████████████▋                                  | 56/115 [00:15<00:15,  3.88it/s, loss=1337.0565]Trial 3 Ep1:  49%|█████████████████████████████████                                   | 56/115 [00:15<00:15,  3.88it/s, loss=414.8259]Trial 3 Ep1:  50%|█████████████████████████████████▋                                  | 57/115 [00:15<00:14,  4.11it/s, loss=414.8259]Trial 3 Ep1:  50%|██████████████████████████████████▏                                  | 57/115 [00:15<00:14,  4.11it/s, loss=76.8252]Trial 3 Ep1:  50%|██████████████████████████████████▊                                  | 58/115 [00:15<00:14,  3.87it/s, loss=76.8252]Trial 3 Ep1:  50%|██████████████████████████████████▎                                 | 58/115 [00:16<00:14,  3.87it/s, loss=317.6609]Trial 3 Ep1:  51%|██████████████████████████████████▉                                 | 59/115 [00:16<00:13,  4.09it/s, loss=317.6609]Trial 3 Ep1:  51%|██████████████████████████████████▉                                 | 59/115 [00:16<00:13,  4.09it/s, loss=250.4517]Trial 3 Ep1:  52%|███████████████████████████████████▍                                | 60/115 [00:16<00:13,  4.19it/s, loss=250.4517]Trial 3 Ep1:  52%|███████████████████████████████████▍                                | 60/115 [00:16<00:13,  4.19it/s, loss=111.4056]Trial 3 Ep1:  53%|████████████████████████████████████                                | 61/115 [00:16<00:12,  4.31it/s, loss=111.4056]Trial 3 Ep1:  53%|████████████████████████████████████▌                                | 61/115 [00:16<00:12,  4.31it/s, loss=66.3581]Trial 3 Ep1:  54%|█████████████████████████████████████▏                               | 62/115 [00:16<00:12,  4.37it/s, loss=66.3581]Trial 3 Ep1:  54%|█████████████████████████████████████▏                               | 62/115 [00:17<00:12,  4.37it/s, loss=31.2802]Trial 3 Ep1:  55%|█████████████████████████████████████▊                               | 63/115 [00:17<00:12,  4.29it/s, loss=31.2802]Trial 3 Ep1:  55%|██████████████████████████████████████▎                               | 63/115 [00:17<00:12,  4.29it/s, loss=2.8012]Trial 3 Ep1:  56%|██████████████████████████████████████▉                               | 64/115 [00:17<00:12,  4.16it/s, loss=2.8012]Trial 3 Ep1:  56%|██████████████████████████████████████▍                              | 64/115 [00:17<00:12,  4.16it/s, loss=11.4919]Trial 3 Ep1:  57%|███████████████████████████████████████                              | 65/115 [00:17<00:11,  4.24it/s, loss=11.4919]Trial 3 Ep1:  57%|███████████████████████████████████████▌                              | 65/115 [00:17<00:11,  4.24it/s, loss=9.7268]Trial 3 Ep1:  57%|████████████████████████████████████████▏                             | 66/115 [00:17<00:11,  4.39it/s, loss=9.7268]Trial 3 Ep1:  57%|████████████████████████████████████████▏                             | 66/115 [00:18<00:11,  4.39it/s, loss=7.2506]Trial 3 Ep1:  58%|████████████████████████████████████████▊                             | 67/115 [00:18<00:12,  3.78it/s, loss=7.2506]Trial 3 Ep1:  58%|████████████████████████████████████████▊                             | 67/115 [00:18<00:12,  3.78it/s, loss=6.9836]Trial 3 Ep1:  59%|█████████████████████████████████████████▍                            | 68/115 [00:18<00:11,  3.97it/s, loss=6.9836]Trial 3 Ep1:  59%|████████████████████████████████████████▊                            | 68/115 [00:18<00:11,  3.97it/s, loss=17.2946]Trial 3 Ep1:  60%|█████████████████████████████████████████▍                           | 69/115 [00:18<00:11,  4.05it/s, loss=17.2946]Trial 3 Ep1:  60%|██████████████████████████████████████████                            | 69/115 [00:18<00:11,  4.05it/s, loss=8.6242]Trial 3 Ep1:  61%|██████████████████████████████████████████▌                           | 70/115 [00:18<00:10,  4.19it/s, loss=8.6242]Trial 3 Ep1:  61%|██████████████████████████████████████████▌                           | 70/115 [00:19<00:10,  4.19it/s, loss=3.9083]Trial 3 Ep1:  62%|███████████████████████████████████████████▏                          | 71/115 [00:19<00:10,  4.10it/s, loss=3.9083]Trial 3 Ep1:  62%|███████████████████████████████████████████▏                          | 71/115 [00:19<00:10,  4.10it/s, loss=2.0373]Trial 3 Ep1:  63%|███████████████████████████████████████████▊                          | 72/115 [00:19<00:10,  3.93it/s, loss=2.0373]Trial 3 Ep1:  63%|███████████████████████████████████████████▊                          | 72/115 [00:19<00:10,  3.93it/s, loss=3.0562]Trial 3 Ep1:  63%|████████████████████████████████████████████▍                         | 73/115 [00:19<00:10,  4.18it/s, loss=3.0562]Trial 3 Ep1:  63%|██████████████████████████████████████████▌                        | 73/115 [00:19<00:10,  4.18it/s, loss=1619.9202]Trial 3 Ep1:  64%|███████████████████████████████████████████                        | 74/115 [00:19<00:09,  4.26it/s, loss=1619.9202]Trial 3 Ep1:  64%|█████████████████████████████████████████████                         | 74/115 [00:20<00:09,  4.26it/s, loss=3.6291]Trial 3 Ep1:  65%|█████████████████████████████████████████████▋                        | 75/115 [00:20<00:10,  3.66it/s, loss=3.6291]Trial 3 Ep1:  65%|█████████████████████████████████████████████▋                        | 75/115 [00:20<00:10,  3.66it/s, loss=4.8118]Trial 3 Ep1:  66%|██████████████████████████████████████████████▎                       | 76/115 [00:20<00:10,  3.90it/s, loss=4.8118]Trial 3 Ep1:  66%|██████████████████████████████████████████████▎                       | 76/115 [00:20<00:10,  3.90it/s, loss=0.6603]Trial 3 Ep1:  67%|██████████████████████████████████████████████▊                       | 77/115 [00:20<00:09,  4.03it/s, loss=0.6603]Trial 3 Ep1:  67%|██████████████████████████████████████████████▏                      | 77/115 [00:20<00:09,  4.03it/s, loss=12.9294]Trial 3 Ep1:  68%|██████████████████████████████████████████████▊                      | 78/115 [00:20<00:08,  4.18it/s, loss=12.9294]Trial 3 Ep1:  68%|██████████████████████████████████████████████▊                      | 78/115 [00:21<00:08,  4.18it/s, loss=15.7679]Trial 3 Ep1:  69%|███████████████████████████████████████████████▍                     | 79/115 [00:21<00:08,  4.20it/s, loss=15.7679]Trial 3 Ep1:  69%|████████████████████████████████████████████████                      | 79/115 [00:21<00:08,  4.20it/s, loss=9.4731]Trial 3 Ep1:  70%|████████████████████████████████████████████████▋                     | 80/115 [00:21<00:08,  4.10it/s, loss=9.4731]Trial 3 Ep1:  70%|████████████████████████████████████████████████▋                     | 80/115 [00:21<00:08,  4.10it/s, loss=3.7929]Trial 3 Ep1:  70%|█████████████████████████████████████████████████▎                    | 81/115 [00:21<00:08,  4.17it/s, loss=3.7929]Trial 3 Ep1:  70%|█████████████████████████████████████████████████▎                    | 81/115 [00:21<00:08,  4.17it/s, loss=2.8647]Trial 3 Ep1:  71%|█████████████████████████████████████████████████▉                    | 82/115 [00:21<00:07,  4.27it/s, loss=2.8647]Trial 3 Ep1:  71%|█████████████████████████████████████████████████▉                    | 82/115 [00:22<00:07,  4.27it/s, loss=4.0472]Trial 3 Ep1:  72%|██████████████████████████████████████████████████▌                   | 83/115 [00:22<00:08,  3.57it/s, loss=4.0472]Trial 3 Ep1:  72%|██████████████████████████████████████████████████▌                   | 83/115 [00:22<00:08,  3.57it/s, loss=5.2224]Trial 3 Ep1:  73%|███████████████████████████████████████████████████▏                  | 84/115 [00:22<00:08,  3.69it/s, loss=5.2224]Trial 3 Ep1:  73%|███████████████████████████████████████████████████▏                  | 84/115 [00:22<00:08,  3.69it/s, loss=2.0056]Trial 3 Ep1:  74%|███████████████████████████████████████████████████▋                  | 85/115 [00:22<00:07,  3.85it/s, loss=2.0056]Trial 3 Ep1:  74%|███████████████████████████████████████████████████▋                  | 85/115 [00:22<00:07,  3.85it/s, loss=2.2760]Trial 3 Ep1:  75%|████████████████████████████████████████████████████▎                 | 86/115 [00:22<00:07,  4.06it/s, loss=2.2760]Trial 3 Ep1:  75%|████████████████████████████████████████████████████▎                 | 86/115 [00:23<00:07,  4.06it/s, loss=3.4187]Trial 3 Ep1:  76%|████████████████████████████████████████████████████▉                 | 87/115 [00:23<00:06,  4.04it/s, loss=3.4187]Trial 3 Ep1:  76%|████████████████████████████████████████████████████▉                 | 87/115 [00:23<00:06,  4.04it/s, loss=2.2062]Trial 3 Ep1:  77%|█████████████████████████████████████████████████████▌                | 88/115 [00:23<00:06,  3.95it/s, loss=2.2062]                                                                                                                                      [W 2026-02-24 14:50:22,308] Trial 3 failed with parameters: {'learning_rate': 0.006, 'target_ab_lr': 5e-07} because of the following error: OutOfMemoryError('CUDA out of memory. Tried to allocate 20.00 MiB. GPU 0 has a total capacity of 139.81 GiB of which 17.69 MiB is free. Process 3010496 has 139.79 GiB memory in use. Of the allocated memory 115.21 GiB is allocated by PyTorch, and 1.27 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)').
+Traceback (most recent call last):
+  File "/opt/conda/lib/python3.11/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+                      ^^^^^^^^^^^
+  File "/data/optuna_mobilebert_glue_lora.py", line 1477, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_loader, tokenizer),
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/optuna_mobilebert_glue_lora.py", line 1141, in objective
+    outputs = model(**model_inputs)
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 1286, in forward
+    outputs = self.mobilebert(
+              ^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 898, in forward
+    encoder_outputs = self.encoder(
+                      ^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 580, in forward
+    layer_outputs = layer_module(
+                    ^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 538, in forward
+    attention_output = ffn_module(attention_output)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 492, in forward
+    intermediate_output = self.intermediate(hidden_states)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 383, in forward
+    hidden_states = self.intermediate_act_fn(hidden_states)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/activation.py", line 143, in forward
+    return F.relu(input, inplace=self.inplace)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/functional.py", line 1721, in relu
+    result = torch.relu(input)
+             ^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 20.00 MiB. GPU 0 has a total capacity of 139.81 GiB of which 17.69 MiB is free. Process 3010496 has 139.79 GiB memory in use. Of the allocated memory 115.21 GiB is allocated by PyTorch, and 1.27 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+[W 2026-02-24 14:50:22,310] Trial 3 failed with value None.
+2026-02-24 14:50:25.689292: I tensorflow/core/util/port.cc:111] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-02-24 14:50:25.691633: I tensorflow/tsl/cuda/cudart_stub.cc:28] Could not find cuda drivers on your machine, GPU will not be used.
+2026-02-24 14:50:25.719240: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-02-24 14:50:25.719271: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-02-24 14:50:25.719292: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-02-24 14:50:25.724723: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F AVX512_VNNI AVX512_BF16 AVX_VNNI AMX_TILE AMX_INT8 AMX_BF16 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2026-02-24 14:50:26.442616: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+[I 2026-02-24 14:50:31,994] Using an existing study with name 'mrpc_ablr_5e7' instead of creating a new one.
+/opt/conda/lib/python3.11/site-packages/optuna/trial/_trial.py:658: UserWarning: Fixed parameter 'target_ab_lr' with value 5e-07 is out of range for distribution FloatDistribution(high=0.1, log=True, low=0.0001, step=None).
+  optuna_warn(
+  [Task Config] mrpc: batch_size=32, max_seq=128, epochs=7, lr=0.006
+  GLUE mrpc: Train=3668, Eval=408
+Train batches: 115, Eval batches: 7
+  Early stop patience: 2, Pruner: Median, startup=5, warmup=2
+
+Study: mrpc_ablr_5e7, Device: cuda, New trials: 1
+
+======================================================================
+Trial 4 Starting
+======================================================================
+  rank=8, transfer_every=10000000, transfer_lr=1.0000e-01
+  lora_alpha=1.0000, lr=6.0000e-03, wd=0.00e+00
+  target_ab_lr=0.0000, lr_multiplier=0.000083
+  effective_ab_lr = lr*alpha*mult = 0.0000
+  momentum=0.00, nesterov=False, reinit_mode=decay
+  tau_sec=0.0, optimizer=AnalogAdam
+======================================================================
+Some weights of MobileBertForSequenceClassification were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+  [FIX] Reinitialized classifier with FIXED seed=42
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  [WARMUP] Initialized 3 tiles for LRTT update
+  LRTT Analog layers: 96, Total params: 21,842,978, Trainable (before grad set): 21,842,978
+  Trainable (after grad set): 13,602
+  LoRA target: qkv -> ['attention.self.query', 'attention.self.key', 'attention.self.value', 'attention.output.dense']
+
+Optimizer configuration:
+  Forward scaling (lora_alpha): 1.0
+  Classifier LR: 0.006
+  LRTT LR (optimizer): 5e-07 (= 0.006 * 8.333333333333333e-05)
+  Effective A,B LR: 5e-07 (= 5e-07 * 1.0)
+  LRTT_LR_MULTIPLIER: 8.333333333333333e-05
+  LRTT tile params: 288
+  Other params: 98
+  Collected 96 tile_c contexts for post-step reset
+  Collected 192 tile_a/b contexts for post-step reset
+  AB LR Warmup: 1e-07 → 5e-07 over 40 steps (scheduler warmup: 40 steps)
+Trial 4 Ep1:   0%|                                                                                            | 0/115 [00:00<?, ?it/s]Trial 4 Ep1:   0%|                                                                         | 0/115 [00:01<?, ?it/s, loss=3982584.5000]Trial 4 Ep1:   1%|▌                                                                | 1/115 [00:01<02:51,  1.50s/it, loss=3982584.5000]Trial 4 Ep1:   1%|▌                                                                | 1/115 [00:01<02:51,  1.50s/it, loss=3803819.0000]Trial 4 Ep1:   2%|█▏                                                               | 2/115 [00:01<01:34,  1.19it/s, loss=3803819.0000]Trial 4 Ep1:   2%|█▏                                                               | 2/115 [00:02<01:34,  1.19it/s, loss=2673006.5000]Trial 4 Ep1:   3%|█▋                                                               | 3/115 [00:02<01:10,  1.60it/s, loss=2673006.5000]Trial 4 Ep1:   3%|█▋                                                                 | 3/115 [00:02<01:10,  1.60it/s, loss=83240.3594]Trial 4 Ep1:   3%|██▎                                                                | 4/115 [00:02<00:54,  2.05it/s, loss=83240.3594]Trial 4 Ep1:   3%|██▎                                                              | 4/115 [00:02<00:54,  2.05it/s, loss=1584300.0000]Trial 4 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:42,  2.59it/s, loss=1584300.0000]Trial 4 Ep1:   4%|██▊                                                              | 5/115 [00:02<00:42,  2.59it/s, loss=3554612.0000]Trial 4 Ep1:   5%|███▍                                                             | 6/115 [00:02<00:36,  2.99it/s, loss=3554612.0000]Trial 4 Ep1:   5%|███▍                                                             | 6/115 [00:03<00:36,  2.99it/s, loss=2914548.0000]Trial 4 Ep1:   6%|███▉                                                             | 7/115 [00:03<00:37,  2.88it/s, loss=2914548.0000]Trial 4 Ep1:   6%|███▉                                                             | 7/115 [00:03<00:37,  2.88it/s, loss=2503964.5000]Trial 4 Ep1:   7%|████▌                                                            | 8/115 [00:03<00:33,  3.17it/s, loss=2503964.5000]Trial 4 Ep1:   7%|████▌                                                            | 8/115 [00:03<00:33,  3.17it/s, loss=2147300.0000]Trial 4 Ep1:   8%|█████                                                            | 9/115 [00:03<00:29,  3.56it/s, loss=2147300.0000]Trial 4 Ep1:   8%|█████                                                            | 9/115 [00:04<00:29,  3.56it/s, loss=1265570.8750]Trial 4 Ep1:   9%|█████▌                                                          | 10/115 [00:04<00:28,  3.71it/s, loss=1265570.8750]Trial 4 Ep1:   9%|█████▌                                                          | 10/115 [00:04<00:28,  3.71it/s, loss=2321242.0000]Trial 4 Ep1:  10%|██████                                                          | 11/115 [00:04<00:26,  3.88it/s, loss=2321242.0000]Trial 4 Ep1:  10%|██████                                                          | 11/115 [00:04<00:26,  3.88it/s, loss=5321369.0000]Trial 4 Ep1:  10%|██████▋                                                         | 12/115 [00:04<00:29,  3.55it/s, loss=5321369.0000]Trial 4 Ep1:  10%|██████▋                                                         | 12/115 [00:04<00:29,  3.55it/s, loss=5694977.0000]Trial 4 Ep1:  11%|███████▏                                                        | 13/115 [00:04<00:26,  3.87it/s, loss=5694977.0000]Trial 4 Ep1:  11%|███████▏                                                        | 13/115 [00:05<00:26,  3.87it/s, loss=4977606.0000]Trial 4 Ep1:  12%|███████▊                                                        | 14/115 [00:05<00:25,  3.98it/s, loss=4977606.0000]Trial 4 Ep1:  12%|███████▊                                                        | 14/115 [00:05<00:25,  3.98it/s, loss=1817649.7500]Trial 4 Ep1:  13%|████████▎                                                       | 15/115 [00:05<00:24,  4.06it/s, loss=1817649.7500]Trial 4 Ep1:  13%|████████▎                                                       | 15/115 [00:05<00:24,  4.06it/s, loss=1573898.0000]Trial 4 Ep1:  14%|████████▉                                                       | 16/115 [00:05<00:30,  3.20it/s, loss=1573898.0000]Trial 4 Ep1:  14%|████████▉                                                       | 16/115 [00:05<00:30,  3.20it/s, loss=2231387.5000]Trial 4 Ep1:  15%|█████████▍                                                      | 17/115 [00:05<00:28,  3.44it/s, loss=2231387.5000]Trial 4 Ep1:  15%|█████████▍                                                      | 17/115 [00:06<00:28,  3.44it/s, loss=2820508.2500]Trial 4 Ep1:  16%|██████████                                                      | 18/115 [00:06<00:26,  3.67it/s, loss=2820508.2500]Trial 4 Ep1:  16%|██████████                                                      | 18/115 [00:06<00:26,  3.67it/s, loss=1547736.8750]Trial 4 Ep1:  17%|██████████▌                                                     | 19/115 [00:06<00:25,  3.70it/s, loss=1547736.8750]Trial 4 Ep1:  17%|██████████▋                                                      | 19/115 [00:06<00:25,  3.70it/s, loss=841979.7500]Trial 4 Ep1:  17%|███████████▎                                                     | 20/115 [00:06<00:24,  3.80it/s, loss=841979.7500]Trial 4 Ep1:  17%|███████████▏                                                    | 20/115 [00:06<00:24,  3.80it/s, loss=1889015.8750]Trial 4 Ep1:  18%|███████████▋                                                    | 21/115 [00:06<00:23,  3.96it/s, loss=1889015.8750]Trial 4 Ep1:  18%|███████████▊                                                     | 21/115 [00:07<00:23,  3.96it/s, loss=799176.5000]Trial 4 Ep1:  19%|████████████▍                                                    | 22/115 [00:07<00:23,  3.93it/s, loss=799176.5000]Trial 4 Ep1:  19%|████████████▍                                                    | 22/115 [00:07<00:23,  3.93it/s, loss=169723.6875]Trial 4 Ep1:  20%|█████████████                                                    | 23/115 [00:07<00:23,  4.00it/s, loss=169723.6875]Trial 4 Ep1:  20%|█████████████                                                    | 23/115 [00:07<00:23,  4.00it/s, loss=106113.1094]Trial 4 Ep1:  21%|█████████████▌                                                   | 24/115 [00:07<00:22,  4.01it/s, loss=106113.1094]Trial 4 Ep1:  21%|██████████████▏                                                     | 24/115 [00:07<00:22,  4.01it/s, loss=936.4586]Trial 4 Ep1:  22%|██████████████▊                                                     | 25/115 [00:07<00:21,  4.18it/s, loss=936.4586]Trial 4 Ep1:  22%|██████████████▎                                                   | 25/115 [00:08<00:21,  4.18it/s, loss=28482.9863]Trial 4 Ep1:  23%|██████████████▉                                                   | 26/115 [00:08<00:33,  2.70it/s, loss=28482.9863]Trial 4 Ep1:  23%|██████████████▉                                                   | 26/115 [00:08<00:33,  2.70it/s, loss=17323.6152]Trial 4 Ep1:  23%|███████████████▍                                                  | 27/115 [00:08<00:28,  3.12it/s, loss=17323.6152]Trial 4 Ep1:  23%|███████████████▋                                                   | 27/115 [00:09<00:28,  3.12it/s, loss=7487.5020]Trial 4 Ep1:  24%|████████████████▎                                                  | 28/115 [00:09<00:25,  3.40it/s, loss=7487.5020]Trial 4 Ep1:  24%|████████████████▎                                                  | 28/115 [00:09<00:25,  3.40it/s, loss=5777.2969]Trial 4 Ep1:  25%|████████████████▉                                                  | 29/115 [00:09<00:23,  3.73it/s, loss=5777.2969]Trial 4 Ep1:  25%|████████████████▉                                                  | 29/115 [00:09<00:23,  3.73it/s, loss=3482.7061]Trial 4 Ep1:  26%|█████████████████▍                                                 | 30/115 [00:09<00:22,  3.86it/s, loss=3482.7061]Trial 4 Ep1:  26%|████████████████▉                                                | 30/115 [00:09<00:22,  3.86it/s, loss=128182.9375]Trial 4 Ep1:  27%|█████████████████▌                                               | 31/115 [00:09<00:21,  3.95it/s, loss=128182.9375]Trial 4 Ep1:  27%|██████████████████                                                 | 31/115 [00:09<00:21,  3.95it/s, loss=6320.3545]Trial 4 Ep1:  28%|██████████████████▋                                                | 32/115 [00:09<00:19,  4.17it/s, loss=6320.3545]Trial 4 Ep1:  28%|██████████████████▋                                                | 32/115 [00:10<00:19,  4.17it/s, loss=2915.9465]Trial 4 Ep1:  29%|███████████████████▏                                               | 33/115 [00:10<00:19,  4.31it/s, loss=2915.9465]Trial 4 Ep1:  29%|███████████████████▌                                                | 33/115 [00:10<00:19,  4.31it/s, loss=299.2031]Trial 4 Ep1:  30%|████████████████████                                                | 34/115 [00:10<00:19,  4.22it/s, loss=299.2031]Trial 4 Ep1:  30%|███████████████████▌                                              | 34/115 [00:10<00:19,  4.22it/s, loss=11190.8799]Trial 4 Ep1:  30%|████████████████████                                              | 35/115 [00:10<00:19,  4.13it/s, loss=11190.8799]Trial 4 Ep1:  30%|████████████████████                                              | 35/115 [00:10<00:19,  4.13it/s, loss=17602.6367]Trial 4 Ep1:  31%|████████████████████▋                                             | 36/115 [00:10<00:18,  4.25it/s, loss=17602.6367]Trial 4 Ep1:  31%|████████████████████▋                                             | 36/115 [00:11<00:18,  4.25it/s, loss=17262.5762]Trial 4 Ep1:  32%|█████████████████████▏                                            | 37/115 [00:11<00:17,  4.35it/s, loss=17262.5762]Trial 4 Ep1:  32%|█████████████████████▏                                            | 37/115 [00:11<00:17,  4.35it/s, loss=15489.0859]Trial 4 Ep1:  33%|█████████████████████▊                                            | 38/115 [00:11<00:17,  4.41it/s, loss=15489.0859]Trial 4 Ep1:  33%|██████████████████████▏                                            | 38/115 [00:11<00:17,  4.41it/s, loss=7373.3350]Trial 4 Ep1:  34%|██████████████████████▋                                            | 39/115 [00:11<00:17,  4.39it/s, loss=7373.3350]Trial 4 Ep1:  34%|██████████████████████▋                                            | 39/115 [00:11<00:17,  4.39it/s, loss=2472.6250]Trial 4 Ep1:  35%|███████████████████████▎                                           | 40/115 [00:11<00:17,  4.25it/s, loss=2472.6250]Trial 4 Ep1:  35%|███████████████████████▎                                           | 40/115 [00:11<00:17,  4.25it/s, loss=3880.1357]Trial 4 Ep1:  36%|███████████████████████▉                                           | 41/115 [00:11<00:16,  4.36it/s, loss=3880.1357]Trial 4 Ep1:  36%|███████████████████████▉                                           | 41/115 [00:12<00:16,  4.36it/s, loss=5945.9971]Trial 4 Ep1:  37%|████████████████████████▍                                          | 42/115 [00:12<00:16,  4.43it/s, loss=5945.9971]Trial 4 Ep1:  37%|████████████████████████▍                                          | 42/115 [00:12<00:16,  4.43it/s, loss=1715.7542]Trial 4 Ep1:  37%|█████████████████████████                                          | 43/115 [00:12<00:17,  4.03it/s, loss=1715.7542]Trial 4 Ep1:  37%|█████████████████████████                                          | 43/115 [00:12<00:17,  4.03it/s, loss=1797.2361]Trial 4 Ep1:  38%|█████████████████████████▋                                         | 44/115 [00:12<00:16,  4.19it/s, loss=1797.2361]Trial 4 Ep1:  38%|█████████████████████████▋                                         | 44/115 [00:12<00:16,  4.19it/s, loss=3476.3994]Trial 4 Ep1:  39%|██████████████████████████▏                                        | 45/115 [00:12<00:16,  4.14it/s, loss=3476.3994]Trial 4 Ep1:  39%|██████████████████████████▏                                        | 45/115 [00:13<00:16,  4.14it/s, loss=1798.1161]Trial 4 Ep1:  40%|██████████████████████████▊                                        | 46/115 [00:13<00:16,  4.10it/s, loss=1798.1161]Trial 4 Ep1:  40%|███████████████████████████▏                                        | 46/115 [00:13<00:16,  4.10it/s, loss=907.6703]Trial 4 Ep1:  41%|███████████████████████████▊                                        | 47/115 [00:13<00:16,  4.07it/s, loss=907.6703]Trial 4 Ep1:  41%|███████████████████████████▍                                       | 47/115 [00:13<00:16,  4.07it/s, loss=1532.8997]Trial 4 Ep1:  42%|███████████████████████████▉                                       | 48/115 [00:13<00:17,  3.84it/s, loss=1532.8997]Trial 4 Ep1:  42%|████████████████████████████▍                                       | 48/115 [00:14<00:17,  3.84it/s, loss=248.9441]Trial 4 Ep1:  43%|████████████████████████████▉                                       | 49/115 [00:14<00:16,  3.98it/s, loss=248.9441]Trial 4 Ep1:  43%|████████████████████████████▌                                      | 49/115 [00:14<00:16,  3.98it/s, loss=2574.0322]Trial 4 Ep1:  43%|█████████████████████████████▏                                     | 50/115 [00:14<00:15,  4.17it/s, loss=2574.0322]Trial 4 Ep1:  43%|█████████████████████████████▏                                     | 50/115 [00:14<00:15,  4.17it/s, loss=3825.3057]Trial 4 Ep1:  44%|█████████████████████████████▋                                     | 51/115 [00:14<00:17,  3.71it/s, loss=3825.3057]Trial 4 Ep1:  44%|█████████████████████████████▋                                     | 51/115 [00:14<00:17,  3.71it/s, loss=2410.9648]Trial 4 Ep1:  45%|██████████████████████████████▎                                    | 52/115 [00:14<00:16,  3.90it/s, loss=2410.9648]Trial 4 Ep1:  45%|███████████████████████████████▋                                      | 52/115 [00:15<00:16,  3.90it/s, loss=5.4536]Trial 4 Ep1:  46%|████████████████████████████████▎                                     | 53/115 [00:15<00:19,  3.25it/s, loss=5.4536]Trial 4 Ep1:  46%|███████████████████████████████▎                                    | 53/115 [00:15<00:19,  3.25it/s, loss=948.2058]Trial 4 Ep1:  47%|███████████████████████████████▉                                    | 54/115 [00:15<00:17,  3.41it/s, loss=948.2058]Trial 4 Ep1:  47%|███████████████████████████████▍                                   | 54/115 [00:15<00:17,  3.41it/s, loss=1932.2201]Trial 4 Ep1:  48%|████████████████████████████████                                   | 55/115 [00:15<00:17,  3.48it/s, loss=1932.2201]Trial 4 Ep1:  48%|████████████████████████████████                                   | 55/115 [00:15<00:17,  3.48it/s, loss=1449.1177]Trial 4 Ep1:  49%|████████████████████████████████▋                                  | 56/115 [00:15<00:16,  3.60it/s, loss=1449.1177]Trial 4 Ep1:  49%|█████████████████████████████████                                   | 56/115 [00:16<00:16,  3.60it/s, loss=351.9691]Trial 4 Ep1:  50%|█████████████████████████████████▋                                  | 57/115 [00:16<00:15,  3.73it/s, loss=351.9691]Trial 4 Ep1:  50%|██████████████████████████████████▏                                  | 57/115 [00:16<00:15,  3.73it/s, loss=83.9203]Trial 4 Ep1:  50%|██████████████████████████████████▊                                  | 58/115 [00:16<00:17,  3.25it/s, loss=83.9203]Trial 4 Ep1:  50%|██████████████████████████████████▎                                 | 58/115 [00:16<00:17,  3.25it/s, loss=271.9633]Trial 4 Ep1:  51%|██████████████████████████████████▉                                 | 59/115 [00:16<00:16,  3.48it/s, loss=271.9633]Trial 4 Ep1:  51%|██████████████████████████████████▉                                 | 59/115 [00:17<00:16,  3.48it/s, loss=280.7860]Trial 4 Ep1:  52%|███████████████████████████████████▍                                | 60/115 [00:17<00:15,  3.59it/s, loss=280.7860]Trial 4 Ep1:  52%|███████████████████████████████████▍                                | 60/115 [00:17<00:15,  3.59it/s, loss=108.4045]Trial 4 Ep1:  53%|████████████████████████████████████                                | 61/115 [00:17<00:14,  3.66it/s, loss=108.4045]Trial 4 Ep1:  53%|████████████████████████████████████▌                                | 61/115 [00:17<00:14,  3.66it/s, loss=59.5838]Trial 4 Ep1:  54%|█████████████████████████████████████▏                               | 62/115 [00:17<00:14,  3.60it/s, loss=59.5838]Trial 4 Ep1:  54%|█████████████████████████████████████▏                               | 62/115 [00:17<00:14,  3.60it/s, loss=26.9843]Trial 4 Ep1:  55%|█████████████████████████████████████▊                               | 63/115 [00:17<00:13,  3.75it/s, loss=26.9843]Trial 4 Ep1:  55%|██████████████████████████████████████▎                               | 63/115 [00:18<00:13,  3.75it/s, loss=2.7203]Trial 4 Ep1:  56%|██████████████████████████████████████▉                               | 64/115 [00:18<00:13,  3.88it/s, loss=2.7203]Trial 4 Ep1:  56%|██████████████████████████████████████▍                              | 64/115 [00:18<00:13,  3.88it/s, loss=11.2320]Trial 4 Ep1:  57%|███████████████████████████████████████                              | 65/115 [00:18<00:13,  3.64it/s, loss=11.2320]Trial 4 Ep1:  57%|███████████████████████████████████████▌                              | 65/115 [00:18<00:13,  3.64it/s, loss=8.9937]Trial 4 Ep1:  57%|████████████████████████████████████████▏                             | 66/115 [00:18<00:12,  3.93it/s, loss=8.9937]Trial 4 Ep1:  57%|████████████████████████████████████████▏                             | 66/115 [00:18<00:12,  3.93it/s, loss=6.6583]Trial 4 Ep1:  58%|████████████████████████████████████████▊                             | 67/115 [00:18<00:11,  4.09it/s, loss=6.6583]Trial 4 Ep1:  58%|████████████████████████████████████████▊                             | 67/115 [00:19<00:11,  4.09it/s, loss=7.8441]Trial 4 Ep1:  59%|█████████████████████████████████████████▍                            | 68/115 [00:19<00:11,  4.00it/s, loss=7.8441]Trial 4 Ep1:  59%|████████████████████████████████████████▊                            | 68/115 [00:19<00:11,  4.00it/s, loss=18.4120]Trial 4 Ep1:  60%|█████████████████████████████████████████▍                           | 69/115 [00:19<00:11,  3.96it/s, loss=18.4120]Trial 4 Ep1:  60%|██████████████████████████████████████████                            | 69/115 [00:19<00:11,  3.96it/s, loss=9.6646]Trial 4 Ep1:  61%|██████████████████████████████████████████▌                           | 70/115 [00:19<00:11,  3.99it/s, loss=9.6646]Trial 4 Ep1:  61%|██████████████████████████████████████████▌                           | 70/115 [00:19<00:11,  3.99it/s, loss=1.2889]Trial 4 Ep1:  62%|███████████████████████████████████████████▏                          | 71/115 [00:19<00:10,  4.08it/s, loss=1.2889]Trial 4 Ep1:  62%|██████████████████████████████████████████▌                          | 71/115 [00:20<00:10,  4.08it/s, loss=11.4043]Trial 4 Ep1:  63%|███████████████████████████████████████████▏                         | 72/115 [00:20<00:10,  4.10it/s, loss=11.4043]Trial 4 Ep1:  63%|███████████████████████████████████████████▏                         | 72/115 [00:20<00:10,  4.10it/s, loss=11.5336]Trial 4 Ep1:  63%|███████████████████████████████████████████▊                         | 73/115 [00:20<00:10,  4.04it/s, loss=11.5336]Trial 4 Ep1:  63%|████████████████████████████████████████████▍                         | 73/115 [00:20<00:10,  4.04it/s, loss=9.7190]Trial 4 Ep1:  64%|█████████████████████████████████████████████                         | 74/115 [00:20<00:10,  3.98it/s, loss=9.7190]Trial 4 Ep1:  64%|█████████████████████████████████████████████                         | 74/115 [00:20<00:10,  3.98it/s, loss=5.5108]Trial 4 Ep1:  65%|█████████████████████████████████████████████▋                        | 75/115 [00:20<00:09,  4.09it/s, loss=5.5108]Trial 4 Ep1:  65%|█████████████████████████████████████████████▋                        | 75/115 [00:21<00:09,  4.09it/s, loss=1.3528]Trial 4 Ep1:  66%|██████████████████████████████████████████████▎                       | 76/115 [00:21<00:09,  4.07it/s, loss=1.3528]Trial 4 Ep1:  66%|██████████████████████████████████████████████▎                       | 76/115 [00:21<00:09,  4.07it/s, loss=5.8173]Trial 4 Ep1:  67%|██████████████████████████████████████████████▊                       | 77/115 [00:21<00:09,  4.03it/s, loss=5.8173]Trial 4 Ep1:  67%|██████████████████████████████████████████████▊                       | 77/115 [00:21<00:09,  4.03it/s, loss=4.4414]Trial 4 Ep1:  68%|███████████████████████████████████████████████▍                      | 78/115 [00:21<00:10,  3.69it/s, loss=4.4414]Trial 4 Ep1:  68%|███████████████████████████████████████████████▍                      | 78/115 [00:21<00:10,  3.69it/s, loss=1.0992]Trial 4 Ep1:  69%|████████████████████████████████████████████████                      | 79/115 [00:21<00:09,  3.89it/s, loss=1.0992]Trial 4 Ep1:  69%|████████████████████████████████████████████████                      | 79/115 [00:22<00:09,  3.89it/s, loss=1.9213]Trial 4 Ep1:  70%|████████████████████████████████████████████████▋                     | 80/115 [00:22<00:08,  4.02it/s, loss=1.9213]Trial 4 Ep1:  70%|████████████████████████████████████████████████▋                     | 80/115 [00:22<00:08,  4.02it/s, loss=1.6664]Trial 4 Ep1:  70%|█████████████████████████████████████████████████▎                    | 81/115 [00:22<00:09,  3.74it/s, loss=1.6664]Trial 4 Ep1:  70%|█████████████████████████████████████████████████▎                    | 81/115 [00:22<00:09,  3.74it/s, loss=1.0020]Trial 4 Ep1:  71%|█████████████████████████████████████████████████▉                    | 82/115 [00:22<00:08,  3.95it/s, loss=1.0020]Trial 4 Ep1:  71%|█████████████████████████████████████████████████▉                    | 82/115 [00:22<00:08,  3.95it/s, loss=1.5303]Trial 4 Ep1:  72%|██████████████████████████████████████████████████▌                   | 83/115 [00:22<00:08,  3.89it/s, loss=1.5303]Trial 4 Ep1:  72%|██████████████████████████████████████████████████▌                   | 83/115 [00:23<00:08,  3.89it/s, loss=2.5395]Trial 4 Ep1:  73%|███████████████████████████████████████████████████▏                  | 84/115 [00:23<00:08,  3.66it/s, loss=2.5395]Trial 4 Ep1:  73%|███████████████████████████████████████████████████▏                  | 84/115 [00:23<00:08,  3.66it/s, loss=0.7160]Trial 4 Ep1:  74%|███████████████████████████████████████████████████▋                  | 85/115 [00:23<00:08,  3.63it/s, loss=0.7160]Trial 4 Ep1:  74%|███████████████████████████████████████████████████▋                  | 85/115 [00:23<00:08,  3.63it/s, loss=2.5062]Trial 4 Ep1:  75%|████████████████████████████████████████████████████▎                 | 86/115 [00:23<00:07,  3.73it/s, loss=2.5062]Trial 4 Ep1:  75%|████████████████████████████████████████████████████▎                 | 86/115 [00:24<00:07,  3.73it/s, loss=3.1409]Trial 4 Ep1:  76%|████████████████████████████████████████████████████▉                 | 87/115 [00:24<00:07,  3.87it/s, loss=3.1409]Trial 4 Ep1:  76%|████████████████████████████████████████████████████▉                 | 87/115 [00:24<00:07,  3.87it/s, loss=1.0876]Trial 4 Ep1:  77%|█████████████████████████████████████████████████████▌                | 88/115 [00:24<00:06,  3.86it/s, loss=1.0876]                                                                                                                                      [W 2026-02-24 14:51:04,916] Trial 4 failed with parameters: {'learning_rate': 0.006, 'target_ab_lr': 5e-07} because of the following error: OutOfMemoryError('CUDA out of memory. Tried to allocate 20.00 MiB. GPU 0 has a total capacity of 139.81 GiB of which 17.69 MiB is free. Process 3010496 has 139.79 GiB memory in use. Of the allocated memory 115.21 GiB is allocated by PyTorch, and 1.27 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)').
+Traceback (most recent call last):
+  File "/opt/conda/lib/python3.11/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+                      ^^^^^^^^^^^
+  File "/data/optuna_mobilebert_glue_lora.py", line 1477, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_loader, tokenizer),
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/optuna_mobilebert_glue_lora.py", line 1141, in objective
+    outputs = model(**model_inputs)
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 1286, in forward
+    outputs = self.mobilebert(
+              ^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 898, in forward
+    encoder_outputs = self.encoder(
+                      ^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 580, in forward
+    layer_outputs = layer_module(
+                    ^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 538, in forward
+    attention_output = ffn_module(attention_output)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 492, in forward
+    intermediate_output = self.intermediate(hidden_states)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 383, in forward
+    hidden_states = self.intermediate_act_fn(hidden_states)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/modules/activation.py", line 143, in forward
+    return F.relu(input, inplace=self.inplace)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/lib/python3.11/site-packages/torch/nn/functional.py", line 1721, in relu
+    result = torch.relu(input)
+             ^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 20.00 MiB. GPU 0 has a total capacity of 139.81 GiB of which 17.69 MiB is free. Process 3010496 has 139.79 GiB memory in use. Of the allocated memory 115.21 GiB is allocated by PyTorch, and 1.27 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+[W 2026-02-24 14:51:04,918] Trial 4 failed with value None.
+2026-02-24 14:51:08.377888: I tensorflow/core/util/port.cc:111] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-02-24 14:51:08.380359: I tensorflow/tsl/cuda/cudart_stub.cc:28] Could not find cuda drivers on your machine, GPU will not be used.
+2026-02-24 14:51:08.408846: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-02-24 14:51:08.408883: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-02-24 14:51:08.408906: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-02-24 14:51:08.414503: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F AVX512_VNNI AVX512_BF16 AVX_VNNI AMX_TILE AMX_INT8 AMX_BF16 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2026-02-24 14:51:09.118313: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT

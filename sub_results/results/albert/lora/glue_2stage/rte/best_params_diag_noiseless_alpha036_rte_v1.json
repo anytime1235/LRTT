@@ -1,0 +1,6 @@
+{
+  "task": "rte",
+  "metric": "accuracy",
+  "best_value": 0.5415162454873647,
+  "best_params": {}
+}

@@ -1,0 +1,543 @@
+Map:   0%|                                                                                                                                   | 0/10570 [00:00<?, ? examples/s]Map:   9%|███████████▏                                                                                                          | 1000/10570 [00:00<00:04, 2121.27 examples/s]Map:  19%|██████████████████████▎                                                                                               | 2000/10570 [00:00<00:02, 3238.39 examples/s]Map:  28%|█████████████████████████████████▍                                                                                    | 3000/10570 [00:00<00:01, 3907.73 examples/s]Map:  38%|████████████████████████████████████████████▋                                                                         | 4000/10570 [00:01<00:01, 4282.71 examples/s]Map:  47%|███████████████████████████████████████████████████████▊                                                              | 5000/10570 [00:01<00:01, 3810.74 examples/s]Map:  57%|██████████████████████████████████████████████████████████████████▉                                                   | 6000/10570 [00:01<00:01, 4011.64 examples/s]Map:  66%|██████████████████████████████████████████████████████████████████████████████▏                                       | 7000/10570 [00:01<00:00, 4142.27 examples/s]Map:  76%|█████████████████████████████████████████████████████████████████████████████████████████▎                            | 8000/10570 [00:02<00:00, 4239.09 examples/s]Map:  85%|████████████████████████████████████████████████████████████████████████████████████████████████████▍                 | 9000/10570 [00:02<00:00, 4295.35 examples/s]Map:  95%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████▋      | 10000/10570 [00:02<00:00, 3680.51 examples/s]Map: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 10570/10570 [00:02<00:00, 3773.98 examples/s]Map: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 10570/10570 [00:02<00:00, 3798.25 examples/s]
+[I 2026-02-16 14:22:06,834] Using an existing study with name 'mobilebert_squad_lrtt_bs64_sgd_decay_nowd_nomom_nonest_noio_qkv' instead of creating a new one.
+[W 2026-02-16 14:22:06,982] Trial 15 failed with parameters: {} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_squad_lora.py", line 1198, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_features, eval_examples, tokenizer),
+  File "/data/optuna_mobilebert_squad_lora.py", line 784, in objective
+    learning_rate = trial.suggest_categorical('learning_rate', [1.0, 0.1])
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 408, in suggest_categorical
+    return self._suggest(name, CategoricalDistribution(choices=choices))
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 643, in _suggest
+    storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_cached_storage.py", line 167, in set_trial_param
+    self._backend._set_trial_param(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 597, in _set_trial_param
+    self._set_trial_param_without_commit(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 632, in _set_trial_param_without_commit
+    distributions.check_distribution_compatibility(previous_distribution, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 656, in check_distribution_compatibility
+    raise ValueError(
+ValueError: CategoricalDistribution does not support dynamic value space.
+[W 2026-02-16 14:22:06,992] Trial 15 failed with value None.
+[W 2026-02-16 14:22:07,086] Trial 16 failed with parameters: {} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_squad_lora.py", line 1198, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_features, eval_examples, tokenizer),
+  File "/data/optuna_mobilebert_squad_lora.py", line 784, in objective
+    learning_rate = trial.suggest_categorical('learning_rate', [1.0, 0.1])
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 408, in suggest_categorical
+    return self._suggest(name, CategoricalDistribution(choices=choices))
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 643, in _suggest
+    storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_cached_storage.py", line 167, in set_trial_param
+    self._backend._set_trial_param(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 597, in _set_trial_param
+    self._set_trial_param_without_commit(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 632, in _set_trial_param_without_commit
+    distributions.check_distribution_compatibility(previous_distribution, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 656, in check_distribution_compatibility
+    raise ValueError(
+ValueError: CategoricalDistribution does not support dynamic value space.
+[W 2026-02-16 14:22:07,087] Trial 16 failed with value None.
+[W 2026-02-16 14:22:07,177] Trial 17 failed with parameters: {} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_squad_lora.py", line 1198, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_features, eval_examples, tokenizer),
+  File "/data/optuna_mobilebert_squad_lora.py", line 784, in objective
+    learning_rate = trial.suggest_categorical('learning_rate', [1.0, 0.1])
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 408, in suggest_categorical
+    return self._suggest(name, CategoricalDistribution(choices=choices))
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 643, in _suggest
+    storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_cached_storage.py", line 167, in set_trial_param
+    self._backend._set_trial_param(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 597, in _set_trial_param
+    self._set_trial_param_without_commit(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 632, in _set_trial_param_without_commit
+    distributions.check_distribution_compatibility(previous_distribution, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 656, in check_distribution_compatibility
+    raise ValueError(
+ValueError: CategoricalDistribution does not support dynamic value space.
+[W 2026-02-16 14:22:07,177] Trial 17 failed with value None.
+[W 2026-02-16 14:22:07,270] Trial 18 failed with parameters: {} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_squad_lora.py", line 1198, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_features, eval_examples, tokenizer),
+  File "/data/optuna_mobilebert_squad_lora.py", line 784, in objective
+    learning_rate = trial.suggest_categorical('learning_rate', [1.0, 0.1])
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 408, in suggest_categorical
+    return self._suggest(name, CategoricalDistribution(choices=choices))
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 643, in _suggest
+    storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_cached_storage.py", line 167, in set_trial_param
+    self._backend._set_trial_param(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 597, in _set_trial_param
+    self._set_trial_param_without_commit(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 632, in _set_trial_param_without_commit
+    distributions.check_distribution_compatibility(previous_distribution, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 656, in check_distribution_compatibility
+    raise ValueError(
+ValueError: CategoricalDistribution does not support dynamic value space.
+[W 2026-02-16 14:22:07,271] Trial 18 failed with value None.
+[W 2026-02-16 14:22:07,364] Trial 19 failed with parameters: {} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_squad_lora.py", line 1198, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_features, eval_examples, tokenizer),
+  File "/data/optuna_mobilebert_squad_lora.py", line 784, in objective
+    learning_rate = trial.suggest_categorical('learning_rate', [1.0, 0.1])
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 408, in suggest_categorical
+    return self._suggest(name, CategoricalDistribution(choices=choices))
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 643, in _suggest
+    storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_cached_storage.py", line 167, in set_trial_param
+    self._backend._set_trial_param(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 597, in _set_trial_param
+    self._set_trial_param_without_commit(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 632, in _set_trial_param_without_commit
+    distributions.check_distribution_compatibility(previous_distribution, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 656, in check_distribution_compatibility
+    raise ValueError(
+ValueError: CategoricalDistribution does not support dynamic value space.
+[W 2026-02-16 14:22:07,367] Trial 19 failed with value None.
+[W 2026-02-16 14:22:07,468] Trial 20 failed with parameters: {} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_squad_lora.py", line 1198, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_features, eval_examples, tokenizer),
+  File "/data/optuna_mobilebert_squad_lora.py", line 784, in objective
+    learning_rate = trial.suggest_categorical('learning_rate', [1.0, 0.1])
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 408, in suggest_categorical
+    return self._suggest(name, CategoricalDistribution(choices=choices))
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 643, in _suggest
+    storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_cached_storage.py", line 167, in set_trial_param
+    self._backend._set_trial_param(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 597, in _set_trial_param
+    self._set_trial_param_without_commit(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 632, in _set_trial_param_without_commit
+    distributions.check_distribution_compatibility(previous_distribution, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 656, in check_distribution_compatibility
+    raise ValueError(
+ValueError: CategoricalDistribution does not support dynamic value space.
+[W 2026-02-16 14:22:07,468] Trial 20 failed with value None.
+[W 2026-02-16 14:22:07,560] Trial 21 failed with parameters: {} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_squad_lora.py", line 1198, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_features, eval_examples, tokenizer),
+  File "/data/optuna_mobilebert_squad_lora.py", line 784, in objective
+    learning_rate = trial.suggest_categorical('learning_rate', [1.0, 0.1])
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 408, in suggest_categorical
+    return self._suggest(name, CategoricalDistribution(choices=choices))
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 643, in _suggest
+    storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_cached_storage.py", line 167, in set_trial_param
+    self._backend._set_trial_param(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 597, in _set_trial_param
+    self._set_trial_param_without_commit(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 632, in _set_trial_param_without_commit
+    distributions.check_distribution_compatibility(previous_distribution, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 656, in check_distribution_compatibility
+    raise ValueError(
+ValueError: CategoricalDistribution does not support dynamic value space.
+[W 2026-02-16 14:22:07,560] Trial 21 failed with value None.
+[W 2026-02-16 14:22:07,649] Trial 22 failed with parameters: {} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_squad_lora.py", line 1198, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_features, eval_examples, tokenizer),
+  File "/data/optuna_mobilebert_squad_lora.py", line 784, in objective
+    learning_rate = trial.suggest_categorical('learning_rate', [1.0, 0.1])
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 408, in suggest_categorical
+    return self._suggest(name, CategoricalDistribution(choices=choices))
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 643, in _suggest
+    storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_cached_storage.py", line 167, in set_trial_param
+    self._backend._set_trial_param(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 597, in _set_trial_param
+    self._set_trial_param_without_commit(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 632, in _set_trial_param_without_commit
+    distributions.check_distribution_compatibility(previous_distribution, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 656, in check_distribution_compatibility
+    raise ValueError(
+ValueError: CategoricalDistribution does not support dynamic value space.
+[W 2026-02-16 14:22:07,649] Trial 22 failed with value None.
+[W 2026-02-16 14:22:07,730] Trial 23 failed with parameters: {} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_squad_lora.py", line 1198, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_features, eval_examples, tokenizer),
+  File "/data/optuna_mobilebert_squad_lora.py", line 784, in objective
+    learning_rate = trial.suggest_categorical('learning_rate', [1.0, 0.1])
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 408, in suggest_categorical
+    return self._suggest(name, CategoricalDistribution(choices=choices))
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 643, in _suggest
+    storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_cached_storage.py", line 167, in set_trial_param
+    self._backend._set_trial_param(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 597, in _set_trial_param
+    self._set_trial_param_without_commit(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 632, in _set_trial_param_without_commit
+    distributions.check_distribution_compatibility(previous_distribution, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 656, in check_distribution_compatibility
+    raise ValueError(
+ValueError: CategoricalDistribution does not support dynamic value space.
+[W 2026-02-16 14:22:07,730] Trial 23 failed with value None.
+[W 2026-02-16 14:22:07,807] Trial 24 failed with parameters: {} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_squad_lora.py", line 1198, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_features, eval_examples, tokenizer),
+  File "/data/optuna_mobilebert_squad_lora.py", line 784, in objective
+    learning_rate = trial.suggest_categorical('learning_rate', [1.0, 0.1])
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 408, in suggest_categorical
+    return self._suggest(name, CategoricalDistribution(choices=choices))
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 643, in _suggest
+    storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_cached_storage.py", line 167, in set_trial_param
+    self._backend._set_trial_param(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 597, in _set_trial_param
+    self._set_trial_param_without_commit(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 632, in _set_trial_param_without_commit
+    distributions.check_distribution_compatibility(previous_distribution, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 656, in check_distribution_compatibility
+    raise ValueError(
+ValueError: CategoricalDistribution does not support dynamic value space.
+[W 2026-02-16 14:22:07,807] Trial 24 failed with value None.
+[W 2026-02-16 14:22:07,893] Trial 25 failed with parameters: {} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_squad_lora.py", line 1198, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_features, eval_examples, tokenizer),
+  File "/data/optuna_mobilebert_squad_lora.py", line 784, in objective
+    learning_rate = trial.suggest_categorical('learning_rate', [1.0, 0.1])
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 408, in suggest_categorical
+    return self._suggest(name, CategoricalDistribution(choices=choices))
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 643, in _suggest
+    storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_cached_storage.py", line 167, in set_trial_param
+    self._backend._set_trial_param(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 597, in _set_trial_param
+    self._set_trial_param_without_commit(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 632, in _set_trial_param_without_commit
+    distributions.check_distribution_compatibility(previous_distribution, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 656, in check_distribution_compatibility
+    raise ValueError(
+ValueError: CategoricalDistribution does not support dynamic value space.
+[W 2026-02-16 14:22:07,893] Trial 25 failed with value None.
+[W 2026-02-16 14:22:07,993] Trial 26 failed with parameters: {} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_squad_lora.py", line 1198, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_features, eval_examples, tokenizer),
+  File "/data/optuna_mobilebert_squad_lora.py", line 784, in objective
+    learning_rate = trial.suggest_categorical('learning_rate', [1.0, 0.1])
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 408, in suggest_categorical
+    return self._suggest(name, CategoricalDistribution(choices=choices))
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 643, in _suggest
+    storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_cached_storage.py", line 167, in set_trial_param
+    self._backend._set_trial_param(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 597, in _set_trial_param
+    self._set_trial_param_without_commit(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 632, in _set_trial_param_without_commit
+    distributions.check_distribution_compatibility(previous_distribution, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 656, in check_distribution_compatibility
+    raise ValueError(
+ValueError: CategoricalDistribution does not support dynamic value space.
+[W 2026-02-16 14:22:07,996] Trial 26 failed with value None.
+[W 2026-02-16 14:22:08,080] Trial 27 failed with parameters: {} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_squad_lora.py", line 1198, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_features, eval_examples, tokenizer),
+  File "/data/optuna_mobilebert_squad_lora.py", line 784, in objective
+    learning_rate = trial.suggest_categorical('learning_rate', [1.0, 0.1])
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 408, in suggest_categorical
+    return self._suggest(name, CategoricalDistribution(choices=choices))
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 643, in _suggest
+    storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_cached_storage.py", line 167, in set_trial_param
+    self._backend._set_trial_param(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 597, in _set_trial_param
+    self._set_trial_param_without_commit(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 632, in _set_trial_param_without_commit
+    distributions.check_distribution_compatibility(previous_distribution, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 656, in check_distribution_compatibility
+    raise ValueError(
+ValueError: CategoricalDistribution does not support dynamic value space.
+[W 2026-02-16 14:22:08,081] Trial 27 failed with value None.
+[W 2026-02-16 14:22:08,157] Trial 28 failed with parameters: {} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_squad_lora.py", line 1198, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_features, eval_examples, tokenizer),
+  File "/data/optuna_mobilebert_squad_lora.py", line 784, in objective
+    learning_rate = trial.suggest_categorical('learning_rate', [1.0, 0.1])
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 408, in suggest_categorical
+    return self._suggest(name, CategoricalDistribution(choices=choices))
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 643, in _suggest
+    storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_cached_storage.py", line 167, in set_trial_param
+    self._backend._set_trial_param(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 597, in _set_trial_param
+    self._set_trial_param_without_commit(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 632, in _set_trial_param_without_commit
+    distributions.check_distribution_compatibility(previous_distribution, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 656, in check_distribution_compatibility
+    raise ValueError(
+ValueError: CategoricalDistribution does not support dynamic value space.
+[W 2026-02-16 14:22:08,157] Trial 28 failed with value None.
+[W 2026-02-16 14:22:08,220] Trial 29 failed with parameters: {} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_squad_lora.py", line 1198, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_features, eval_examples, tokenizer),
+  File "/data/optuna_mobilebert_squad_lora.py", line 784, in objective
+    learning_rate = trial.suggest_categorical('learning_rate', [1.0, 0.1])
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 408, in suggest_categorical
+    return self._suggest(name, CategoricalDistribution(choices=choices))
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 643, in _suggest
+    storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_cached_storage.py", line 167, in set_trial_param
+    self._backend._set_trial_param(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 597, in _set_trial_param
+    self._set_trial_param_without_commit(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 632, in _set_trial_param_without_commit
+    distributions.check_distribution_compatibility(previous_distribution, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 656, in check_distribution_compatibility
+    raise ValueError(
+ValueError: CategoricalDistribution does not support dynamic value space.
+[W 2026-02-16 14:22:08,220] Trial 29 failed with value None.
+[W 2026-02-16 14:22:08,305] Trial 30 failed with parameters: {} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_squad_lora.py", line 1198, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_features, eval_examples, tokenizer),
+  File "/data/optuna_mobilebert_squad_lora.py", line 784, in objective
+    learning_rate = trial.suggest_categorical('learning_rate', [1.0, 0.1])
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 408, in suggest_categorical
+    return self._suggest(name, CategoricalDistribution(choices=choices))
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 643, in _suggest
+    storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_cached_storage.py", line 167, in set_trial_param
+    self._backend._set_trial_param(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 597, in _set_trial_param
+    self._set_trial_param_without_commit(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 632, in _set_trial_param_without_commit
+    distributions.check_distribution_compatibility(previous_distribution, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 656, in check_distribution_compatibility
+    raise ValueError(
+ValueError: CategoricalDistribution does not support dynamic value space.
+[W 2026-02-16 14:22:08,305] Trial 30 failed with value None.
+[W 2026-02-16 14:22:08,375] Trial 31 failed with parameters: {} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_squad_lora.py", line 1198, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_features, eval_examples, tokenizer),
+  File "/data/optuna_mobilebert_squad_lora.py", line 784, in objective
+    learning_rate = trial.suggest_categorical('learning_rate', [1.0, 0.1])
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 408, in suggest_categorical
+    return self._suggest(name, CategoricalDistribution(choices=choices))
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 643, in _suggest
+    storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_cached_storage.py", line 167, in set_trial_param
+    self._backend._set_trial_param(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 597, in _set_trial_param
+    self._set_trial_param_without_commit(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 632, in _set_trial_param_without_commit
+    distributions.check_distribution_compatibility(previous_distribution, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 656, in check_distribution_compatibility
+    raise ValueError(
+ValueError: CategoricalDistribution does not support dynamic value space.
+[W 2026-02-16 14:22:08,378] Trial 31 failed with value None.
+[W 2026-02-16 14:22:08,489] Trial 32 failed with parameters: {} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_squad_lora.py", line 1198, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_features, eval_examples, tokenizer),
+  File "/data/optuna_mobilebert_squad_lora.py", line 784, in objective
+    learning_rate = trial.suggest_categorical('learning_rate', [1.0, 0.1])
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 408, in suggest_categorical
+    return self._suggest(name, CategoricalDistribution(choices=choices))
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 643, in _suggest
+    storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_cached_storage.py", line 167, in set_trial_param
+    self._backend._set_trial_param(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 597, in _set_trial_param
+    self._set_trial_param_without_commit(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 632, in _set_trial_param_without_commit
+    distributions.check_distribution_compatibility(previous_distribution, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 656, in check_distribution_compatibility
+    raise ValueError(
+ValueError: CategoricalDistribution does not support dynamic value space.
+[W 2026-02-16 14:22:08,489] Trial 32 failed with value None.
+[W 2026-02-16 14:22:08,580] Trial 33 failed with parameters: {} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_squad_lora.py", line 1198, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_features, eval_examples, tokenizer),
+  File "/data/optuna_mobilebert_squad_lora.py", line 784, in objective
+    learning_rate = trial.suggest_categorical('learning_rate', [1.0, 0.1])
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 408, in suggest_categorical
+    return self._suggest(name, CategoricalDistribution(choices=choices))
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 643, in _suggest
+    storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_cached_storage.py", line 167, in set_trial_param
+    self._backend._set_trial_param(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 597, in _set_trial_param
+    self._set_trial_param_without_commit(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 632, in _set_trial_param_without_commit
+    distributions.check_distribution_compatibility(previous_distribution, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 656, in check_distribution_compatibility
+    raise ValueError(
+ValueError: CategoricalDistribution does not support dynamic value space.
+[W 2026-02-16 14:22:08,580] Trial 33 failed with value None.
+[W 2026-02-16 14:22:08,665] Trial 34 failed with parameters: {} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_squad_lora.py", line 1198, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_features, eval_examples, tokenizer),
+  File "/data/optuna_mobilebert_squad_lora.py", line 784, in objective
+    learning_rate = trial.suggest_categorical('learning_rate', [1.0, 0.1])
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 408, in suggest_categorical
+    return self._suggest(name, CategoricalDistribution(choices=choices))
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 643, in _suggest
+    storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_cached_storage.py", line 167, in set_trial_param
+    self._backend._set_trial_param(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 597, in _set_trial_param
+    self._set_trial_param_without_commit(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 632, in _set_trial_param_without_commit
+    distributions.check_distribution_compatibility(previous_distribution, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 656, in check_distribution_compatibility
+    raise ValueError(
+ValueError: CategoricalDistribution does not support dynamic value space.
+[W 2026-02-16 14:22:08,665] Trial 34 failed with value None.
+[W 2026-02-16 14:22:08,735] Trial 35 failed with parameters: {} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_squad_lora.py", line 1198, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_features, eval_examples, tokenizer),
+  File "/data/optuna_mobilebert_squad_lora.py", line 784, in objective
+    learning_rate = trial.suggest_categorical('learning_rate', [1.0, 0.1])
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 408, in suggest_categorical
+    return self._suggest(name, CategoricalDistribution(choices=choices))
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 643, in _suggest
+    storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_cached_storage.py", line 167, in set_trial_param
+    self._backend._set_trial_param(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 597, in _set_trial_param
+    self._set_trial_param_without_commit(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 632, in _set_trial_param_without_commit
+    distributions.check_distribution_compatibility(previous_distribution, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 656, in check_distribution_compatibility
+    raise ValueError(
+ValueError: CategoricalDistribution does not support dynamic value space.
+[W 2026-02-16 14:22:08,735] Trial 35 failed with value None.
+[W 2026-02-16 14:22:08,802] Trial 36 failed with parameters: {} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_squad_lora.py", line 1198, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_features, eval_examples, tokenizer),
+  File "/data/optuna_mobilebert_squad_lora.py", line 784, in objective
+    learning_rate = trial.suggest_categorical('learning_rate', [1.0, 0.1])
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 408, in suggest_categorical
+    return self._suggest(name, CategoricalDistribution(choices=choices))
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 643, in _suggest
+    storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_cached_storage.py", line 167, in set_trial_param
+    self._backend._set_trial_param(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 597, in _set_trial_param
+    self._set_trial_param_without_commit(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 632, in _set_trial_param_without_commit
+    distributions.check_distribution_compatibility(previous_distribution, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 656, in check_distribution_compatibility
+    raise ValueError(
+ValueError: CategoricalDistribution does not support dynamic value space.
+[W 2026-02-16 14:22:08,803] Trial 36 failed with value None.
+[W 2026-02-16 14:22:08,874] Trial 37 failed with parameters: {} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_squad_lora.py", line 1198, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_features, eval_examples, tokenizer),
+  File "/data/optuna_mobilebert_squad_lora.py", line 784, in objective
+    learning_rate = trial.suggest_categorical('learning_rate', [1.0, 0.1])
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 408, in suggest_categorical
+    return self._suggest(name, CategoricalDistribution(choices=choices))
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 643, in _suggest
+    storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_cached_storage.py", line 167, in set_trial_param
+    self._backend._set_trial_param(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 597, in _set_trial_param
+    self._set_trial_param_without_commit(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 632, in _set_trial_param_without_commit
+    distributions.check_distribution_compatibility(previous_distribution, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 656, in check_distribution_compatibility
+    raise ValueError(
+ValueError: CategoricalDistribution does not support dynamic value space.
+[W 2026-02-16 14:22:08,874] Trial 37 failed with value None.
+[W 2026-02-16 14:22:08,951] Trial 38 failed with parameters: {} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_squad_lora.py", line 1198, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_features, eval_examples, tokenizer),
+  File "/data/optuna_mobilebert_squad_lora.py", line 784, in objective
+    learning_rate = trial.suggest_categorical('learning_rate', [1.0, 0.1])
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 408, in suggest_categorical
+    return self._suggest(name, CategoricalDistribution(choices=choices))
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 643, in _suggest
+    storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_cached_storage.py", line 167, in set_trial_param
+    self._backend._set_trial_param(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 597, in _set_trial_param
+    self._set_trial_param_without_commit(
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/storages/_rdb/storage.py", line 632, in _set_trial_param_without_commit
+    distributions.check_distribution_compatibility(previous_distribution, distribution)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 656, in check_distribution_compatibility
+    raise ValueError(
+ValueError: CategoricalDistribution does not support dynamic value space.
+[W 2026-02-16 14:22:08,951] Trial 38 failed with value None.
+Train batches: 1413, Eval features: 11033
+
+Study: mobilebert_squad_lrtt_bs64_sgd_decay_nowd_nomom_nonest_noio_qkv, Device: cuda, New trials: 24
+
+============================================================
+STUDY SUMMARY
+============================================================
+Study: mobilebert_squad_lrtt_bs64_sgd_decay_nowd_nomom_nonest_noio_qkv, Trials: 39 (14 complete)
+Best F1: 47.97%, Mean F1: 33.27%
+Best params: {'learning_rate': 1.0, 'lora_alpha': 0.016418181914681335, 'lrtt_lr_multiplier': 0.5232718495667636, 'min_lr_rate': 0.0}
+Visualization saved.
+Best params saved to: /data/results/Analoglora_v2/squad/best_params_mobilebert_squad_lrtt_bs64_sgd_decay_nowd_nomom_nonest_noio_qkv.json
+All trials saved to: /data/results/Analoglora_v2/squad/all_trials_squad.json

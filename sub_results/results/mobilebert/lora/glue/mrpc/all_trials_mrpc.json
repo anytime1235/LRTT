@@ -1,0 +1,65 @@
+[
+  {
+    "trial": 0,
+    "value": 0.0,
+    "params": {
+      "learning_rate": 0.006,
+      "target_ab_lr": 0.001
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 1,
+    "value": 0.0,
+    "params": {
+      "learning_rate": 0.006,
+      "target_ab_lr": 0.01
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 2,
+    "value": 0.0,
+    "params": {
+      "learning_rate": 0.0021448277535601463,
+      "target_ab_lr": 0.07114476009343425
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 4,
+    "value": 0.0,
+    "params": {
+      "learning_rate": 0.006,
+      "target_ab_lr": 0.001
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 5,
+    "value": 0.0,
+    "params": {
+      "learning_rate": 0.006,
+      "target_ab_lr": 0.01
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 6,
+    "value": 0.0,
+    "params": {
+      "learning_rate": 0.0021448277535601463,
+      "target_ab_lr": 0.07114476009343425
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 3,
+    "value": null,
+    "params": {
+      "learning_rate": 0.007234275772466259,
+      "target_ab_lr": 0.006251373574521752
+    },
+    "state": "TrialState.FAIL"
+  }
+]

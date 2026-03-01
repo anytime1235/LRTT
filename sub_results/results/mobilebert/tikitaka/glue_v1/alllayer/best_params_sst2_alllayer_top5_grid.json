@@ -1,0 +1,10 @@
+{
+  "task": "sst2",
+  "metric": "accuracy",
+  "best_value": 0.8497706422018348,
+  "best_params": {
+    "learning_rate": 0.01,
+    "transfer_every": 1,
+    "fast_lr": 5.0
+  }
+}

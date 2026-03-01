@@ -1,0 +1,46 @@
+{
+    "model": "google/mobilebert-uncased",
+    "method": "TikiTaka v2 (ChoppedTransferCompound)",
+    "task": "sst2",
+    "experiment_date": "2026-02-10",
+    "script": "sweep_tikitaka_batch256.py",
+    "optimizer": "AnalogAdam",
+    "description": "SST-2 50-trial sweep with AnalogAdam. Classifier trainable, bias frozen, QKV target. Pruning enabled.",
+    "training_config": {
+        "num_epochs": 3,
+        "batch_size": 64,
+        "optimizer": "AnalogAdam",
+        "scheduler": "linear_warmup_decay_to_0",
+        "glue_warmup_ratio": 0.1,
+        "target_modules": ["query", "key", "value"],
+        "classifier_frozen": false,
+        "bias_frozen": true,
+        "pruning": true,
+        "n_trials": 50,
+        "n_complete": 13,
+        "n_pruned": 37
+    },
+    "fixed_params": {
+        "auto_granularity": 169.0,
+        "in_chop_prob": 0.061,
+        "fast_lr": 3.0,
+        "noise_management": "ABS_MAX",
+        "bound_management": "ITERATIVE",
+        "out_noise": 0.0
+    },
+    "best_trial": 33,
+    "best_accuracy": 0.9014,
+    "best_params": {
+        "learning_rate": 0.0023065114558800644,
+        "transfer_lr": 3.986266963830462,
+        "transfer_every": 491
+    },
+    "top5_trials": [
+        {"trial": 33, "accuracy": 0.9014, "lr": 0.00231, "transfer_lr": 3.986, "te": 491},
+        {"trial": 43, "accuracy": 0.8979, "lr": 0.00446, "transfer_lr": 2.697, "te": 350},
+        {"trial": 5,  "accuracy": 0.8968, "lr": 0.00340, "transfer_lr": 0.378, "te": 427},
+        {"trial": 12, "accuracy": 0.8956, "lr": 0.00301, "transfer_lr": 1.586, "te": 321},
+        {"trial": 23, "accuracy": 0.8956, "lr": 0.00312, "transfer_lr": 1.741, "te": 442}
+    ],
+    "note": "AnalogAdam은 LRTT_setup.txt 기준과 다름. 비교용 baseline으로만 사용."
+}

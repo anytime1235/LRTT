@@ -1,0 +1,170 @@
+{
+  "project": "spk/tikitaka-qkv-experiments",
+  "description": "TTv2 Q, K, V layer experiments on MobileBERT SST2",
+  "extracted_at": "2026-02-05T15:29:17.205719",
+  "experiments": {
+    "Q_only_20260204_094618": {
+      "experiment_type": "Q_only",
+      "best_accuracy": null,
+      "final_accuracy": null,
+      "config": {
+        "target_modules": [
+          "query"
+        ],
+        "num_epochs": 3,
+        "transfer_every": 160,
+        "transfer_lr": 7.36,
+        "learning_rate": 0.000131,
+        "fast_lr": 0.862,
+        "in_chop_prob": 0.02,
+        "fast_tile": "SoftBounds (noise=0)",
+        "slow_tile": "SoftBounds (noise=0)",
+        "device_type": "tikitaka_softbounds_softbounds",
+        "model_name": "google/mobilebert-uncased",
+        "task_name": "sst2",
+        "batch_size": 32,
+        "seed": 42
+      }
+    },
+    "Q_only_20260204_094709": {
+      "experiment_type": "Q_only",
+      "best_accuracy": 0.783256880733945,
+      "final_accuracy": 0.783256880733945,
+      "config": {
+        "target_modules": [
+          "query"
+        ],
+        "num_epochs": 3,
+        "transfer_every": 160,
+        "transfer_lr": 7.36,
+        "learning_rate": 0.000131,
+        "fast_lr": 0.862,
+        "in_chop_prob": 0.02,
+        "fast_tile": "SoftBounds (noise=0)",
+        "slow_tile": "SoftBounds (noise=0)",
+        "device_type": "tikitaka_softbounds_softbounds",
+        "model_name": "google/mobilebert-uncased",
+        "task_name": "sst2",
+        "batch_size": 32,
+        "seed": 42
+      }
+    },
+    "K_only_20260204_094709": {
+      "experiment_type": "K_only",
+      "best_accuracy": 0.7706422018348624,
+      "final_accuracy": 0.7706422018348624,
+      "config": {
+        "target_modules": [
+          "key"
+        ],
+        "num_epochs": 3,
+        "transfer_every": 160,
+        "transfer_lr": 7.36,
+        "learning_rate": 0.000131,
+        "fast_lr": 0.862,
+        "in_chop_prob": 0.02,
+        "fast_tile": "SoftBounds (noise=0)",
+        "slow_tile": "SoftBounds (noise=0)",
+        "device_type": "tikitaka_softbounds_softbounds",
+        "model_name": "google/mobilebert-uncased",
+        "task_name": "sst2",
+        "batch_size": 32,
+        "seed": 42
+      }
+    },
+    "V_only_20260204_094709": {
+      "experiment_type": "V_only",
+      "best_accuracy": 0.8784403669724771,
+      "final_accuracy": 0.8784403669724771,
+      "config": {
+        "target_modules": [
+          "value"
+        ],
+        "num_epochs": 3,
+        "transfer_every": 160,
+        "transfer_lr": 7.36,
+        "learning_rate": 0.000131,
+        "fast_lr": 0.862,
+        "in_chop_prob": 0.02,
+        "fast_tile": "SoftBounds (noise=0)",
+        "slow_tile": "SoftBounds (noise=0)",
+        "device_type": "tikitaka_softbounds_softbounds",
+        "model_name": "google/mobilebert-uncased",
+        "task_name": "sst2",
+        "batch_size": 32,
+        "seed": 42
+      }
+    },
+    "QKV_all_20260204_094709": {
+      "experiment_type": "QKV_all",
+      "best_accuracy": 0.7901376146788991,
+      "final_accuracy": 0.7901376146788991,
+      "config": {
+        "target_modules": [
+          "query",
+          "key",
+          "value"
+        ],
+        "num_epochs": 3,
+        "transfer_every": 160,
+        "transfer_lr": 7.36,
+        "learning_rate": 0.000131,
+        "fast_lr": 0.862,
+        "in_chop_prob": 0.02,
+        "fast_tile": "SoftBounds (noise=0)",
+        "slow_tile": "SoftBounds (noise=0)",
+        "device_type": "tikitaka_softbounds_softbounds",
+        "model_name": "google/mobilebert-uncased",
+        "task_name": "sst2",
+        "batch_size": 32,
+        "seed": 42
+      }
+    },
+    "V_only_20260204_131039": {
+      "experiment_type": "V_only",
+      "best_accuracy": 0.7522935779816514,
+      "final_accuracy": 0.7522935779816514,
+      "config": {
+        "target_modules": [
+          "value"
+        ],
+        "num_epochs": 1,
+        "transfer_every": 160,
+        "transfer_lr": 7.36,
+        "learning_rate": 0.000131,
+        "fast_lr": 0.862,
+        "in_chop_prob": 0.02,
+        "fast_tile": "6T1C LinearStepDevice",
+        "slow_tile": "SoftBoundsDevice (noise=0)",
+        "device_type": "tikitaka_6t1c_softbounds",
+        "model_name": "google/mobilebert-uncased",
+        "task_name": "sst2",
+        "batch_size": 32,
+        "seed": 42
+      }
+    },
+    "V_only_20260204_132829": {
+      "experiment_type": "V_only",
+      "best_accuracy": 0.8715596330275229,
+      "final_accuracy": 0.8715596330275229,
+      "config": {
+        "target_modules": [
+          "value"
+        ],
+        "num_epochs": 3,
+        "transfer_every": 160,
+        "transfer_lr": 7.36,
+        "learning_rate": 0.000131,
+        "fast_lr": 0.862,
+        "in_chop_prob": 0.02,
+        "fast_tile": "6T1C LinearStepDevice",
+        "slow_tile": "SoftBoundsDevice (noise=0)",
+        "device_type": "tikitaka_6t1c_softbounds",
+        "model_name": "google/mobilebert-uncased",
+        "task_name": "sst2",
+        "batch_size": 32,
+        "seed": 42
+      }
+    }
+  }
+}

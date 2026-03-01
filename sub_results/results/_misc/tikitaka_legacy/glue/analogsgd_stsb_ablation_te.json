@@ -1,0 +1,33 @@
+{
+  "experiment": "STS-B Transfer Every (TE) Ablation",
+  "script": "sweep_tikitaka_batch256_sgd_lr2e4.py",
+  "optimizer": "AnalogSGD (momentum=0)",
+  "num_epochs": 6,
+  "base_params_from": "STS-B best trial 12 (50t sweep)",
+  "base_params": {
+    "learning_rate": 0.003263,
+    "transfer_lr": 0.09353,
+    "fast_lr": 3.3262
+  },
+  "ablation_results": [
+    {
+      "transfer_every": 19,
+      "spearmanr": 0.2652,
+      "source": "Real_sweep_bias_frozen_20260211_114900 (trial 12)",
+      "note": "Best from 50-trial sweep"
+    },
+    {
+      "transfer_every": 10000000,
+      "spearmanr": -0.0776,
+      "source": "Real_sweep_bias_frozen_20260211_142615",
+      "note": "TE=10^7 (no transfer) - much worse, confirms transfer is essential"
+    },
+    {
+      "transfer_every": 1,
+      "spearmanr": "RUNNING",
+      "source": "Real_sweep_bias_frozen_20260211_152129",
+      "note": "TE=1 (every step), fast_lr=3.0 fixed, 30-trial sweep in progress"
+    }
+  ],
+  "conclusion": "TikiTaka transfer mechanism is critical for STS-B regression. Disabling transfer (TE=10^7) produces near-random correlation. Very frequent transfer (TE=10-27) is optimal."
+}

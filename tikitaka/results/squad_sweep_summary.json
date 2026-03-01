@@ -1,0 +1,60 @@
+{
+  "task": "squad",
+  "total_runs": 77,
+  "runs_with_valid_f1": 66,
+  "runs_3_epoch": 54,
+  "f1": {
+    "min": 5.58,
+    "max": 61.93,
+    "mean": 30.74,
+    "median": 24.55,
+    "std": 22.33
+  },
+  "em": {
+    "min": 0.05,
+    "max": 51.5,
+    "mean": 21.62,
+    "median": 14.15
+  },
+  "hp_correlations_with_f1": {
+    "learning_rate": 0.005,
+    "transfer_lr": -0.618,
+    "transfer_every": 0.21,
+    "fast_lr": -0.296,
+    "auto_granularity": 0.455,
+    "in_chop_prob": 0.54
+  },
+  "hp_importance_ranking": [
+    {
+      "param": "transfer_lr",
+      "correlation": -0.618,
+      "abs_correlation": 0.618
+    },
+    {
+      "param": "in_chop_prob",
+      "correlation": 0.54,
+      "abs_correlation": 0.54
+    },
+    {
+      "param": "auto_granularity",
+      "correlation": 0.455,
+      "abs_correlation": 0.455
+    },
+    {
+      "param": "fast_lr",
+      "correlation": -0.296,
+      "abs_correlation": 0.296
+    },
+    {
+      "param": "transfer_every",
+      "correlation": 0.21,
+      "abs_correlation": 0.21
+    },
+    {
+      "param": "learning_rate",
+      "correlation": 0.005,
+      "abs_correlation": 0.005
+    }
+  ],
+  "overfitting_note": "Peak performance at epoch 3. Degrades significantly after. Early stopping recommended."
+}

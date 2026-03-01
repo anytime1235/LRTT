@@ -1,0 +1,47 @@
+{
+  "experiment": "AnalogSGD TikiTaka v2 HP Sweep - MRPC",
+  "script": "sweep_tikitaka_batch256_sgd_lr2e4.py",
+  "source_dir": "Real_sweep_bias_frozen_20260211_062916",
+  "optimizer": "AnalogSGD (momentum=0)",
+  "model": "google/mobilebert-uncased",
+  "analog_layers": ["query", "key", "value"],
+  "classifier": "digital, trainable (requires_grad=True)",
+  "bias": "frozen (requires_grad=False)",
+  "num_trials": 50,
+  "num_epochs": 3,
+  "batch_size": 64,
+  "warmup_ratio": 0.1,
+  "scheduler": "linear_warmup_decay_to_0",
+  "metric": "f1",
+  "search_space": {
+    "learning_rate": {"min": 1e-4, "max": 1e-2, "scale": "log"},
+    "transfer_lr": {"min": 0.01, "max": 4.0, "scale": "log"},
+    "fast_lr": {"min": 0.1, "max": 5.0, "scale": "linear"},
+    "transfer_every": {"min": 10, "max": 1000, "scale": "int"}
+  },
+  "fixed_params": {
+    "auto_granularity": 169.0,
+    "in_chop_prob": 0.061,
+    "noise_management": "ABS_MAX",
+    "bound_management": "ITERATIVE",
+    "io_noise": 0.0
+  },
+  "best_result": {
+    "trial": 0,
+    "f1": 0.8134,
+    "params": {
+      "learning_rate": 0.0002,
+      "transfer_lr": 3.9863,
+      "fast_lr": 3.0,
+      "transfer_every": 491
+    }
+  },
+  "top5_trials": [
+    {"trial": 0,  "f1": 0.8134, "lr": 0.0002, "t_lr": 3.986, "f_lr": 3.0, "te": 491},
+    {"trial": 6,  "f1": 0.8134, "lr": 0.00167, "t_lr": 0.023, "f_lr": 1.532, "te": 373},
+    {"trial": 7,  "f1": 0.8134, "lr": 0.000817, "t_lr": 1.104, "f_lr": 1.078, "te": 519},
+    {"trial": 49, "f1": 0.8134, "lr": 0.000497, "t_lr": 0.548, "f_lr": 2.816, "te": 683},
+    {"trial": 20, "f1": 0.8129, "lr": 0.00985, "t_lr": 1.619, "f_lr": 2.478, "te": 301}
+  ],
+  "notes": "MRPC is most HP-tolerant. 16/50 trials achieved F1>=0.8122. Wide range of HPs work. Majority-class F1 baseline ~0.8122."
+}

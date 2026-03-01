@@ -1,0 +1,339 @@
+================================================================================
+LRTT-LORA BAYESIAN HYPERPARAMETER SEARCH (Optuna)
+================================================================================
+Model: google/mobilebert-uncased
+Task: glue (sst2)
+Mode: sixt1c_lora
+Rank: 8
+Target modules: ['query', 'key', 'value', 'classifier']
+Optimizer: AnalogSGD
+Epochs: 3
+Batch size: 64
+Max seq length: 128
+Trials: 30
+Jobs: 1
+Study: lrtt_lora_glue_sixt1c_lora_20260213_114134
+--------------------------------------------------------------------------------
+LoRA alpha range: [0.5, 8.0] (log-uniform)
+LR range: [1e-4, 1e-2] (log-uniform)
+================================================================================
+
+Pre-loading data...
+Loading GLUE sst2 dataset...
+  ✓ Loaded 67349 train, 872 eval samples
+
+================================================================================
+SWEEP CONFIGURATION REPORT
+================================================================================
+
+[Task Settings]
+  Task: glue
+  Task name: sst2
+  Mode: sixt1c_lora
+  Model: google/mobilebert-uncased
+  Rank: 8
+  Epochs: 3
+  Max seq length: 128
+
+[Device Settings]
+  Device: CUDA
+  CUDA available: True
+  GPU: NVIDIA H200
+
+[Hyperparameter Search Space]
+  Classifier LR: 1.0 (FIXED)
+  QKV analog tile LR: [1e-4, 1e-2] (log-uniform)
+  LoRA alpha: [0.01, 100.0] (log-uniform)
+
+[Optimizer Settings]
+  Optimizer: AnalogSGD (decoupled LR)
+  Parameter groups:
+    - QKV tiles (tile_a/tile_b): lr = qkv_lr (searchable)
+    - Classifier/Other: lr = 1.0 (fixed)
+  Batch size: 64
+  Warmup ratio: 0.05 (5% linear warmup)
+
+[Sampler & Pruner]
+  Sampler: BoTorchSampler (Bayesian Optimization)
+  Pruner: NopPruner (no pruning)
+
+[Early Stopping]
+  Enabled: Yes
+  Patience: 3 epochs
+  Metric: eval_accuracy
+
+[Training Settings]
+  Evaluation strategy: epoch
+  Save strategy: no (LRTT state_dict incompatible with HF)
+  Logging: WandB (offline mode)
+  Random seed: 42
+
+[Sweep Settings]
+  Number of trials: 30
+  Parallel jobs: 1
+  Study name: lrtt_lora_glue_sixt1c_lora_20260213_114134
+================================================================================
+
+[I 2026-02-13 11:41:39,576] A new study created in memory with name: lrtt_lora_glue_sixt1c_lora_20260213_114134
+
+Starting optimization...
+  0%|                                                                                                                                                                                                                          | 0/30 [00:00<?, ?it/s]
+[Trial 0] mode=sixt1c_lora, lora_alpha=3.193, classifier_lr=1.000, qkv_lr=0.000268, rank=8
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: Tracking run with wandb version 0.24.1
+wandb: W&B syncing is set to `offline` in this directory. Run `wandb online` or set WANDB_MODE=online to enable cloud syncing.
+wandb: Run data is saved locally in /data/LRTT_transformer/experiments/wandb/offline-run-20260213_114139-g6ajzw6z
+Some weights of MobileBertForSequenceClassification were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+================================================================================
+LRTT-LORA MODEL CONVERSION
+================================================================================
+
+[1/4] Identifying target layers (target_modules=['query', 'key', 'value', 'classifier'])...
+Found 72 target layers to convert:
+  - mobilebert.encoder.layer.0.attention.self.query
+  - mobilebert.encoder.layer.0.attention.self.key
+  - mobilebert.encoder.layer.0.attention.self.value
+  - mobilebert.encoder.layer.1.attention.self.query
+  - mobilebert.encoder.layer.1.attention.self.key
+  ... and 67 more
+
+[2/4] Converting 72 layers to LRTT-LoRA...
+✓ All target layers converted to LRTT AnalogLinear
+
+[3/4] Setting trainability...
+✓ Trainability set:
+  - Trainable params: 11,034
+  - Frozen params: 22,231,808
+  - Trainable fraction: 0.05%
+
+[4/4] Conversion summary:
+  - Architecture: Unified LRTT tiles (A, B, C sub-tiles)
+  - Forward: y = C·x + α·A·(B·x)
+  - Trainable: A, B tiles (low-rank adapters)
+  - Frozen: C tile (pretrained weights)
+  - LoRA rank: 8
+  - LoRA alpha: 3.1933711264457894
+================================================================================
+  Optimizer config: classifier_lr=1.0, qkv_lr=0.0002680092217049762
+  LoRA tiles: 288, Other params: 74
+{'loss': 50887.075, 'grad_norm': 33.3302001953125, 'learning_rate': 0.00017070651064011221, 'epoch': 0.0949667616334283}
+{'loss': 15.8631, 'grad_norm': 33.9619255065918, 'learning_rate': 0.000264166475278396, 'epoch': 0.1899335232668566}
+{'loss': 15.9724, 'grad_norm': 35.33997344970703, 'learning_rate': 0.0002552298556816979, 'epoch': 0.2849002849002849}
+{'loss': 80452.965, 'grad_norm': 12411700.0, 'learning_rate': 0.0002462932360849998, 'epoch': 0.3798670465337132}
+{'loss': 24.4774, 'grad_norm': 50.32482147216797, 'learning_rate': 0.0002373566164883017, 'epoch': 0.4748338081671415}
+{'loss': 27.5602, 'grad_norm': 77.31749725341797, 'learning_rate': 0.00022841999689160358, 'epoch': 0.5698005698005698}
+{'loss': 20.8432, 'grad_norm': 57.604095458984375, 'learning_rate': 0.0002194833772949055, 'epoch': 0.6647673314339981}
+{'loss': 16.2519, 'grad_norm': 40.73210525512695, 'learning_rate': 0.00021054675769820736, 'epoch': 0.7597340930674265}
+{'loss': 13.5206, 'grad_norm': 41.942901611328125, 'learning_rate': 0.00020161013810150928, 'epoch': 0.8547008547008547}
+{'loss': 4.865616529457083e+20, 'grad_norm': nan, 'learning_rate': 0.00019267351850481117, 'epoch': 0.949667616334283}
+{'eval_loss': nan, 'eval_accuracy': 0.4908256880733945, 'eval_runtime': 0.9974, 'eval_samples_per_second': 874.299, 'eval_steps_per_second': 14.037, 'epoch': 1.0}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.00018373689890811306, 'epoch': 1.0446343779677112}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.00017480027931141495, 'epoch': 1.1396011396011396}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.00016586365971471686, 'epoch': 1.2345679012345678}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.00015692704011801873, 'epoch': 1.3295346628679963}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.00014799042052132064, 'epoch': 1.4245014245014245}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.0001390538009246225, 'epoch': 1.5194681861348527}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.00013011718132792442, 'epoch': 1.6144349477682811}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.00012118056173122631, 'epoch': 1.7094017094017095}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.00011224394213452822, 'epoch': 1.8043684710351378}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.00010330732253783011, 'epoch': 1.899335232668566}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 9.4370702941132e-05, 'epoch': 1.9943019943019942}
+{'eval_loss': nan, 'eval_accuracy': 0.4908256880733945, 'eval_runtime': 0.9951, 'eval_samples_per_second': 876.312, 'eval_steps_per_second': 14.069, 'epoch': 2.0}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 8.54340833444339e-05, 'epoch': 2.0892687559354224}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 7.649746374773579e-05, 'epoch': 2.184235517568851}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 6.756084415103768e-05, 'epoch': 2.2792022792022792}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 5.862422455433957e-05, 'epoch': 2.3741690408357075}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 4.968760495764146e-05, 'epoch': 2.4691358024691357}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 4.075098536094336e-05, 'epoch': 2.564102564102564}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 3.181436576424526e-05, 'epoch': 2.6590693257359925}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 2.287774616754715e-05, 'epoch': 2.7540360873694207}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 1.3941126570849044e-05, 'epoch': 2.849002849002849}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 5.00450697415094e-06, 'epoch': 2.943969610636277}
+{'eval_loss': nan, 'eval_accuracy': 0.4908256880733945, 'eval_runtime': 1.0096, 'eval_samples_per_second': 863.711, 'eval_steps_per_second': 13.867, 'epoch': 3.0}
+{'train_runtime': 760.7262, 'train_samples_per_second': 265.598, 'train_steps_per_second': 4.153, 'train_loss': 1.5402394838420654e+19, 'epoch': 3.0}
+{'eval_loss': nan, 'eval_accuracy': 0.4908256880733945, 'eval_runtime': 0.9911, 'eval_samples_per_second': 879.856, 'eval_steps_per_second': 14.126, 'epoch': 3.0}
+[Trial 0] Final eval_accuracy: 0.4908
+wandb: 
+wandb: Run history:
+wandb:           eval/accuracy ▁▁▁▁
+wandb:            eval/runtime ▃▃█▁
+wandb: eval/samples_per_second ▆▆▁█
+wandb:   eval/steps_per_second ▆▆▁█
+wandb:     final_eval_accuracy ▁
+wandb:             train/epoch ▁▁▁▂▂▂▂▃▃▃▃▃▄▄▄▄▄▅▅▅▅▆▆▆▆▆▆▇▇▇▇█████
+wandb:       train/global_step ▁▁▁▂▂▂▂▃▃▃▃▃▄▄▄▄▄▅▅▅▅▆▆▆▆▆▆▇▇▇▇██████
+wandb:         train/grad_norm ▁▁▁█▁▁▁▁▁                      
+wandb:     train/learning_rate ▅███▇▇▇▇▆▆▆▆▅▅▅▅▄▄▄▄▃▃▃▃▂▂▂▂▁▁▁
+wandb:              train/loss ▁▁▁▁▁▁▁▁▁█▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                      +1 ...
+wandb: 
+wandb: Run summary:
+wandb:           eval/accuracy 0.49083
+wandb:               eval/loss nan
+wandb:            eval/runtime 0.9911
+wandb: eval/samples_per_second 879.856
+wandb:   eval/steps_per_second 14.126
+wandb:     final_eval_accuracy 0.49083
+wandb:              total_flos 2804403256570368.0
+wandb:             train/epoch 3
+wandb:       train/global_step 3159
+wandb:         train/grad_norm nan
+wandb:                      +6 ...
+wandb: 
+wandb: You can sync this run to the cloud by running:
+wandb: wandb sync /data/LRTT_transformer/experiments/wandb/offline-run-20260213_114139-g6ajzw6z
+wandb: Find logs at: ./wandb/offline-run-20260213_114139-g6ajzw6z/logs
+                                                                                                                                                                                                                                                      [I 2026-02-13 11:54:58,784] Trial 0 finished with value: 0.4908256880733945 and parameters: {'qkv_lr': 0.0002680092217049762, 'lora_alpha': 3.1933711264457894}. Best is trial 0 with value: 0.4908256880733945.
+  0%|                                                                                                                                                                                                                          | 0/30 [13:19<?, ?it/s]Best trial: 0. Best value: 0.490826:   0%|                                                                                                                                                                                     | 0/30 [13:19<?, ?it/s]Best trial: 0. Best value: 0.490826:   3%|█████▋                                                                                                                                                                    | 1/30 [13:19<6:26:17, 799.21s/it]
+[Trial 1] mode=sixt1c_lora, lora_alpha=0.316, classifier_lr=1.000, qkv_lr=0.004574, rank=8
+wandb: Tracking run with wandb version 0.24.1
+wandb: W&B syncing is set to `offline` in this directory. Run `wandb online` or set WANDB_MODE=online to enable cloud syncing.
+wandb: Run data is saved locally in /data/LRTT_transformer/experiments/wandb/offline-run-20260213_115458-2671cbxx
+Some weights of MobileBertForSequenceClassification were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+================================================================================
+LRTT-LORA MODEL CONVERSION
+================================================================================
+
+[1/4] Identifying target layers (target_modules=['query', 'key', 'value', 'classifier'])...
+Found 72 target layers to convert:
+  - mobilebert.encoder.layer.0.attention.self.query
+  - mobilebert.encoder.layer.0.attention.self.key
+  - mobilebert.encoder.layer.0.attention.self.value
+  - mobilebert.encoder.layer.1.attention.self.query
+  - mobilebert.encoder.layer.1.attention.self.key
+  ... and 67 more
+
+[2/4] Converting 72 layers to LRTT-LoRA...
+✓ All target layers converted to LRTT AnalogLinear
+
+[3/4] Setting trainability...
+✓ Trainability set:
+  - Trainable params: 11,034
+  - Frozen params: 22,231,808
+  - Trainable fraction: 0.05%
+
+[4/4] Conversion summary:
+  - Architecture: Unified LRTT tiles (A, B, C sub-tiles)
+  - Forward: y = C·x + α·A·(B·x)
+  - Trainable: A, B tiles (low-rank adapters)
+  - Frozen: C tile (pretrained weights)
+  - LoRA rank: 8
+  - LoRA alpha: 0.3156076741538397
+================================================================================
+  Optimizer config: classifier_lr=1.0, qkv_lr=0.004573749495394281
+  LoRA tiles: 288, Other params: 74
+{'loss': 48095.24, 'grad_norm': 52.46624755859375, 'learning_rate': 0.0029132162391046377, 'epoch': 0.0949667616334283}
+{'loss': 5785.4125, 'grad_norm': 54.14067077636719, 'learning_rate': 0.004508170559648381, 'epoch': 0.1899335232668566}
+{'loss': 1.0016508848530342e+20, 'grad_norm': nan, 'learning_rate': 0.00435566140675094, 'epoch': 0.2849002849002849}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.004203152253853498, 'epoch': 0.3798670465337132}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.004050643100956056, 'epoch': 0.4748338081671415}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.003898133948058614, 'epoch': 0.5698005698005698}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.003745624795161172, 'epoch': 0.6647673314339981}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.00359311564226373, 'epoch': 0.7597340930674265}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.0034406064893662885, 'epoch': 0.8547008547008547}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.0032880973364688465, 'epoch': 0.949667616334283}
+{'eval_loss': nan, 'eval_accuracy': 0.4908256880733945, 'eval_runtime': 1.0007, 'eval_samples_per_second': 871.383, 'eval_steps_per_second': 13.99, 'epoch': 1.0}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.0031355881835714045, 'epoch': 1.0446343779677112}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.002983079030673963, 'epoch': 1.1396011396011396}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.002830569877776521, 'epoch': 1.2345679012345678}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.002678060724879079, 'epoch': 1.3295346628679963}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.0025255515719816374, 'epoch': 1.4245014245014245}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.002373042419084195, 'epoch': 1.5194681861348527}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.0022205332661867534, 'epoch': 1.6144349477682811}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.0020680241132893114, 'epoch': 1.7094017094017095}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.0019155149603918699, 'epoch': 1.8043684710351378}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.0017630058074944279, 'epoch': 1.899335232668566}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.0016104966545969859, 'epoch': 1.9943019943019942}
+{'eval_loss': nan, 'eval_accuracy': 0.4908256880733945, 'eval_runtime': 1.0209, 'eval_samples_per_second': 854.115, 'eval_steps_per_second': 13.713, 'epoch': 2.0}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.0014579875016995443, 'epoch': 2.0892687559354224}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.0013054783488021023, 'epoch': 2.184235517568851}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.0011529691959046603, 'epoch': 2.2792022792022792}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.0010004600430072186, 'epoch': 2.3741690408357075}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.0008479508901097767, 'epoch': 2.4691358024691357}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.0006954417372123349, 'epoch': 2.564102564102564}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.000542932584314893, 'epoch': 2.6590693257359925}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.0003904234314174511, 'epoch': 2.7540360873694207}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.0002379142785200093, 'epoch': 2.849002849002849}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 8.540512562256744e-05, 'epoch': 2.943969610636277}
+{'eval_loss': nan, 'eval_accuracy': 0.4908256880733945, 'eval_runtime': 0.9981, 'eval_samples_per_second': 873.634, 'eval_steps_per_second': 14.026, 'epoch': 3.0}
+{'train_runtime': 794.5792, 'train_samples_per_second': 254.282, 'train_steps_per_second': 3.976, 'train_loss': 3.170784694058356e+18, 'epoch': 3.0}
+{'eval_loss': nan, 'eval_accuracy': 0.4908256880733945, 'eval_runtime': 1.0345, 'eval_samples_per_second': 842.924, 'eval_steps_per_second': 13.533, 'epoch': 3.0}
+[Trial 1] Final eval_accuracy: 0.4908
+wandb: 
+wandb: Run history:
+wandb:           eval/accuracy ▁▁▁▁
+wandb:            eval/runtime ▂▅▁█
+wandb: eval/samples_per_second ▇▄█▁
+wandb:   eval/steps_per_second ▇▄█▁
+wandb:     final_eval_accuracy ▁
+wandb:             train/epoch ▁▁▁▂▂▂▂▃▃▃▃▃▄▄▄▄▄▅▅▅▅▆▆▆▆▆▆▇▇▇▇█████
+wandb:       train/global_step ▁▁▁▂▂▂▂▃▃▃▃▃▄▄▄▄▄▅▅▅▅▆▆▆▆▆▆▇▇▇▇██████
+wandb:         train/grad_norm ▁█                             
+wandb:     train/learning_rate ▅███▇▇▇▇▆▆▆▆▅▅▅▅▄▄▄▄▃▃▃▃▂▂▂▂▁▁▁
+wandb:              train/loss ▁▁█▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                      +1 ...
+wandb: 
+wandb: Run summary:
+wandb:           eval/accuracy 0.49083
+wandb:               eval/loss nan
+wandb:            eval/runtime 1.0345
+wandb: eval/samples_per_second 842.924
+wandb:   eval/steps_per_second 13.533
+wandb:     final_eval_accuracy 0.49083
+wandb:              total_flos 2804403256570368.0
+wandb:             train/epoch 3
+wandb:       train/global_step 3159
+wandb:         train/grad_norm nan
+wandb:                      +6 ...
+wandb: 
+wandb: You can sync this run to the cloud by running:
+wandb: wandb sync /data/LRTT_transformer/experiments/wandb/offline-run-20260213_115458-2671cbxx
+wandb: Find logs at: ./wandb/offline-run-20260213_115458-2671cbxx/logs
+                                                                                                                                                                                                                                                      [I 2026-02-13 12:08:46,930] Trial 1 finished with value: 0.4908256880733945 and parameters: {'qkv_lr': 0.004573749495394281, 'lora_alpha': 0.3156076741538397}. Best is trial 0 with value: 0.4908256880733945.
+Best trial: 0. Best value: 0.490826:   3%|█████▋                                                                                                                                                                    | 1/30 [27:07<6:26:17, 799.21s/it]Best trial: 0. Best value: 0.490826:   3%|█████▋                                                                                                                                                                    | 1/30 [27:07<6:26:17, 799.21s/it]Best trial: 0. Best value: 0.490826:   7%|███████████▎                                                                                                                                                              | 2/30 [27:07<6:20:54, 816.23s/it]
+[Trial 2] mode=sixt1c_lora, lora_alpha=29.748, classifier_lr=1.000, qkv_lr=0.000347, rank=8
+wandb: Tracking run with wandb version 0.24.1
+wandb: W&B syncing is set to `offline` in this directory. Run `wandb online` or set WANDB_MODE=online to enable cloud syncing.
+wandb: Run data is saved locally in /data/LRTT_transformer/experiments/wandb/offline-run-20260213_120846-st2eyeuh
+Some weights of MobileBertForSequenceClassification were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+================================================================================
+LRTT-LORA MODEL CONVERSION
+================================================================================
+
+[1/4] Identifying target layers (target_modules=['query', 'key', 'value', 'classifier'])...
+Found 72 target layers to convert:
+  - mobilebert.encoder.layer.0.attention.self.query
+  - mobilebert.encoder.layer.0.attention.self.key
+  - mobilebert.encoder.layer.0.attention.self.value
+  - mobilebert.encoder.layer.1.attention.self.query
+  - mobilebert.encoder.layer.1.attention.self.key
+  ... and 67 more
+
+[2/4] Converting 72 layers to LRTT-LoRA...
+✓ All target layers converted to LRTT AnalogLinear
+
+[3/4] Setting trainability...
+✓ Trainability set:
+  - Trainable params: 11,034
+  - Frozen params: 22,231,808
+  - Trainable fraction: 0.05%
+
+[4/4] Conversion summary:
+  - Architecture: Unified LRTT tiles (A, B, C sub-tiles)
+  - Forward: y = C·x + α·A·(B·x)
+  - Trainable: A, B tiles (low-rank adapters)
+  - Frozen: C tile (pretrained weights)
+  - LoRA rank: 8
+  - LoRA alpha: 29.748002198508246
+================================================================================
+  Optimizer config: classifier_lr=1.0, qkv_lr=0.00034744456450574605
+  LoRA tiles: 288, Other params: 74
+{'loss': 2575194530198323.0, 'grad_norm': nan, 'learning_rate': 0.0002213022703858255, 'epoch': 0.0949667616334283}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.0003424628651813889, 'epoch': 0.1899335232668566}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.00033087751791544207, 'epoch': 0.2849002849002849}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.00031929217064949523, 'epoch': 0.3798670465337132}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.00030770682338354834, 'epoch': 0.4748338081671415}
+{'loss': 0.0, 'grad_norm': nan, 'learning_rate': 0.0002961214761176015, 'epoch': 0.5698005698005698}

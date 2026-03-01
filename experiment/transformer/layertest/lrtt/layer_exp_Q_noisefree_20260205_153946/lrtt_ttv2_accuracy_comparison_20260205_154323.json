@@ -1,0 +1,52 @@
+{
+  "ttv2": {
+    "accuracy": 0.7557,
+    "source": "wandb tikitaka-v2-refined-sweep trial_37",
+    "config": {
+      "target_modules": [
+        "query"
+      ],
+      "transfer_every": 82,
+      "transfer_lr": 3.72,
+      "learning_rate": 0.000967,
+      "fast_lr": 0.847,
+      "in_chop_prob": 0.037
+    }
+  },
+  "lrtt": {
+    "accuracy": 0.6399082568807339,
+    "params_type": "Bayesian-optimized",
+    "config": {
+      "learning_rate": 0.00157,
+      "transfer_lr": 0.0248,
+      "transfer_every": 100,
+      "rank": 8,
+      "num_epochs": 1,
+      "warmup_steps": 0,
+      "target_modules": [
+        "query"
+      ],
+      "noise_free": true
+    },
+    "eval_results": {
+      "eval_loss": 0.728716254234314,
+      "eval_accuracy": 0.6399082568807339,
+      "eval_runtime": 0.7587,
+      "eval_samples_per_second": 1149.375,
+      "eval_steps_per_second": 36.907,
+      "epoch": 1.0
+    }
+  },
+  "comparison": {
+    "accuracy_difference": -0.1157917431192661,
+    "relative_to_ttv2": 0.8467755152583484,
+    "lrtt_better": false
+  },
+  "metadata": {
+    "num_epochs": 1,
+    "warmup_steps": 0,
+    "use_ttv2_like_params": false,
+    "noise_free": true,
+    "timestamp": "2026-02-05T15:43:23.320081"
+  }
+}

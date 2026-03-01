@@ -1,0 +1,176 @@
+1. softbound (default) --> 모든 noise 0으로 rank (1,4,8,16,32,64), TE (1,10,50,100,500,1000) 탐색 (VIT면 TE상황이 달라질수도 있음.)
+2. Decay (life time) : 6T1C 기본(46500), lifetime 10^(1,2,3,4,6t1c,5), Hard reset B 
+3. AF (up_down), noise_level (C2C, D2C) --> 최적의 rank&TE 조건에서 rank 별 AF (1.0, 2.0,4.0) 이 경우에는 noise_level =0,0.3
+4. 
+
+   │ torch        │ 2.3.1+cu121 │                                                                                                                                                                                                                     
+    ├──────────────┼─────────────┤                                                                                                                                                                                                                     
+    │ transformers │ 4.44.0      │                                                                                                                                                                                                                     
+    ├──────────────┼─────────────┤                                                                                                                                                                                                                     
+    │ safetensors  │ 0.7.0       │                                                                                                                                                                                                                     
+    ├──────────────┼─────────────┤                                                                                                                                                                                                                     
+    │ CUDA         │ 12.1        │       
+
+
+
+
+VIT (40epoch, 1실험 4시간반)
+optimizer 결정-> 10번? (Analog SGD)
+
+4x4 ()
+6x6 x 2 : 72 config -> 4.5 x72 (300h/4 : 75h)
+decay [rank 1, 4~8, 16,32] --> 더적은랭크로도 high rank를능가하는실험이report 
+te : [1~1000] decay 1~10 잘된다. HBR 은 10~이상영역에서 잘동작한다 (lora)
+rank 1, te 1, -->  lr, transfer_lr, (lr/100~lr/1000), lietime [10^2~10^5]
+liftime 10 ->te 1, 10^5 -> te 1000 (sixt1c 가변적이긴하지만, 46000-> te? 6x6)
+rank 8 -> lifetime 효과를 te 6개 -> order별로보여주던가. 단일 plot
+
+
+lifetime 실험
+rnak 8고정 , te[10,1000],
+baysian -> rank 32 () tlr, lr -> tr_lr/
+
+reinit ? -> Decay(고정), HRB()
+Lora  -->lorastyle
+Tikitka  ->>tikitaka(decay)
+LRTT  --> tikitaka(decay), HRB(reset, lora style)
+
+sweep 6x6 (1 config)
+
+
+
+
+
+
+Tikitaka (transfer)
+1000step  --> 100 transfer
+100*delta C norm
+
+1000 step -> 10 transfer
+Rank 8, TE 100, --> transfer_lr 0.01
+10*delta C norm ~ 100*delta C norm
+
+
+python 3.10 <<
+
+
+❯ Python 환경                                                                                                                                                                                                                                                                                                                                                        
+    - Python: 3.10.19                                                                                                                                                                                                                                                                                                                                                                                                                                                   
+  - PyTorch: 2.3.1+cu121
+  - CUDA: 12.1 (사용 가능 ✅)
+  - torchvision: 0.18.1
+
+  Transformer & NLP
+
+  - transformers: 4.47.1 🤗
+  - datasets: 4.5.0
+
+LRTT_trasformer 디렉토리
+SQUAD / Glue task에 대해서  
+Q,K,V,QKV only에 대해서 rank 8로 sweep 은 해봄 --> 최적파라미터 조합은 알아냈음 ~ 73 accuracy ~ 15epoch, batch 32, cosine 
+(warmstep 500-->lr 0부터 lr peak 올리는데, lr e-4 부터 업데이트(dw_min) 올라감.) warmstep을 없애는게맞다.   
+learning rate가 너무작으면 A,B가 update가 안됨 --> loss폭발함. (학습이 안되니까 loss가 폭발해서 oom이 나버림 제생각)
+// 제상황.
+
+dynamic te scheduler
+--> 구현해놓음. 이걸로 다시 sweep을할건데, 제가 찾은 최적파라미터에서 시작해서 10번정도 탐색하면될듯?
+--> rank 1,4, Glue task에대해서도하기.
+Layer wise finetuning : Q,K,V,QKV, QKV+FFN, FFN
+QKV(1) , FFN (100), QKV(Lora), QKV+FFN(AIMC Lora) QKV(), FFN()
+optimal condition을 json파일에저장해뒀는데 이것도 찾아달라고 하면 찾아줌.   
+units_m_batch : false --> true (sample 단위 TE:32, sample :32번마다 transfer)  TE 200~2000사이 7~60
+TE (1 --> 10, 100)
+
+
+
+Exp 0 ) FFN, All layer 이분석이 먼저-SQUAD-> glue 보여줘야됨. (H200) + rank
+Exp 1 ) Layer scaliblity -> Moiblebert (layernorm-> learn_out_scale, 27M), Bert Base(50M~100M), Bert -large, Albert(10M)
+Exp 2 ) drift -> QKV or all --> ckpt로 가져와서 drift 1h~10y까지 finetuning 실행. (SQUAD)
+Exp 3 ) Noise senstivity --> +IO_noise, set -> onehot, C tile asymmetry, noise (SQUAD)
+
+
+
+Exp 1 ) rank 8 QKV (fix) Analog lora, AIMC lora, Digital Lora, Tikitaka, LRTT (SQUAD+Glue) MNLI, QQP 진짜커서 1epoch 하루걸림.(rank4,8 잘나오는거하는거)
+--> relative accuarcy (digital lora, tiktiaka 90%...~~)
+--> suple table (accuracy)
+
+
+
+lora_on_analog_hardware
+
+
+Exp 2 ) Layerwise Analog lora, AIMC lora, Digital Lora, Tikitaka, LRTT (SQUAD)
+LRTT--> Qkv -> QKV+class(analog) -> QKV+emb -> qk+emb+class SQUAD
+
+Tikitaka baseline(50%)  -> Q(class) -> K -> V -> class+QKV (84%)
+LRTT baseline(50%) -> Q(class)-> K-> V-> class+QKV (84%)
+AIMC Lora    -> Q(class)-> K-> V-> class+QKV (84%)
+sixt1c Lora  -> Q(class)-> K-> V-> class+QKV (84%)
+
+
+Tikitaka --> QKV --> QKV+class(analog)
+Analog-Full(c tile) --> QKV --> QKV+class(analog)
+
+six1c lora + LRTT (accuracy ^) 
+
+digital 512x2 
+Analog 512x2 -->digital 512x8+8x2
+
+Digtal-Full rank-> QKV -> cl -> no
+Lora
+
+Exp 3 ) rank SQUAD (1,4,8)
+EXp 3 ) Drift
+Exp 4 ) Noise estimation
+EXP 5 ) Model Scalability (BERT-base, Bert- large)
+
+LRTT_transformer 디렉토리에있고.
+sweep, lrtt, SQUAD, rank8, QKV keyword로 claude에 찾아달라고하면나옴.
+transfer_diagnostic <<- dynamic TE 구현물어보면 있음.  
+lora_on_analog_hardware <<-- 
+
+
+1. 만약classifier 진짜 --> 65%(최대) 
+
+--> LRTT의성능을 어떻게서든 올려야하는거고
+--> tikitaka도 같이 올라와야하는것.  .   
+
+digital vs analog vs lora vs tikitaka vs LRTT
+
+digital ? --> pretraiend training (full training)
+Tikitaka --> quantization & noise (idealized 되야한다.)
+LRTT -> 71% 나온조건봤음. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

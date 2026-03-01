@@ -1,0 +1,9 @@
+{
+  "best_f1": 47.96753443934266,
+  "best_params": {
+    "learning_rate": 1.0,
+    "lora_alpha": 0.016418181914681335,
+    "lrtt_lr_multiplier": 0.5232718495667636,
+    "min_lr_rate": 0.0
+  }
+}

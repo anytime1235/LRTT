@@ -1,0 +1,1956 @@
+{
+  "conditions": {
+    "BASELINE": {
+      "condition": "BASELINE",
+      "accuracy": 0.5240825688073395,
+      "eval_loss": 1.8708408432347434,
+      "final_train_loss": 6.121272349357605,
+      "train_loss_mean": 4660.9172004706925,
+      "train_loss_std": 94743.97602604066,
+      "loss_trajectory_std": 29084.051448361988,
+      "tail_loss_std": 5.614454952139731,
+      "train_time_sec": 364.2173364162445,
+      "total_steps": 2105,
+      "lrtt_stats": {
+        "mobilebert.encoder.layer.0.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.0.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.0.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.1.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.1.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.1.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.2.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.2.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.2.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.3.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.3.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.3.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.4.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.4.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.4.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.5.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.5.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.5.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.6.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.6.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.6.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.7.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.7.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.7.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.8.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.8.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.8.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.9.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.9.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.9.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.10.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.10.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.10.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.11.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.11.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.11.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.12.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.12.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.12.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.13.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.13.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.13.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.14.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.14.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.14.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.15.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.15.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.15.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.16.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.16.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.16.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.17.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.17.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.17.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.18.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.18.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.18.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.19.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.19.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.19.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.20.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.20.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.20.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.21.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.21.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.21.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.22.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.22.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.22.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.23.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.23.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        },
+        "mobilebert.encoder.layer.23.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104
+        }
+      }
+    },
+    "AUTO_SCALE_ONLY": {
+      "condition": "AUTO_SCALE_ONLY",
+      "accuracy": 0.5172018348623854,
+      "eval_loss": 740.8544921875,
+      "final_train_loss": 1483.4547744750976,
+      "train_loss_mean": 39185.05845820513,
+      "train_loss_std": 163668.8450434186,
+      "loss_trajectory_std": 115854.15547765286,
+      "tail_loss_std": 1155.397936583971,
+      "train_time_sec": 934.0976452827454,
+      "total_steps": 2105,
+      "lrtt_stats": {
+        "mobilebert.encoder.layer.0.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 4.3767266273498535,
+          "ema_m_d": 0.45561483502388,
+          "ema_product": 1.9941015802646263
+        },
+        "mobilebert.encoder.layer.0.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 4.3767266273498535,
+          "ema_m_d": 1.143373966217041,
+          "ema_product": 5.004235282960735
+        },
+        "mobilebert.encoder.layer.0.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 9.340743064880371,
+          "ema_m_d": 2.3853485584259033,
+          "ema_product": 22.280928004439147
+        },
+        "mobilebert.encoder.layer.1.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.016441822052002,
+          "ema_m_d": 0.4495141804218292,
+          "ema_product": 2.7044759146953226
+        },
+        "mobilebert.encoder.layer.1.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.016441822052002,
+          "ema_m_d": 1.0442718267440796,
+          "ema_product": 6.282800692013723
+        },
+        "mobilebert.encoder.layer.1.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 22.294570922851562,
+          "ema_m_d": 0.3771727383136749,
+          "ema_product": 8.408904364500358
+        },
+        "mobilebert.encoder.layer.2.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.820509433746338,
+          "ema_m_d": 0.5986132025718689,
+          "ema_product": 4.082846995306539
+        },
+        "mobilebert.encoder.layer.2.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.820509433746338,
+          "ema_m_d": 1.6103978157043457,
+          "ema_product": 10.983733494095986
+        },
+        "mobilebert.encoder.layer.2.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 26.522048950195312,
+          "ema_m_d": 0.4967436194419861,
+          "ema_product": 13.174658590537547
+        },
+        "mobilebert.encoder.layer.3.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 5.719093322753906,
+          "ema_m_d": 0.6608843803405762,
+          "ema_product": 3.779659446718142
+        },
+        "mobilebert.encoder.layer.3.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 5.719093322753906,
+          "ema_m_d": 1.224679708480835,
+          "ema_product": 7.004057543284944
+        },
+        "mobilebert.encoder.layer.3.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 35.133365631103516,
+          "ema_m_d": 0.6767940521240234,
+          "ema_product": 23.778052890229446
+        },
+        "mobilebert.encoder.layer.4.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 8.730401039123535,
+          "ema_m_d": 0.9496471881866455,
+          "ema_product": 8.290800798545433
+        },
+        "mobilebert.encoder.layer.4.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 8.730401039123535,
+          "ema_m_d": 1.6979082822799683,
+          "ema_product": 14.823420231953492
+        },
+        "mobilebert.encoder.layer.4.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 39.29097366333008,
+          "ema_m_d": 0.414654016494751,
+          "ema_product": 16.292160041489296
+        },
+        "mobilebert.encoder.layer.5.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 8.470876693725586,
+          "ema_m_d": 1.7175747156143188,
+          "ema_product": 14.549363628229685
+        },
+        "mobilebert.encoder.layer.5.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 8.470876693725586,
+          "ema_m_d": 2.6133153438568115,
+          "ema_product": 22.13707203963213
+        },
+        "mobilebert.encoder.layer.5.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 51.982120513916016,
+          "ema_m_d": 0.8192572593688965,
+          "ema_product": 42.58672958841453
+        },
+        "mobilebert.encoder.layer.6.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 7.454177379608154,
+          "ema_m_d": 2.084869384765625,
+          "ema_product": 15.540986207357491
+        },
+        "mobilebert.encoder.layer.6.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 7.454177379608154,
+          "ema_m_d": 4.20426082611084,
+          "ema_product": 31.339305947968114
+        },
+        "mobilebert.encoder.layer.6.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 49.55332946777344,
+          "ema_m_d": 2.1318233013153076,
+          "ema_product": 105.63894241715388
+        },
+        "mobilebert.encoder.layer.7.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 8.149520874023438,
+          "ema_m_d": 1.8618032932281494,
+          "ema_product": 15.172804801488383
+        },
+        "mobilebert.encoder.layer.7.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 8.149520874023438,
+          "ema_m_d": 9.941971778869629,
+          "ema_product": 81.02230654084997
+        },
+        "mobilebert.encoder.layer.7.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 55.87324142456055,
+          "ema_m_d": 0.6574627757072449,
+          "ema_product": 36.734576394752594
+        },
+        "mobilebert.encoder.layer.8.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 7.723531246185303,
+          "ema_m_d": 1.9732416868209839,
+          "ema_product": 15.240393824437263
+        },
+        "mobilebert.encoder.layer.8.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 7.723531246185303,
+          "ema_m_d": 5.227714538574219,
+          "ema_product": 40.37641658481516
+        },
+        "mobilebert.encoder.layer.8.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 54.00615310668945,
+          "ema_m_d": 0.713079035282135,
+          "ema_product": 38.510655556617394
+        },
+        "mobilebert.encoder.layer.9.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 5.872891426086426,
+          "ema_m_d": 1.1269267797470093,
+          "ema_product": 6.618318622603397
+        },
+        "mobilebert.encoder.layer.9.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 5.872891426086426,
+          "ema_m_d": 2.02636981010437,
+          "ema_product": 11.900649883842334
+        },
+        "mobilebert.encoder.layer.9.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 54.4758415222168,
+          "ema_m_d": 0.5613300204277039,
+          "ema_product": 30.578925234482313
+        },
+        "mobilebert.encoder.layer.10.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 8.561717987060547,
+          "ema_m_d": 2.223356246948242,
+          "ema_product": 19.035749171140196
+        },
+        "mobilebert.encoder.layer.10.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 8.561717987060547,
+          "ema_m_d": 4.894564628601074,
+          "ema_product": 41.90588201952414
+        },
+        "mobilebert.encoder.layer.10.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 42.0703239440918,
+          "ema_m_d": 0.7887299656867981,
+          "ema_product": 33.182125160856
+        },
+        "mobilebert.encoder.layer.11.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 7.082481861114502,
+          "ema_m_d": 4.215923309326172,
+          "ema_product": 29.859200366152436
+        },
+        "mobilebert.encoder.layer.11.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 7.082481861114502,
+          "ema_m_d": 5.8237996101379395,
+          "ema_product": 41.246955101567664
+        },
+        "mobilebert.encoder.layer.11.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 43.50865936279297,
+          "ema_m_d": 2.380794048309326,
+          "ema_product": 103.58515726085534
+        },
+        "mobilebert.encoder.layer.12.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 4.519964218139648,
+          "ema_m_d": 0.6789213418960571,
+          "ema_product": 3.068700172301533
+        },
+        "mobilebert.encoder.layer.12.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 4.519964218139648,
+          "ema_m_d": 2.010880470275879,
+          "ema_product": 9.089107772602802
+        },
+        "mobilebert.encoder.layer.12.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 37.43967056274414,
+          "ema_m_d": 1.079744815826416,
+          "ema_product": 40.42529019637186
+        },
+        "mobilebert.encoder.layer.13.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.072720527648926,
+          "ema_m_d": 3.2531251907348633,
+          "ema_product": 19.75532012478743
+        },
+        "mobilebert.encoder.layer.13.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.072720527648926,
+          "ema_m_d": 5.2572808265686035,
+          "ema_product": 31.92599719511827
+        },
+        "mobilebert.encoder.layer.13.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 31.096092224121094,
+          "ema_m_d": 2.3778514862060547,
+          "ema_product": 73.94188911032688
+        },
+        "mobilebert.encoder.layer.14.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 5.987883567810059,
+          "ema_m_d": 3.6767444610595703,
+          "ema_product": 22.01591774141525
+        },
+        "mobilebert.encoder.layer.14.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 5.987883567810059,
+          "ema_m_d": 6.233627796173096,
+          "ema_product": 37.32623744854891
+        },
+        "mobilebert.encoder.layer.14.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 32.9228401184082,
+          "ema_m_d": 1.201533317565918,
+          "ema_product": 39.55788931116331
+        },
+        "mobilebert.encoder.layer.15.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.396057605743408,
+          "ema_m_d": 1.7527039051055908,
+          "ema_product": 11.210395142866787
+        },
+        "mobilebert.encoder.layer.15.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.396057605743408,
+          "ema_m_d": 4.7885823249816895,
+          "ema_product": 30.628048400427588
+        },
+        "mobilebert.encoder.layer.15.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 30.30634117126465,
+          "ema_m_d": 1.652978777885437,
+          "ema_product": 50.09573879145614
+        },
+        "mobilebert.encoder.layer.16.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.997739791870117,
+          "ema_m_d": 1.1175687313079834,
+          "ema_product": 7.820455181223679
+        },
+        "mobilebert.encoder.layer.16.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.997739791870117,
+          "ema_m_d": 2.3394775390625,
+          "ema_product": 16.371055067284033
+        },
+        "mobilebert.encoder.layer.16.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 33.011322021484375,
+          "ema_m_d": 0.8243634104728699,
+          "ema_product": 27.213326005849012
+        },
+        "mobilebert.encoder.layer.17.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 5.515107154846191,
+          "ema_m_d": 1.436782717704773,
+          "ema_product": 7.924010646372949
+        },
+        "mobilebert.encoder.layer.17.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 5.515107154846191,
+          "ema_m_d": 2.394219398498535,
+          "ema_product": 13.204376534930816
+        },
+        "mobilebert.encoder.layer.17.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 33.26498031616211,
+          "ema_m_d": 0.7648817300796509,
+          "ema_product": 25.443775695291606
+        },
+        "mobilebert.encoder.layer.18.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.630942344665527,
+          "ema_m_d": 1.0380369424819946,
+          "ema_product": 6.883163117230993
+        },
+        "mobilebert.encoder.layer.18.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.630942344665527,
+          "ema_m_d": 5.997675895690918,
+          "ema_product": 39.77024306631665
+        },
+        "mobilebert.encoder.layer.18.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 31.772294998168945,
+          "ema_m_d": 1.2315298318862915,
+          "ema_product": 39.12852911773666
+        },
+        "mobilebert.encoder.layer.19.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.273009777069092,
+          "ema_m_d": 0.9224157929420471,
+          "ema_product": 5.7863232876484005
+        },
+        "mobilebert.encoder.layer.19.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.273009777069092,
+          "ema_m_d": 2.4814975261688232,
+          "ema_product": 15.566458243429793
+        },
+        "mobilebert.encoder.layer.19.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 30.854019165039062,
+          "ema_m_d": 0.6504536271095276,
+          "ema_product": 20.069108676806536
+        },
+        "mobilebert.encoder.layer.20.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 7.734570026397705,
+          "ema_m_d": 0.825843870639801,
+          "ema_product": 6.387547248334869
+        },
+        "mobilebert.encoder.layer.20.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 7.734570026397705,
+          "ema_m_d": 1.5656853914260864,
+          "ema_product": 12.109903299292966
+        },
+        "mobilebert.encoder.layer.20.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 32.325958251953125,
+          "ema_m_d": 0.4761281907558441,
+          "ema_product": 15.39130001695139
+        },
+        "mobilebert.encoder.layer.21.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 7.065042495727539,
+          "ema_m_d": 3.956240653991699,
+          "ema_product": 27.951008343776266
+        },
+        "mobilebert.encoder.layer.21.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 7.065042495727539,
+          "ema_m_d": 5.141064643859863,
+          "ema_product": 36.3218401821523
+        },
+        "mobilebert.encoder.layer.21.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 31.151504516601562,
+          "ema_m_d": 1.0319513082504272,
+          "ema_product": 32.146835839876076
+        },
+        "mobilebert.encoder.layer.22.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.971946716308594,
+          "ema_m_d": 5.724510192871094,
+          "ema_product": 39.9109800416627
+        },
+        "mobilebert.encoder.layer.22.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.971946716308594,
+          "ema_m_d": 9.588422775268555,
+          "ema_product": 66.84997268261213
+        },
+        "mobilebert.encoder.layer.22.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 31.803621292114258,
+          "ema_m_d": 4.157201290130615,
+          "ema_product": 132.2140554664029
+        },
+        "mobilebert.encoder.layer.23.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 61.35150146484375,
+          "ema_m_d": 16.00333023071289,
+          "ema_product": 981.8283380919602
+        },
+        "mobilebert.encoder.layer.23.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 61.35150146484375,
+          "ema_m_d": 14.038867950439453,
+          "ema_product": 861.3056276261341
+        },
+        "mobilebert.encoder.layer.23.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 334.76904296875,
+          "ema_m_d": 0.1138823926448822,
+          "ema_product": 38.12429959671863
+        }
+      }
+    },
+    "TRANSFER_EMA_ONLY": {
+      "condition": "TRANSFER_EMA_ONLY",
+      "accuracy": 0.4908256880733945,
+      "eval_loss": 2.6389851527554646,
+      "final_train_loss": 2.9577366590499876,
+      "train_loss_mean": 4560.91460985605,
+      "train_loss_std": 93932.39586088943,
+      "loss_trajectory_std": 28863.592690719775,
+      "tail_loss_std": 4.028603941100968,
+      "train_time_sec": 371.2170674800873,
+      "total_steps": 2105,
+      "lrtt_stats": {
+        "mobilebert.encoder.layer.0.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.0314640998840332,
+          "transfer_ema_target_norm": 0.9691261053085327
+        },
+        "mobilebert.encoder.layer.0.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.0462751388549805,
+          "transfer_ema_target_norm": 0.9880121946334839
+        },
+        "mobilebert.encoder.layer.0.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.9921660423278809,
+          "transfer_ema_target_norm": 2.166944742202759
+        },
+        "mobilebert.encoder.layer.1.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.0761198997497559,
+          "transfer_ema_target_norm": 0.9311923384666443
+        },
+        "mobilebert.encoder.layer.1.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 0.9935411214828491,
+          "transfer_ema_target_norm": 1.0332810878753662
+        },
+        "mobilebert.encoder.layer.1.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.9736900329589844,
+          "transfer_ema_target_norm": 2.2973906993865967
+        },
+        "mobilebert.encoder.layer.2.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 0.957595705986023,
+          "transfer_ema_target_norm": 1.042927861213684
+        },
+        "mobilebert.encoder.layer.2.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.039553165435791,
+          "transfer_ema_target_norm": 0.9383614659309387
+        },
+        "mobilebert.encoder.layer.2.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 2.0221335887908936,
+          "transfer_ema_target_norm": 1.9742789268493652
+        },
+        "mobilebert.encoder.layer.3.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 0.9745911359786987,
+          "transfer_ema_target_norm": 1.025360107421875
+        },
+        "mobilebert.encoder.layer.3.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.0097180604934692,
+          "transfer_ema_target_norm": 0.9968501329421997
+        },
+        "mobilebert.encoder.layer.3.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.9674620628356934,
+          "transfer_ema_target_norm": 2.608644485473633
+        },
+        "mobilebert.encoder.layer.4.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.0124489068984985,
+          "transfer_ema_target_norm": 1.0085517168045044
+        },
+        "mobilebert.encoder.layer.4.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.0241565704345703,
+          "transfer_ema_target_norm": 1.066766381263733
+        },
+        "mobilebert.encoder.layer.4.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.8782066106796265,
+          "transfer_ema_target_norm": 2.0293068885803223
+        },
+        "mobilebert.encoder.layer.5.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.1334518194198608,
+          "transfer_ema_target_norm": 1.3519904613494873
+        },
+        "mobilebert.encoder.layer.5.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.1901423931121826,
+          "transfer_ema_target_norm": 1.3259453773498535
+        },
+        "mobilebert.encoder.layer.5.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 2.5239932537078857,
+          "transfer_ema_target_norm": 6.881636142730713
+        },
+        "mobilebert.encoder.layer.6.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.2844237089157104,
+          "transfer_ema_target_norm": 2.6243631839752197
+        },
+        "mobilebert.encoder.layer.6.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.19705331325531,
+          "transfer_ema_target_norm": 1.5231934785842896
+        },
+        "mobilebert.encoder.layer.6.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 2.1833560466766357,
+          "transfer_ema_target_norm": 3.6794607639312744
+        },
+        "mobilebert.encoder.layer.7.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.1186267137527466,
+          "transfer_ema_target_norm": 1.1801096200942993
+        },
+        "mobilebert.encoder.layer.7.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.063485860824585,
+          "transfer_ema_target_norm": 1.1921679973602295
+        },
+        "mobilebert.encoder.layer.7.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 2.3328659534454346,
+          "transfer_ema_target_norm": 5.932283878326416
+        },
+        "mobilebert.encoder.layer.8.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.197118878364563,
+          "transfer_ema_target_norm": 1.4594262838363647
+        },
+        "mobilebert.encoder.layer.8.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.1137629747390747,
+          "transfer_ema_target_norm": 1.0989333391189575
+        },
+        "mobilebert.encoder.layer.8.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 2.2644753456115723,
+          "transfer_ema_target_norm": 8.232402801513672
+        },
+        "mobilebert.encoder.layer.9.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.345414400100708,
+          "transfer_ema_target_norm": 1.7299972772598267
+        },
+        "mobilebert.encoder.layer.9.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.2146347761154175,
+          "transfer_ema_target_norm": 1.5898221731185913
+        },
+        "mobilebert.encoder.layer.9.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 3.1931521892547607,
+          "transfer_ema_target_norm": 28.998611450195312
+        },
+        "mobilebert.encoder.layer.10.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 0.9671328663825989,
+          "transfer_ema_target_norm": 1.0588759183883667
+        },
+        "mobilebert.encoder.layer.10.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.003147006034851,
+          "transfer_ema_target_norm": 1.0216251611709595
+        },
+        "mobilebert.encoder.layer.10.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 2.5404138565063477,
+          "transfer_ema_target_norm": 11.532849311828613
+        },
+        "mobilebert.encoder.layer.11.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 2.541555166244507,
+          "transfer_ema_target_norm": 15.572802543640137
+        },
+        "mobilebert.encoder.layer.11.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 3.1400766372680664,
+          "transfer_ema_target_norm": 23.799537658691406
+        },
+        "mobilebert.encoder.layer.11.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 3.435732364654541,
+          "transfer_ema_target_norm": 28.281387329101562
+        },
+        "mobilebert.encoder.layer.12.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.1354987621307373,
+          "transfer_ema_target_norm": 1.5346461534500122
+        },
+        "mobilebert.encoder.layer.12.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.2321785688400269,
+          "transfer_ema_target_norm": 1.6623625755310059
+        },
+        "mobilebert.encoder.layer.12.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 3.192896842956543,
+          "transfer_ema_target_norm": 25.234743118286133
+        },
+        "mobilebert.encoder.layer.13.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.1345893144607544,
+          "transfer_ema_target_norm": 1.643310785293579
+        },
+        "mobilebert.encoder.layer.13.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.1387914419174194,
+          "transfer_ema_target_norm": 1.250117540359497
+        },
+        "mobilebert.encoder.layer.13.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 3.3457953929901123,
+          "transfer_ema_target_norm": 24.67499351501465
+        },
+        "mobilebert.encoder.layer.14.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 2.2825536727905273,
+          "transfer_ema_target_norm": 14.7991943359375
+        },
+        "mobilebert.encoder.layer.14.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.423051118850708,
+          "transfer_ema_target_norm": 3.034179210662842
+        },
+        "mobilebert.encoder.layer.14.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 2.92417573928833,
+          "transfer_ema_target_norm": 12.552135467529297
+        },
+        "mobilebert.encoder.layer.15.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.0396097898483276,
+          "transfer_ema_target_norm": 1.0715025663375854
+        },
+        "mobilebert.encoder.layer.15.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.0600471496582031,
+          "transfer_ema_target_norm": 1.0435625314712524
+        },
+        "mobilebert.encoder.layer.15.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 4.872936725616455,
+          "transfer_ema_target_norm": 37.98952102661133
+        },
+        "mobilebert.encoder.layer.16.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 0.9315714836120605,
+          "transfer_ema_target_norm": 0.9995719194412231
+        },
+        "mobilebert.encoder.layer.16.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.0096185207366943,
+          "transfer_ema_target_norm": 1.064976692199707
+        },
+        "mobilebert.encoder.layer.16.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 2.8601341247558594,
+          "transfer_ema_target_norm": 22.408966064453125
+        },
+        "mobilebert.encoder.layer.17.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 0.9649397134780884,
+          "transfer_ema_target_norm": 0.9945747256278992
+        },
+        "mobilebert.encoder.layer.17.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 0.9527206420898438,
+          "transfer_ema_target_norm": 0.9340450763702393
+        },
+        "mobilebert.encoder.layer.17.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 3.4914515018463135,
+          "transfer_ema_target_norm": 25.11354637145996
+        },
+        "mobilebert.encoder.layer.18.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.003134846687317,
+          "transfer_ema_target_norm": 0.9560555219650269
+        },
+        "mobilebert.encoder.layer.18.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.2168939113616943,
+          "transfer_ema_target_norm": 1.0042294263839722
+        },
+        "mobilebert.encoder.layer.18.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 7.198517322540283,
+          "transfer_ema_target_norm": 22.82052993774414
+        },
+        "mobilebert.encoder.layer.19.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.0286478996276855,
+          "transfer_ema_target_norm": 1.0541226863861084
+        },
+        "mobilebert.encoder.layer.19.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.300755262374878,
+          "transfer_ema_target_norm": 0.9942886233329773
+        },
+        "mobilebert.encoder.layer.19.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 2.5926525592803955,
+          "transfer_ema_target_norm": 19.62240219116211
+        },
+        "mobilebert.encoder.layer.20.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.0201095342636108,
+          "transfer_ema_target_norm": 0.9532583951950073
+        },
+        "mobilebert.encoder.layer.20.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.2133502960205078,
+          "transfer_ema_target_norm": 1.0300105810165405
+        },
+        "mobilebert.encoder.layer.20.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 2.9723877906799316,
+          "transfer_ema_target_norm": 28.99026870727539
+        },
+        "mobilebert.encoder.layer.21.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.110488772392273,
+          "transfer_ema_target_norm": 1.030436635017395
+        },
+        "mobilebert.encoder.layer.21.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.190154790878296,
+          "transfer_ema_target_norm": 0.9891209602355957
+        },
+        "mobilebert.encoder.layer.21.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 2.8156120777130127,
+          "transfer_ema_target_norm": 24.503192901611328
+        },
+        "mobilebert.encoder.layer.22.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 2.1520116329193115,
+          "transfer_ema_target_norm": 22.454397201538086
+        },
+        "mobilebert.encoder.layer.22.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 3.5551252365112305,
+          "transfer_ema_target_norm": 62.121910095214844
+        },
+        "mobilebert.encoder.layer.22.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 19.11577606201172,
+          "transfer_ema_target_norm": 309.8170471191406
+        },
+        "mobilebert.encoder.layer.23.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.0912754535675049,
+          "transfer_ema_target_norm": 1.0343674421310425
+        },
+        "mobilebert.encoder.layer.23.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 1.1580212116241455,
+          "transfer_ema_target_norm": 0.9507806301116943
+        },
+        "mobilebert.encoder.layer.23.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_ab_norm": 8.266084671020508,
+          "transfer_ema_target_norm": 45.71769714355469
+        }
+      }
+    },
+    "BOTH": {
+      "condition": "BOTH",
+      "accuracy": 0.4908256880733945,
+      "eval_loss": 349.69998604910717,
+      "final_train_loss": 1418.591388092041,
+      "train_loss_mean": 37518.23674693283,
+      "train_loss_std": 156030.00598057712,
+      "loss_trajectory_std": 107785.72116285039,
+      "tail_loss_std": 2008.534254542177,
+      "train_time_sec": 1733.6565961837769,
+      "total_steps": 2105,
+      "lrtt_stats": {
+        "mobilebert.encoder.layer.0.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 4.3767266273498535,
+          "ema_m_d": 0.20376905798912048,
+          "ema_product": 0.89184146193098,
+          "ema_ab_norm": 1.0558009147644043,
+          "transfer_ema_target_norm": 0.9530525803565979
+        },
+        "mobilebert.encoder.layer.0.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 4.3767266273498535,
+          "ema_m_d": 0.6963443160057068,
+          "ema_product": 3.0477087096658977,
+          "ema_ab_norm": 1.0716192722320557,
+          "transfer_ema_target_norm": 0.9528775811195374
+        },
+        "mobilebert.encoder.layer.0.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 9.340743064880371,
+          "ema_m_d": 0.6563580632209778,
+          "ema_product": 6.13087202710966,
+          "ema_ab_norm": 1.978598713874817,
+          "transfer_ema_target_norm": 1.8717578649520874
+        },
+        "mobilebert.encoder.layer.1.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.0956010818481445,
+          "ema_m_d": 0.0959782600402832,
+          "ema_product": 0.5850451857354528,
+          "ema_ab_norm": 1.0026189088821411,
+          "transfer_ema_target_norm": 0.9735741019248962
+        },
+        "mobilebert.encoder.layer.1.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.0956010818481445,
+          "ema_m_d": 0.38483136892318726,
+          "ema_product": 2.3457785087372827,
+          "ema_ab_norm": 1.031152606010437,
+          "transfer_ema_target_norm": 0.9805734157562256
+        },
+        "mobilebert.encoder.layer.1.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 22.347997665405273,
+          "ema_m_d": 0.2605256140232086,
+          "ema_product": 5.822225813968942,
+          "ema_ab_norm": 1.9273836612701416,
+          "transfer_ema_target_norm": 1.9353972673416138
+        },
+        "mobilebert.encoder.layer.2.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.967220306396484,
+          "ema_m_d": 0.27868562936782837,
+          "ema_product": 1.9416641760324183,
+          "ema_ab_norm": 1.1213459968566895,
+          "transfer_ema_target_norm": 0.9587523937225342
+        },
+        "mobilebert.encoder.layer.2.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.967220306396484,
+          "ema_m_d": 1.9536513090133667,
+          "ema_product": 13.611519071776002,
+          "ema_ab_norm": 1.0934640169143677,
+          "transfer_ema_target_norm": 0.8889691233634949
+        },
+        "mobilebert.encoder.layer.2.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 26.57681655883789,
+          "ema_m_d": 0.6164226531982422,
+          "ema_product": 16.38255177676183,
+          "ema_ab_norm": 1.9747544527053833,
+          "transfer_ema_target_norm": 1.8798247575759888
+        },
+        "mobilebert.encoder.layer.3.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 5.339227199554443,
+          "ema_m_d": 1.0705103874206543,
+          "ema_product": 5.715698177921922,
+          "ema_ab_norm": 0.9689135551452637,
+          "transfer_ema_target_norm": 0.9287295937538147
+        },
+        "mobilebert.encoder.layer.3.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 5.339227199554443,
+          "ema_m_d": 0.9639253616333008,
+          "ema_product": 5.146616509172873,
+          "ema_ab_norm": 1.026134729385376,
+          "transfer_ema_target_norm": 1.041793942451477
+        },
+        "mobilebert.encoder.layer.3.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 35.21212387084961,
+          "ema_m_d": 0.5361378788948059,
+          "ema_product": 18.878553403498472,
+          "ema_ab_norm": 2.051262140274048,
+          "transfer_ema_target_norm": 1.9194936752319336
+        },
+        "mobilebert.encoder.layer.4.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 8.899139404296875,
+          "ema_m_d": 0.366471529006958,
+          "ema_product": 3.2612812243387452,
+          "ema_ab_norm": 0.9591028094291687,
+          "transfer_ema_target_norm": 0.999743640422821
+        },
+        "mobilebert.encoder.layer.4.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 8.899139404296875,
+          "ema_m_d": 0.3632737100124359,
+          "ema_product": 3.2328233873167846,
+          "ema_ab_norm": 1.0089163780212402,
+          "transfer_ema_target_norm": 0.944767951965332
+        },
+        "mobilebert.encoder.layer.4.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 39.31281661987305,
+          "ema_m_d": 0.16376109421253204,
+          "ema_product": 6.4379098662470255,
+          "ema_ab_norm": 1.8847880363464355,
+          "transfer_ema_target_norm": 1.9430789947509766
+        },
+        "mobilebert.encoder.layer.5.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 8.365310668945312,
+          "ema_m_d": 0.8447749614715576,
+          "ema_product": 7.066804998055886,
+          "ema_ab_norm": 0.9063235521316528,
+          "transfer_ema_target_norm": 1.0066097974777222
+        },
+        "mobilebert.encoder.layer.5.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 8.365310668945312,
+          "ema_m_d": 1.7082457542419434,
+          "ema_product": 14.290006433140661,
+          "ema_ab_norm": 0.9772593975067139,
+          "transfer_ema_target_norm": 0.992770791053772
+        },
+        "mobilebert.encoder.layer.5.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 52.00714111328125,
+          "ema_m_d": 0.47801944613456726,
+          "ema_product": 24.860424790012985,
+          "ema_ab_norm": 1.9331952333450317,
+          "transfer_ema_target_norm": 1.8374931812286377
+        },
+        "mobilebert.encoder.layer.6.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 7.6919074058532715,
+          "ema_m_d": 1.1090580224990845,
+          "ema_product": 8.530771616781692,
+          "ema_ab_norm": 0.9592203497886658,
+          "transfer_ema_target_norm": 0.9711153507232666
+        },
+        "mobilebert.encoder.layer.6.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 7.6919074058532715,
+          "ema_m_d": 10.25830364227295,
+          "ema_product": 78.90592175749089,
+          "ema_ab_norm": 0.9520564079284668,
+          "transfer_ema_target_norm": 0.9779517650604248
+        },
+        "mobilebert.encoder.layer.6.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 49.59136199951172,
+          "ema_m_d": 0.8731340765953064,
+          "ema_product": 43.29990806654723,
+          "ema_ab_norm": 1.8313684463500977,
+          "transfer_ema_target_norm": 1.8134084939956665
+        },
+        "mobilebert.encoder.layer.7.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 8.288551330566406,
+          "ema_m_d": 1.5646440982818604,
+          "ema_product": 12.968632922676989,
+          "ema_ab_norm": 1.0122308731079102,
+          "transfer_ema_target_norm": 1.0595334768295288
+        },
+        "mobilebert.encoder.layer.7.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 8.288551330566406,
+          "ema_m_d": 5.800835609436035,
+          "ema_product": 48.08052370898804,
+          "ema_ab_norm": 1.0260248184204102,
+          "transfer_ema_target_norm": 0.9506155252456665
+        },
+        "mobilebert.encoder.layer.7.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 55.592857360839844,
+          "ema_m_d": 0.5627420544624329,
+          "ema_product": 31.284438764675997,
+          "ema_ab_norm": 2.0155906677246094,
+          "transfer_ema_target_norm": 2.0014705657958984
+        },
+        "mobilebert.encoder.layer.8.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 8.031232833862305,
+          "ema_m_d": 1.1375336647033691,
+          "ema_product": 9.135797717589412,
+          "ema_ab_norm": 1.030279517173767,
+          "transfer_ema_target_norm": 0.9741632342338562
+        },
+        "mobilebert.encoder.layer.8.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 8.031232833862305,
+          "ema_m_d": 2.260004997253418,
+          "ema_product": 18.150626338634538,
+          "ema_ab_norm": 1.0237351655960083,
+          "transfer_ema_target_norm": 0.9770838618278503
+        },
+        "mobilebert.encoder.layer.8.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 53.6712532043457,
+          "ema_m_d": 0.7357120513916016,
+          "ema_product": 39.486587795727246,
+          "ema_ab_norm": 2.0134692192077637,
+          "transfer_ema_target_norm": 1.9871255159378052
+        },
+        "mobilebert.encoder.layer.9.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 5.531162261962891,
+          "ema_m_d": 1.6171557903289795,
+          "ema_product": 8.944751079182424,
+          "ema_ab_norm": 1.0329536199569702,
+          "transfer_ema_target_norm": 0.9868226647377014
+        },
+        "mobilebert.encoder.layer.9.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 5.531162261962891,
+          "ema_m_d": 6.374162197113037,
+          "ema_product": 35.256525396302095,
+          "ema_ab_norm": 0.9684984683990479,
+          "transfer_ema_target_norm": 1.0257761478424072
+        },
+        "mobilebert.encoder.layer.9.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 53.904541015625,
+          "ema_m_d": 0.6955962181091309,
+          "ema_product": 37.49579486937728,
+          "ema_ab_norm": 1.9436529874801636,
+          "transfer_ema_target_norm": 1.8890997171401978
+        },
+        "mobilebert.encoder.layer.10.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 8.327838897705078,
+          "ema_m_d": 2.157026529312134,
+          "ema_product": 17.96336943418737,
+          "ema_ab_norm": 1.0193015336990356,
+          "transfer_ema_target_norm": 0.9307920336723328
+        },
+        "mobilebert.encoder.layer.10.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 8.327838897705078,
+          "ema_m_d": 6.377241611480713,
+          "ema_product": 53.108640752152496,
+          "ema_ab_norm": 1.0122406482696533,
+          "transfer_ema_target_norm": 0.9183935523033142
+        },
+        "mobilebert.encoder.layer.10.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 41.49122619628906,
+          "ema_m_d": 0.539621114730835,
+          "ema_product": 22.389541731590725,
+          "ema_ab_norm": 1.8898499011993408,
+          "transfer_ema_target_norm": 1.8944193124771118
+        },
+        "mobilebert.encoder.layer.11.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 7.2689900398254395,
+          "ema_m_d": 2.3241801261901855,
+          "ema_product": 16.89444218803669,
+          "ema_ab_norm": 0.9699304103851318,
+          "transfer_ema_target_norm": 1.055413007736206
+        },
+        "mobilebert.encoder.layer.11.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 7.2689900398254395,
+          "ema_m_d": 4.662538528442383,
+          "ema_product": 33.89194612355004,
+          "ema_ab_norm": 1.0214643478393555,
+          "transfer_ema_target_norm": 1.0277869701385498
+        },
+        "mobilebert.encoder.layer.11.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 42.75014877319336,
+          "ema_m_d": 1.7364909648895264,
+          "ema_product": 74.23524709233334,
+          "ema_ab_norm": 1.8487577438354492,
+          "transfer_ema_target_norm": 1.9879729747772217
+        },
+        "mobilebert.encoder.layer.12.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 4.916421413421631,
+          "ema_m_d": 0.8896076083183289,
+          "ema_product": 4.373685895079035,
+          "ema_ab_norm": 0.9985361695289612,
+          "transfer_ema_target_norm": 0.987155556678772
+        },
+        "mobilebert.encoder.layer.12.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 4.916421413421631,
+          "ema_m_d": 1.3206661939620972,
+          "ema_product": 6.4929515559772994,
+          "ema_ab_norm": 0.9014158844947815,
+          "transfer_ema_target_norm": 1.0322293043136597
+        },
+        "mobilebert.encoder.layer.12.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 37.91465759277344,
+          "ema_m_d": 0.7998685240745544,
+          "ema_product": 30.32674120952379,
+          "ema_ab_norm": 1.9250859022140503,
+          "transfer_ema_target_norm": 1.9624356031417847
+        },
+        "mobilebert.encoder.layer.13.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.153222560882568,
+          "ema_m_d": 1.5623210668563843,
+          "ema_product": 9.613309235922827,
+          "ema_ab_norm": 1.0076810121536255,
+          "transfer_ema_target_norm": 0.9203672409057617
+        },
+        "mobilebert.encoder.layer.13.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.153222560882568,
+          "ema_m_d": 2.720189332962036,
+          "ema_product": 16.737930373454105,
+          "ema_ab_norm": 1.0593135356903076,
+          "transfer_ema_target_norm": 1.0084083080291748
+        },
+        "mobilebert.encoder.layer.13.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 31.502952575683594,
+          "ema_m_d": 1.424118161201477,
+          "ema_product": 44.863926894499855,
+          "ema_ab_norm": 2.0382349491119385,
+          "transfer_ema_target_norm": 1.8569655418395996
+        },
+        "mobilebert.encoder.layer.14.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.350128650665283,
+          "ema_m_d": 1.9643179178237915,
+          "ema_product": 12.473671488988032,
+          "ema_ab_norm": 1.0511410236358643,
+          "transfer_ema_target_norm": 0.9720693230628967
+        },
+        "mobilebert.encoder.layer.14.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.350128650665283,
+          "ema_m_d": 4.097705841064453,
+          "ema_product": 26.020959263341865,
+          "ema_ab_norm": 1.0219347476959229,
+          "transfer_ema_target_norm": 0.9636046886444092
+        },
+        "mobilebert.encoder.layer.14.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 33.910545349121094,
+          "ema_m_d": 1.751153826713562,
+          "ema_product": 59.382581254057186,
+          "ema_ab_norm": 2.0385284423828125,
+          "transfer_ema_target_norm": 1.928966999053955
+        },
+        "mobilebert.encoder.layer.15.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 5.735861301422119,
+          "ema_m_d": 1.8064392805099487,
+          "ema_product": 10.361485162445831,
+          "ema_ab_norm": 0.9993339776992798,
+          "transfer_ema_target_norm": 0.8794794678688049
+        },
+        "mobilebert.encoder.layer.15.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 5.735861301422119,
+          "ema_m_d": 7.279961585998535,
+          "ema_product": 41.75684993696859,
+          "ema_ab_norm": 0.9935041666030884,
+          "transfer_ema_target_norm": 1.0664077997207642
+        },
+        "mobilebert.encoder.layer.15.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 30.15179443359375,
+          "ema_m_d": 1.5181349515914917,
+          "ema_product": 45.77449298284046,
+          "ema_ab_norm": 1.9790958166122437,
+          "transfer_ema_target_norm": 1.9380345344543457
+        },
+        "mobilebert.encoder.layer.16.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 7.741065502166748,
+          "ema_m_d": 1.0561963319778442,
+          "ema_product": 8.176084988988748,
+          "ema_ab_norm": 1.0710172653198242,
+          "transfer_ema_target_norm": 0.9638184309005737
+        },
+        "mobilebert.encoder.layer.16.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 7.741065502166748,
+          "ema_m_d": 1.8580286502838135,
+          "ema_product": 14.383121486749474,
+          "ema_ab_norm": 0.956301748752594,
+          "transfer_ema_target_norm": 1.0567712783813477
+        },
+        "mobilebert.encoder.layer.16.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 33.74317169189453,
+          "ema_m_d": 0.9131629467010498,
+          "ema_product": 30.81301409320986,
+          "ema_ab_norm": 2.073458671569824,
+          "transfer_ema_target_norm": 2.0088860988616943
+        },
+        "mobilebert.encoder.layer.17.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.150635242462158,
+          "ema_m_d": 0.6556183695793152,
+          "ema_product": 4.032469449540116,
+          "ema_ab_norm": 1.0313000679016113,
+          "transfer_ema_target_norm": 0.9630752205848694
+        },
+        "mobilebert.encoder.layer.17.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.150635242462158,
+          "ema_m_d": 2.436274290084839,
+          "ema_product": 14.984634508900285,
+          "ema_ab_norm": 1.0283236503601074,
+          "transfer_ema_target_norm": 1.0556962490081787
+        },
+        "mobilebert.encoder.layer.17.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 34.24714660644531,
+          "ema_m_d": 0.44940492510795593,
+          "ema_product": 15.390836355830743,
+          "ema_ab_norm": 2.165799140930176,
+          "transfer_ema_target_norm": 2.141355514526367
+        },
+        "mobilebert.encoder.layer.18.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.611476421356201,
+          "ema_m_d": 1.0874429941177368,
+          "ema_product": 7.189603715178407,
+          "ema_ab_norm": 0.9805659651756287,
+          "transfer_ema_target_norm": 0.9912927150726318
+        },
+        "mobilebert.encoder.layer.18.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.611476421356201,
+          "ema_m_d": 5.295555591583252,
+          "ema_product": 35.01144093173366,
+          "ema_ab_norm": 0.9801132082939148,
+          "transfer_ema_target_norm": 0.8962461352348328
+        },
+        "mobilebert.encoder.layer.18.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 32.81489562988281,
+          "ema_m_d": 0.8961166739463806,
+          "ema_product": 29.405975127748206,
+          "ema_ab_norm": 2.0302202701568604,
+          "transfer_ema_target_norm": 1.9718244075775146
+        },
+        "mobilebert.encoder.layer.19.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.6739068031311035,
+          "ema_m_d": 0.962164044380188,
+          "ema_product": 6.421393161517074,
+          "ema_ab_norm": 0.9727904796600342,
+          "transfer_ema_target_norm": 1.015701174736023
+        },
+        "mobilebert.encoder.layer.19.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.6739068031311035,
+          "ema_m_d": 1.1490976810455322,
+          "ema_product": 7.668970830991952,
+          "ema_ab_norm": 1.0057713985443115,
+          "transfer_ema_target_norm": 0.9228097796440125
+        },
+        "mobilebert.encoder.layer.19.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 31.462614059448242,
+          "ema_m_d": 0.64786297082901,
+          "ema_product": 20.383462614600717,
+          "ema_ab_norm": 1.9998711347579956,
+          "transfer_ema_target_norm": 1.979648232460022
+        },
+        "mobilebert.encoder.layer.20.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 7.312649250030518,
+          "ema_m_d": 0.721778929233551,
+          "ema_product": 5.278116145547557,
+          "ema_ab_norm": 0.9618803262710571,
+          "transfer_ema_target_norm": 1.003613829612732
+        },
+        "mobilebert.encoder.layer.20.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 7.312649250030518,
+          "ema_m_d": 0.8416264653205872,
+          "ema_product": 6.154519140432427,
+          "ema_ab_norm": 1.0659316778182983,
+          "transfer_ema_target_norm": 1.0280637741088867
+        },
+        "mobilebert.encoder.layer.20.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 32.7139892578125,
+          "ema_m_d": 0.35087791085243225,
+          "ema_product": 11.47861620643016,
+          "ema_ab_norm": 2.107045888900757,
+          "transfer_ema_target_norm": 1.8789114952087402
+        },
+        "mobilebert.encoder.layer.21.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.66500997543335,
+          "ema_m_d": 3.1553289890289307,
+          "ema_product": 21.03029918765185,
+          "ema_ab_norm": 1.0190898180007935,
+          "transfer_ema_target_norm": 0.9163059592247009
+        },
+        "mobilebert.encoder.layer.21.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.66500997543335,
+          "ema_m_d": 9.333131790161133,
+          "ema_product": 62.205416483458066,
+          "ema_ab_norm": 1.047437071800232,
+          "transfer_ema_target_norm": 0.9522855281829834
+        },
+        "mobilebert.encoder.layer.21.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 31.22726058959961,
+          "ema_m_d": 1.255089282989502,
+          "ema_product": 39.193000103126906,
+          "ema_ab_norm": 1.9947466850280762,
+          "transfer_ema_target_norm": 1.7971278429031372
+        },
+        "mobilebert.encoder.layer.22.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.562500953674316,
+          "ema_m_d": 3.852241277694702,
+          "ema_product": 25.28033705865505,
+          "ema_ab_norm": 0.9832704067230225,
+          "transfer_ema_target_norm": 0.9909462928771973
+        },
+        "mobilebert.encoder.layer.22.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 6.562500953674316,
+          "ema_m_d": 6.381667137145996,
+          "ema_product": 41.879696673552644,
+          "ema_ab_norm": 0.9687768816947937,
+          "transfer_ema_target_norm": 0.9914782047271729
+        },
+        "mobilebert.encoder.layer.22.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 32.89796447753906,
+          "ema_m_d": 1.5098931789398193,
+          "ema_product": 49.67241216564071,
+          "ema_ab_norm": 1.9534960985183716,
+          "transfer_ema_target_norm": 1.9709362983703613
+        },
+        "mobilebert.encoder.layer.23.attention.self.query.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 41.48957061767578,
+          "ema_m_d": 1.0520776510238647,
+          "ema_product": 43.65024999743309,
+          "ema_ab_norm": 0.9666585922241211,
+          "transfer_ema_target_norm": 0.9478411078453064
+        },
+        "mobilebert.encoder.layer.23.attention.self.key.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 41.48957061767578,
+          "ema_m_d": 0.994408369064331,
+          "ema_product": 41.257576251102364,
+          "ema_ab_norm": 0.9129763245582581,
+          "transfer_ema_target_norm": 0.9102407097816467
+        },
+        "mobilebert.encoder.layer.23.attention.self.value.analog_module": {
+          "num_transfers": 526,
+          "num_a_updates": 2104,
+          "ema_m_x": 210.1288299560547,
+          "ema_m_d": 0.05357182398438454,
+          "ema_product": 11.25698469245043,
+          "ema_ab_norm": 1.9149149656295776,
+          "transfer_ema_target_norm": 1.9226884841918945
+        }
+      }
+    }
+  },
+  "comparison_vs_baseline": {
+    "AUTO_SCALE_ONLY": {
+      "traj_std_improvement_pct": -298.34256132901237,
+      "tail_std_improvement_pct": -20478.986676946013,
+      "overhead_pct": 156.46710133951865,
+      "accuracy_delta": -0.006880733944954143,
+      "eval_loss_delta": 738.9836513442652
+    },
+    "TRANSFER_EMA_ONLY": {
+      "traj_std_improvement_pct": 0.7580056651791852,
+      "tail_std_improvement_pct": 28.245858672966595,
+      "overhead_pct": 1.921855541726096,
+      "accuracy_delta": -0.033256880733945005,
+      "eval_loss_delta": 0.7681443095207212
+    },
+    "BOTH": {
+      "traj_std_improvement_pct": -270.60077876090014,
+      "tail_std_improvement_pct": -35674.34090510785,
+      "overhead_pct": 375.9950784447211,
+      "accuracy_delta": -0.033256880733945005,
+      "eval_loss_delta": 347.8291452058724
+    }
+  },
+  "has_any_nan": false
+}

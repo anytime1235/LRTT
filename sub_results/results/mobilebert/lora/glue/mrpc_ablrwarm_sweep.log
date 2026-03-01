@@ -1,0 +1,25 @@
+  [Task Config] mrpc: batch_size=32, max_seq=128, epochs=7, lr=0.006
+Map:   0%|                                                                                             | 0/408 [00:00<?, ? examples/s]Map: 100%|█████████████████████████████████████████████████████████████████████████████████| 408/408 [00:00<00:00, 9634.86 examples/s]
+[I 2026-02-24 13:38:45,798] A new study created in RDB with name: mobilebert_mrpc_lrtt_bs32_adam_decay_nowd_nomom_nonest_combos_ablrwarm_qkv
+  GLUE mrpc: Train=3668, Eval=408
+Train batches: 115, Eval batches: 7
+  Early stop patience: 2, Pruner: Median, startup=5, warmup=2
+
+Study: mobilebert_mrpc_lrtt_bs32_adam_decay_nowd_nomom_nonest_combos_ablrwarm_qkv, Device: cuda, New trials: 30
+
+======================================================================
+Trial 0 Starting
+======================================================================
+  rank=8, transfer_every=10000000, transfer_lr=1.0000e-01
+  lora_alpha=1.0000, lr=6.0000e-03, wd=0.00e+00
+  target_ab_lr=0.0010, lr_multiplier=0.166667
+  effective_ab_lr = lr*alpha*mult = 0.0010
+  momentum=0.00, nesterov=False, reinit_mode=decay
+  tau_sec=0.0, optimizer=AnalogAdam
+======================================================================
+huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
+To disable this warning, you can either:
+	- Avoid using `tokenizers` before the fork if possible
+	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
+Some weights of MobileBertForSequenceClassification were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.

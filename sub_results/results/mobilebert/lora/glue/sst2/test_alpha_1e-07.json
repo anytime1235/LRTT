@@ -1,0 +1,35 @@
+{
+  "config": {
+    "alpha": 1e-07,
+    "lr": 0.1,
+    "lr_mult": 0.1,
+    "lrtt_lr": 0.010000000000000002,
+    "eff_update_lr": 1e-09,
+    "epochs": 3,
+    "batch_size": 64,
+    "rank": 8,
+    "reinit_mode": "decay",
+    "ab_device": "6t1c",
+    "target": "qkv"
+  },
+  "best_acc": 0.5114678899082569,
+  "best_epoch": 3,
+  "init_acc": 0.4908256880733945,
+  "epochs": [
+    {
+      "epoch": 1,
+      "train_loss": 9779692.022072352,
+      "eval_acc": 0.4908256880733945
+    },
+    {
+      "epoch": 2,
+      "train_loss": 7149586.516381767,
+      "eval_acc": 0.5091743119266054
+    },
+    {
+      "epoch": 3,
+      "train_loss": 2395882.1114282855,
+      "eval_acc": 0.5114678899082569
+    }
+  ]
+}

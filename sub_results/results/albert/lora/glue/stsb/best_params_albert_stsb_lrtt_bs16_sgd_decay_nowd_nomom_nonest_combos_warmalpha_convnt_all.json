@@ -1,0 +1,10 @@
+{
+  "task": "stsb",
+  "metric": "spearmanr",
+  "best_value": 0.8851060975788878,
+  "best_params": {
+    "learning_rate": 0.0021194887357935707,
+    "lora_alpha": 0.03299315068538396,
+    "target_ab_lr": 0.005911733622585906
+  }
+}

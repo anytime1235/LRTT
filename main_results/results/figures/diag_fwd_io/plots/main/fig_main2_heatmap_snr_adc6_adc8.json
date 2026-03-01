@@ -1,0 +1,13 @@
+{
+  "git_hash": "N/A",
+  "timestamp": "2026-02-28T07:30:08.584570",
+  "files_read": [
+    "/data/results/diag_fwd_io/adc6_module_mac_summary.csv",
+    "/data/results/diag_fwd_io/adc8_module_mac_summary.csv"
+  ],
+  "key_config": {
+    "vmin": 2.0,
+    "vmax": 35.0,
+    "metric": "mac_snr_db"
+  }
+}

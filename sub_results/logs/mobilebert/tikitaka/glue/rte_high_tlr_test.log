@@ -1,0 +1,87 @@
+[I 2026-02-25 14:26:52,893] A new study created in RDB with name: rte_high_tlr_test
+[W 2026-02-25 14:26:52,946] Trial 0 failed with parameters: {} because of the following error: ValueError('`low <= high` must hold, but got (low=1000.0, high=500.0).').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_glue_tiki.py", line 1178, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_loader),
+  File "/data/optuna_mobilebert_glue_tiki.py", line 718, in objective
+    transfer_lr = trial.suggest_float('transfer_lr', TPE_TLR_RANGE[0], _tlr_upper, log=True)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 162, in suggest_float
+    distribution = FloatDistribution(low, high, log=log, step=step)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 146, in __init__
+    raise ValueError(f"`low <= high` must hold, but got ({low=}, {high=}).")
+ValueError: `low <= high` must hold, but got (low=1000.0, high=500.0).
+[W 2026-02-25 14:26:52,956] Trial 0 failed with value None.
+[W 2026-02-25 14:26:53,006] Trial 1 failed with parameters: {} because of the following error: ValueError('`low <= high` must hold, but got (low=1000.0, high=500.0).').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_glue_tiki.py", line 1178, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_loader),
+  File "/data/optuna_mobilebert_glue_tiki.py", line 718, in objective
+    transfer_lr = trial.suggest_float('transfer_lr', TPE_TLR_RANGE[0], _tlr_upper, log=True)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 162, in suggest_float
+    distribution = FloatDistribution(low, high, log=log, step=step)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 146, in __init__
+    raise ValueError(f"`low <= high` must hold, but got ({low=}, {high=}).")
+ValueError: `low <= high` must hold, but got (low=1000.0, high=500.0).
+[W 2026-02-25 14:26:53,007] Trial 1 failed with value None.
+[W 2026-02-25 14:26:53,050] Trial 2 failed with parameters: {} because of the following error: ValueError('`low <= high` must hold, but got (low=1000.0, high=500.0).').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_glue_tiki.py", line 1178, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_loader),
+  File "/data/optuna_mobilebert_glue_tiki.py", line 718, in objective
+    transfer_lr = trial.suggest_float('transfer_lr', TPE_TLR_RANGE[0], _tlr_upper, log=True)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 162, in suggest_float
+    distribution = FloatDistribution(low, high, log=log, step=step)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 146, in __init__
+    raise ValueError(f"`low <= high` must hold, but got ({low=}, {high=}).")
+ValueError: `low <= high` must hold, but got (low=1000.0, high=500.0).
+[W 2026-02-25 14:26:53,051] Trial 2 failed with value None.
+[W 2026-02-25 14:26:53,086] Trial 3 failed with parameters: {} because of the following error: ValueError('`low <= high` must hold, but got (low=1000.0, high=500.0).').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_glue_tiki.py", line 1178, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_loader),
+  File "/data/optuna_mobilebert_glue_tiki.py", line 718, in objective
+    transfer_lr = trial.suggest_float('transfer_lr', TPE_TLR_RANGE[0], _tlr_upper, log=True)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 162, in suggest_float
+    distribution = FloatDistribution(low, high, log=log, step=step)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 146, in __init__
+    raise ValueError(f"`low <= high` must hold, but got ({low=}, {high=}).")
+ValueError: `low <= high` must hold, but got (low=1000.0, high=500.0).
+[W 2026-02-25 14:26:53,086] Trial 3 failed with value None.
+[W 2026-02-25 14:26:53,116] Trial 4 failed with parameters: {} because of the following error: ValueError('`low <= high` must hold, but got (low=1000.0, high=500.0).').
+Traceback (most recent call last):
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/optuna_mobilebert_glue_tiki.py", line 1178, in <lambda>
+    lambda trial: objective(trial, train_loader, eval_loader),
+  File "/data/optuna_mobilebert_glue_tiki.py", line 718, in objective
+    transfer_lr = trial.suggest_float('transfer_lr', TPE_TLR_RANGE[0], _tlr_upper, log=True)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/trial/_trial.py", line 162, in suggest_float
+    distribution = FloatDistribution(low, high, log=log, step=step)
+  File "/data/venvs/lrtt/lib/python3.10/site-packages/optuna/distributions.py", line 146, in __init__
+    raise ValueError(f"`low <= high` must hold, but got ({low=}, {high=}).")
+ValueError: `low <= high` must hold, but got (low=1000.0, high=500.0).
+[W 2026-02-25 14:26:53,116] Trial 4 failed with value None.
+Task: rte, Metric: accuracy
+BSZ: 32, max_seq: 256, epochs: 11
+Train batches: 78, Eval batches: 5
+  lr=0.002 (fixed, per-task)
+  transfer_every=1 (fixed, uim=True, every mini-batch)
+  fast_lr=1.0 (fixed), transfer_lr=1.0 (fixed)
+  Early stop patience: 3, Pruner: Median, startup=5, warmup=3
+
+Study: rte_high_tlr_test, Device: cuda, New trials: 5
+
+============================================================
+STUDY SUMMARY
+============================================================
+Study: rte_high_tlr_test, Task: rte, Trials: 5 (0 complete)
+No completed trials to visualize.
+All trials saved to: /data/results/tikitakav1/all_trials_rte.json

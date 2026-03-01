@@ -1,0 +1,21 @@
+{
+    "model": "google/mobilebert-uncased",
+    "method": "TikiTaka v2 (ChoppedTransferCompound)",
+    "experiment_date": "2026-02-11",
+    "optimizer": "AnalogAdam",
+    "description": "GLUE 5-task eval using SST-2 best HP (trial 33). Single trial per task. Classifier trainable, bias frozen.",
+    "hp_source": "sst2_sweep_analogadam trial 33 (acc=90.14%)",
+    "params": {
+        "learning_rate": 0.0023065114558800644,
+        "transfer_lr": 3.986266963830462,
+        "transfer_every": 491
+    },
+    "results": {
+        "sst2":  {"metric": "accuracy",              "value": 0.8830, "status": "ok"},
+        "mrpc":  {"metric": "f1",                    "value": 0.8122, "status": "ok"},
+        "rte":   {"metric": "accuracy",              "value": 0.5271, "status": "poor (random-level)"},
+        "cola":  {"metric": "matthews_correlation",   "value": 0.0834, "status": "poor (near-random)"},
+        "stsb":  {"metric": "spearmanr",             "value": null,   "status": "FAILED (loss diverged)"}
+    },
+    "note": "SST-2 HP가 다른 task에는 부적합. Task별 개별 sweep 필요."
+}

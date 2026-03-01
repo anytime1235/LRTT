@@ -1,0 +1,32 @@
+TikiTaka-v2 (ChoppedTransferCompound)                                                                                          
+                                         
+  gamma=0.0, transfer_every=sweep, transfer_lr=sweep,, fast_lr=sweep, scale_transfer_lr=True, auto_scale=True,                
+  auto_granularity=169.0, buffer_granularity=1.0, auto_momentum=0.99, in_chop_prob=0.061, in_chop_random=True,                   
+  units_in_mbatch=False, n_reads_per_transfer=1, transfer_columns=True                                                           
+                                                            
+  A Tile (LinearStepDevice, 6T1C)
+
+  Noise: dw_min=0.001981, dw_min_std=0.3, dw_min_dtod=0.1, write_noise_std=0.0, mult_noise=True, gamma_up=-0.1678,
+  gamma_down=0.1410, gamma_up_dtod=0.05, gamma_down_dtod=0.05, up_down_dtod=0.01, w_max_dtod=0.05, w_min_dtod=0.05,
+  mean_bound_reference=True, lifetime=0.0
+
+  C Tile (SoftBoundsReferenceDevice)
+
+  Noise: w_max=1.0, w_min=-1.0, dw_min=0.001, dw_min_std=0.0, write_noise_std=0.0, diffusion=0.0, dw_min_dtod=0.0,
+  w_max_dtod=0.0, w_min_dtod=0.0, up_down=0.0, up_down_dtod=0.0, lifetime=0.0, lifetime_dtod=0.0, slope_up_dtod=0.0,
+  slope_down_dtod=0.0
+
+  Forward/Backward IO (공통)
+
+  is_perfect=False, inp_noise=0.0, out_noise=0.0, out_noise_std=0.0, w_noise=0.0, noise_management=NONE, bound_management=NONE,
+  inp_res=1/(2^7-2), out_res=1/(2^9-2)
+
+  Transfer IO
+
+  transfer_forward: noise_management=NONE, bound_management=NONE
+  transfer_update: desired_bl=1, update_bl_management=False, update_management=False
+
+  Out Scaling / Mapping
+
+  digital_bias=True, weight_scaling_omega=1.0, weight_scaling_columnwise=True, learn_out_scaling=True,
+  out_scaling_columnwise=True

@@ -1,0 +1,115 @@
+{
+  "sweep_info": {
+    "script": "sweep_tikitaka_all_tasks.py",
+    "date": "2026-02-04",
+    "start_time": "15:50",
+    "model": "google/mobilebert-uncased",
+    "hardware": "NVIDIA H200 GPU",
+    "n_trials": 10,
+    "n_jobs": 2,
+    "epochs_per_trial": 1,
+    "status": "partial (hung after COLA)",
+    "pid": 90985
+  },
+  "hyperparameter_search_space": {
+    "learning_rate": {"min": 5e-5, "max": 5e-4},
+    "transfer_learning_rate": {"min": 0.1, "max": 10.0},
+    "transfer_every": {"min": 10, "max": 300},
+    "fast_lr": {"min": 0.1, "max": 1.5},
+    "auto_granularity": {"min": 100, "max": 600},
+    "chopped_probability": {"min": 0.005, "max": 0.05}
+  },
+  "completed_tasks": {
+    "rte": {
+      "status": "completed",
+      "best_trial": 1,
+      "best_value": 0.5199,
+      "metric": "accuracy",
+      "starting_point": 0.473,
+      "improvement": 0.0469,
+      "digital_baseline": 0.5632,
+      "gap_to_baseline": -0.0433,
+      "best_params": {
+        "learning_rate": 0.000136,
+        "transfer_lr": 2.378,
+        "transfer_every": 20,
+        "fast_lr": 0.487,
+        "auto_granularity": 169.64,
+        "in_chop_prob": 0.035
+      }
+    },
+    "mrpc": {
+      "status": "completed",
+      "best_trial": 0,
+      "best_value": 0.6544,
+      "metric": "f1",
+      "starting_point": 0.316,
+      "improvement": 0.3384,
+      "digital_baseline": 0.9004,
+      "gap_to_baseline": -0.2460,
+      "best_params": {
+        "learning_rate": 0.000131,
+        "transfer_lr": 7.36,
+        "transfer_every": 160,
+        "fast_lr": 0.86,
+        "auto_granularity": 306.0,
+        "in_chop_prob": 0.02
+      }
+    },
+    "stsb": {
+      "status": "FAILED",
+      "best_trial": 0,
+      "best_value": -0.0532,
+      "metric": "spearman",
+      "starting_point": -0.042,
+      "improvement": -0.0112,
+      "digital_baseline": 0.8771,
+      "gap_to_baseline": -0.9303,
+      "note": "Regression task - MSE loss explosion due to analog output scale mismatch",
+      "training_loss": 75118642462720,
+      "best_params": {
+        "learning_rate": 0.000131,
+        "transfer_lr": 7.36,
+        "transfer_every": 160,
+        "fast_lr": 0.86,
+        "auto_granularity": 306.0,
+        "in_chop_prob": 0.02
+      }
+    },
+    "cola": {
+      "status": "completed",
+      "best_trial": 8,
+      "best_value": 0.6932,
+      "metric": "matthews",
+      "starting_point": 0.309,
+      "improvement": 0.3842,
+      "digital_baseline": 0.0,
+      "digital_baseline_note": "Digital baseline appears to be measurement error",
+      "gap_to_baseline": "N/A (baseline anomaly)",
+      "best_params": {
+        "learning_rate": 0.000194,
+        "transfer_lr": 2.637,
+        "transfer_every": 74,
+        "fast_lr": 0.457,
+        "auto_granularity": 340.91,
+        "in_chop_prob": 0.029
+      }
+    }
+  },
+  "pending_tasks": ["sst2", "qnli", "qqp", "mnli", "squad"],
+  "analysis": {
+    "successful_tasks": ["rte", "mrpc", "cola"],
+    "failed_tasks": ["stsb"],
+    "observations": [
+      "MRPC, COLA: Large improvement from starting point, more epochs may reach baseline",
+      "RTE: Good improvement, expected to approach baseline with more epochs",
+      "STSB: Training failed - regression task requires output scaling or label normalization"
+    ],
+    "recommendations": [
+      "Kill hung process (PID 90985)",
+      "Re-run remaining tasks with --n_jobs 1 to prevent deadlock",
+      "Consider excluding STSB or implementing output scaling for regression tasks",
+      "Run full training (3-15 epochs) with best parameters from sweep"
+    ]
+  }
+}

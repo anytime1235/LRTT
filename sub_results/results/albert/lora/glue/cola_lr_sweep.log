@@ -1,0 +1,14 @@
+=== CoLA LR Sweep (decay schedule) ===
+
+>>> LR=0.0005
+  Training: 10 epochs, 5350 steps, warmup=535 steps (10%)
+[Result] COLA | Best matthews_correlation: 0.4780 (epoch 7)
+---
+
+>>> LR=0.001
+  Training: 10 epochs, 5350 steps, warmup=535 steps (10%)
+[Result] COLA | Best matthews_correlation: 0.4747 (epoch 10)
+---
+
+>>> LR=0.002
+  Training: 10 epochs, 5350 steps, warmup=535 steps (10%)

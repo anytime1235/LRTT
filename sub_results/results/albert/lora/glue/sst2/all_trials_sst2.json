@@ -1,0 +1,28 @@
+[
+  {
+    "trial": 0,
+    "value": 0.908256880733945,
+    "params": {
+      "learning_rate": 0.023345864076016236,
+      "lora_alpha": 0.01,
+      "target_ab_lr": 0.03
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 1,
+    "value": 0.7993119266055045,
+    "params": {
+      "learning_rate": 0.5,
+      "lora_alpha": 0.01,
+      "target_ab_lr": 0.03
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 2,
+    "value": null,
+    "params": {},
+    "state": "TrialState.WAITING"
+  }
+]

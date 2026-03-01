@@ -1,0 +1,26 @@
+{
+  "experiment": "sgd_baseline_classifier_trainable",
+  "task": "sst2",
+  "optimizer": "AnalogSGD",
+  "best_metric": 0.8245412844036697,
+  "init_metric": 0.4908256880733945,
+  "params": {
+    "learning_rate": 0.0023065114558800644,
+    "transfer_lr": 3.986266963830462,
+    "fast_lr": 3.0,
+    "transfer_every": 491,
+    "auto_granularity": 169.0,
+    "in_chop_prob": 0.061
+  },
+  "classifier_frozen": false,
+  "bias_frozen": true,
+  "target_modules": [
+    "query",
+    "key",
+    "value"
+  ],
+  "num_epochs": 3,
+  "batch_size": 64,
+  "trainable_params": 10312,
+  "total_params": 22232906
+}

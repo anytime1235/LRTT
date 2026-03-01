@@ -1,0 +1,48 @@
+{
+  "config": {
+    "lr": 0.1,
+    "transfer_lr": 0.1,
+    "fast_lr": 1.0,
+    "transfer_every": 1,
+    "batch_size": 32,
+    "epochs": 3
+  },
+  "per_layer": {
+    "albert.encoder.albert_layer_groups.0.albert_layers.0.attention.query": {
+      "type": "TikiTaka",
+      "mean_dw_l2": 0.0029802596353149875,
+      "std_dw_l2": 0.0014759991644840134,
+      "max_dw_l2": 0.007144136819988489
+    },
+    "albert.encoder.albert_layer_groups.0.albert_layers.0.attention.key": {
+      "type": "TikiTaka",
+      "mean_dw_l2": 0.003564912032912168,
+      "std_dw_l2": 0.0016873117005551214,
+      "max_dw_l2": 0.007443313021212816
+    },
+    "albert.encoder.albert_layer_groups.0.albert_layers.0.attention.value": {
+      "type": "TikiTaka",
+      "mean_dw_l2": 0.006169575308962047,
+      "std_dw_l2": 0.0033852211211642235,
+      "max_dw_l2": 0.015563679859042168
+    },
+    "albert.encoder.albert_layer_groups.0.albert_layers.0.attention.dense": {
+      "type": "TikiTaka",
+      "mean_dw_l2": 0.004886846387597726,
+      "std_dw_l2": 0.0026458426379091043,
+      "max_dw_l2": 0.011591422371566296
+    },
+    "albert.encoder.albert_layer_groups.0.albert_layers.0.ffn": {
+      "type": "SingleRPU",
+      "mean_dw_l2": 0.0058062657169458635,
+      "std_dw_l2": 0.009584914381968644,
+      "max_dw_l2": 0.16136877238750458
+    },
+    "albert.encoder.albert_layer_groups.0.albert_layers.0.ffn_output": {
+      "type": "SingleRPU",
+      "mean_dw_l2": 0.0052332634370743664,
+      "std_dw_l2": 0.003576632315716547,
+      "max_dw_l2": 0.020839128643274307
+    }
+  }
+}

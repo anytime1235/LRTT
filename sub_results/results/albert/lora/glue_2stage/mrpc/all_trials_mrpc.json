@@ -1,0 +1,50 @@
+[
+  {
+    "trial": 4,
+    "value": 0.8157894736842105,
+    "params": {
+      "digital_lr": 0.001570297088405539
+    },
+    "state": "TrialState.PRUNED"
+  },
+  {
+    "trial": 1,
+    "value": 0.8122270742358079,
+    "params": {
+      "digital_lr": 0.001
+    },
+    "state": "TrialState.PRUNED"
+  },
+  {
+    "trial": 2,
+    "value": 0.8122270742358079,
+    "params": {
+      "digital_lr": 0.0001329291894316216
+    },
+    "state": "TrialState.PRUNED"
+  },
+  {
+    "trial": 3,
+    "value": 0.8122270742358079,
+    "params": {
+      "digital_lr": 0.0071144760093434225
+    },
+    "state": "TrialState.PRUNED"
+  },
+  {
+    "trial": 5,
+    "value": 0.8122270742358079,
+    "params": {
+      "digital_lr": 0.0006251373574521745
+    },
+    "state": "TrialState.PRUNED"
+  },
+  {
+    "trial": 0,
+    "value": null,
+    "params": {
+      "digital_lr": 0.001
+    },
+    "state": "TrialState.RUNNING"
+  }
+]

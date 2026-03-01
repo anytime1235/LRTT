@@ -1,0 +1,91 @@
+#!/bin/bash
+# TikiTaka v1 - ALL target layer + learn_out_scaling=True
+# AnalogSGD, no-wd, no-momentum, no-nesterov, TPE sampler
+# RTE/MRPC/STS-B/CoLA/SST-2: 30 trials, QNLI/QQP/MNLI: 10 trials
+set -e
+
+PYTHON=/data/venvs/lrtt/bin/python
+SCRIPT=/data/optuna_mobilebert_glue_tiki.py
+COMMON="--optimizer AnalogSGD --no-wd --no-momentum --no-nesterov --lora-target all --sampler tpe --learn-out-scaling"
+LOG_DIR=/data/results/tikitakav1
+LOG=${LOG_DIR}/run_all_tpe_los_true.log
+SUFFIX="_los_tpe"
+
+mkdir -p ${LOG_DIR}
+
+echo "==========================================" | tee -a $LOG
+echo "TikiTaka v1 ALL + learn_out_scaling=True" | tee -a $LOG
+echo "==========================================" | tee -a $LOG
+echo "Start: $(date)" | tee -a $LOG
+echo "" | tee -a $LOG
+echo "Tasks: RTE(30),MRPC(30),STS-B(30),CoLA(30),SST-2(30),QNLI(10),QQP(10),MNLI(10)" | tee -a $LOG
+echo "Config: AnalogSGD, no-wd, no-momentum, no-nesterov, TPE, all, learn_out_scaling=True" | tee -a $LOG
+echo "" | tee -a $LOG
+
+# 1. RTE - 30 trials
+echo "[1/8] RTE - 30 trials ($(date))" | tee -a $LOG
+$PYTHON $SCRIPT --task rte --n-trials 30 $COMMON \
+  --study-name mobilebert_glue_tiki_rte_bs64_sgd_nowd_nomom_nonest_all${SUFFIX} \
+  2>&1 | tee -a $LOG
+echo "RTE done at $(date)" | tee -a $LOG
+echo "" | tee -a $LOG
+
+# 2. MRPC - 30 trials
+echo "[2/8] MRPC - 30 trials ($(date))" | tee -a $LOG
+$PYTHON $SCRIPT --task mrpc --n-trials 30 $COMMON \
+  --study-name mobilebert_glue_tiki_mrpc_bs64_sgd_nowd_nomom_nonest_all${SUFFIX} \
+  2>&1 | tee -a $LOG
+echo "MRPC done at $(date)" | tee -a $LOG
+echo "" | tee -a $LOG
+
+# 3. STS-B - 30 trials
+echo "[3/8] STS-B - 30 trials ($(date))" | tee -a $LOG
+$PYTHON $SCRIPT --task stsb --n-trials 30 $COMMON \
+  --study-name mobilebert_glue_tiki_stsb_bs64_sgd_nowd_nomom_nonest_all${SUFFIX} \
+  2>&1 | tee -a $LOG
+echo "STS-B done at $(date)" | tee -a $LOG
+echo "" | tee -a $LOG
+
+# 4. CoLA - 30 trials
+echo "[4/8] CoLA - 30 trials ($(date))" | tee -a $LOG
+$PYTHON $SCRIPT --task cola --n-trials 30 $COMMON \
+  --study-name mobilebert_glue_tiki_cola_bs64_sgd_nowd_nomom_nonest_all${SUFFIX} \
+  2>&1 | tee -a $LOG
+echo "CoLA done at $(date)" | tee -a $LOG
+echo "" | tee -a $LOG
+
+# 5. SST-2 - 30 trials
+echo "[5/8] SST-2 - 30 trials ($(date))" | tee -a $LOG
+$PYTHON $SCRIPT --task sst2 --n-trials 30 $COMMON \
+  --study-name mobilebert_glue_tiki_sst2_bs64_sgd_nowd_nomom_nonest_all${SUFFIX} \
+  2>&1 | tee -a $LOG
+echo "SST-2 done at $(date)" | tee -a $LOG
+echo "" | tee -a $LOG
+
+# 6. QNLI - 10 trials
+echo "[6/8] QNLI - 10 trials ($(date))" | tee -a $LOG
+$PYTHON $SCRIPT --task qnli --n-trials 10 $COMMON \
+  --study-name mobilebert_glue_tiki_qnli_bs64_sgd_nowd_nomom_nonest_all${SUFFIX} \
+  2>&1 | tee -a $LOG
+echo "QNLI done at $(date)" | tee -a $LOG
+echo "" | tee -a $LOG
+
+# 7. QQP - 10 trials
+echo "[7/8] QQP - 10 trials ($(date))" | tee -a $LOG
+$PYTHON $SCRIPT --task qqp --n-trials 10 $COMMON \
+  --study-name mobilebert_glue_tiki_qqp_bs64_sgd_nowd_nomom_nonest_all${SUFFIX} \
+  2>&1 | tee -a $LOG
+echo "QQP done at $(date)" | tee -a $LOG
+echo "" | tee -a $LOG
+
+# 8. MNLI - 10 trials
+echo "[8/8] MNLI - 10 trials ($(date))" | tee -a $LOG
+$PYTHON $SCRIPT --task mnli --n-trials 10 $COMMON \
+  --study-name mobilebert_glue_tiki_mnli_bs64_sgd_nowd_nomom_nonest_all${SUFFIX} \
+  2>&1 | tee -a $LOG
+echo "MNLI done at $(date)" | tee -a $LOG
+echo "" | tee -a $LOG
+
+echo "==========================================" | tee -a $LOG
+echo "ALL DONE at $(date)" | tee -a $LOG
+echo "==========================================" | tee -a $LOG

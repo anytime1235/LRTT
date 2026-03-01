@@ -1,0 +1,17 @@
+{
+  "git_hash": "N/A",
+  "timestamp": "2026-02-28T07:30:06.460012",
+  "files_read": [
+    "/data/results/diag_fwd_io/summary_adc_sweep.csv"
+  ],
+  "key_config": {
+    "adc_bits": [
+      4,
+      6,
+      8,
+      10,
+      12
+    ],
+    "source": "summary_adc_sweep.csv"
+  }
+}

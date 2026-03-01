@@ -1,0 +1,445 @@
+================================================================================
+LRTT GRADIENT TEST
+================================================================================
+
+Hyperparameters:
+  classifier_lr: 1.0
+  analog_lr (lora_tile_lr): 0.01
+  lora_alpha: 0.01
+  rank: 8
+  model: google/mobilebert-uncased
+  task: sst2
+
+[1/6] Loading model and tokenizer...
+Some weights of MobileBertForSequenceClassification were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+✓ Model loaded: google/mobilebert-uncased
+
+[2/6] Converting to LRTT-LoRA...
+================================================================================
+LRTT-LORA MODEL CONVERSION
+================================================================================
+
+[1/4] Identifying target layers (target_modules=['query', 'key', 'value'])...
+Found 72 target layers to convert:
+  - mobilebert.encoder.layer.0.attention.self.query
+  - mobilebert.encoder.layer.0.attention.self.key
+  - mobilebert.encoder.layer.0.attention.self.value
+  - mobilebert.encoder.layer.1.attention.self.query
+  - mobilebert.encoder.layer.1.attention.self.key
+  ... and 67 more
+
+[2/4] Converting 72 layers to LRTT-LoRA...
+✓ All target layers converted to LRTT AnalogLinear
+
+[3/4] Setting trainability...
+✓ Trainability set:
+  - Trainable params: 11,034
+  - Frozen params: 22,231,808
+  - Trainable fraction: 0.05%
+
+[4/4] Conversion summary:
+  - Architecture: Unified LRTT tiles (A, B, C sub-tiles)
+  - Forward: y = C·x + α·A·(B·x)
+  - Trainable: A, B tiles (low-rank adapters)
+  - Frozen: C tile (pretrained weights)
+  - LoRA rank: 8
+  - LoRA alpha: 0.01
+================================================================================
+✓ Model converted and moved to GPU
+
+[3/6] Loading dataset...
+Map:   0%|                                                                                                                                                                                                              | 0/32 [00:00<?, ? examples/s]Map: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 32/32 [00:00<00:00, 2308.09 examples/s]
+✓ Dataset loaded: 32 samples
+
+[4/6] Setting up optimizer...
+  Analog: mobilebert.encoder.layer.0.attention.self.query.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.0.attention.self.query.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.0.attention.self.query.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.0.attention.self.query.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.0.attention.self.query.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.0.attention.self.key.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.0.attention.self.key.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.0.attention.self.key.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.0.attention.self.key.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.0.attention.self.key.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.0.attention.self.value.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.0.attention.self.value.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.0.attention.self.value.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.0.attention.self.value.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.0.attention.self.value.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.1.attention.self.query.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.1.attention.self.query.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.1.attention.self.query.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.1.attention.self.query.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.1.attention.self.query.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.1.attention.self.key.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.1.attention.self.key.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.1.attention.self.key.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.1.attention.self.key.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.1.attention.self.key.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.1.attention.self.value.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.1.attention.self.value.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.1.attention.self.value.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.1.attention.self.value.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.1.attention.self.value.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.2.attention.self.query.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.2.attention.self.query.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.2.attention.self.query.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.2.attention.self.query.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.2.attention.self.query.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.2.attention.self.key.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.2.attention.self.key.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.2.attention.self.key.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.2.attention.self.key.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.2.attention.self.key.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.2.attention.self.value.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.2.attention.self.value.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.2.attention.self.value.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.2.attention.self.value.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.2.attention.self.value.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.3.attention.self.query.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.3.attention.self.query.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.3.attention.self.query.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.3.attention.self.query.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.3.attention.self.query.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.3.attention.self.key.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.3.attention.self.key.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.3.attention.self.key.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.3.attention.self.key.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.3.attention.self.key.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.3.attention.self.value.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.3.attention.self.value.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.3.attention.self.value.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.3.attention.self.value.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.3.attention.self.value.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.4.attention.self.query.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.4.attention.self.query.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.4.attention.self.query.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.4.attention.self.query.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.4.attention.self.query.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.4.attention.self.key.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.4.attention.self.key.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.4.attention.self.key.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.4.attention.self.key.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.4.attention.self.key.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.4.attention.self.value.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.4.attention.self.value.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.4.attention.self.value.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.4.attention.self.value.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.4.attention.self.value.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.5.attention.self.query.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.5.attention.self.query.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.5.attention.self.query.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.5.attention.self.query.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.5.attention.self.query.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.5.attention.self.key.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.5.attention.self.key.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.5.attention.self.key.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.5.attention.self.key.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.5.attention.self.key.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.5.attention.self.value.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.5.attention.self.value.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.5.attention.self.value.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.5.attention.self.value.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.5.attention.self.value.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.6.attention.self.query.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.6.attention.self.query.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.6.attention.self.query.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.6.attention.self.query.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.6.attention.self.query.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.6.attention.self.key.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.6.attention.self.key.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.6.attention.self.key.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.6.attention.self.key.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.6.attention.self.key.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.6.attention.self.value.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.6.attention.self.value.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.6.attention.self.value.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.6.attention.self.value.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.6.attention.self.value.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.7.attention.self.query.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.7.attention.self.query.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.7.attention.self.query.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.7.attention.self.query.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.7.attention.self.query.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.7.attention.self.key.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.7.attention.self.key.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.7.attention.self.key.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.7.attention.self.key.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.7.attention.self.key.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.7.attention.self.value.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.7.attention.self.value.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.7.attention.self.value.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.7.attention.self.value.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.7.attention.self.value.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.8.attention.self.query.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.8.attention.self.query.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.8.attention.self.query.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.8.attention.self.query.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.8.attention.self.query.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.8.attention.self.key.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.8.attention.self.key.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.8.attention.self.key.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.8.attention.self.key.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.8.attention.self.key.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.8.attention.self.value.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.8.attention.self.value.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.8.attention.self.value.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.8.attention.self.value.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.8.attention.self.value.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.9.attention.self.query.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.9.attention.self.query.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.9.attention.self.query.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.9.attention.self.query.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.9.attention.self.query.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.9.attention.self.key.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.9.attention.self.key.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.9.attention.self.key.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.9.attention.self.key.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.9.attention.self.key.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.9.attention.self.value.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.9.attention.self.value.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.9.attention.self.value.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.9.attention.self.value.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.9.attention.self.value.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.10.attention.self.query.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.10.attention.self.query.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.10.attention.self.query.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.10.attention.self.query.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.10.attention.self.query.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.10.attention.self.key.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.10.attention.self.key.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.10.attention.self.key.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.10.attention.self.key.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.10.attention.self.key.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.10.attention.self.value.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.10.attention.self.value.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.10.attention.self.value.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.10.attention.self.value.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.10.attention.self.value.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.11.attention.self.query.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.11.attention.self.query.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.11.attention.self.query.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.11.attention.self.query.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.11.attention.self.query.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.11.attention.self.key.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.11.attention.self.key.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.11.attention.self.key.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.11.attention.self.key.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.11.attention.self.key.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.11.attention.self.value.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.11.attention.self.value.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.11.attention.self.value.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.11.attention.self.value.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.11.attention.self.value.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.12.attention.self.query.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.12.attention.self.query.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.12.attention.self.query.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.12.attention.self.query.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.12.attention.self.query.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.12.attention.self.key.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.12.attention.self.key.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.12.attention.self.key.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.12.attention.self.key.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.12.attention.self.key.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.12.attention.self.value.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.12.attention.self.value.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.12.attention.self.value.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.12.attention.self.value.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.12.attention.self.value.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.13.attention.self.query.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.13.attention.self.query.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.13.attention.self.query.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.13.attention.self.query.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.13.attention.self.query.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.13.attention.self.key.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.13.attention.self.key.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.13.attention.self.key.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.13.attention.self.key.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.13.attention.self.key.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.13.attention.self.value.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.13.attention.self.value.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.13.attention.self.value.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.13.attention.self.value.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.13.attention.self.value.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.14.attention.self.query.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.14.attention.self.query.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.14.attention.self.query.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.14.attention.self.query.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.14.attention.self.query.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.14.attention.self.key.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.14.attention.self.key.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.14.attention.self.key.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.14.attention.self.key.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.14.attention.self.key.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.14.attention.self.value.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.14.attention.self.value.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.14.attention.self.value.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.14.attention.self.value.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.14.attention.self.value.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.15.attention.self.query.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.15.attention.self.query.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.15.attention.self.query.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.15.attention.self.query.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.15.attention.self.query.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.15.attention.self.key.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.15.attention.self.key.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.15.attention.self.key.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.15.attention.self.key.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.15.attention.self.key.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.15.attention.self.value.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.15.attention.self.value.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.15.attention.self.value.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.15.attention.self.value.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.15.attention.self.value.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.16.attention.self.query.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.16.attention.self.query.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.16.attention.self.query.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.16.attention.self.query.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.16.attention.self.query.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.16.attention.self.key.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.16.attention.self.key.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.16.attention.self.key.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.16.attention.self.key.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.16.attention.self.key.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.16.attention.self.value.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.16.attention.self.value.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.16.attention.self.value.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.16.attention.self.value.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.16.attention.self.value.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.17.attention.self.query.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.17.attention.self.query.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.17.attention.self.query.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.17.attention.self.query.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.17.attention.self.query.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.17.attention.self.key.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.17.attention.self.key.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.17.attention.self.key.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.17.attention.self.key.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.17.attention.self.key.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.17.attention.self.value.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.17.attention.self.value.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.17.attention.self.value.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.17.attention.self.value.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.17.attention.self.value.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.18.attention.self.query.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.18.attention.self.query.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.18.attention.self.query.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.18.attention.self.query.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.18.attention.self.query.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.18.attention.self.key.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.18.attention.self.key.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.18.attention.self.key.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.18.attention.self.key.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.18.attention.self.key.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.18.attention.self.value.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.18.attention.self.value.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.18.attention.self.value.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.18.attention.self.value.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.18.attention.self.value.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.19.attention.self.query.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.19.attention.self.query.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.19.attention.self.query.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.19.attention.self.query.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.19.attention.self.query.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.19.attention.self.key.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.19.attention.self.key.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.19.attention.self.key.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.19.attention.self.key.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.19.attention.self.key.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.19.attention.self.value.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.19.attention.self.value.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.19.attention.self.value.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.19.attention.self.value.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.19.attention.self.value.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.20.attention.self.query.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.20.attention.self.query.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.20.attention.self.query.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.20.attention.self.query.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.20.attention.self.query.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.20.attention.self.key.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.20.attention.self.key.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.20.attention.self.key.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.20.attention.self.key.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.20.attention.self.key.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.20.attention.self.value.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.20.attention.self.value.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.20.attention.self.value.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.20.attention.self.value.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.20.attention.self.value.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.21.attention.self.query.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.21.attention.self.query.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.21.attention.self.query.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.21.attention.self.query.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.21.attention.self.query.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.21.attention.self.key.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.21.attention.self.key.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.21.attention.self.key.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.21.attention.self.key.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.21.attention.self.key.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.21.attention.self.value.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.21.attention.self.value.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.21.attention.self.value.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.21.attention.self.value.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.21.attention.self.value.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.22.attention.self.query.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.22.attention.self.query.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.22.attention.self.query.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.22.attention.self.query.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.22.attention.self.query.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.22.attention.self.key.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.22.attention.self.key.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.22.attention.self.key.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.22.attention.self.key.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.22.attention.self.key.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.22.attention.self.value.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.22.attention.self.value.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.22.attention.self.value.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.22.attention.self.value.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.22.attention.self.value.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.23.attention.self.query.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.23.attention.self.query.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.23.attention.self.query.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.23.attention.self.query.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.23.attention.self.query.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.23.attention.self.key.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.23.attention.self.key.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.23.attention.self.key.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.23.attention.self.key.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.23.attention.self.key.analog_module.tile_c.analog_ctx lr=0.01
+  Analog: mobilebert.encoder.layer.23.attention.self.value.analog_module.tile_a.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.23.attention.self.value.analog_module.tile_a.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.23.attention.self.value.analog_module.tile_b.analog_ctx lr=0.01
+  Digital: mobilebert.encoder.layer.23.attention.self.value.analog_module.tile_b.out_scaling_alpha lr=1.0
+  Analog: mobilebert.encoder.layer.23.attention.self.value.analog_module.tile_c.analog_ctx lr=0.01
+  Digital: classifier.weight                                            lr=1.0
+  Digital: classifier.bias                                              lr=1.0
+
+✓ Optimizer created (default lr=0.01)
+
+[5/6] Setting up training...
+✓ Trainer configured
+
+[6/6] Running training (10 steps)...
+================================================================================
+  0%|                                                                                                                                                                                                                          | 0/10 [00:00<?, ?it/s]Traceback (most recent call last):
+  File "/data/LRTT_transformer/experiments/test_lrtt_gradient.py", line 154, in <module>
+    trainer.train()
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/trainer.py", line 2164, in train
+    return inner_training_loop(
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/trainer.py", line 2524, in _inner_training_loop
+    tr_loss_step = self.training_step(model, inputs, num_items_in_batch)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/trainer.py", line 3654, in training_step
+    loss = self.compute_loss(model, inputs, num_items_in_batch=num_items_in_batch)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/trainer.py", line 3729, in compute_loss
+    raise ValueError(
+ValueError: The model did not return a loss from the inputs, only the following keys: logits. For reference, the inputs it received are input_ids,token_type_ids,attention_mask.
+
+================================================================================
+✗ Training failed with error:
+  ValueError: The model did not return a loss from the inputs, only the following keys: logits. For reference, the inputs it received are input_ids,token_type_ids,attention_mask.
+================================================================================
+
+[Final Model Stats]
+  0%|          | 0/10 [00:00<?, ?it/s]                                                                                                                                                                                                                

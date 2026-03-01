@@ -1,0 +1,57 @@
+{
+  "experiment": "AnalogSGD TikiTaka v2 GLUE Summary",
+  "date": "2026-02-11",
+  "script": "sweep_tikitaka_batch256_sgd_lr2e4.py",
+  "common_settings": {
+    "optimizer": "AnalogSGD (momentum=0)",
+    "model": "google/mobilebert-uncased",
+    "analog_conversion": "QKV only (query, key, value)",
+    "device_config": "ChoppedTransferCompound (LinearStepDevice + SoftBoundsReferenceDevice)",
+    "classifier": "digital, trainable",
+    "bias": "frozen",
+    "batch_size": 64,
+    "warmup_ratio": 0.1,
+    "io": "ABS_MAX / ITERATIVE, noise=0"
+  },
+  "best_results": {
+    "rte": {
+      "metric": "accuracy",
+      "value": 0.5704,
+      "epochs": 3,
+      "trials": 50,
+      "best_params": {"lr": 0.00729, "t_lr": 0.572, "f_lr": 0.780, "te": 881},
+      "random_baseline": 0.527
+    },
+    "mrpc": {
+      "metric": "f1",
+      "value": 0.8134,
+      "epochs": 3,
+      "trials": 50,
+      "best_params": {"lr": 0.0002, "t_lr": 3.986, "f_lr": 3.0, "te": 491},
+      "majority_baseline": 0.8122
+    },
+    "stsb": {
+      "metric": "spearmanr",
+      "value": 0.2652,
+      "epochs": 6,
+      "trials": 50,
+      "best_params": {"lr": 0.00326, "t_lr": 0.094, "f_lr": 3.326, "te": 19},
+      "note": "Regression task, requires very different HP profile from classification"
+    }
+  },
+  "hp_analysis": {
+    "classification_tasks_rte_mrpc": {
+      "lr": "Wide range tolerant (1e-4 ~ 1e-2)",
+      "transfer_lr": "Wide range tolerant (0.02 ~ 4.0)",
+      "fast_lr": "Wide range tolerant (0.2 ~ 4.8)",
+      "transfer_every": "Medium-high preferred (300~1000)"
+    },
+    "regression_task_stsb": {
+      "lr": "Mid-high required (0.0015 ~ 0.008)",
+      "transfer_lr": "Very low required (0.01 ~ 0.1)",
+      "fast_lr": "High required (>3.0)",
+      "transfer_every": "Very low required (10~27)"
+    },
+    "key_insight": "STS-B regression needs frequent small transfers + high fast_lr. Classification tasks are much more HP-tolerant."
+  }
+}

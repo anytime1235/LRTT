@@ -1,0 +1,17 @@
+{
+  "git_hash": "N/A",
+  "timestamp": "2026-02-28T07:30:23.364580",
+  "files_read": [
+    "/data/results/diag_fwd_io/adc4_module_mac_summary.csv",
+    "/data/results/diag_fwd_io/adc6_module_mac_summary.csv",
+    "/data/results/diag_fwd_io/adc8_module_mac_summary.csv",
+    "/data/results/diag_fwd_io/adc10_module_mac_summary.csv",
+    "/data/results/diag_fwd_io/adc12_module_mac_summary.csv"
+  ],
+  "key_config": {
+    "metric": "out_clip_ratio",
+    "vmin": 0.0,
+    "vmax": 0.0018,
+    "log_scale": false
+  }
+}

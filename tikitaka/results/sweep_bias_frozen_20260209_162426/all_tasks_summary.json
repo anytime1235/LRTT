@@ -1,0 +1,124 @@
+{
+  "squad": {
+    "task": "squad",
+    "best_trial": 4,
+    "best_metric": 14.737974844627871,
+    "best_params": {
+      "learning_rate": 0.0026070247583707684,
+      "transfer_lr": 0.054971677873830976,
+      "fast_lr": 2.9112340638778833
+    },
+    "fixed_params": {
+      "transfer_every": 20,
+      "auto_granularity": 169.0,
+      "in_chop_prob": 0.061
+    },
+    "metric_name": "f1",
+    "batch_size": 256,
+    "scheduler": "linear_with_min_lr",
+    "warmup_steps": 0,
+    "min_lr_rate": 0.05,
+    "all_trials": [
+      {
+        "number": 0,
+        "value": 10.118509302738353,
+        "params": {
+          "learning_rate": 0.00108,
+          "transfer_lr": 0.269,
+          "fast_lr": 0.295
+        },
+        "state": "TrialState.COMPLETE"
+      },
+      {
+        "number": 1,
+        "value": 9.23570283173553,
+        "params": {
+          "learning_rate": 0.0005611516415334506,
+          "transfer_lr": 3.984727409321964,
+          "fast_lr": 2.209382128343645
+        },
+        "state": "TrialState.COMPLETE"
+      },
+      {
+        "number": 2,
+        "value": 12.528793585724019,
+        "params": {
+          "learning_rate": 0.0015751320499779737,
+          "transfer_lr": 0.10256691315437247,
+          "fast_lr": 0.5101838349917979
+        },
+        "state": "TrialState.COMPLETE"
+      },
+      {
+        "number": 3,
+        "value": 8.70059578855885,
+        "params": {
+          "learning_rate": 0.00013066739238053285,
+          "transfer_lr": 2.699742204893714,
+          "fast_lr": 1.8232892846424662
+        },
+        "state": "TrialState.COMPLETE"
+      },
+      {
+        "number": 4,
+        "value": 14.737974844627871,
+        "params": {
+          "learning_rate": 0.0026070247583707684,
+          "transfer_lr": 0.054971677873830976,
+          "fast_lr": 2.9112340638778833
+        },
+        "state": "TrialState.COMPLETE"
+      },
+      {
+        "number": 5,
+        "value": -Infinity,
+        "params": {
+          "learning_rate": 0.004622589001020831,
+          "transfer_lr": 0.13293771991636347,
+          "fast_lr": 0.5863836532609469
+        },
+        "state": "TrialState.COMPLETE"
+      },
+      {
+        "number": 6,
+        "value": 10.798244420191581,
+        "params": {
+          "learning_rate": 0.00023270677083837802,
+          "transfer_lr": 0.20298058052421522,
+          "fast_lr": 1.5980314733151018
+        },
+        "state": "TrialState.COMPLETE"
+      },
+      {
+        "number": 7,
+        "value": 12.70036472687474,
+        "params": {
+          "learning_rate": 0.0007309539835912913,
+          "transfer_lr": 0.19117376123375926,
+          "fast_lr": 1.8549660394310197
+        },
+        "state": "TrialState.COMPLETE"
+      },
+      {
+        "number": 8,
+        "value": 9.92393138936224,
+        "params": {
+          "learning_rate": 0.00019010245319870352,
+          "transfer_lr": 0.19198146499020852,
+          "fast_lr": 1.1307674377163905
+        },
+        "state": "TrialState.COMPLETE"
+      },
+      {
+        "number": 9,
+        "value": 9.927498748268736,
+        "params": {
+          "learning_rate": 0.000816845589476017,
+          "transfer_lr": 1.8591820902866028,
+          "fast_lr": 0.6390376573671613
+        },
+        "state": "TrialState.COMPLETE"
+      }
+    ]
+  }
+}

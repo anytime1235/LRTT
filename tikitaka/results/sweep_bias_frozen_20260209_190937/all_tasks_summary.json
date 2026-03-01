@@ -1,0 +1,5 @@
+{
+  "squad": {
+    "error": "CUDA_CALL Error 'an illegal memory access was encountered' at cuda_util.cu:1363\n"
+  }
+}

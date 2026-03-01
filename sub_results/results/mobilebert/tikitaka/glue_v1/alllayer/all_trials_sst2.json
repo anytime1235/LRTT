@@ -1,0 +1,122 @@
+[
+  {
+    "trial": 0,
+    "value": 0.8497706422018348,
+    "params": {
+      "learning_rate": 0.01,
+      "transfer_every": 1,
+      "fast_lr": 5.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 8,
+    "value": 0.8165137614678899,
+    "params": {
+      "learning_rate": 0.1,
+      "transfer_every": 10,
+      "fast_lr": 5.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 9,
+    "value": 0.7786697247706422,
+    "params": {
+      "learning_rate": 0.1,
+      "transfer_every": 10,
+      "fast_lr": 1.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 1,
+    "value": 0.7511467889908257,
+    "params": {
+      "learning_rate": 1.0,
+      "transfer_every": 10,
+      "fast_lr": 5.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 10,
+    "value": 0.7373853211009175,
+    "params": {
+      "learning_rate": 0.01,
+      "transfer_every": 1,
+      "fast_lr": 1.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 5,
+    "value": 0.7247706422018348,
+    "params": {
+      "learning_rate": 0.1,
+      "transfer_every": 1,
+      "fast_lr": 5.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 11,
+    "value": 0.5206422018348624,
+    "params": {
+      "learning_rate": 1.0,
+      "transfer_every": 10,
+      "fast_lr": 1.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 2,
+    "value": 0.5137614678899083,
+    "params": {
+      "learning_rate": 1.0,
+      "transfer_every": 1,
+      "fast_lr": 1.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 7,
+    "value": 0.5126146788990825,
+    "params": {
+      "learning_rate": 0.01,
+      "transfer_every": 10,
+      "fast_lr": 5.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 3,
+    "value": 0.5091743119266054,
+    "params": {
+      "learning_rate": 1.0,
+      "transfer_every": 1,
+      "fast_lr": 5.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 4,
+    "value": 0.5091743119266054,
+    "params": {
+      "learning_rate": 0.1,
+      "transfer_every": 1,
+      "fast_lr": 1.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 6,
+    "value": 0.5,
+    "params": {
+      "learning_rate": 0.01,
+      "transfer_every": 10,
+      "fast_lr": 1.0
+    },
+    "state": "TrialState.COMPLETE"
+  }
+]

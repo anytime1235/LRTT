@@ -1,0 +1,38 @@
+{
+  "tag": "Real",
+  "description": "Validated experiment: ABS_MAX/ITERATIVE IO, out_noise=0.0, bias frozen, full dataset",
+  "task": "rte",
+  "best_trial": 0,
+  "best_metric": 0.5270758122743683,
+  "best_params": {
+    "learning_rate": 0.0023065114558800644,
+    "transfer_lr": 3.986266963830462,
+    "transfer_every": 491
+  },
+  "fixed_params": {
+    "auto_granularity": 169.0,
+    "in_chop_prob": 0.061,
+    "noise_management": "ABS_MAX",
+    "bound_management": "ITERATIVE",
+    "out_noise": 0.0,
+    "bias_frozen": true
+  },
+  "metric_name": "accuracy",
+  "num_epochs": 3,
+  "batch_size": 64,
+  "scheduler": "linear_warmup_decay_to_0",
+  "squad_warmup_steps": 500,
+  "glue_warmup_ratio": 0.1,
+  "all_trials": [
+    {
+      "number": 0,
+      "value": 0.5270758122743683,
+      "params": {
+        "learning_rate": 0.0023065114558800644,
+        "transfer_lr": 3.986266963830462,
+        "transfer_every": 491
+      },
+      "state": "TrialState.COMPLETE"
+    }
+  ]
+}

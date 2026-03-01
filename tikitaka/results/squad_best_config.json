@@ -1,0 +1,15 @@
+{
+  "task": "squad",
+  "best_run_id": "run-20260206_023604-jzbqbcrw",
+  "best_trial": 42,
+  "best_f1": 61.933452821159676,
+  "best_em": 50.9,
+  "best_params": {
+    "learning_rate": 0.00036206364180582277,
+    "transfer_lr": 0.7834413109516445,
+    "transfer_every": 123,
+    "fast_lr": 0.17387836516374036,
+    "auto_granularity": 516.6976964566325,
+    "in_chop_prob": 0.04734457410734495
+  }
+}

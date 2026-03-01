@@ -1,0 +1,1011 @@
+================================================================================
+SMALL LoRA ALPHA TEST
+================================================================================
+Question: Alpha를 더 작게 하면?
+  - 안정성: 더 좋아질 것
+  - 학습 능력: 나빠질 수 있음 (LoRA 기여도 감소)
+================================================================================
+Fixed LR: 0.001
+Testing Alpha values: [0.001, 0.003, 0.01, 0.03, 0.1]
+Batches: 20, Batch Size: 256
+================================================================================
+
+Loading data...
+Loaded: 346 train batches, 2023 eval features
+
+================================================================================
+TEST: Alpha = 0.001
+================================================================================
+LR: 0.001, Alpha: 0.001, Product: 0.000001
+Some weights of MobileBertForQuestionAnswering were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['qa_outputs.bias', 'qa_outputs.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+Initial evaluation...
+Initial: F1=3.51%, EM=0.65%
+Training 20 batches...
+  Batch  0: loss=  89630.66, grad=  3125203.00
+  Batch  5: loss=1484270.25, grad=140181152.00
+  Batch 10: loss=  40608.21, grad=  6799758.00
+  Batch 15: loss=  76723.84, grad= 92941200.00
+
+Final evaluation...
+
+✅ SUCCESS
+  Loss: avg=521024.25, max=2927335.00, final=25453.57
+  Grad: avg=65082939.01, max=200799632.00
+  F1: 3.51% → 5.51% (Δ=+2.00%)
+  EM: 0.65% → 0.10%
+
+================================================================================
+TEST: Alpha = 0.003
+================================================================================
+LR: 0.001, Alpha: 0.003, Product: 0.000003
+Some weights of MobileBertForQuestionAnswering were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['qa_outputs.bias', 'qa_outputs.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+Initial evaluation...
+Initial: F1=3.56%, EM=0.45%
+Training 20 batches...
+  Batch  0: loss=  86011.06, grad=  2974503.75
+  Batch  5: loss=1443258.12, grad=137082560.00
+  Batch 10: loss=  20749.18, grad=  3124520.50
+  Batch 15: loss= 107608.24, grad= 69798688.00
+
+Final evaluation...
+
+✅ SUCCESS
+  Loss: avg=480141.30, max=2946858.50, final=608.96
+  Grad: avg=50307043.81, max=201243808.00
+  F1: 3.56% → 4.43% (Δ=+0.87%)
+  EM: 0.45% → 0.10%
+
+================================================================================
+TEST: Alpha = 0.01
+================================================================================
+LR: 0.001, Alpha: 0.01, Product: 0.000010
+Some weights of MobileBertForQuestionAnswering were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['qa_outputs.bias', 'qa_outputs.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+Initial evaluation...
+Initial: F1=3.23%, EM=0.40%
+Training 20 batches...
+  Batch  0: loss=  79124.39, grad=  2770347.75
+  Batch  5: loss=   3169.55, grad=   283202.53
+  Batch 10: loss=     31.55, grad=     1769.92
+  Batch 15: loss=     24.36, grad=     2685.18
+
+Final evaluation...
+
+✅ SUCCESS
+  Loss: avg=335475.23, max=2929005.50, final=146.89
+  Grad: avg=27372174.80, max=200328128.00
+  F1: 3.23% → 6.63% (Δ=+3.41%)
+  EM: 0.40% → 0.05%
+
+================================================================================
+TEST: Alpha = 0.03
+================================================================================
+LR: 0.001, Alpha: 0.03, Product: 0.000030
+Some weights of MobileBertForQuestionAnswering were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['qa_outputs.bias', 'qa_outputs.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=1 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=2 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+[DTE DEBUG] step=3 lr_current=0.00100000 lr_peak=None te=1000000 dynamic_te=False te_warmup_steps=0
+Initial evaluation...
+Initial: F1=3.69%, EM=0.55%
+Training 20 batches...
+  Batch  0: loss=  82348.20, grad=  2875322.00
+  Batch  5: loss=  62747.98, grad=  5480577.50
+  Batch 10: loss=    146.66, grad=     1907.02
+  Batch 15: loss=     90.97, grad=     1463.79
+
+Final evaluation...
+
+✅ SUCCESS
+  Loss: avg=237450.88, max=2544079.50, final=75.90
+  Grad: avg=19840266.43, max=199496528.00
+  F1: 3.69% → 5.64% (Δ=+1.95%)
+  EM: 0.55% → 0.05%
+
+================================================================================
+TEST: Alpha = 0.1
+================================================================================
+LR: 0.001, Alpha: 0.1, Product: 0.000100
+Some weights of MobileBertForQuestionAnswering were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['qa_outputs.bias', 'qa_outputs.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Initial evaluation...
+Initial: F1=3.45%, EM=0.25%
+Training 20 batches...
+
+❌ EXCEPTION: CUDA_CALL Error 'out of memory' at cuda_util.cu:974
+
+
+================================================================================
+SUMMARY: Small Alpha Test (LR=0.001)
+================================================================================
+Alpha    Product    Result     Final Loss   Init F1    Final F1   ΔF1       
+--------------------------------------------------------------------------------
+0.001    0.000001   ✅ PASS     25453.57     3.51%      5.51%      +2.00%    
+0.003    0.000003   ✅ PASS     608.96       3.56%      4.43%      +0.87%    
+0.010    0.000010   ✅ PASS     146.89       3.23%      6.63%      +3.41%    
+0.030    0.000030   ✅ PASS     75.90        3.69%      5.64%      +1.95%    
+0.100    0.000100   ❌ ERROR    N/A          N/A        N/A        N/A       
+
+4/5 tests passed
+
+================================================================================
+ANALYSIS
+================================================================================
+✅ Safe Alpha range: 0.001 ~ 0.030
+   Safe Product range: 0.000001 ~ 0.000030
+
+📈 Learning Effectiveness:
+   F1 improvements: +0.87% ~ +3.41%
+   Average improvement: +2.06%
+
+🏆 Best learning alpha: 0.010 (ΔF1=+3.41%)
+
+💡 Recommendation:
+   모든 alpha에서 학습 효과 확인 ✅
+   → Alpha를 더 작게 해도 학습은 가능!
+   Alpha 0.001에서도 학습 효과 있음 (ΔF1=+2.00%)
+   → 더 작은 alpha도 시도 가능!
+================================================================================

@@ -1,0 +1,46 @@
+{
+  "name": "te=1e10 no outscale",
+  "status": "OK",
+  "params": {
+    "learning_rate": 0.0012609,
+    "transfer_lr": 0.050069,
+    "fast_lr": 2.192782,
+    "transfer_every": 10000000000,
+    "auto_granularity": 169.0,
+    "in_chop_prob": 0.061
+  },
+  "qa_only": false,
+  "learn_out_scaling": false,
+  "trainable_params": 1096,
+  "best_f1": 7.652569021296152,
+  "epoch_results": [
+    {
+      "epoch": 1,
+      "loss": 406639.0285884261,
+      "f1": 7.652569021296152,
+      "em": 0.25,
+      "lr": 0.001181043
+    },
+    {
+      "epoch": 2,
+      "loss": 218090.78906004428,
+      "f1": 0.631695480873931,
+      "em": 0.0,
+      "lr": 0.001101186
+    },
+    {
+      "epoch": 3,
+      "loss": 205518.8765648365,
+      "f1": 0.6757909988924103,
+      "em": 0.1,
+      "lr": 0.001021329
+    },
+    {
+      "epoch": 4,
+      "loss": 242690.3895734787,
+      "f1": 0.5802332484212614,
+      "em": 0.1,
+      "lr": 0.000941472
+    }
+  ]
+}

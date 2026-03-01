@@ -1,0 +1,6 @@
+{
+  "task": "rte",
+  "metric": "accuracy",
+  "best_value": -Infinity,
+  "best_params": {}
+}

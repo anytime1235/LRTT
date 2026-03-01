@@ -1,0 +1,438 @@
+{
+  "timestamp": "20260204_092608",
+  "config": {
+    "model_name": "google/mobilebert-uncased",
+    "task_name": "sst2",
+    "max_seq_length": 128,
+    "batch_size": 32,
+    "seed": 42,
+    "num_steps": 250,
+    "eval_every": 50,
+    "tt_lr": 0.000371,
+    "tt_transfer_lr": 1.362,
+    "tt_transfer_every": 100,
+    "tt_fast_lr": 0.926,
+    "tt_auto_granularity": 107.09,
+    "tt_in_chop_prob": 0.071,
+    "target_modules": [
+      "query"
+    ],
+    "output_dir": "/data"
+  },
+  "result": {
+    "transfer_lr": 1.362,
+    "final_accuracy": 0.49426605504587157,
+    "measurements": [
+      {
+        "step": 100,
+        "layer": "mobilebert.encoder.layer.0.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 19.389101028442383,
+        "W_after_norm": 19.384004592895508,
+        "delta_W_norm": 0.06849656999111176
+      },
+      {
+        "step": 100,
+        "layer": "mobilebert.encoder.layer.1.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 14.316880226135254,
+        "W_after_norm": 14.312606811523438,
+        "delta_W_norm": 0.06938343495130539
+      },
+      {
+        "step": 100,
+        "layer": "mobilebert.encoder.layer.2.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 15.878896713256836,
+        "W_after_norm": 15.873361587524414,
+        "delta_W_norm": 0.06953392922878265
+      },
+      {
+        "step": 100,
+        "layer": "mobilebert.encoder.layer.3.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 29.094942092895508,
+        "W_after_norm": 29.086727142333984,
+        "delta_W_norm": 0.06998639553785324
+      },
+      {
+        "step": 100,
+        "layer": "mobilebert.encoder.layer.4.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 15.539082527160645,
+        "W_after_norm": 15.534111022949219,
+        "delta_W_norm": 0.06935194134712219
+      },
+      {
+        "step": 100,
+        "layer": "mobilebert.encoder.layer.5.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 14.900195121765137,
+        "W_after_norm": 14.896979331970215,
+        "delta_W_norm": 0.06867849081754684
+      },
+      {
+        "step": 100,
+        "layer": "mobilebert.encoder.layer.6.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 21.539363861083984,
+        "W_after_norm": 21.5331974029541,
+        "delta_W_norm": 0.07059834152460098
+      },
+      {
+        "step": 100,
+        "layer": "mobilebert.encoder.layer.7.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 22.732667922973633,
+        "W_after_norm": 22.725709915161133,
+        "delta_W_norm": 0.06937338411808014
+      },
+      {
+        "step": 100,
+        "layer": "mobilebert.encoder.layer.8.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 17.69698715209961,
+        "W_after_norm": 17.691162109375,
+        "delta_W_norm": 0.0698024183511734
+      },
+      {
+        "step": 100,
+        "layer": "mobilebert.encoder.layer.9.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 15.383837699890137,
+        "W_after_norm": 15.378952980041504,
+        "delta_W_norm": 0.06975692510604858
+      },
+      {
+        "step": 100,
+        "layer": "mobilebert.encoder.layer.10.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 16.82636833190918,
+        "W_after_norm": 16.821422576904297,
+        "delta_W_norm": 0.0694388747215271
+      },
+      {
+        "step": 100,
+        "layer": "mobilebert.encoder.layer.11.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 15.697068214416504,
+        "W_after_norm": 15.692445755004883,
+        "delta_W_norm": 0.06915755569934845
+      },
+      {
+        "step": 100,
+        "layer": "mobilebert.encoder.layer.12.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 14.663420677185059,
+        "W_after_norm": 14.66076374053955,
+        "delta_W_norm": 0.06987746059894562
+      },
+      {
+        "step": 100,
+        "layer": "mobilebert.encoder.layer.13.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 14.584582328796387,
+        "W_after_norm": 14.580822944641113,
+        "delta_W_norm": 0.06915825605392456
+      },
+      {
+        "step": 100,
+        "layer": "mobilebert.encoder.layer.14.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 18.80216407775879,
+        "W_after_norm": 18.797151565551758,
+        "delta_W_norm": 0.07035762816667557
+      },
+      {
+        "step": 100,
+        "layer": "mobilebert.encoder.layer.15.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 14.662322998046875,
+        "W_after_norm": 14.659072875976562,
+        "delta_W_norm": 0.06889418512582779
+      },
+      {
+        "step": 100,
+        "layer": "mobilebert.encoder.layer.16.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 14.982728004455566,
+        "W_after_norm": 14.980185508728027,
+        "delta_W_norm": 0.06898041069507599
+      },
+      {
+        "step": 100,
+        "layer": "mobilebert.encoder.layer.17.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 14.789885520935059,
+        "W_after_norm": 14.787145614624023,
+        "delta_W_norm": 0.06916385143995285
+      },
+      {
+        "step": 100,
+        "layer": "mobilebert.encoder.layer.18.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 14.5911226272583,
+        "W_after_norm": 14.5863676071167,
+        "delta_W_norm": 0.06936813145875931
+      },
+      {
+        "step": 100,
+        "layer": "mobilebert.encoder.layer.19.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 15.235002517700195,
+        "W_after_norm": 15.2313232421875,
+        "delta_W_norm": 0.06905679404735565
+      },
+      {
+        "step": 100,
+        "layer": "mobilebert.encoder.layer.20.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 15.057798385620117,
+        "W_after_norm": 15.053930282592773,
+        "delta_W_norm": 0.07021767646074295
+      },
+      {
+        "step": 100,
+        "layer": "mobilebert.encoder.layer.21.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 15.104294776916504,
+        "W_after_norm": 15.099702835083008,
+        "delta_W_norm": 0.07002115994691849
+      },
+      {
+        "step": 100,
+        "layer": "mobilebert.encoder.layer.22.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 15.584875106811523,
+        "W_after_norm": 15.58101749420166,
+        "delta_W_norm": 0.06875724345445633
+      },
+      {
+        "step": 100,
+        "layer": "mobilebert.encoder.layer.23.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 15.434916496276855,
+        "W_after_norm": 15.431143760681152,
+        "delta_W_norm": 0.0680323913693428
+      },
+      {
+        "step": 200,
+        "layer": "mobilebert.encoder.layer.0.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 18.888294219970703,
+        "W_after_norm": 18.88386344909668,
+        "delta_W_norm": 0.06789886951446533
+      },
+      {
+        "step": 200,
+        "layer": "mobilebert.encoder.layer.1.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 13.946996688842773,
+        "W_after_norm": 13.942259788513184,
+        "delta_W_norm": 0.06889594346284866
+      },
+      {
+        "step": 200,
+        "layer": "mobilebert.encoder.layer.2.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 15.433038711547852,
+        "W_after_norm": 15.429214477539062,
+        "delta_W_norm": 0.06870623677968979
+      },
+      {
+        "step": 200,
+        "layer": "mobilebert.encoder.layer.3.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 28.25943946838379,
+        "W_after_norm": 28.250261306762695,
+        "delta_W_norm": 0.07039640098810196
+      },
+      {
+        "step": 200,
+        "layer": "mobilebert.encoder.layer.4.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 15.151107788085938,
+        "W_after_norm": 15.147581100463867,
+        "delta_W_norm": 0.06890933960676193
+      },
+      {
+        "step": 200,
+        "layer": "mobilebert.encoder.layer.5.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 14.565218925476074,
+        "W_after_norm": 14.56140422821045,
+        "delta_W_norm": 0.06824776530265808
+      },
+      {
+        "step": 200,
+        "layer": "mobilebert.encoder.layer.6.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 20.96685218811035,
+        "W_after_norm": 20.960582733154297,
+        "delta_W_norm": 0.06934209913015366
+      },
+      {
+        "step": 200,
+        "layer": "mobilebert.encoder.layer.7.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 22.10074234008789,
+        "W_after_norm": 22.094619750976562,
+        "delta_W_norm": 0.06827202439308167
+      },
+      {
+        "step": 200,
+        "layer": "mobilebert.encoder.layer.8.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 17.221500396728516,
+        "W_after_norm": 17.217269897460938,
+        "delta_W_norm": 0.0677502453327179
+      },
+      {
+        "step": 200,
+        "layer": "mobilebert.encoder.layer.9.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 14.99921989440918,
+        "W_after_norm": 14.996140480041504,
+        "delta_W_norm": 0.06832941621541977
+      },
+      {
+        "step": 200,
+        "layer": "mobilebert.encoder.layer.10.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 16.414335250854492,
+        "W_after_norm": 16.410783767700195,
+        "delta_W_norm": 0.06833915412425995
+      },
+      {
+        "step": 200,
+        "layer": "mobilebert.encoder.layer.11.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 15.337250709533691,
+        "W_after_norm": 15.332462310791016,
+        "delta_W_norm": 0.06851288676261902
+      },
+      {
+        "step": 200,
+        "layer": "mobilebert.encoder.layer.12.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 14.346051216125488,
+        "W_after_norm": 14.343201637268066,
+        "delta_W_norm": 0.06886661797761917
+      },
+      {
+        "step": 200,
+        "layer": "mobilebert.encoder.layer.13.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 14.237258911132812,
+        "W_after_norm": 14.234868049621582,
+        "delta_W_norm": 0.06854841113090515
+      },
+      {
+        "step": 200,
+        "layer": "mobilebert.encoder.layer.14.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 18.309770584106445,
+        "W_after_norm": 18.304922103881836,
+        "delta_W_norm": 0.0693853497505188
+      },
+      {
+        "step": 200,
+        "layer": "mobilebert.encoder.layer.15.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 14.351827621459961,
+        "W_after_norm": 14.349346160888672,
+        "delta_W_norm": 0.06847979873418808
+      },
+      {
+        "step": 200,
+        "layer": "mobilebert.encoder.layer.16.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 14.664873123168945,
+        "W_after_norm": 14.661527633666992,
+        "delta_W_norm": 0.06844833493232727
+      },
+      {
+        "step": 200,
+        "layer": "mobilebert.encoder.layer.17.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 14.474971771240234,
+        "W_after_norm": 14.471287727355957,
+        "delta_W_norm": 0.06855805963277817
+      },
+      {
+        "step": 200,
+        "layer": "mobilebert.encoder.layer.18.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 14.292135238647461,
+        "W_after_norm": 14.288588523864746,
+        "delta_W_norm": 0.06872602552175522
+      },
+      {
+        "step": 200,
+        "layer": "mobilebert.encoder.layer.19.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 14.88750171661377,
+        "W_after_norm": 14.88475513458252,
+        "delta_W_norm": 0.06829675287008286
+      },
+      {
+        "step": 200,
+        "layer": "mobilebert.encoder.layer.20.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 14.709330558776855,
+        "W_after_norm": 14.704564094543457,
+        "delta_W_norm": 0.06937235593795776
+      },
+      {
+        "step": 200,
+        "layer": "mobilebert.encoder.layer.21.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 14.754815101623535,
+        "W_after_norm": 14.753031730651855,
+        "delta_W_norm": 0.0687151700258255
+      },
+      {
+        "step": 200,
+        "layer": "mobilebert.encoder.layer.22.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 15.292455673217773,
+        "W_after_norm": 15.28627872467041,
+        "delta_W_norm": 0.06976807117462158
+      },
+      {
+        "step": 200,
+        "layer": "mobilebert.encoder.layer.23.attention.self.query",
+        "transfer_lr": 1.362,
+        "W_before_norm": 15.090959548950195,
+        "W_after_norm": 15.08711051940918,
+        "delta_W_norm": 0.07080616801977158
+      }
+    ],
+    "accuracies": [
+      {
+        "step": 50,
+        "accuracy": 0.4919724770642202
+      },
+      {
+        "step": 100,
+        "accuracy": 0.4827981651376147
+      },
+      {
+        "step": 150,
+        "accuracy": 0.4896788990825688
+      },
+      {
+        "step": 200,
+        "accuracy": 0.4908256880733945
+      },
+      {
+        "step": 250,
+        "accuracy": 0.4793577981651376
+      },
+      {
+        "step": 250,
+        "accuracy": 0.49426605504587157
+      }
+    ]
+  }
+}

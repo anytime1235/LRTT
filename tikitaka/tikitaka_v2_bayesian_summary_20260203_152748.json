@@ -1,0 +1,14 @@
+{
+  "best_trial": 48,
+  "best_accuracy": 0.7052752293577982,
+  "best_params": {
+    "learning_rate": 0.0003710151386542987,
+    "transfer_lr": 1.3621885301255146,
+    "transfer_every": 100,
+    "fast_lr": 0.9255325525396981,
+    "auto_granularity": 107.08904025628765,
+    "in_chop_prob": 0.07057770184270386
+  },
+  "n_trials": 50,
+  "csv_path": "/data/tikitaka_v2_bayesian_results_20260203_152748.csv"
+}

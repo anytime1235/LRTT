@@ -1,0 +1,10 @@
+{
+  "task": "sst2",
+  "metric": "accuracy",
+  "best_value": 0.908256880733945,
+  "best_params": {
+    "learning_rate": 0.023345864076016236,
+    "lora_alpha": 0.01,
+    "target_ab_lr": 0.03
+  }
+}

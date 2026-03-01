@@ -1,0 +1,73 @@
+{
+    "model": "google/mobilebert-uncased",
+    "method": "TikiTaka v2 (ChoppedTransferCompound)",
+    "task": "sst2",
+    "experiment_date": "2026-02-11",
+    "description": "SST-2 ablation studies to isolate component contributions. All use best params from AnalogAdam sweep (trial 33).",
+    "base_params": {
+        "learning_rate": 0.0023065114558800644,
+        "transfer_lr": 3.986266963830462,
+        "transfer_every": 491,
+        "auto_granularity": 169.0,
+        "in_chop_prob": 0.061,
+        "fast_lr": 3.0,
+        "batch_size": 64,
+        "num_epochs": 3,
+        "target_modules": ["query", "key", "value"]
+    },
+    "experiments": [
+        {
+            "name": "full_analogadam",
+            "description": "Original: AnalogAdam, classifier trainable, te=491",
+            "optimizer": "AnalogAdam",
+            "classifier_frozen": false,
+            "transfer_every": 491,
+            "accuracy": 0.9014,
+            "trainable_digital_params": "9,288 (out_scaling) + classifier",
+            "analog_tile_updates": true,
+            "c_tile_transfer": true
+        },
+        {
+            "name": "classifier_frozen_analogadam",
+            "description": "Classifier frozen (random init), AnalogAdam, te=491",
+            "optimizer": "AnalogAdam",
+            "classifier_frozen": true,
+            "transfer_every": 491,
+            "accuracy": 0.8532,
+            "trainable_digital_params": "9,288 (out_scaling_alpha=9,216 + analog_ctx=72)",
+            "analog_tile_updates": true,
+            "c_tile_transfer": true
+        },
+        {
+            "name": "classifier_frozen_no_transfer_analogadam",
+            "description": "Classifier frozen + te=10^7 (C tile not updated), AnalogAdam",
+            "optimizer": "AnalogAdam",
+            "classifier_frozen": true,
+            "transfer_every": 10000000,
+            "accuracy": 0.7638,
+            "trainable_digital_params": "9,288 (out_scaling_alpha=9,216 + analog_ctx=72)",
+            "analog_tile_updates": true,
+            "c_tile_transfer": false,
+            "note": "76.38% from out_scaling_alpha training only. No C tile contribution."
+        },
+        {
+            "name": "full_analogsgd",
+            "description": "AnalogSGD baseline, classifier trainable, te=491",
+            "optimizer": "AnalogSGD",
+            "classifier_frozen": false,
+            "transfer_every": 491,
+            "accuracy": 0.8245,
+            "trainable_digital_params": "9,288 (out_scaling) + classifier",
+            "analog_tile_updates": true,
+            "c_tile_transfer": true
+        }
+    ],
+    "contribution_analysis": {
+        "out_scaling_alpha_only": "76.38% (te=10^7, classifier frozen)",
+        "c_tile_transfer_contribution": "+8.94%p (85.32% - 76.38%)",
+        "classifier_contribution": "+4.82%p (90.14% - 85.32%)",
+        "total_with_analogadam": "90.14%",
+        "analogsgd_vs_analogadam_gap": "-7.69%p (82.45% vs 90.14%)",
+        "note": "gamma=0.0이므로 A tile은 forward에 기여하지 않음. C tile만 forward에 사용."
+    }
+}

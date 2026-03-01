@@ -1,0 +1,47 @@
+{
+  "experiment": "AnalogSGD TikiTaka v2 HP Sweep - RTE",
+  "script": "sweep_tikitaka_batch256_sgd_lr2e4.py",
+  "source_dir": "Real_sweep_bias_frozen_20260211_062916",
+  "optimizer": "AnalogSGD (momentum=0)",
+  "model": "google/mobilebert-uncased",
+  "analog_layers": ["query", "key", "value"],
+  "classifier": "digital, trainable (requires_grad=True)",
+  "bias": "frozen (requires_grad=False)",
+  "num_trials": 50,
+  "num_epochs": 3,
+  "batch_size": 64,
+  "warmup_ratio": 0.1,
+  "scheduler": "linear_warmup_decay_to_0",
+  "metric": "accuracy",
+  "search_space": {
+    "learning_rate": {"min": 1e-4, "max": 1e-2, "scale": "log"},
+    "transfer_lr": {"min": 0.01, "max": 4.0, "scale": "log"},
+    "fast_lr": {"min": 0.1, "max": 5.0, "scale": "linear"},
+    "transfer_every": {"min": 10, "max": 1000, "scale": "int"}
+  },
+  "fixed_params": {
+    "auto_granularity": 169.0,
+    "in_chop_prob": 0.061,
+    "noise_management": "ABS_MAX",
+    "bound_management": "ITERATIVE",
+    "io_noise": 0.0
+  },
+  "best_result": {
+    "trial": 19,
+    "accuracy": 0.5704,
+    "params": {
+      "learning_rate": 0.007295,
+      "transfer_lr": 0.5716,
+      "fast_lr": 0.7802,
+      "transfer_every": 881
+    }
+  },
+  "top5_trials": [
+    {"trial": 19, "accuracy": 0.5704, "lr": 0.00729, "t_lr": 0.572, "f_lr": 0.780, "te": 881},
+    {"trial": 43, "accuracy": 0.5668, "lr": 0.000157, "t_lr": 3.711, "f_lr": 4.130, "te": 629},
+    {"trial": 3,  "accuracy": 0.5632, "lr": 0.00159, "t_lr": 0.696, "f_lr": 0.201, "te": 971},
+    {"trial": 46, "accuracy": 0.5596, "lr": 0.000236, "t_lr": 1.989, "f_lr": 3.792, "te": 661},
+    {"trial": 25, "accuracy": 0.5560, "lr": 0.00118, "t_lr": 0.169, "f_lr": 1.856, "te": 992}
+  ],
+  "notes": "RTE is tolerant to wide HP range. Best trials favor high TE (>600). Random baseline ~0.527."
+}

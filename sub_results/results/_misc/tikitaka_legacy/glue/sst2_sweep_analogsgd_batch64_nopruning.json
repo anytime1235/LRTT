@@ -1,0 +1,43 @@
+{
+    "model": "google/mobilebert-uncased",
+    "method": "TikiTaka v2 (ChoppedTransferCompound)",
+    "task": "sst2",
+    "experiment_date": "2026-02-11",
+    "script": "sweep_tikitaka_batch256.py",
+    "optimizer": "AnalogSGD",
+    "status": "RUNNING",
+    "description": "SST-2 50-trial sweep with AnalogSGD (LRTT_setup.txt 기준). Classifier frozen (seed=42 fixed init), bias frozen, QKV target. Pruning DISABLED.",
+    "training_config": {
+        "num_epochs": 3,
+        "batch_size": 64,
+        "optimizer": "AnalogSGD",
+        "momentum": 0,
+        "weight_decay": 0,
+        "scheduler": "linear_warmup_decay_to_0",
+        "glue_warmup_ratio": 0.1,
+        "target_modules": ["query", "key", "value"],
+        "classifier_frozen": true,
+        "classifier_seed": 42,
+        "bias_frozen": true,
+        "pruning": false,
+        "n_trials": 50
+    },
+    "fixed_params": {
+        "auto_granularity": 169.0,
+        "in_chop_prob": 0.061,
+        "fast_lr": 3.0,
+        "noise_management": "ABS_MAX",
+        "bound_management": "ITERATIVE",
+        "out_noise": 0.0
+    },
+    "completed_trials": [
+        {"trial": 0, "accuracy": 0.8509, "lr": 0.00231, "transfer_lr": 3.986, "te": 491},
+        {"trial": 1, "accuracy": 0.8555, "lr": 0.00118, "transfer_lr": 3.451, "te": 813}
+    ],
+    "best_so_far": {
+        "trial": 1,
+        "accuracy": 0.8555,
+        "params": {"learning_rate": 0.00118, "transfer_lr": 3.451, "transfer_every": 813}
+    },
+    "note": "실행중. 완료 후 업데이트 필요. Pruning 비활성화하여 모든 trial 3 epoch 풀 실행."
+}

@@ -1,0 +1,2 @@
+trial,learning_rate,transfer_lr,transfer_every,fast_lr,auto_granularity,in_chop_prob,initial_accuracy,final_accuracy,improvement,initial_loss,final_loss,status
+0,0.0013292918943162175,1.9063571821788408,24,0.6387926357773329,184.10729205738687,0.015599452033620266,0.4908256880733945,,,2324832.9954128442,,error: [Errno 32] Broken pipe

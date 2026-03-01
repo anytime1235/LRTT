@@ -1,0 +1,31 @@
+1) Device Configuration & IO Configuration
+LRTT (PythonLRTTRPUConfig + PythonLRTTDevice)
+                                                                                                                                 
+  rank=8, transfer_every=(sweep 변수), transfer_lr=(sweep 변수), lora_alpha=1.0, reinit_gain=0.1, reinit_mode="hybrid",          
+  decay_factor=1.0, units_in_mbatch=True, transfer_method="onehot", update_mode="lora", a_init_mode="zero", forward_inject=False,
+   dynamic_te=False, dynamic_te_power=2.0
+
+  A Tile (LinearStepDevice, 6T1C)
+
+  Noise: dw_min=0.001981, dw_min_std=0.3, dw_min_dtod=0.1, write_noise_std=0.0, mult_noise=True, gamma_up=-0.1678,
+  gamma_down=0.1410, gamma_up_dtod=0.05, gamma_down_dtod=0.05, up_down=0.0, up_down_dtod=0.01, w_max=1.0, w_min=-1.0,
+  w_max_dtod=0.05, w_min_dtod=0.05, mean_bound_reference=True, lifetime=46506 (TAU=46505s, dt=1.0s), lifetime_dtod=0.0,
+  reset=0.0, reset_dtod=0.0
+
+  B Tile (LinearStepDevice, 6T1C — A Tile과 동일)
+
+  A Tile과 동일한 LinearStepDevice 인스턴스 사용
+
+  C Tile (SoftBoundsDevice, noise-free)
+
+  dw_min=0.001, w_max=1.0, w_min=-1.0, dw_min_std=0.0, dw_min_dtod=0.0, write_noise_std=0.0, up_down=0.0, up_down_dtod=0.0,
+  w_max_dtod=0.0, w_min_dtod=0.0, mult_noise=True
+
+  Forward/Backward IO (A/B/C 공통)
+
+  is_perfect=False, inp_noise=0.0, out_noise=0.0, out_noise_std=0.0, w_noise=0.0, noise_management=NONE, bound_management=NONE,
+  inp_res=1/(2^7-2), out_res=1/(2^9-2)
+
+  Out Scaling / Mapping
+
+  weight_scaling_omega=1.0, weight_scaling_columnwise=True, learn_out_scaling=True, out_scaling_columnwise=True

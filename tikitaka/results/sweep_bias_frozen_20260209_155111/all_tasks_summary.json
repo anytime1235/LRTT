@@ -1,0 +1,5 @@
+{
+  "squad": {
+    "error": "CUDA out of memory. Tried to allocate 576.00 MiB. GPU "
+  }
+}

@@ -1,0 +1,117 @@
+============================================================
+Sixt1c-LoRA Bayesian Optimization - GLUE
+============================================================
+Architecture: Standardized Config (PEFT LoRA)
+Mode: sixt1c_lora (6T1C analog adapters)
+Trials: 30
+Epochs: 3
+Results dir: /data/results/sixt1c_lora_glue/sixt1c_lora_bias_frozen_20260210_170728
+
+Search Space:
+  learning_rate: [0.0001, 0.01] (log)
+  lora_alpha: [0.05, 10.0] (log)
+
+Fixed Parameters:
+  rank: 8
+  architecture: Standardized Config
+  base_layer: SoftBounds (frozen, analog)
+  lora_A/B: 6T1C sixt1c (trainable, analog)
+  noise_management: ABS_MAX
+  bound_management: ITERATIVE
+  optimizer: AnalogSGD
+
+Default starting point:
+  lr: 0.001
+  lora_alpha: 0.01
+
+Device: cuda
+
+Running task: sst2
+
+============================================================
+Task: SST2
+============================================================
+
+============================================================
+Starting Sixt1c-LoRA (6T1C analog adapters) sweep for: SST2 - QKV
+Target modules: ['query', 'key', 'value']
+============================================================
+Map:   0%|                                                                                                                                                                                                             | 0/872 [00:00<?, ? examples/s]Map: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 872/872 [00:00<00:00, 8567.04 examples/s]
+Train batches: 1053, Eval batches: 14
+huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
+To disable this warning, you can either:
+	- Avoid using `tokenizers` before the fork if possible
+	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
+Some weights of MobileBertForSequenceClassification were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Traceback (most recent call last):
+  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_glue_adam.py", line 736, in main
+    result = run_task_sweep(task, args.target, device, results_dir, n_trials=N_TRIALS, fp_lora=args.fp_lora)
+  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_glue_adam.py", line 579, in run_task_sweep
+    init_metric, init_loss = evaluate_glue(ref_model, eval_loader, task_name, device)
+  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_glue_adam.py", line 325, in evaluate_glue
+    outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/peft/peft_model.py", line 921, in forward
+    return self.get_base_model()(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 1286, in forward
+    outputs = self.mobilebert(
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 898, in forward
+    encoder_outputs = self.encoder(
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 580, in forward
+    layer_outputs = layer_module(
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 523, in forward
+    self_attention_outputs = self.attention(
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 357, in forward
+    self_outputs = self.self(
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 275, in forward
+    mixed_query_layer = self.query(query_tensor)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/peft/tuners/lora/layer.py", line 805, in forward
+    x = self._cast_input_dtype(x, lora_A.weight.dtype)
+AttributeError: 'NoneType' object has no attribute 'dtype'
+Applied PEFT LoRA to ['query', 'key', 'value']
+trainable params: 221,184 || all params: 24,804,098 || trainable%: 0.8917
+Step 1: Converted entire model to SoftBounds analog
+Step 2: Restored 434 non-base layers to digital
+Step 3: Converted 144 LoRA layers to sixt1c (6T1C)
+
+Final model structure:
+trainable params: 1,026 || all params: 24,823,322 || trainable%: 0.0041
+Failed to complete sst2: 'NoneType' object has no attribute 'dtype'
+
+============================================================
+ALL SWEEPS COMPLETE
+============================================================
+Summary saved to: /data/results/sixt1c_lora_glue/sixt1c_lora_bias_frozen_20260210_170728/all_tasks_summary.json
+  sst2: FAILED - 'NoneType' object has no attribute 'dtype'

@@ -1,0 +1,91 @@
+{
+  "experiment_date": "2026-02-05T15:20:36.333486",
+  "description": "LRTT vs TikiTaka (TTv2) layer-wise accuracy comparison",
+  "settings": {
+    "epochs": 3,
+    "warmup_steps": 500,
+    "model": "MobileBERT",
+    "task": "SST-2"
+  },
+  "tikitaka_results": {
+    "Q_only": {
+      "target": [
+        "query"
+      ],
+      "accuracy": 0.7833,
+      "best_accuracy": 0.7833
+    },
+    "K_only": {
+      "target": [
+        "key"
+      ],
+      "accuracy": 0.7706,
+      "best_accuracy": 0.7706
+    },
+    "V_only": {
+      "target": [
+        "value"
+      ],
+      "accuracy": 0.8784,
+      "best_accuracy": 0.8784
+    },
+    "QKV_all": {
+      "target": [
+        "query",
+        "key",
+        "value"
+      ],
+      "accuracy": 0.7901,
+      "best_accuracy": 0.7901
+    }
+  },
+  "lrtt_results": {
+    "Q_only": {
+      "target": [
+        "query"
+      ],
+      "accuracy": 0.6502
+    },
+    "K_only": {
+      "target": [
+        "key"
+      ],
+      "accuracy": 0.6479
+    },
+    "V_only": {
+      "target": [
+        "value"
+      ],
+      "accuracy": 0.4908
+    },
+    "embedding_transformation": {
+      "target": [
+        "embedding_transformation"
+      ],
+      "accuracy": 0.5459
+    }
+  },
+  "comparison": {
+    "Q": {
+      "tikitaka": 0.7833,
+      "lrtt": 0.6502,
+      "diff": -0.1331
+    },
+    "K": {
+      "tikitaka": 0.7706,
+      "lrtt": 0.6479,
+      "diff": -0.1227
+    },
+    "V": {
+      "tikitaka": 0.8784,
+      "lrtt": 0.4908,
+      "diff": -0.3876
+    }
+  },
+  "key_findings": [
+    "TikiTaka: V layer performs best (87.84%)",
+    "LRTT: V layer performs worst (49.08%)",
+    "Largest gap in V layer: -38.76%p",
+    "Q and K show similar patterns in both methods (~12-13%p gap)"
+  ]
+}

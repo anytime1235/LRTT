@@ -1,0 +1,2 @@
+label,adc_bits,dac_bits,dw_min,mac_snr_Q_mean,out_clip_ratio_Q_mean,mac_snr_K_mean,out_clip_ratio_K_mean,mac_snr_V_mean,out_clip_ratio_V_mean,mac_snr_O_mean,out_clip_ratio_O_mean,mac_snr_FFN1_mean,out_clip_ratio_FFN1_mean,mac_snr_FFN2_mean,out_clip_ratio_FFN2_mean,mac_snr_mean,out_clip_ratio_mean
+baseline_adc4,4,7,0.001,5.680927044690423,8.275773820661432e-07,5.055821282403989,7.470448898298325e-08,4.812567863314416,0.0,8.796635205570714,0.0,1.154980183332726,0.00017969193313206234,4.9970469318266195,0.00026371796909061847,5.082996418523148,7.405203068228832e-05

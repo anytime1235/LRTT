@@ -1,0 +1,10 @@
+{
+  "task": "mrpc",
+  "metric": "f1",
+  "best_value": 0.8859060402684564,
+  "best_params": {
+    "learning_rate": 0.06251373574521749,
+    "lora_alpha": 0.01,
+    "target_ab_lr": 0.03
+  }
+}

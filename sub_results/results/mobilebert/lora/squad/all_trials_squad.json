@@ -1,0 +1,431 @@
+[
+  {
+    "trial": 10,
+    "value": 47.96753443934266,
+    "params": {
+      "learning_rate": 1.0,
+      "lora_alpha": 0.016418181914681335,
+      "lrtt_lr_multiplier": 0.5232718495667636,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 8,
+    "value": 46.16971147283899,
+    "params": {
+      "learning_rate": 0.1,
+      "lora_alpha": 0.0493924394810653,
+      "lrtt_lr_multiplier": 0.35475381912718346,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 11,
+    "value": 45.19519745694614,
+    "params": {
+      "learning_rate": 1.0,
+      "lora_alpha": 0.018085946116741383,
+      "lrtt_lr_multiplier": 0.5445597299158927,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 9,
+    "value": 44.07758684244609,
+    "params": {
+      "learning_rate": 0.1,
+      "lora_alpha": 0.03900593121439891,
+      "lrtt_lr_multiplier": 0.39809998924921053,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 6,
+    "value": 34.71631434389792,
+    "params": {
+      "learning_rate": 0.1,
+      "lora_alpha": 0.047106579802497925,
+      "lrtt_lr_multiplier": 0.2195675968201562,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 3,
+    "value": 34.45317405753267,
+    "params": {
+      "learning_rate": 0.1,
+      "lora_alpha": 0.026208630215377525,
+      "lrtt_lr_multiplier": 0.25708831950548894,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 1,
+    "value": 33.50930327273992,
+    "params": {
+      "learning_rate": 1.0,
+      "lora_alpha": 0.016,
+      "lrtt_lr_multiplier": 0.62,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 2,
+    "value": 31.23549124718129,
+    "params": {
+      "learning_rate": 0.1,
+      "lora_alpha": 0.0275,
+      "lrtt_lr_multiplier": 0.948,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 13,
+    "value": 28.818868078780355,
+    "params": {
+      "learning_rate": 1.0,
+      "lora_alpha": 0.018824932976708984,
+      "lrtt_lr_multiplier": 0.46307757777905095,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 12,
+    "value": 27.162526158056515,
+    "params": {
+      "learning_rate": 1.0,
+      "lora_alpha": 0.012631216293170051,
+      "lrtt_lr_multiplier": 0.31109050694039014,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 4,
+    "value": 26.250010223963624,
+    "params": {
+      "learning_rate": 0.01,
+      "lora_alpha": 0.026312454510574512,
+      "lrtt_lr_multiplier": 0.6251028636335223,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 5,
+    "value": 25.140798331689492,
+    "params": {
+      "learning_rate": 0.1,
+      "lora_alpha": 0.01009698825304352,
+      "lrtt_lr_multiplier": 0.20244420311243683,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 7,
+    "value": 20.625554440610713,
+    "params": {
+      "learning_rate": 0.01,
+      "lora_alpha": 0.04817159200498653,
+      "lrtt_lr_multiplier": 0.3428007642179676,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 0,
+    "value": 20.447165287567575,
+    "params": {
+      "learning_rate": 1.0,
+      "lora_alpha": 0.0275,
+      "lrtt_lr_multiplier": 0.948,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.COMPLETE"
+  },
+  {
+    "trial": 14,
+    "value": null,
+    "params": {
+      "learning_rate": 0.01,
+      "lora_alpha": 0.0353703728438931,
+      "lrtt_lr_multiplier": 0.45811959507969036,
+      "min_lr_rate": 0.0
+    },
+    "state": "TrialState.RUNNING"
+  },
+  {
+    "trial": 15,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 16,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 17,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 18,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 19,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 20,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 21,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 22,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 23,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 24,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 25,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 26,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 27,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 28,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 29,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 30,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 31,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 32,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 33,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 34,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 35,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 36,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 37,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 38,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 39,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 40,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 41,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 42,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 43,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 44,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 45,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 46,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 47,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 48,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 49,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 50,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 51,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 52,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 53,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 54,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 55,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 56,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 57,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  },
+  {
+    "trial": 58,
+    "value": null,
+    "params": {},
+    "state": "TrialState.FAIL"
+  }
+]

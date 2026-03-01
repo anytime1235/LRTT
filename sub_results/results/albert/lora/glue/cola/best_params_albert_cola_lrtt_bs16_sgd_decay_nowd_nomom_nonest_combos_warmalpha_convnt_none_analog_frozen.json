@@ -1,0 +1,10 @@
+{
+  "task": "cola",
+  "metric": "matthews_correlation",
+  "best_value": 0.32301000206570946,
+  "best_params": {
+    "learning_rate": 0.08463259666177746,
+    "lora_alpha": 0.01,
+    "target_ab_lr": 0.03
+  }
+}

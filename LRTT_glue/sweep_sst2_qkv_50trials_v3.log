@@ -1,0 +1,265 @@
+============================================================
+Sixt1c-LoRA Bayesian Optimization - GLUE
+============================================================
+Architecture: Standardized Config (PEFT LoRA)
+Mode: sixt1c_lora (6T1C analog adapters)
+Trials: 50
+Epochs: 3
+Results dir: /data/results/sixt1c_lora_glue/sixt1c_lora_bias_frozen_20260210_183814
+
+Search Space:
+  learning_rate: [0.0001, 0.01] (log)
+  lora_alpha: [0.05, 10.0] (log)
+
+Fixed Parameters:
+  rank: 8
+  architecture: Standardized Config
+  base_layer: SoftBounds (frozen, analog)
+  lora_A/B: 6T1C sixt1c (trainable, analog)
+  noise_management: ABS_MAX
+  bound_management: ITERATIVE
+  optimizer: AnalogSGD
+
+Default starting point:
+  lr: 0.001
+  lora_alpha: 0.01
+
+Device: cuda
+
+Running task: sst2
+
+============================================================
+Task: SST2
+============================================================
+
+============================================================
+Starting Sixt1c-LoRA (6T1C analog adapters) sweep for: SST2 - QKV
+Target modules: ['query', 'key', 'value']
+============================================================
+Train batches: 1053, Eval batches: 14
+⚡ OPTIMIZATION: Skipping initial evaluation (will use first trial as baseline)
+
+⚡ OPTIMIZATION: Creating digital PEFT model once (analog conversion per trial)...
+Some weights of MobileBertForSequenceClassification were not initialized from the model checkpoint at google/mobilebert-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_glue_adam.py:625: ExperimentalWarning: BoTorchSampler is experimental (supported from v2.4.0). The interface can change in the future.
+  sampler = BoTorchSampler()
+[I 2026-02-10 18:38:19,497] A new study created in memory with name: sixt1c_lora_sst2_QKV
+Applied PEFT LoRA to ['query', 'key', 'value']
+trainable params: 221,184 || all params: 24,804,098 || trainable%: 0.8917
+✓ Digital PEFT model created (1.52s)
+  Each trial will: deepcopy → update lora_alpha → convert to analog
+
+  0%|                                                                                                                                                                                                                          | 0/50 [00:00<?, ?it/s]/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/optuna/trial/_trial.py:658: UserWarning: Fixed parameter 'lora_alpha' with value 0.01 is out of range for distribution FloatDistribution(high=10.0, log=True, low=0.05, step=None).
+  optuna_warn(
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: Tracking run with wandb version 0.24.1
+wandb: W&B syncing is set to `offline` in this directory. Run `wandb online` or set WANDB_MODE=online to enable cloud syncing.
+wandb: Run data is saved locally in /data/LRTT_transformer/LRTT_glue/wandb/offline-run-20260210_183819-2c18ig3o
+⚡ OPTIMIZATION: Deepcopy digital model + analog conversion (lora_alpha=0.0100)
+Converting base_layer to SoftBounds analog...
+✓ Converted 72 base_layer to SoftBounds
+Converting lora_A/B to sixt1c (6T1C) analog...
+✓ Converted 144 LoRA layers to sixt1c
+Final model structure:
+trainable params: 1,026 || all params: 24,823,322 || trainable%: 0.0041
+
+Trial 0 sst2:   0%|                                                                                                                                                                                                          | 0/1053 [00:00<?, ?it/s][A
+                                                                                                                                                                                                                                                      [Awandb: 
+wandb: Run history:
+wandb:       epoch ▁
+wandb:   eval/loss ▁
+wandb: eval/metric ▁
+wandb: 
+wandb: Run summary:
+wandb:       epoch 0
+wandb:       error Expected all tensors...
+wandb:   eval/loss 0
+wandb: eval/metric 0
+wandb: 
+wandb: You can sync this run to the cloud by running:
+wandb: wandb sync /data/LRTT_transformer/LRTT_glue/wandb/offline-run-20260210_183819-2c18ig3o
+wandb: Find logs at: ./wandb/offline-run-20260210_183819-2c18ig3o/logs
+                                                                                                                                                                                                                                                        0%|                                                                                                                                                                                                                          | 0/50 [00:33<?, ?it/s]                                                                                                                                                                                                                                                        0%|                                                                                                                                                                                                                          | 0/50 [00:33<?, ?it/s]  0%|                                                                                                                                                                                                                          | 0/50 [00:33<?, ?it/s]
+Traceback (most recent call last):
+  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_glue_adam.py", line 775, in main
+    result = run_task_sweep(task, args.target, device, results_dir, n_trials=N_TRIALS, fp_lora=args.fp_lora)
+  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_glue_adam.py", line 640, in run_task_sweep
+    study.optimize(objective, n_trials=n_trials, n_jobs=1, show_progress_bar=True)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/optuna/study/study.py", line 490, in optimize
+    _optimize(
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/optuna/study/_optimize.py", line 68, in _optimize
+    _optimize_sequential(
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/optuna/study/_optimize.py", line 165, in _optimize_sequential
+    frozen_trial_id = _run_trial(study, func, catch)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/optuna/study/_optimize.py", line 263, in _run_trial
+    raise func_err
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_glue_adam.py", line 636, in objective
+    return run_trial(trial, task_name, train_loader, eval_loader, device, results_dir,
+  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_glue_adam.py", line 514, in run_trial
+    train_loss = train_epoch(model, optimizer, scheduler, train_loader, device, task_name, trial.number)
+  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_glue_adam.py", line 427, in train_epoch
+    outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/peft/peft_model.py", line 921, in forward
+    return self.get_base_model()(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 1286, in forward
+    outputs = self.mobilebert(
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 898, in forward
+    encoder_outputs = self.encoder(
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 580, in forward
+    layer_outputs = layer_module(
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 523, in forward
+    self_attention_outputs = self.attention(
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 357, in forward
+    self_outputs = self.self(
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 275, in forward
+    mixed_query_layer = self.query(query_tensor)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/peft/tuners/lora/layer.py", line 793, in forward
+    result = self.base_layer(x, *args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/LRTT_transformer/src/aihwkit/nn/modules/linear.py", line 91, in forward
+    return self.analog_module(x_input)  # type: ignore
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/LRTT_transformer/src/aihwkit/simulator/tiles/inference_torch.py", line 223, in forward
+    out = self.joint_forward(x_input, is_test=not self.training)
+  File "/data/LRTT_transformer/src/aihwkit/simulator/tiles/periphery.py", line 1042, in joint_forward
+    x_output = self.tile.forward(
+  File "/data/LRTT_transformer/src/aihwkit/simulator/tiles/torch_tile.py", line 195, in forward
+    return self._analog_mvm.matmul(
+  File "/data/LRTT_transformer/src/aihwkit/simulator/tiles/analog_mvm.py", line 145, in matmul
+    bound_test_passed, output = cls._compute_analog_mv(
+  File "/data/LRTT_transformer/src/aihwkit/simulator/tiles/analog_mvm.py", line 213, in _compute_analog_mv
+    out_values = cls._matmul(weight, prepared_input, trans=trans)
+  File "/data/LRTT_transformer/src/aihwkit/simulator/tiles/analog_mvm.py", line 45, in _matmul
+    return input_ @ weight.T
+RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu! (when checking argument for argument mat2 in method wrapper_CUDA_mm)
+Trial 0 failed: Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu! (when checking argument for argument mat2 in method wrapper_CUDA_mm)
+[W 2026-02-10 18:38:53,168] Trial 0 failed with parameters: {'learning_rate': 0.001, 'lora_alpha': 0.01} because of the following error: RuntimeError('Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu! (when checking argument for argument mat2 in method wrapper_CUDA_mm)').
+Traceback (most recent call last):
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/optuna/study/_optimize.py", line 206, in _run_trial
+    value_or_values = func(trial)
+  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_glue_adam.py", line 636, in objective
+    return run_trial(trial, task_name, train_loader, eval_loader, device, results_dir,
+  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_glue_adam.py", line 514, in run_trial
+    train_loss = train_epoch(model, optimizer, scheduler, train_loader, device, task_name, trial.number)
+  File "/data/LRTT_transformer/LRTT_glue/sweep_sixt1c_lora_glue_adam.py", line 427, in train_epoch
+    outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/peft/peft_model.py", line 921, in forward
+    return self.get_base_model()(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 1286, in forward
+    outputs = self.mobilebert(
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 898, in forward
+    encoder_outputs = self.encoder(
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 580, in forward
+    layer_outputs = layer_module(
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 523, in forward
+    self_attention_outputs = self.attention(
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 357, in forward
+    self_outputs = self.self(
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/transformers/models/mobilebert/modeling_mobilebert.py", line 275, in forward
+    mixed_query_layer = self.query(query_tensor)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/peft/tuners/lora/layer.py", line 793, in forward
+    result = self.base_layer(x, *args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/LRTT_transformer/src/aihwkit/nn/modules/linear.py", line 91, in forward
+    return self.analog_module(x_input)  # type: ignore
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/venvs/aihwkit_gpu/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/LRTT_transformer/src/aihwkit/simulator/tiles/inference_torch.py", line 223, in forward
+    out = self.joint_forward(x_input, is_test=not self.training)
+  File "/data/LRTT_transformer/src/aihwkit/simulator/tiles/periphery.py", line 1042, in joint_forward
+    x_output = self.tile.forward(
+  File "/data/LRTT_transformer/src/aihwkit/simulator/tiles/torch_tile.py", line 195, in forward
+    return self._analog_mvm.matmul(
+  File "/data/LRTT_transformer/src/aihwkit/simulator/tiles/analog_mvm.py", line 145, in matmul
+    bound_test_passed, output = cls._compute_analog_mv(
+  File "/data/LRTT_transformer/src/aihwkit/simulator/tiles/analog_mvm.py", line 213, in _compute_analog_mv
+    out_values = cls._matmul(weight, prepared_input, trans=trans)
+  File "/data/LRTT_transformer/src/aihwkit/simulator/tiles/analog_mvm.py", line 45, in _matmul
+    return input_ @ weight.T
+RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu! (when checking argument for argument mat2 in method wrapper_CUDA_mm)
+[W 2026-02-10 18:38:53,185] Trial 0 failed with value None.
+Failed to complete sst2: Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu! (when checking argument for argument mat2 in method wrapper_CUDA_mm)
+
+============================================================
+ALL SWEEPS COMPLETE
+============================================================
+Summary saved to: /data/results/sixt1c_lora_glue/sixt1c_lora_bias_frozen_20260210_183814/all_tasks_summary.json
+  sst2: FAILED - Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu! (when checking argument for argument mat2 in method wrapper_CUDA_mm)

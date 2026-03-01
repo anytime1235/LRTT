@@ -187,13 +187,23 @@ class LRTTSimulatorTile(SimulatorTile, Module):
 
             return update_copy
 
+        # A/B tile IO: perfect (no DAC/ADC) if ab_io_perfect is set
+        ab_io_perfect = getattr(self.lrtt_config, 'ab_io_perfect', False)
+        if ab_io_perfect:
+            from aihwkit.simulator.parameters.io import IOParameters
+            ab_forward = IOParameters(is_perfect=True)
+            ab_backward = IOParameters(is_perfect=True)
+        else:
+            ab_forward = rpu_config.forward
+            ab_backward = rpu_config.backward
+
         # Tile A: fastA [d_size, rank]
         tile_class_a = get_tile_class(unit_devices[0])
         update_a = create_update_params(rpu_config.update, "a")
         rpu_config_a = SingleRPUConfig(
             device=unit_devices[0],
-            forward=rpu_config.forward,
-            backward=rpu_config.backward,
+            forward=ab_forward,
+            backward=ab_backward,
             update=update_a,
             tile_class=tile_class_a,
         )
@@ -204,8 +214,8 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         update_b = create_update_params(rpu_config.update, "b")
         rpu_config_b = SingleRPUConfig(
             device=unit_devices[1],
-            forward=rpu_config.forward,
-            backward=rpu_config.backward,
+            forward=ab_forward,
+            backward=ab_backward,
             update=update_b,
             tile_class=tile_class_b,
         )
@@ -226,13 +236,26 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             mult_noise=True,
         )
         update_c = create_update_params(rpu_config.update, "c")
+
+        # Combined out_scaling: disable tile_c's individual learn_out_scaling
+        # so combined_out_scaling_alpha can scale the full output symmetrically
+        self._combined_out_scaling_enabled = getattr(
+            self.lrtt_config, 'combined_out_scaling', False
+        )
+        if self._combined_out_scaling_enabled:
+            from copy import deepcopy
+            mapping_c = deepcopy(rpu_config.mapping)
+            mapping_c.learn_out_scaling = False
+        else:
+            mapping_c = rpu_config.mapping
+
         rpu_config_c = SingleRPUConfig(
             device=c_device,
             forward=rpu_config.forward,
             backward=rpu_config.backward,
             update=update_c,
             tile_class=AnalogTile,
-            mapping=rpu_config.mapping,
+            mapping=mapping_c,
         )
         # Pass bias to tile_c for digital_bias support
         # When bias=True, tile_c will have digital_bias=True and create self.bias Parameter
@@ -325,6 +348,16 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         self.controller.log_ab_scaling = post_init.get("log_ab_scaling", False)
         self.controller.log_ab_scaling_every = post_init.get("log_ab_scaling_every", 10)
 
+        # Combined out_scaling: shared learnable parameter for full LRTT output
+        # y = combined_out_scaling * [C·x + bias + α·A·(B·x)]
+        if self._combined_out_scaling_enabled:
+            from torch.nn import Parameter
+            self.combined_out_scaling_alpha = Parameter(
+                torch.ones(d_size, dtype=torch.float32)
+            )
+        else:
+            self.combined_out_scaling_alpha = None
+
         # Initialize LRTT weights
         self.controller.reinit()
 
@@ -341,6 +374,11 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         self.tile_a._orig_update = self.tile_a.update
         self.tile_b._orig_update = self.tile_b.update
         self.tile_c._orig_update = self.tile_c.update
+
+        # Warmup: CudaAnalogTile requires a small-batch first update call
+        # to initialize internal buffers. Without this, large-batch updates
+        # (batch >= 2048) silently produce zero weight changes.
+        self._warmup_tile_updates()
 
         # Track if we've already handled this batch
         self._update_handled = False
@@ -380,6 +418,36 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         self.tile_a.update = hooked_update("tile_a")
         self.tile_b.update = hooked_update("tile_b")
         self.tile_c.update = hooked_update("tile_c")
+
+    def _warmup_tile_updates(self) -> None:
+        """Warmup CudaAnalogTile internal buffers with a small-batch update.
+
+        CudaAnalogTile.update() silently fails for batch sizes >= 2048
+        on the first call. A single small-batch call initializes internal
+        buffers, after which large-batch updates work correctly.
+        """
+        _warmup_count = 0
+        for tile in [self.tile_a, self.tile_b, self.tile_c]:
+            w_orig = tile.get_weights()
+            weight = w_orig[0]
+            d_size, x_size = weight.shape
+            device = weight.device
+
+            lr_orig = tile.get_learning_rate()
+            tile.set_learning_rate(1e-10)  # Tiny LR to minimize weight perturbation
+
+            x_warmup = torch.randn(1, x_size, device=device)
+            d_warmup = torch.randn(1, d_size, device=device)
+            tile._orig_update(x_warmup, d_warmup)
+
+            # Restore original weights and learning rate
+            tile.set_weights(weight, bias=w_orig[1])
+            tile.set_learning_rate(lr_orig)
+            _warmup_count += 1
+
+        if _warmup_count > 0 and not hasattr(self, '_warmup_logged'):
+            self._warmup_logged = True
+            print(f"  [WARMUP] Initialized {_warmup_count} tiles for LRTT update")
 
     def _reset_update_flag(self) -> None:
         """Reset the update handled flag for next batch."""
@@ -437,7 +505,7 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         # Single source of truth: Use controller's forward_inject_enabled flag only
         # This avoids confusion from multiple forward_inject flags
         if self.controller.forward_inject_enabled:
-            return self.controller.forward_inject(
+            y = self.controller.forward_inject(
                 x_input, out_trans=out_trans, in_trans=in_trans
             )
         else:
@@ -445,7 +513,15 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             # Handle transpose manually since AnalogTile doesn't support transpose flags
             x = x_input.t() if in_trans else x_input
             y = self.tile_c.forward(x)
-            return y.t() if out_trans else y
+            if out_trans:
+                y = y.t()
+
+        # Apply combined out_scaling (symmetric for both C and LoRA paths)
+        if self.combined_out_scaling_alpha is not None:
+            tv = self.get_tensor_view(y.dim())
+            y = y * self.combined_out_scaling_alpha.view(*tv)
+
+        return y
 
     def backward(
         self,

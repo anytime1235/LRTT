@@ -1,0 +1,11 @@
+{
+  "git_hash": "N/A",
+  "timestamp": "2026-02-28T07:30:28.169719",
+  "files_read": [
+    "/data/results/diag_fwd_io/single_run_logit_metrics.csv"
+  ],
+  "key_config": {
+    "n_rows": 1,
+    "note": "SINGLE SAMPLE \u2014 NOT STATISTICALLY SIGNIFICANT"
+  }
+}
