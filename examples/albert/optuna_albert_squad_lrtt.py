@@ -1633,7 +1633,7 @@ def _oom_restart_callback(study, trial):
 
     if trial.state == TrialState.FAIL:
         err = trial.user_attrs.get("error", "")
-        if "out of memory" in err.lower() or "cublas" in err.lower():
+        if any(k in err.lower() for k in ("out of memory", "cublas", "nvml", "internal assert failed")):
             new_grad_accum = GRAD_ACCUM_STEPS * 2
             micro_bs = BATCH_SIZE // new_grad_accum
             if micro_bs < 1:
