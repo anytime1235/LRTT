@@ -10,7 +10,6 @@ from types import new_class
 from typing import Any, Callable, Dict, Optional, Type
 
 from torch import cat
-from torch.nn.functional import pad as F_pad
 from torch.optim import Optimizer, SGD, Adam
 from torch.autograd import no_grad
 
@@ -24,44 +23,6 @@ class AnalogOptimizerMixin:
     ``Optimizer``. It is designed to be used as a mixin in conjunction with an
     ``AnalogOptimizer`` or torch ``Optimizer``.
     """
-
-    @staticmethod
-    def _pad_and_cat(tensors, axis):
-        """Cat tensors, zero-padding non-cat dimensions if shapes differ.
-
-        When using dynamic padding with gradient accumulation, accumulated
-        inputs may have different sequence lengths. Zero-padding before cat
-        is safe because padded positions contribute zero to the update.
-        """
-        if len(tensors) <= 1:
-            return cat(tensors, axis=axis)
-
-        ndim = tensors[0].dim()
-        # Find max size for each dimension
-        max_sizes = list(tensors[0].shape)
-        needs_pad = False
-        for t in tensors[1:]:
-            for d in range(ndim):
-                if d != (axis % ndim) and t.shape[d] != max_sizes[d]:
-                    needs_pad = True
-                if t.shape[d] > max_sizes[d]:
-                    max_sizes[d] = t.shape[d]
-
-        if not needs_pad:
-            return cat(tensors, axis=axis)
-
-        cat_dim = axis % ndim
-        padded = []
-        for t in tensors:
-            # F_pad format: (last_dim_left, last_dim_right, ..., first_dim_left, first_dim_right)
-            pad_sizes = []
-            for d in range(ndim - 1, -1, -1):
-                if d == cat_dim:
-                    pad_sizes.extend([0, 0])
-                else:
-                    pad_sizes.extend([0, max_sizes[d] - t.shape[d]])
-            padded.append(F_pad(t, pad_sizes) if any(pad_sizes) else t)
-        return cat(padded, axis=axis)
 
     def regroup_param_groups(self, *_: Any) -> None:
         """Reorganize the parameter groups, isolating analog layers.
@@ -161,10 +122,10 @@ class AnalogOptimizerMixin:
                                 ),
                             )
                     else:
-                        x_input = self._pad_and_cat(
+                        x_input = cat(
                             analog_ctx.analog_input, axis=-1 if analog_tile.in_trans else 0
                         )
-                        d_input = self._pad_and_cat(
+                        d_input = cat(
                             analog_ctx.analog_grad_output, axis=-1 if analog_tile.out_trans else 0
                         )
                         analog_tile.update(

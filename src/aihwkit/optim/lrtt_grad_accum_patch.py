@@ -19,7 +19,7 @@ Handles ALBERT-style weight sharing correctly:
 
 Usage:
     from aihwkit.optim import AnalogSGD, AnalogAdam
-    import lrtt_grad_accum_patch  # noqa: F401  (applies patches on import)
+    import aihwkit.optim.lrtt_grad_accum_patch  # noqa: F401  (applies patches on import)
 
     optimizer = AnalogSGD(model.parameters(), lr=0.01)
     optimizer._grad_accum_steps = GRAD_ACCUM  # must set for correct grouping
@@ -27,11 +27,55 @@ Usage:
 
 import math as _math
 import torch as _torch
+from torch import cat as _cat
+from torch.nn.functional import pad as _F_pad
 from torch.autograd import no_grad as _no_grad
 
 from aihwkit.optim.analog_optimizer import AnalogOptimizerMixin
 from aihwkit.optim.context import AnalogContext as _AnalogContext
 from aihwkit.simulator.tiles.lrtt_controller import LRTTController
+
+
+# ── Patch 0: _pad_and_cat for dynamic-padding grad accumulation ──────
+def _pad_and_cat(tensors, axis):
+    """Cat tensors, zero-padding non-cat dimensions if shapes differ.
+
+    When using dynamic padding with gradient accumulation, accumulated
+    inputs may have different sequence lengths. Zero-padding before cat
+    is safe because padded positions contribute zero to the update.
+    """
+    if len(tensors) <= 1:
+        return _cat(tensors, axis=axis)
+
+    ndim = tensors[0].dim()
+    # Find max size for each dimension
+    max_sizes = list(tensors[0].shape)
+    needs_pad = False
+    for t in tensors[1:]:
+        for d in range(ndim):
+            if d != (axis % ndim) and t.shape[d] != max_sizes[d]:
+                needs_pad = True
+            if t.shape[d] > max_sizes[d]:
+                max_sizes[d] = t.shape[d]
+
+    if not needs_pad:
+        return _cat(tensors, axis=axis)
+
+    cat_dim = axis % ndim
+    padded = []
+    for t in tensors:
+        # _F_pad format: (last_dim_left, last_dim_right, ..., first_dim_left, first_dim_right)
+        pad_sizes = []
+        for d in range(ndim - 1, -1, -1):
+            if d == cat_dim:
+                pad_sizes.extend([0, 0])
+            else:
+                pad_sizes.extend([0, max_sizes[d] - t.shape[d]])
+        padded.append(_F_pad(t, pad_sizes) if any(pad_sizes) else t)
+    return _cat(padded, axis=axis)
+
+
+AnalogOptimizerMixin._pad_and_cat = staticmethod(_pad_and_cat)
 
 
 # ── Patch 1: _ab_weight_update_lora with A/B snapshot ────────────────

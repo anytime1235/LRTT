@@ -108,7 +108,7 @@ import evaluate
 from aihwkit.nn.conversion import convert_to_analog
 from aihwkit.optim import AnalogSGD, AnalogAdam
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-import lrtt_grad_accum_patch  # noqa: F401  — per-micro-batch tile.update + LRTT A/B snapshot
+import aihwkit.optim.lrtt_grad_accum_patch  # noqa: F401  — per-micro-batch tile.update + LRTT A/B snapshot
 
 from aihwkit.simulator.configs.devices import LinearStepDevice, SoftBoundsDevice, FloatingPointDevice, IdealDevice
 from aihwkit.simulator.configs import SingleRPUConfig

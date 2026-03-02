@@ -1,17 +1,24 @@
 # -*- coding: utf-8 -*-
-"""MobileBERT + SQuAD with LRTT (Low-Rank TikiTaka Training).
+"""MobileBERT + GLUE with LRTT (Low-Rank TikiTaka Training).
 
-Single-run training script for MobileBERT on SQuAD using LRTT analog layers.
+Single-run training script for MobileBERT on GLUE tasks using LRTT analog layers.
 Converts Q/K/V attention layers to analog; all other layers remain digital.
 
-Based on sweep_lrtt_squad_rank8.py, restructured following VIT-tiny patterns.
+Supported GLUE tasks: cola, sst2, mrpc, qqp, mnli, qnli, rte, stsb, wnli
+
+Usage:
+    python fine_mobilebert_glue_lrtt.py --task sst2
+    python fine_mobilebert_glue_lrtt.py --task mrpc
+    python fine_mobilebert_glue_lrtt.py --task stsb
+
+Based on fine_mobilebert_sst2_lrtt.py, generalized for all GLUE tasks.
 
 Inline flags (edit directly in script):
-    N_EPOCHS = 15                    # Number of training epochs
+    N_EPOCHS = 3                     # Number of training epochs
     BATCH_SIZE = 64                 # Training batch size
-    LEARNING_RATE = 0.00362         # Peak learning rate
+    LEARNING_RATE = 1.0             # Peak learning rate
     WEIGHT_DECAY = 0.0              # Weight decay
-    WARMUP_STEPS = 0               # LR scheduler warmup steps
+    WARMUP_STEPS = 189              # LR scheduler warmup steps (~6% of 3 epochs)
     MIN_LR_RATE = 0.0               # Min LR as fraction of peak (0 = decay to zero)
     OPTIMIZER = "AnalogSGD"         # "AnalogSGD" | "AnalogAdam"
     LRTT_RANK = 8                   # LoRA rank for LRTT
@@ -34,11 +41,9 @@ Inline flags (edit directly in script):
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import sys
-import re
-import string
 import math
 import gc
-import collections
+import argparse
 
 import json
 
@@ -55,19 +60,18 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from transformers import (
-    AutoModelForQuestionAnswering,
+    AutoModelForSequenceClassification,
     AutoTokenizer,
     DataCollatorWithPadding,
     set_seed,
 )
 from datasets import load_dataset
-import evaluate
 
 # aihwkit imports
 from aihwkit.nn.conversion import convert_to_analog
 from aihwkit.optim import AnalogSGD, AnalogAdam
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-import lrtt_grad_accum_patch  # noqa: F401  — per-micro-batch tile.update + LRTT A/B snapshot
+import aihwkit.optim.lrtt_grad_accum_patch  # noqa: F401  — per-micro-batch tile.update + LRTT A/B snapshot
 
 from aihwkit.simulator.configs.devices import LinearStepDevice, SoftBoundsDevice
 from aihwkit.simulator.configs import SingleRPUConfig
@@ -78,7 +82,53 @@ from aihwkit.simulator.configs.lrtt_rpu_config import PythonLRTTRPUConfig
 from aihwkit.simulator.configs.lrtt_python import PythonLRTTDevice
 from aihwkit.simulator.parameters.mapping import MappingParameter
 
-from collections import Counter
+
+# =============================================================================
+# GLUE Task Configurations
+# =============================================================================
+
+TASK_TO_KEYS = {
+    "cola": ("sentence", None),
+    "mnli": ("premise", "hypothesis"),
+    "mrpc": ("sentence1", "sentence2"),
+    "qnli": ("question", "sentence"),
+    "qqp": ("question1", "question2"),
+    "rte": ("sentence1", "sentence2"),
+    "sst2": ("sentence", None),
+    "stsb": ("sentence1", "sentence2"),
+    "wnli": ("sentence1", "sentence2"),
+}
+
+TASK_TO_NUM_LABELS = {
+    "cola": 2, "sst2": 2, "mrpc": 2, "qqp": 2,
+    "mnli": 3, "qnli": 2, "rte": 2, "stsb": 1, "wnli": 2,
+}
+
+TASK_TO_METRIC = {
+    "cola": "matthews_correlation",
+    "sst2": "accuracy",
+    "mrpc": "f1",
+    "qqp": "f1",
+    "mnli": "accuracy",
+    "qnli": "accuracy",
+    "rte": "accuracy",
+    "stsb": "spearmanr",
+    "wnli": "accuracy",
+}
+
+
+# =============================================================================
+# Task Selection (argparse)
+# =============================================================================
+
+_parser = argparse.ArgumentParser(description="MobileBERT GLUE LRTT fine-tuning")
+_parser.add_argument('--task', type=str, default='sst2',
+                     choices=list(TASK_TO_KEYS.keys()),
+                     help='GLUE task name (default: sst2)')
+_parser.add_argument('--grad-accum-steps', type=int, default=1,
+                     help='Gradient accumulation steps (default: 1)')
+_args, _ = _parser.parse_known_args()
+TASK_NAME = _args.task
 
 
 # =============================================================================
@@ -90,50 +140,55 @@ USE_CUDA = torch.cuda.is_available()
 DEVICE = torch.device("cuda" if USE_CUDA else "cpu")
 
 # Paths
-RESULTS = os.path.join(os.getcwd(), "results", "MOBILEBERT_SQUAD_LRTT_FINE")
+RESULTS = os.path.join(os.getcwd(), "results", "MOBILEBERT_GLUE_LRTT_FINE")
 os.makedirs(RESULTS, exist_ok=True)
-WEIGHT_PATH = os.path.join(RESULTS, "fine_mobilebert_squad_lrtt_model_weight.pth")
+WEIGHT_PATH = os.path.join(RESULTS, f"fine_mobilebert_glue_lrtt_{TASK_NAME}_model_weight.pth")
 
 # Reproducibility
 SEED = 42
 
 # Model
 MODEL_NAME = "google/mobilebert-uncased"
-MAX_SEQ_LENGTH = 320
+MAX_SEQ_LENGTH = 128
+NUM_LABELS = TASK_TO_NUM_LABELS[TASK_NAME]
 
 # Training
 N_EPOCHS = 15
 BATCH_SIZE = 64
 EVAL_BATCH_SIZE = 256
-LEARNING_RATE = 0.00362
+LEARNING_RATE = 0.9348960119904873
 WEIGHT_DECAY = 0.0
 EARLY_STOP_PATIENCE = 3
-TRAIN_LOSS_EARLY_STOP_PATIENCE = 2  # Stop if train loss doesn't improve for this many epochs
-TRAIN_LOSS_THRESHOLD = 1.5  # Once train loss drops below this, rely on metric-based early stop only
+VAL_LOSS_EARLY_STOP_PATIENCE = 2  # Stop if val loss doesn't improve for this many epochs
+VAL_LOSS_THRESHOLD = 1.5  # Once val loss drops below this, rely on metric-based early stop only
 
 # Scheduler
-WARMUP_STEPS =500
+WARMUP_STEPS = 189  # ~6% of total steps (3 epochs)
 MIN_LR_RATE = 0.0  # Fraction of peak LR (0 = decay to zero)
 
 # Optimizer
 OPTIMIZER = "AnalogSGD"  # "AnalogSGD" or "AnalogAdam"
 
 # LRTT parameters
-LRTT_RANK = 8
-TRANSFER_EVERY = 1000
-TRANSFER_LR = 0.00115
-FAST_LR = 1.0
+LRTT_RANK = 32
+TRANSFER_EVERY = 1092
+TRANSFER_LR = 4.706173285862282e-05
+FAST_LR = 0.11465313432104135
 AUTO_SCALE_MODE = "none"  # Auto-scale mode: "none", "shared", or "separate"
 CORRECT_GRADIENT_MAGNITUDES = False  # Correct transfer magnitude by dividing by effective A/B LR
 REINIT_MODE = "hybrid"
 REINIT_GAIN = 1.0
 DECAY_FACTOR = 1.0
-TRANSFER_METHOD = "onehot"  # "onehot", "direct", or "set"
-C_DW_MIN = 0.001            # C tile dw_min (relevant for onehot/direct transfer)
-C_DESIRED_BL = 31           # C tile desired_bl (relevant for onehot/direct transfer)
+TRANSFER_METHOD = "set"  # "onehot", "direct", or "set"
+C_DW_MIN = 0.001         # C tile dw_min (relevant for onehot/direct transfer)
+C_DESIRED_BL = 31        # C tile desired_bl (relevant for onehot/direct transfer)
 
 # 6T1C Retention parameters
 TAU_SEC = 0.0  # 0 = no decay, >0 = retention time constant
+
+# A/B projection IO
+NO_ADC_AB_PROJ = True  # If True, remove ADC between A/B projections
+LEARN_OUT_SCALING = True  # If True, C tile out_scaling is trainable
 
 # Dynamic TE (transfer every) parameters
 DYNAMIC_TE = False
@@ -146,13 +201,11 @@ TE_WARMUP_SCHEDULE = []
 # - qkv: only query, key, value
 # - ffn: projection (attention.output) + FFN (intermediate, output, bottleneck)
 # - all: all encoder linear layers
-NO_ADC_AB_PROJ = False  # If True, remove ADC between A/B projections
-LEARN_OUT_SCALING = True  # If True, C tile out_scaling is trainable
 LORA_TARGET = "qkv"  # default
-HEAD_LAYER = "train"  # "train" or "freeze" for qa_outputs layer
+HEAD_LAYER = "train"  # "train" or "freeze" for classifier layer
 ENCODER_ANALOG = False  # If True, non-LRTT encoder layers become frozen analog instead of digital
 EMBEDDING_ANALOG = False  # If True, embedding projection → frozen analog instead of digital
-HEAD_ANALOG = False  # If True, qa_outputs → frozen analog instead of digital
+HEAD_ANALOG = False  # If True, classifier → frozen analog instead of digital
 BACKWARD_OUT_BOUND = 12.0  # Backward pass output bound (default 12.0)
 LORA_TARGET_MODULES = {
     "none": [],  # Empty = no layers converted to LRTT (fully digital)
@@ -174,11 +227,10 @@ DIAG_EPOCHS = 0            # 0 = all epochs, N = first N epochs only
 # Data subset sizes (0 = use full dataset)
 TRAIN_SUBSET_SIZE = 0
 EVAL_SUBSET_SIZE = 0
-
-GRAD_ACCUM_STEPS = 1
+GRAD_ACCUM_STEPS = _args.grad_accum_steps
 
 # WandB
-WANDB_PROJECT = "mobilebert-squad-lrtt-fine"
+WANDB_PROJECT = f"mobilebert-{TASK_NAME}-lrtt-fine"
 os.environ["WANDB_MODE"] = "offline"
 
 
@@ -370,19 +422,19 @@ def get_lrtt_target_module_names(lora_target):
     elif lora_target == "allnobn":
         return (None, ["bottleneck"])  # All encoder minus bottleneck (288 layers)
     elif lora_target == "all":
-        # All encoder linear layers (exclude embeddings, qa_outputs, embedding_transformation)
+        # All encoder linear layers (exclude embeddings, classifier, embedding_transformation)
         return None  # None means all encoder layers (360 layers)
     else:
         raise ValueError(f"Unknown lora_target: {lora_target}")
 
 
 def create_model():
-    """Create MobileBERT QA model with selective LRTT analog layers.
+    """Create MobileBERT classification model with selective LRTT analog layers.
 
     Architecture (follows paper's approach for efficiency):
         - LRTT Target layers (based on LORA_TARGET) → LRTT Analog
         - Non-target Encoder layers → Digital FROZEN
-        - qa_outputs → Digital TRAINABLE (weight + bias)
+        - classifier → Digital TRAINABLE (weight + bias)
         - embedding_transformation → Digital FROZEN
         - Embeddings → Digital FROZEN
 
@@ -399,15 +451,17 @@ def create_model():
     """
     from aihwkit.nn import AnalogLinear
 
-    model = AutoModelForQuestionAnswering.from_pretrained(MODEL_NAME)
+    model = AutoModelForSequenceClassification.from_pretrained(
+        MODEL_NAME, num_labels=NUM_LABELS
+    )
 
     # Get LRTT target patterns
     lrtt_patterns = get_lrtt_target_module_names(LORA_TARGET)
 
     def is_lrtt_target(layer_name):
         """Check if layer should be converted to LRTT Analog."""
-        # qa_outputs is always digital
-        if "qa_outputs" in layer_name:
+        # classifier is always digital
+        if "classifier" in layer_name:
             return False
         # embedding_transformation: always digital frozen
         if "embedding_transformation" in layer_name:
@@ -432,8 +486,8 @@ def create_model():
             # Use full path for exclude_modules (convert_to_analog requires exact match)
             exclude_modules.append(name)
 
-    # Exclude qa_outputs and embedding_transformation (always digital)
-    exclude_modules.append("qa_outputs")
+    # Exclude classifier and embedding_transformation (always digital)
+    exclude_modules.append("classifier")
     exclude_modules.append("mobilebert.embeddings.embedding_transformation")
     exclude_modules = list(set(exclude_modules))  # Remove duplicates
 
@@ -466,7 +520,7 @@ def create_model():
         if not EMBEDDING_ANALOG:
             frozen_exclude.append("mobilebert.embeddings.embedding_transformation")
         if not HEAD_ANALOG:
-            frozen_exclude.append("qa_outputs")
+            frozen_exclude.append("classifier")
         if not ENCODER_ANALOG or LORA_TARGET == "all":
             for name in all_linear_names:
                 if "encoder" in name and "embedding_transformation" not in name:
@@ -517,7 +571,7 @@ def create_model():
                 for tile in m.analog_tiles():
                     if id(tile) not in existing_tile_ids:
                         # Head analog tiles remain trainable (weight + bias)
-                        if HEAD_ANALOG and "qa_outputs" in mod_name:
+                        if HEAD_ANALOG and "classifier" in mod_name:
                             continue
                         tile.update = _frozen_noop_update
                         tile.forward = types.MethodType(_frozen_analog_forward, tile)
@@ -527,7 +581,7 @@ def create_model():
 
     # Step 2: Set requires_grad
     # - LRTT layers: A/B + out_scaling TRAINABLE, C + bias FROZEN
-    # - qa_outputs: TRAINABLE if HEAD_LAYER=="train", else FROZEN
+    # - classifier: TRAINABLE if HEAD_LAYER=="train", else FROZEN
     # - embedding_transformation: always digital frozen
     # - Everything else: FROZEN
     for name, param in model.named_parameters():
@@ -537,7 +591,7 @@ def create_model():
             pass  # Respect lrtt_tile.py settings (train_c_bias, mapping_c)
         elif "out_scaling_alpha" in name:
             pass  # Frozen analog out_scaling: TRAINABLE (same as C tile)
-        elif "qa_outputs" in name:
+        elif "classifier" in name:
             param.requires_grad = (HEAD_LAYER == "train")
         elif "embedding_transformation" in name:
             param.requires_grad = False
@@ -550,6 +604,7 @@ def create_model():
 
     print(f"\nCreated MobileBERT model (LRTT):")
     print(f"  Model: {MODEL_NAME}")
+    print(f"  Task: {TASK_NAME} (num_labels={NUM_LABELS})")
     print(f"  Total params: {total_params:,}, Trainable: {num_params:,}")
     print(f"  LRTT Analog layers: {num_analog}")
     print(f"  LRTT config: rank={LRTT_RANK}, transfer_every={TRANSFER_EVERY}, "
@@ -572,278 +627,114 @@ def create_model():
 # =============================================================================
 
 def load_data(tokenizer):
-    """Load and tokenize SQuAD dataset."""
-    raw_datasets = load_dataset("squad")
+    """Load and tokenize GLUE dataset for the specified task."""
+    raw_datasets = load_dataset("nyu-mll/glue", TASK_NAME)
+    sentence1_key, sentence2_key = TASK_TO_KEYS[TASK_NAME]
 
-    # Use full dataset if EVAL_SUBSET_SIZE == 0, otherwise subset
-    if EVAL_SUBSET_SIZE > 0:
-        eval_examples = raw_datasets["validation"].select(
-            range(min(EVAL_SUBSET_SIZE, len(raw_datasets["validation"])))
-        )
-    else:
-        eval_examples = raw_datasets["validation"]
-
-    def preprocess_train(examples):
-        questions = [q.strip() for q in examples["question"]]
-        inputs = tokenizer(
-            questions, examples["context"],
-            max_length=MAX_SEQ_LENGTH, truncation="only_second",
-            stride=128, return_overflowing_tokens=True,
-            return_offsets_mapping=True, padding=False,
-        )
-
-        offset_mapping = inputs.pop("offset_mapping")
-        sample_map = inputs.pop("overflow_to_sample_mapping")
-        answers = examples["answers"]
-
-        start_positions = []
-        end_positions = []
-
-        for i, offset in enumerate(offset_mapping):
-            sample_idx = sample_map[i]
-            answer = answers[sample_idx]
-
-            if len(answer["answer_start"]) == 0:
-                start_positions.append(0)
-                end_positions.append(0)
-                continue
-
-            start_char = answer["answer_start"][0]
-            end_char = start_char + len(answer["text"][0])
-
-            sequence_ids = inputs.sequence_ids(i)
-
-            idx = 0
-            while sequence_ids[idx] != 1:
-                idx += 1
-            context_start = idx
-            while idx < len(sequence_ids) and sequence_ids[idx] == 1:
-                idx += 1
-            context_end = idx - 1
-
-            if offset[context_start][0] > end_char or offset[context_end][1] < start_char:
-                start_positions.append(0)
-                end_positions.append(0)
-            else:
-                idx = context_start
-                while idx <= context_end and offset[idx][0] <= start_char:
-                    idx += 1
-                start_positions.append(idx - 1)
-
-                idx = context_end
-                while idx >= context_start and offset[idx][1] >= end_char:
-                    idx -= 1
-                end_positions.append(idx + 1)
-
-        inputs["start_positions"] = start_positions
-        inputs["end_positions"] = end_positions
-        return inputs
-
-    def preprocess_eval(examples):
-        questions = [q.strip() for q in examples["question"]]
-        inputs = tokenizer(
-            questions, examples["context"],
-            max_length=MAX_SEQ_LENGTH, truncation="only_second",
-            stride=128, return_overflowing_tokens=True,
-            return_offsets_mapping=True, padding=False,
+    def preprocess_function(examples):
+        if sentence2_key is None:
+            return tokenizer(
+                examples[sentence1_key],
+                max_length=MAX_SEQ_LENGTH,
+                truncation=True,
+                padding=False,
+            )
+        return tokenizer(
+            examples[sentence1_key], examples[sentence2_key],
+            max_length=MAX_SEQ_LENGTH,
+            truncation=True,
+            padding=False,
         )
 
-        sample_map = inputs.pop("overflow_to_sample_mapping")
-        offset_mapping = inputs["offset_mapping"]
+    # Tokenize all splits
+    cols_to_remove = [c for c in raw_datasets["train"].column_names if c != "label"]
+    tokenized = raw_datasets.map(preprocess_function, batched=True, remove_columns=cols_to_remove)
+    tokenized = tokenized.rename_column("label", "labels")
 
-        for i in range(len(inputs["input_ids"])):
-            sequence_ids = inputs.sequence_ids(i)
-            inputs["offset_mapping"][i] = [
-                o if sequence_ids[k] == 1 else None
-                for k, o in enumerate(offset_mapping[i])
-            ]
-
-        inputs["example_id"] = [
-            examples["id"][sample_map[i]] for i in range(len(inputs["input_ids"]))
-        ]
-
-        return inputs
-
-    tokenized_train = raw_datasets["train"].map(
-        preprocess_train, batched=True,
-        remove_columns=raw_datasets["train"].column_names
-    )
-    # Use full dataset if TRAIN_SUBSET_SIZE == 0, otherwise subset
+    # Training set
+    train_dataset = tokenized["train"]
     if TRAIN_SUBSET_SIZE > 0:
-        train_subset = tokenized_train.shuffle(seed=SEED).select(
-            range(min(TRAIN_SUBSET_SIZE, len(tokenized_train)))
+        train_dataset = train_dataset.shuffle(seed=SEED).select(
+            range(min(TRAIN_SUBSET_SIZE, len(train_dataset)))
         )
     else:
-        train_subset = tokenized_train.shuffle(seed=SEED)
+        train_dataset = train_dataset.shuffle(seed=SEED)
 
-    tokenized_eval = eval_examples.map(
-        preprocess_eval, batched=True,
-        remove_columns=raw_datasets["validation"].column_names
-    )
+    # Eval set (MNLI uses validation_matched)
+    eval_key = "validation_matched" if TASK_NAME == "mnli" else "validation"
+    eval_dataset = tokenized[eval_key]
+    if EVAL_SUBSET_SIZE > 0:
+        eval_dataset = eval_dataset.select(
+            range(min(EVAL_SUBSET_SIZE, len(eval_dataset)))
+        )
 
     collator = DataCollatorWithPadding(tokenizer)
     train_loader = DataLoader(
-        train_subset, batch_size=BATCH_SIZE // GRAD_ACCUM_STEPS, shuffle=True,
+        train_dataset, batch_size=BATCH_SIZE // GRAD_ACCUM_STEPS, shuffle=True,
         collate_fn=collator, num_workers=2,
         generator=torch.Generator().manual_seed(SEED)
     )
 
-    return train_loader, tokenized_eval, eval_examples
+    eval_loader = DataLoader(
+        eval_dataset, batch_size=EVAL_BATCH_SIZE, shuffle=False,
+        collate_fn=collator,
+        num_workers=2
+    )
+
+    return train_loader, eval_loader
 
 
 # =============================================================================
 # Evaluation Functions
 # =============================================================================
 
-def normalize_answer(s):
-    """Lower text and remove punctuation, articles and extra whitespace."""
-    def remove_articles(text):
-        return re.sub(r'\b(a|an|the)\b', ' ', text)
-
-    def white_space_fix(text):
-        return ' '.join(text.split())
-
-    def remove_punc(text):
-        exclude = set(string.punctuation)
-        return ''.join(ch for ch in text if ch not in exclude)
-
-    return white_space_fix(remove_articles(remove_punc(s.lower())))
-
-
-def compute_f1(prediction, ground_truth):
-    """Compute token-level F1 score."""
-    pred_tokens = normalize_answer(prediction).split()
-    truth_tokens = normalize_answer(ground_truth).split()
-
-    if len(pred_tokens) == 0 or len(truth_tokens) == 0:
-        return int(pred_tokens == truth_tokens)
-
-    common = Counter(pred_tokens) & Counter(truth_tokens)
-    num_same = sum(common.values())
-
-    if num_same == 0:
-        return 0.0
-
-    precision = num_same / len(pred_tokens)
-    recall = num_same / len(truth_tokens)
-    return 2 * precision * recall / (precision + recall)
-
-
-def compute_exact_match(prediction, ground_truth):
-    """Compute exact match score."""
-    return float(normalize_answer(prediction) == normalize_answer(ground_truth))
-
-
-def postprocess_squad_predictions(
-    examples, features, all_start_logits, all_end_logits,
-    n_best_size=20, max_answer_length=30,
-):
-    """Post-process SQuAD predictions. Extracts best answer spans."""
-    example_id_to_index = {k: i for i, k in enumerate(examples["id"])}
-    features_per_example = collections.defaultdict(list)
-    for i, feature in enumerate(features):
-        features_per_example[example_id_to_index[feature["example_id"]]].append(i)
-
-    all_predictions = collections.OrderedDict()
-
-    for example_index, example in enumerate(examples):
-        feature_indices = features_per_example[example_index]
-        context = example["context"]
-
-        prelim_predictions = []
-
-        for feature_index in feature_indices:
-            start_logits = all_start_logits[feature_index]
-            end_logits = all_end_logits[feature_index]
-            offset_mapping = features[feature_index]["offset_mapping"]
-
-            start_indexes = np.argsort(start_logits)[-1: -n_best_size - 1: -1].tolist()
-            end_indexes = np.argsort(end_logits)[-1: -n_best_size - 1: -1].tolist()
-
-            for start_index in start_indexes:
-                for end_index in end_indexes:
-                    if (
-                        start_index >= len(offset_mapping)
-                        or end_index >= len(offset_mapping)
-                        or offset_mapping[start_index] is None
-                        or offset_mapping[end_index] is None
-                    ):
-                        continue
-                    if end_index < start_index or end_index - start_index + 1 > max_answer_length:
-                        continue
-
-                    prelim_predictions.append({
-                        "offsets": (offset_mapping[start_index][0], offset_mapping[end_index][1]),
-                        "score": start_logits[start_index] + end_logits[end_index],
-                    })
-
-        predictions = sorted(prelim_predictions, key=lambda x: x["score"], reverse=True)[:n_best_size]
-
-        if len(predictions) == 0:
-            all_predictions[example["id"]] = ""
-        else:
-            best_pred = predictions[0]
-            start_char, end_char = best_pred["offsets"]
-            all_predictions[example["id"]] = context[start_char:end_char]
-
-    return all_predictions
-
-
-def evaluate_model(model, eval_features, eval_examples, tokenizer):
-    """Evaluate SQuAD model using official metric. Returns (F1, EM)."""
+def evaluate_model(model, eval_loader):
+    """Evaluate GLUE model. Returns (metric_value, val_loss)."""
     model.eval()
 
-    all_start_logits = []
-    all_end_logits = []
-
-    # Pad to max_length so all batches produce same-sized logits for np.concatenate
-    collator = DataCollatorWithPadding(tokenizer, padding="max_length", max_length=MAX_SEQ_LENGTH)
-
-    def squad_eval_collate_fn(features):
-        offset_mappings = [f.pop("offset_mapping") for f in features]
-        example_ids = [f.pop("example_id") for f in features]
-        batch = collator(features)
-        batch["offset_mapping"] = offset_mappings
-        batch["example_id"] = example_ids
-        for i, f in enumerate(features):
-            f["offset_mapping"] = offset_mappings[i]
-            f["example_id"] = example_ids[i]
-        return batch
-
-    eval_loader = DataLoader(
-        eval_features, batch_size=EVAL_BATCH_SIZE, shuffle=False,
-        collate_fn=squad_eval_collate_fn,
-        num_workers=2
-    )
+    is_regression = (TASK_NAME == "stsb")
+    all_preds = []
+    all_labels = []
+    total_val_loss = 0.0
+    num_val_batches = 0
 
     with no_grad():
         for batch in eval_loader:
             input_ids = batch['input_ids'].to(DEVICE)
             attention_mask = batch['attention_mask'].to(DEVICE)
+            labels = batch['labels'].to(DEVICE)
 
-            outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+            outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
+            total_val_loss += outputs.loss.item()
+            num_val_batches += 1
 
-            all_start_logits.append(outputs.start_logits.cpu().numpy())
-            all_end_logits.append(outputs.end_logits.cpu().numpy())
+            if is_regression:
+                preds = outputs.logits.squeeze()
+                all_preds.extend(preds.cpu().numpy())
+                all_labels.extend(labels.float().cpu().numpy())
+            else:
+                preds = torch.argmax(outputs.logits, dim=-1)
+                all_preds.extend(preds.cpu().numpy())
+                all_labels.extend(labels.cpu().numpy())
 
     model.train()
+    val_loss = total_val_loss / num_val_batches if num_val_batches > 0 else float('inf')
 
-    all_start_logits = np.concatenate(all_start_logits, axis=0)
-    all_end_logits = np.concatenate(all_end_logits, axis=0)
+    # Compute task-specific metric
+    metric_name = TASK_TO_METRIC[TASK_NAME]
+    if metric_name == "accuracy":
+        metric_value = sum(p == l for p, l in zip(all_preds, all_labels)) / len(all_labels) * 100.0
+    elif metric_name == "f1":
+        from sklearn.metrics import f1_score
+        metric_value = f1_score(all_labels, all_preds) * 100.0
+    elif metric_name == "matthews_correlation":
+        from sklearn.metrics import matthews_corrcoef
+        metric_value = matthews_corrcoef(all_labels, all_preds) * 100.0
+    elif metric_name == "spearmanr":
+        from scipy.stats import spearmanr
+        metric_value = spearmanr(all_preds, all_labels)[0] * 100.0
 
-    predictions = postprocess_squad_predictions(
-        eval_examples, eval_features,
-        all_start_logits, all_end_logits,
-        n_best_size=20, max_answer_length=30
-    )
-
-    formatted_predictions = [{"id": k, "prediction_text": v} for k, v in predictions.items()]
-    references = [{"id": ex["id"], "answers": ex["answers"]} for ex in eval_examples]
-
-    squad_metric = evaluate.load("squad")
-    results = squad_metric.compute(predictions=formatted_predictions, references=references)
-
-    return results["f1"], results["exact_match"]
+    return metric_value, val_loss
 
 
 # =============================================================================
@@ -862,15 +753,17 @@ def _make_cell_indices(shape, n=10):
 
 
 def find_first_lrtt_tile(model):
+    """Find the first LRTT tile in the model."""
     for name, mod in model.named_modules():
         if hasattr(mod, 'analog_module'):
             am = mod.analog_module
             if hasattr(am, 'controller'):
                 return name, am
-    raise RuntimeError("No LRTT tile found")
+    raise RuntimeError("No LRTT tile found in model")
 
 
 def find_last_lrtt_tile(model):
+    """Find the last LRTT tile in the model."""
     last_name, last_tile = None, None
     for name, mod in model.named_modules():
         if hasattr(mod, 'analog_module'):
@@ -878,11 +771,12 @@ def find_last_lrtt_tile(model):
             if hasattr(am, 'controller'):
                 last_name, last_tile = name, am
     if last_tile is None:
-        raise RuntimeError("No LRTT tile found")
+        raise RuntimeError("No LRTT tile found in model")
     return last_name, last_tile
 
 
 def sample_cells(weight_matrix, cell_indices):
+    """Extract values at fixed cell positions from a weight matrix."""
     values = []
     for r, c in cell_indices:
         if r < weight_matrix.shape[0] and c < weight_matrix.shape[1]:
@@ -893,6 +787,7 @@ def sample_cells(weight_matrix, cell_indices):
 
 
 def get_raw_C(tile_c):
+    """Get C tile raw weights WITHOUT out_scaling."""
     W_scaled = tile_c.get_weights()[0]
     if hasattr(tile_c, 'out_scaling_alpha'):
         alpha = tile_c.out_scaling_alpha.detach().to(W_scaled.device)
@@ -901,6 +796,7 @@ def get_raw_C(tile_c):
 
 
 def snapshot_weights(tile):
+    """Snapshot A, B, C weights before optimizer step."""
     return (
         tile.tile_a.get_weights()[0].clone().detach(),
         tile.tile_b.get_weights()[0].clone().detach(),
@@ -912,6 +808,7 @@ def snapshot_weights(tile):
 def collect_tile_diagnostics(tile, C_prev_raw, A_before, B_before, C_before,
                              C_raw_before, step, prev_num_transfers,
                              A_ci, B_ci, C_ci):
+    """Collect all diagnostic data for one tile at one step."""
     controller = tile.controller
     A = tile.tile_a.get_weights()[0]
     B = tile.tile_b.get_weights()[0]
@@ -939,6 +836,7 @@ def collect_tile_diagnostics(tile, C_prev_raw, A_before, B_before, C_before,
     if C_raw_before is not None:
         C_grad_cells = sample_cells(C_raw - C_raw_before, C_ci)
 
+    transfer_counter = controller.transfer_counter
     num_transfers = controller.num_transfers
     is_transfer = num_transfers > prev_num_transfers
 
@@ -950,13 +848,14 @@ def collect_tile_diagnostics(tile, C_prev_raw, A_before, B_before, C_before,
         "A_grad_cells": A_grad_cells, "B_grad_cells": B_grad_cells,
         "C_grad_cells": C_grad_cells,
         "delta_A": delta_A, "delta_B": delta_B, "delta_C_raw": delta_C_raw_step,
-        "transfer_counter": controller.transfer_counter,
+        "transfer_counter": transfer_counter,
         "num_transfers": num_transfers, "is_transfer": is_transfer,
     }
     return record, C_raw.clone().detach(), num_transfers
 
 
 def _cos_sim(a, b):
+    """Cosine similarity between two flat tensors."""
     na, nb = torch.norm(a).item(), torch.norm(b).item()
     if na > 1e-10 and nb > 1e-10:
         return torch.nn.functional.cosine_similarity(
@@ -973,6 +872,7 @@ def make_diagnostic_plots(log_data, output_path, tile_label="",
     norm_C_raw = [r["norm_C_raw"] for r in log_data]
     norm_AB = [r["norm_AB"] for r in log_data]
     losses = [r.get("loss", 0.0) for r in log_data]
+
     transfer_steps = [r["step"] for r in log_data if r["is_transfer"]]
 
     n_cells = len(log_data[0]["A_cells"])
@@ -983,17 +883,20 @@ def make_diagnostic_plots(log_data, output_path, tile_label="",
     B_g = [[r["B_grad_cells"][i] if r["B_grad_cells"] else 0.0 for r in log_data] for i in range(n_cells)]
     C_g = [[r["C_grad_cells"][i] if r["C_grad_cells"] else 0.0 for r in log_data] for i in range(len(log_data[0]["C_cells"]))]
 
+    # Use provided indices for labels, else generate generic
     a_ci = A_ci or [(i, 0) for i in range(n_cells)]
     b_ci = B_ci or [(0, i) for i in range(n_cells)]
     c_ci = C_ci or [(i, i) for i in range(len(log_data[0]["C_cells"]))]
 
     fig, axes = plt.subplots(5, 2, figsize=(18, 28))
-    fig.suptitle(f"LRTT Diagnostic — {tile_label}" if tile_label else "LRTT Diagnostic", fontsize=14)
+    title_str = f"LRTT Diagnostic — {tile_label}" if tile_label else "LRTT Diagnostic"
+    fig.suptitle(title_str, fontsize=14)
 
     def tl(ax):
         for ts in transfer_steps:
             ax.axvline(x=ts, color="red", alpha=0.3, linewidth=0.8)
 
+    # (0,0) A/B/AB norms
     ax = axes[0, 0]
     ax.plot(steps, norm_A, label="||A||", alpha=0.8)
     ax.plot(steps, norm_B, label="||B||", alpha=0.8)
@@ -1001,6 +904,7 @@ def make_diagnostic_plots(log_data, output_path, tile_label="",
     tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("Norm")
     ax.set_title("A, B, AB Norms (red = transfer)"); ax.legend(); ax.grid(True, alpha=0.3)
 
+    # (0,1) C norm + delta
     ax = axes[0, 1]
     ax.plot(steps, norm_C_raw, label="||C_raw||", color="green", alpha=0.8)
     delta_C = [r["delta_C_raw"] for r in log_data]
@@ -1012,6 +916,7 @@ def make_diagnostic_plots(log_data, output_path, tile_label="",
     l1, la1 = ax.get_legend_handles_labels(); l2, la2 = ax2.get_legend_handles_labels()
     ax.legend(l1+l2, la1+la2, loc="upper left"); ax.grid(True, alpha=0.3)
 
+    # Rows 1-3: A/B/C cells
     for row, (ws, gs, ci, nm) in enumerate(
             [(A_w, A_g, a_ci, "A"), (B_w, B_g, b_ci, "B"), (C_w, C_g, c_ci, "C")], start=1):
         ax = axes[row, 0]
@@ -1019,6 +924,7 @@ def make_diagnostic_plots(log_data, output_path, tile_label="",
             r, c = ci[i]; ax.plot(steps, s, label=f"{nm}[{r},{c}]", alpha=0.7, linewidth=0.8)
         tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("Weight")
         ax.set_title(f"{nm} cells: weights"); ax.legend(fontsize=6, ncol=2); ax.grid(True, alpha=0.3)
+
         ax = axes[row, 1]
         for i, s in enumerate(gs):
             r, c = ci[i]; ax.plot(steps, s, label=f"d{nm}[{r},{c}]", alpha=0.7, linewidth=0.8)
@@ -1123,7 +1029,9 @@ def get_linear_schedule_with_min_lr(optimizer, num_warmup_steps, num_training_st
 # =============================================================================
 
 def main():
-    """Train MobileBERT with LRTT on SQuAD."""
+    """Train MobileBERT with LRTT on GLUE."""
+    metric_name = TASK_TO_METRIC[TASK_NAME]
+
     manual_seed(SEED)
     set_seed(SEED)
     if USE_CUDA:
@@ -1131,9 +1039,10 @@ def main():
 
     wandb.init(
         project=WANDB_PROJECT,
-        name=f"mobilebert_lrtt_r{LRTT_RANK}_te{TRANSFER_EVERY}_bs{BATCH_SIZE}",
+        name=f"mobilebert_lrtt_{TASK_NAME}_r{LRTT_RANK}_te{TRANSFER_EVERY}_bs{BATCH_SIZE}",
         config={
-            "model": MODEL_NAME, "dataset": "SQuAD",
+            "model": MODEL_NAME, "dataset": f"GLUE/{TASK_NAME}",
+            "task": TASK_NAME, "metric": metric_name,
             "lrtt_rank": LRTT_RANK, "transfer_every": TRANSFER_EVERY,
             "transfer_lr": TRANSFER_LR, "fast_lr": FAST_LR, "auto_scale_mode": AUTO_SCALE_MODE,
             "reinit_mode": REINIT_MODE, "reinit_gain": REINIT_GAIN,
@@ -1149,8 +1058,8 @@ def main():
 
     # Load tokenizer and data
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-    train_loader, eval_features, eval_examples = load_data(tokenizer)
-    print(f"Train batches: {len(train_loader)}, Eval features: {len(eval_features)}")
+    train_loader, eval_loader = load_data(tokenizer)
+    print(f"Train batches: {len(train_loader)}, Eval batches: {len(eval_loader)}")
 
     # Create model, optimizer, scheduler
     model = create_model()
@@ -1228,16 +1137,17 @@ def main():
         print("Gradient tracking hooks installed")
 
     # Initial evaluation
-    init_f1, init_em = evaluate_model(model, eval_features, eval_examples, tokenizer)
-    wandb.log({"epoch": 0, "eval/f1": init_f1, "eval/em": init_em})
-    print(f"Initial eval: F1={init_f1:.2f}, EM={init_em:.2f}")
+    init_acc, init_val_loss = evaluate_model(model, eval_loader)
+    wandb.log({"epoch": 0, f"eval/{metric_name}": init_acc})
+    print(f"Initial eval: {metric_name}={init_acc:.2f}%")
 
     # Training loop
-    best_f1 = init_f1
+    best_acc = init_acc
     best_epoch = 0
     epochs_without_improvement = 0
-    best_train_loss = float('inf')
-    train_loss_no_improvement = 0
+    best_val_loss = float('inf')
+    val_loss_no_improvement = 0
+    val_loss_crossed_threshold = False  # True once val loss drops below threshold
     global_step = 0
 
     print(f"\nStarting training: {N_EPOCHS} epochs (max), early stopping patience={EARLY_STOP_PATIENCE}")
@@ -1252,12 +1162,11 @@ def main():
         for micro_step, batch in enumerate(pbar):
             input_ids = batch['input_ids'].to(DEVICE)
             attention_mask = batch['attention_mask'].to(DEVICE)
-            start_positions = batch['start_positions'].to(DEVICE)
-            end_positions = batch['end_positions'].to(DEVICE)
+            labels = batch['labels'].to(DEVICE)
 
             outputs = model(
                 input_ids=input_ids, attention_mask=attention_mask,
-                start_positions=start_positions, end_positions=end_positions,
+                labels=labels,
             )
             loss = outputs.loss / GRAD_ACCUM_STEPS
             loss.backward()
@@ -1265,6 +1174,7 @@ def main():
             if (micro_step + 1) % GRAD_ACCUM_STEPS == 0:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
+                # Diagnostic: snapshot before optimizer step
                 diag_active = ENABLE_DIAGNOSTIC and (DIAG_EPOCHS == 0 or epoch <= DIAG_EPOCHS)
                 if diag_active:
                     first_snap = snapshot_weights(first_tile)
@@ -1276,6 +1186,7 @@ def main():
                 global_step += 1
 
                 if diag_active:
+                    # --- Collect diagnostics ---
                     for tile, snap, gcd, log_list, prev_state in [
                         (first_tile, first_snap, first_gc, first_log, "first"),
                         (last_tile, last_snap, last_gc, last_log, "last"),
@@ -1342,48 +1253,53 @@ def main():
         train_loss = total_loss / num_batches if num_batches > 0 else 0.0
 
         # Evaluate
-        eval_f1, eval_em = evaluate_model(model, eval_features, eval_examples, tokenizer)
+        eval_acc, val_loss = evaluate_model(model, eval_loader)
         current_lr = optimizer.param_groups[0]['lr']
 
         wandb.log({
             "epoch": epoch, "train/loss": train_loss,
-            "eval/f1": eval_f1, "eval/em": eval_em,
+            f"eval/{metric_name}": eval_acc,
             "learning_rate": current_lr,
         })
 
-        if eval_f1 > best_f1:
-            best_f1 = eval_f1
+        if eval_acc > best_acc:
+            best_acc = eval_acc
             best_epoch = epoch
             epochs_without_improvement = 0
             save(model.state_dict(), WEIGHT_PATH)
         else:
             epochs_without_improvement += 1
 
-        train_loss_improved = ""
-        if train_loss < best_train_loss:
-            best_train_loss = train_loss
-            train_loss_no_improvement = 0
-            train_loss_improved = " ↓"
+        val_loss_improved = ""
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            val_loss_no_improvement = 0
+            val_loss_improved = " ↓"
         else:
-            train_loss_no_improvement += 1
+            val_loss_no_improvement += 1
+
+        # Reset metric patience when val loss first crosses threshold
+        if not val_loss_crossed_threshold and best_val_loss <= VAL_LOSS_THRESHOLD:
+            val_loss_crossed_threshold = True
+            epochs_without_improvement = 0
 
         tqdm.write(
-            f"Epoch {epoch}: Train loss: {train_loss:.4f}{train_loss_improved} | "
-            f"F1 {eval_f1:.2f}% | EM {eval_em:.2f}% | "
-            f"Best F1 {best_f1:.2f}% | LR {current_lr:.2e} | "
+            f"Epoch {epoch}: Train loss: {train_loss:.4f} | Val loss: {val_loss:.4f}{val_loss_improved} | "
+            f"{metric_name} {eval_acc:.2f}% | "
+            f"Best {best_acc:.2f}% | LR {current_lr:.2e} | "
             f"No imp: {epochs_without_improvement}/{EARLY_STOP_PATIENCE}"
         )
 
-        if best_train_loss > TRAIN_LOSS_THRESHOLD and train_loss_no_improvement >= TRAIN_LOSS_EARLY_STOP_PATIENCE:
-            tqdm.write(f"Train loss early stop at epoch {epoch} "
-                       f"(train_loss={train_loss:.4f} > {TRAIN_LOSS_THRESHOLD}, no improvement for {train_loss_no_improvement} epochs)")
+        if not val_loss_crossed_threshold and val_loss_no_improvement >= VAL_LOSS_EARLY_STOP_PATIENCE:
+            print(f"Val loss early stop at epoch {epoch} "
+                  f"(val_loss={val_loss:.4f} > {VAL_LOSS_THRESHOLD}, no improvement for {val_loss_no_improvement} epochs)")
             break
 
-        if best_train_loss <= TRAIN_LOSS_THRESHOLD and epochs_without_improvement >= EARLY_STOP_PATIENCE:
+        if val_loss_crossed_threshold and epochs_without_improvement >= EARLY_STOP_PATIENCE:
             tqdm.write(f"Early stopping at epoch {epoch}")
             break
 
-    print(f"\nBest F1: {best_f1:.2f}% at epoch {best_epoch}")
+    print(f"\nBest {metric_name}: {best_acc:.2f}% at epoch {best_epoch}")
 
     # =========================================================================
     # Save diagnostic outputs
@@ -1395,7 +1311,7 @@ def main():
         diag_steps = len(first_log)
         print(f"\nDiag: {diag_steps}/{global_step} steps, T1={len(first_transfers)}, T2={len(last_transfers)}")
 
-        json_path = os.path.join(RESULTS, f"squad_diagnostic_log_{stamp}.json")
+        json_path = os.path.join(RESULTS, f"{TASK_NAME}_diagnostic_log_{stamp}.json")
         with open(json_path, 'w') as f:
             json.dump({
                 "config": {
@@ -1406,7 +1322,8 @@ def main():
                     "batch_size": BATCH_SIZE, "n_epochs": N_EPOCHS,
                     "diag_epochs": DIAG_EPOCHS,
                 },
-                "best_f1": best_f1, "best_epoch": best_epoch,
+                "task": TASK_NAME, "metric": metric_name,
+                "best_metric": best_acc, "best_epoch": best_epoch,
                 "total_steps": global_step, "diag_steps": diag_steps,
                 "first_tile": {
                     "name": first_name,
@@ -1426,24 +1343,24 @@ def main():
         print(f"Saved: {json_path}")
 
         make_diagnostic_plots(first_log,
-            os.path.join(RESULTS, f"squad_diag_first_{stamp}.png"),
+            os.path.join(RESULTS, f"{TASK_NAME}_diag_first_{stamp}.png"),
             tile_label=f"First tile ({first_name})", A_ci=A_CI, B_ci=B_CI, C_ci=C_CI)
         make_diagnostic_plots(last_log,
-            os.path.join(RESULTS, f"squad_diag_last_{stamp}.png"),
+            os.path.join(RESULTS, f"{TASK_NAME}_diag_last_{stamp}.png"),
             tile_label=f"Last tile ({last_name})", A_ci=A_CI, B_ci=B_CI, C_ci=C_CI)
 
-        steps_per_epoch = len(train_loader)
+        steps_per_epoch = len(train_loader) // GRAD_ACCUM_STEPS
         diag_ep = DIAG_EPOCHS if DIAG_EPOCHS > 0 else N_EPOCHS
         for ep in range(1, diag_ep + 1):
             s0, s1 = (ep-1)*steps_per_epoch, ep*steps_per_epoch
             ef, el = first_log[s0:s1], last_log[s0:s1]
             if not ef: break
             make_diagnostic_plots(ef,
-                os.path.join(RESULTS, f"squad_diag_first_{stamp}_ep{ep}.png"),
+                os.path.join(RESULTS, f"{TASK_NAME}_diag_first_{stamp}_ep{ep}.png"),
                 tile_label=f"First tile ({first_name}) — Epoch {ep}",
                 A_ci=A_CI, B_ci=B_CI, C_ci=C_CI)
             make_diagnostic_plots(el,
-                os.path.join(RESULTS, f"squad_diag_last_{stamp}_ep{ep}.png"),
+                os.path.join(RESULTS, f"{TASK_NAME}_diag_last_{stamp}_ep{ep}.png"),
                 tile_label=f"Last tile ({last_name}) — Epoch {ep}",
                 A_ci=A_CI, B_ci=B_CI, C_ci=C_CI)
 
