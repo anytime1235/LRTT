@@ -15,8 +15,9 @@ orchestrator on top of aihwkit tiles. Operates on A, B, visible (C) tile stack w
 """
 
 import torch
+import torch.nn as nn
 from torch import Tensor
-from typing import Optional, Dict, Any
+from typing import Optional, List, Dict, Any
 import math
 
 from aihwkit.simulator.tiles.analog import AnalogTileWithoutPeriphery
@@ -48,16 +49,24 @@ class LRTTController:
         rank: int,
         *,
         transfer_lr: float = 1.0,
-        transfer_lr_scale: float = 1.0,  # Scaling factor for transfer_lr
         transfer_every: int = 32,
+        dynamic_te: bool = False,
+        dynamic_te_power: float = 1.0,
+        dynamic_te_min: Optional[int] = None,
+        dynamic_te_max: Optional[int] = None,
+        te_warmup_schedule: Optional[List[int]] = None,
+        te_warmup_steps: int = 0,
         units_in_mbatch: bool = False,
         lora_alpha: float = 1.0,
-        reinit_gain: float = 0.1,
+        reinit_gain: float = 1.0,
         reinit_mode: str = "standard",
         decay_factor: float = 1.0,
         a_init_mode: str = "zero",  # "zero" or "kaiming"
         b_init_mode: str = "kaiming",  # "kaiming" or "zero"
         correct_gradient_magnitudes: bool = False,
+        fast_lr: float = 1.0,
+        scale_transfer_lr: bool = True,
+        transfer_fast_lr_ref: str = "geomean",
         rank_chunk: Optional[int] = None,
         ab_bl_mgmt: Optional[Dict[str, Any]] = None,
         transfer_bl_mgmt: Optional[Dict[str, Any]] = None,
@@ -78,13 +87,11 @@ class LRTTController:
             d_size: Output dimension
             x_size: Input dimension
             rank: LoRA rank (must be <= min(d_size, x_size))
-            transfer_lr: Transfer learning rate scalar (base value before scaling)
-            transfer_lr_scale: Scaling factor for transfer_lr (default 1.0).
-                        Effective transfer_lr = transfer_lr * transfer_lr_scale.
+            transfer_lr: Transfer learning rate scalar
             transfer_every: Transfer frequency (steps or samples)
             units_in_mbatch: Whether transfer_every counts samples vs steps
             lora_alpha: LoRA scaling factor α
-            reinit_gain: Kaiming initialization gain for B matrix
+            reinit_gain: Kaiming uniform initialization multiplier (1.0 = standard PyTorch default)
             reinit_mode: Reinit strategy after transfer:
                         "standard" - A=0, B=Kaiming (original LRTT)
                         "decay" - A*=decay_factor, B*=decay_factor (gradual decay)
@@ -92,7 +99,7 @@ class LRTTController:
                         "orthogonal_zero" - A=0, B=Random Orthogonal (FROZEN)
                         "orthogonal_decay" - A*=decay_factor, B=Random Orthogonal (FROZEN)
             decay_factor: Decay factor for "decay" and "hybrid" modes (0 < decay_factor < 1)
-            correct_gradient_magnitudes: Scale lr by sqrt(rank) for gradient correction
+            correct_gradient_magnitudes: Divide transfer LR by fast effective LR reference
             rank_chunk: Chunk size for transfer (None = full rank)
             ab_bl_mgmt: BL management for A/B updates {update_bl_management, update_management, desired_BL}
             transfer_bl_mgmt: BL management for transfers
@@ -116,10 +123,8 @@ class LRTTController:
         self.x_size = x_size
         self.rank = rank
 
-        # LRTT parameters with transfer_lr scaling
-        self.transfer_lr_scale = transfer_lr_scale
-        self.transfer_lr = transfer_lr * transfer_lr_scale
-        self.transfer_lr_base = transfer_lr  # Store original for reference
+        # LRTT parameters
+        self.transfer_lr = transfer_lr
 
         self.transfer_every = transfer_every
         self.units_in_mbatch = units_in_mbatch
@@ -130,8 +135,42 @@ class LRTTController:
         self.a_init_mode = a_init_mode
         self.b_init_mode = b_init_mode
         self.correct_gradient_magnitudes = correct_gradient_magnitudes
+        self.fast_lr = fast_lr
+        self.scale_transfer_lr = scale_transfer_lr
+        self.transfer_fast_lr_ref = transfer_fast_lr_ref
+        self.auto_scale_mode = "none"    # Set from post_init
+        self.auto_momentum = 0.99        # Set from post_init
+        # EMA state: lazy init (first update creates 0-dim CUDA tensors)
+        self.m_x = None
+        self.m_d = None
+        self.m_xb = None    # separate mode only
+        self.m_da = None     # separate mode only
+        self._autoscale_ema_initialized = False
+        self.gran_a = 1.0    # Set from lrtt_tile.py for separate mode
+        self.gran_b = 1.0
+        self.last_lr_eff_a = 1.0   # Python float (after .item())
+        self.last_lr_eff_b = 1.0
+        self._last_lr_sgd = 1.0
         self.rank_chunk = rank_chunk or rank
         self.forward_inject_enabled = forward_inject
+
+        # Dynamic TE state
+        self.dynamic_te = dynamic_te
+        self.dynamic_te_power = dynamic_te_power
+        self.te_base = transfer_every  # TE_0 (immutable)
+        self.dynamic_te_min = dynamic_te_min if dynamic_te_min is not None else transfer_every
+        self.dynamic_te_max = dynamic_te_max if dynamic_te_max is not None else transfer_every * 10
+        self.lr_peak: Optional[float] = None  # Auto-tracked peak LR
+
+        # TE warmup ramp state
+        self.te_warmup_schedule = te_warmup_schedule  # e.g. [32, 64, 128, 230]
+        self.te_warmup_steps = te_warmup_steps
+        self.te_step_counter = 0  # Counts _update_dynamic_te calls
+
+        # If warmup schedule is set, start TE at the first value
+        if self.te_warmup_schedule and len(self.te_warmup_schedule) > 0:
+            self.transfer_every = self.te_warmup_schedule[0]
+
         self.num_reads = num_reads
         self.multi_read_mode = multi_read_mode
         self.update_mode = update_mode
@@ -141,17 +180,28 @@ class LRTTController:
         self.ab_bl_mgmt = ab_bl_mgmt or {}
         self.transfer_bl_mgmt = transfer_bl_mgmt or {}
 
+        # Diagnostics (off by default for speed; fine scripts enable this)
+        self.enable_diagnostics: bool = False
+
         # Counters and state
         self.transfer_counter = 0
+        self._last_m_batch = 1  # Last mini-batch size (for units_in_mbatch)
         self.num_a_updates = 0
         self.num_b_updates = 0
         self.num_transfers = 0
+        self.last_transfer_delta = None
+        self.last_actual_delta = None
 
         # Cached buffers for efficiency
         self._x_b_buffer: Optional[Tensor] = None
         self._d_a_buffer: Optional[Tensor] = None
         self._pad_buffer_a: Optional[Tensor] = None
         self._pad_buffer_b: Optional[Tensor] = None
+
+        # Cached C tile bounds (set once on first transfer, immutable after d2d init)
+        self._c_bounds_cached: bool = False
+        self._c_max_bound: Optional[Tensor] = None  # None means no clipping needed
+        self._c_min_bound: Optional[Tensor] = None
 
         # Device info - infer from tiles if not provided
         if device is None:
@@ -465,7 +515,8 @@ class LRTTController:
             pass
 
         # Fallback: use get_weights/set_weights (may have noise accumulation issue)
-        weights = tile.get_weights()[0] * decay_factor
+        # Optimized: move to GPU for faster set_weights()
+        weights = tile.get_weights()[0].to(self.device) * decay_factor
         tile.set_weights(weights)
 
     def apply_step_decay(self) -> None:
@@ -505,22 +556,31 @@ class LRTTController:
         - "zero": B=0 (ensures ΔW=0 initially)
         """
         with torch.no_grad():
+            # Helper: set raw weights on inner tile directly (bypasses periphery)
+            def _set_raw(tile, w):
+                tile.tile.set_weights(w)
+
+            def _get_raw_gpu(tile):
+                return tile.tile.get_weights().to(self.device)
+
             if self.reinit_mode == "standard":
                 # A matrix: Use a_init_mode
                 if self.a_init_mode == "kaiming":
-                    A_std = self.reinit_gain * math.sqrt(2.0 / self.rank)
-                    A_init = torch.normal(0, A_std, size=(self.d_size, self.rank), device=self.device, dtype=self.dtype)
+                    A_init = torch.empty(self.d_size, self.rank, device=self.device, dtype=self.dtype)
+                    nn.init.kaiming_uniform_(A_init, a=math.sqrt(5))
+                    A_init *= self.reinit_gain
                 else:  # "zero"
                     A_init = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
-                self.tile_a.set_weights(A_init)
+                _set_raw(self.tile_a, A_init)
 
                 # B matrix: Use b_init_mode
                 if self.b_init_mode == "zero":
                     B_init = torch.zeros(self.rank, self.x_size, device=self.device, dtype=self.dtype)
                 else:  # "kaiming"
-                    B_std = self.reinit_gain * math.sqrt(2.0 / self.x_size)
-                    B_init = torch.normal(0, B_std, size=(self.rank, self.x_size), device=self.device, dtype=self.dtype)
-                self.tile_b.set_weights(B_init)
+                    B_init = torch.empty(self.rank, self.x_size, device=self.device, dtype=self.dtype)
+                    nn.init.kaiming_uniform_(B_init, a=math.sqrt(5))
+                    B_init *= self.reinit_gain
+                _set_raw(self.tile_b, B_init)
 
             elif self.reinit_mode == "decay":
                 # Decay mode: First time use a_init_mode for A, B=Kaiming
@@ -528,77 +588,72 @@ class LRTTController:
                 if not self._tiles_initialized:
                     # First time: Use a_init_mode for A initialization
                     if self.a_init_mode == "kaiming":
-                        A_std = self.reinit_gain * math.sqrt(2.0 / self.rank)
-                        A_init = torch.normal(0, A_std, size=(self.d_size, self.rank), device=self.device, dtype=self.dtype)
+                        A_init = torch.empty(self.d_size, self.rank, device=self.device, dtype=self.dtype)
+                        nn.init.kaiming_uniform_(A_init, a=math.sqrt(5))
+                        A_init *= self.reinit_gain
                     else:  # "zero"
                         A_init = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
-                    self.tile_a.set_weights(A_init)
+                    _set_raw(self.tile_a, A_init)
 
                     # B matrix: Use b_init_mode
                     if self.b_init_mode == "zero":
                         B_init = torch.zeros(self.rank, self.x_size, device=self.device, dtype=self.dtype)
                     else:  # "kaiming"
-                        B_std = self.reinit_gain * math.sqrt(2.0 / self.x_size)
-                        B_init = torch.normal(0, B_std, size=(self.rank, self.x_size), device=self.device, dtype=self.dtype)
-                    self.tile_b.set_weights(B_init)
+                        B_init = torch.empty(self.rank, self.x_size, device=self.device, dtype=self.dtype)
+                        nn.init.kaiming_uniform_(B_init, a=math.sqrt(5))
+                        B_init *= self.reinit_gain
+                    _set_raw(self.tile_b, B_init)
                 # else: decay is applied every step via apply_step_decay(), not at transfer time
 
             elif self.reinit_mode == "hybrid":
                 # A=0, B decayed or initialized
                 A_zeros = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
-                self.tile_a.set_weights(A_zeros)
+                _set_raw(self.tile_a, A_zeros)
 
                 if not self._tiles_initialized:
                     # First time: Use b_init_mode
                     if self.b_init_mode == "zero":
                         B_init = torch.zeros(self.rank, self.x_size, device=self.device, dtype=self.dtype)
                     else:  # "kaiming"
-                        B_std = self.reinit_gain * math.sqrt(2.0 / self.x_size)
-                        B_init = torch.normal(0, B_std, size=(self.rank, self.x_size), device=self.device, dtype=self.dtype)
-                    self.tile_b.set_weights(B_init)
-                else:
-                    # After transfer: Decay B
-                    B_weights = self.tile_b.get_weights()[0] * self.decay_factor
-                    self.tile_b.set_weights(B_weights)
+                        B_init = torch.empty(self.rank, self.x_size, device=self.device, dtype=self.dtype)
+                        nn.init.kaiming_uniform_(B_init, a=math.sqrt(5))
+                        B_init *= self.reinit_gain
+                    _set_raw(self.tile_b, B_init)
+                elif self.decay_factor != 1.0:
+                    # After transfer: Decay B (skip if decay_factor == 1.0)
+                    B_raw = _get_raw_gpu(self.tile_b) * self.decay_factor
+                    _set_raw(self.tile_b, B_raw)
+                # else: decay_factor == 1.0, no decay needed
 
             elif self.reinit_mode == "orthogonal_zero":
                 # B = Random Orthogonal (FROZEN), A = 0 after each transfer
-                # B @ B.T = I, so projection preserves gradient direction
                 A_zeros = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
-                self.tile_a.set_weights(A_zeros)
+                _set_raw(self.tile_a, A_zeros)
 
                 if not self._tiles_initialized:
-                    # Initialize B as random orthogonal matrix using QR decomposition
-                    # Generate random matrix and orthogonalize rows
                     random_matrix = torch.randn(self.rank, self.x_size, device=self.device, dtype=self.dtype)
-                    # QR decomposition: Q has orthonormal columns, so Q.T has orthonormal rows
-                    Q, R = torch.linalg.qr(random_matrix.t())  # [x_size, rank]
-                    B_orthogonal = Q.t()  # [rank, x_size] - rows are orthonormal
-                    # Scale to have reasonable magnitude
-                    B_orthogonal = B_orthogonal * math.sqrt(self.x_size / self.rank)
-                    self.tile_b.set_weights(B_orthogonal)
+                    Q, R = torch.linalg.qr(random_matrix.t())
+                    B_orthogonal = Q.t() * math.sqrt(self.x_size / self.rank)
+                    _set_raw(self.tile_b, B_orthogonal)
                     self._b_frozen = True
                 # else: B is frozen, don't change it
 
             elif self.reinit_mode == "orthogonal_decay":
                 # B = Random Orthogonal (FROZEN), A *= decay_factor after each transfer
-                # B @ B.T = I, so projection preserves gradient direction
                 if not self._tiles_initialized:
-                    # First time: Initialize A=0, B=orthogonal
                     A_zeros = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
-                    self.tile_a.set_weights(A_zeros)
+                    _set_raw(self.tile_a, A_zeros)
 
-                    # Initialize B as random orthogonal matrix using QR decomposition
                     random_matrix = torch.randn(self.rank, self.x_size, device=self.device, dtype=self.dtype)
-                    Q, R = torch.linalg.qr(random_matrix.t())  # [x_size, rank]
-                    B_orthogonal = Q.t()  # [rank, x_size] - rows are orthonormal
-                    B_orthogonal = B_orthogonal * math.sqrt(self.x_size / self.rank)
-                    self.tile_b.set_weights(B_orthogonal)
+                    Q, R = torch.linalg.qr(random_matrix.t())
+                    B_orthogonal = Q.t() * math.sqrt(self.x_size / self.rank)
+                    _set_raw(self.tile_b, B_orthogonal)
                     self._b_frozen = True
-                else:
+                elif self.decay_factor != 1.0:
                     # After transfer: Decay A, B is frozen
-                    A_weights = self.tile_a.get_weights()[0] * self.decay_factor
-                    self.tile_a.set_weights(A_weights)
+                    A_raw = _get_raw_gpu(self.tile_a) * self.decay_factor
+                    _set_raw(self.tile_a, A_raw)
+                # else: decay_factor == 1.0, no decay needed
 
             else:
                 raise ValueError(f"Unknown reinit_mode: {self.reinit_mode}. "
@@ -612,9 +667,10 @@ class LRTTController:
 
         # OPTIMIZATION: Use flag instead of reading C weights for norm check
         if self.forward_inject_enabled and not self._c_initialized:
-            # Small Kaiming init to avoid degenerate W_eff
-            C_std = self.reinit_gain * math.sqrt(2.0 / self.x_size) * 0.1  # Smaller
-            C_init = torch.normal(0, C_std, size=(self.d_size, self.x_size), device=self.device, dtype=self.dtype)
+            # Kaiming uniform init (same as PyTorch nn.Linear default)
+            C_init = torch.empty(self.d_size, self.x_size, device=self.device, dtype=self.dtype)
+            nn.init.kaiming_uniform_(C_init, a=math.sqrt(5))
+            C_init *= self.reinit_gain
             self.tile_c.set_weights(C_init)
             if hasattr(self.tile_c, 'clip_weights'):
                 self.tile_c.clip_weights()
@@ -650,6 +706,17 @@ class LRTTController:
         else:
             return self._ab_weight_update_lora(x, d, lr, in_trans, out_trans)
 
+    def _lazy_init_ema(self, device: torch.device) -> None:
+        """Lazily initialize EMA tensors on the correct device."""
+        if self._autoscale_ema_initialized:
+            return
+        self.m_x = torch.tensor(0.0, device=device)
+        self.m_d = torch.tensor(0.0, device=device)
+        if self.auto_scale_mode == "separate":
+            self.m_xb = torch.tensor(0.0, device=device)
+            self.m_da = torch.tensor(0.0, device=device)
+        self._autoscale_ema_initialized = True
+
     def _ab_weight_update_lora(
         self,
         x: Tensor,
@@ -668,21 +735,45 @@ class LRTTController:
         if out_trans:
             d = d.t()
 
-        # 1) Projections (analog path)
+        # 1) Projections (analog path — IO resolution controlled per-tile)
         with torch.no_grad():
             XB = self.tile_b.forward(x)     # [batch, rank] = B·X
             DA = self.tile_a.backward(d)    # [batch, rank] = A^T·D
 
-        # 2) lr_eff = lr * α * (1/√r, optional)
-        # Note: When use_manual_scaling=True (hardware mode), lr_eff should be 1.0
-        # because real hardware cannot set learning rate - update is purely
-        # Δw = coincidences × dw_min, controlled by x_scaling and d_scaling only.
+        # 2) lr_eff_a, lr_eff_b via fast_lr + auto_scale
+        self._last_lr_sgd = lr
+        m_batch = x.shape[0]
+
         if self._is_hardware_mode():
-            lr_eff = 1.0  # Hardware mode: lr is not configurable
+            lr_eff_a = lr_eff_b = 1.0
+        elif self.auto_scale_mode == "none":
+            lr_eff_a = lr_eff_b = self.fast_lr
+        elif self.auto_scale_mode == "shared":
+            tau = (1.0 - self.auto_momentum) / m_batch
+            self._lazy_init_ema(x.device)
+            self.m_x = (1 - tau) * self.m_x + tau * x.abs().amax()
+            self.m_d = (1 - tau) * self.m_d + tau * d.abs().amax()
+            denom = self.m_x * self.m_d
+            fast_lr_t = x.new_tensor(self.fast_lr)
+            lr_eff_a = lr_eff_b = torch.where(denom > 0, fast_lr_t / denom, fast_lr_t).item()
+        elif self.auto_scale_mode == "separate":
+            tau = (1.0 - self.auto_momentum) / m_batch
+            self._lazy_init_ema(x.device)
+            self.m_x = (1 - tau) * self.m_x + tau * x.abs().amax()
+            self.m_d = (1 - tau) * self.m_d + tau * d.abs().amax()
+            self.m_xb = (1 - tau) * self.m_xb + tau * XB.abs().amax()
+            self.m_da = (1 - tau) * self.m_da + tau * DA.abs().amax()
+            denom_a = self.m_xb * self.m_d
+            fa = x.new_tensor(self.fast_lr * self.gran_a)
+            lr_eff_a = torch.where(denom_a > 0, fa / denom_a, fa).item()
+            denom_b = self.m_x * self.m_da
+            fb = x.new_tensor(self.fast_lr * self.gran_b)
+            lr_eff_b = torch.where(denom_b > 0, fb / denom_b, fb).item()
         else:
-            lr_eff = lr * self.lora_alpha
-            if self.correct_gradient_magnitudes:
-                lr_eff /= math.sqrt(self.rank)
+            lr_eff_a = lr_eff_b = self.fast_lr
+
+        self.last_lr_eff_a = lr_eff_a   # Python float
+        self.last_lr_eff_b = lr_eff_b
 
         # === Debug Logging: x,d max values for A and B tiles ===
         self._ab_update_step += 1
@@ -697,11 +788,11 @@ class LRTTController:
             print(f"  [AB-Scaling Step {self._ab_update_step}] "
                   f"A: x_max={a_x_max:.4f}, d_max={a_d_max:.4f} | "
                   f"B: x_max={b_x_max:.4f}, d_max={b_d_max:.4f} | "
-                  f"lr_eff={lr_eff:.4f}")
+                  f"lr_eff_a={lr_eff_a:.6f}, lr_eff_b={lr_eff_b:.6f}")
 
-        # 3) ΔA = -lr_eff · D^T · (B·X) → tile_a.update(XB, d)
+        # 3) ΔA = -lr_eff_a · D^T · (B·X) → tile_a.update(XB, d)
         lr_a_old = self.tile_a.get_learning_rate()
-        self.tile_a.set_learning_rate(lr_eff)
+        self.tile_a.set_learning_rate(lr_eff_a)
         if hasattr(self.tile_a, '_orig_update'):
             self.tile_a._orig_update(XB, d)
         else:
@@ -709,11 +800,11 @@ class LRTTController:
         self.tile_a.set_learning_rate(lr_a_old)
         self.num_a_updates += 1
 
-        # 4) ΔB = -lr_eff · (A^T·D)^T · X → tile_b.update(x, DA)
+        # 4) ΔB = -lr_eff_b · (A^T·D)^T · X → tile_b.update(x, DA)
         # Skip B update if B is frozen (orthogonal mode)
         if not self._b_frozen:
             lr_b_old = self.tile_b.get_learning_rate()
-            self.tile_b.set_learning_rate(lr_eff)
+            self.tile_b.set_learning_rate(lr_eff_b)
             if hasattr(self.tile_b, '_orig_update'):
                 self.tile_b._orig_update(x, DA)
             else:
@@ -721,8 +812,12 @@ class LRTTController:
             self.tile_b.set_learning_rate(lr_b_old)
             self.num_b_updates += 1
 
-        # 5) Counter
-        self.transfer_counter += (x.shape[0] if self.units_in_mbatch else 1)
+        # 5) Dynamic TE update (before counter check)
+        self._update_dynamic_te(lr)
+
+        # 6) Counter (always += m_batch, matching TikiTaka convention)
+        self._last_m_batch = m_batch
+        self.transfer_counter += m_batch
 
     def _ab_weight_update_reconstruction(
         self,
@@ -764,8 +859,6 @@ class LRTTController:
 
         # 1) Effective learning rate (no lora_alpha in reconstruction mode)
         lr_rec = lr * self.recon_lr_scale
-        if self.correct_gradient_magnitudes:
-            lr_rec /= math.sqrt(self.rank)
 
         # 2) Projections for Hebbian terms
         with torch.no_grad():
@@ -802,8 +895,13 @@ class LRTTController:
         if self.recon_use_clip_norm:
             self._clip_ab_norms(max_norm=self.recon_clip_norm)
 
-        # 6) Counter
-        self.transfer_counter += (x.shape[0] if self.units_in_mbatch else 1)
+        # 6) Dynamic TE update (before counter check)
+        self._update_dynamic_te(lr)
+
+        # 7) Counter (always += m_batch, matching TikiTaka convention)
+        m_batch = x.shape[0]
+        self._last_m_batch = m_batch
+        self.transfer_counter += m_batch
 
     def _apply_reconstruction_stabilizer(self, lr_rec: float) -> None:
         """Apply stabilizer terms for reconstruction update.
@@ -933,6 +1031,26 @@ class LRTTController:
                 self.tile_b.update(B_read, I_rank_b)
                 self.tile_b.set_learning_rate(lr_old)
 
+    def _compute_effective_transfer_lr(self) -> float:
+        """Compute effective transfer LR with optional SGD scaling and gradient correction.
+
+        Returns:
+            Effective transfer learning rate for this transfer step.
+        """
+        lr_tr = self.transfer_lr
+        if self.scale_transfer_lr:
+            lr_tr *= self._last_lr_sgd
+        if self.correct_gradient_magnitudes:
+            if self.transfer_fast_lr_ref == "A":
+                ref = self.last_lr_eff_a
+            elif self.transfer_fast_lr_ref == "B":
+                ref = self.last_lr_eff_b
+            else:  # "geomean"
+                ref = math.sqrt(self.last_lr_eff_a * self.last_lr_eff_b)
+            if ref > 0.0:
+                lr_tr /= ref
+        return lr_tr
+
     def ab_weight_transfer(self, method: Optional[str] = None) -> None:
         """Memory-optimized A⊗B -> visible transfer, then reinit.
 
@@ -965,6 +1083,9 @@ class LRTTController:
         3. set_weights(C_new) directly
         4. Unconditionally call reinit() after transfer
         """
+        # Compute effective transfer LR once for all sub-methods
+        self._eff_transfer_lr = self._compute_effective_transfer_lr()
+
         # Use instance setting if not specified
         if method is None:
             method = self.transfer_method
@@ -988,7 +1109,7 @@ class LRTTController:
             A_lr = A_weights[:, :self.rank]  # [d_size, rank]
 
             # Transfer in chunks to manage memory
-            lr_eff = abs(self.transfer_lr)
+            lr_eff = abs(self._eff_transfer_lr)
             old_lr = self.tile_c.get_learning_rate()
             self.tile_c.set_learning_rate(lr_eff)
 
@@ -1007,11 +1128,11 @@ class LRTTController:
                 X_chunk = B_weights[off:end, :].contiguous()     # [cur, x_size]
 
                 # Sign rule: PWU computes W += -lr * D @ X^T, we want W += +transfer_lr * D @ X^T
-                # So when transfer_lr > 0, negate D to get correct sign
-                if self.transfer_lr > 0:
+                # So when _eff_transfer_lr > 0, negate D to get correct sign
+                if self._eff_transfer_lr > 0:
                     D_chunk = -D_chunk
-                elif self.transfer_lr < 0:
-                    # transfer_lr < 0: want W += transfer_lr * D @ X^T (negative), so keep D positive
+                elif self._eff_transfer_lr < 0:
+                    # _eff_transfer_lr < 0: want W += transfer_lr * D @ X^T (negative), so keep D positive
                     # PWU does W += -lr * D @ X^T with lr > 0, so net effect is W += -D @ X^T (negative) ✓
                     pass
 
@@ -1035,9 +1156,6 @@ class LRTTController:
             self.tile_c.set_learning_rate(old_lr)
         self.num_transfers += 1
 
-        # CRITICAL: Reset transfer counter after transfer (matches CUDA)
-        self.transfer_counter = 0
-
         # DEBUG: Check A before reinit (first few transfers only)
         if self.num_transfers < 1:
             A_before_reinit = self.tile_a.get_weights()[0] if hasattr(self.tile_a, 'get_weights') else None
@@ -1058,46 +1176,48 @@ class LRTTController:
                 print()
 
     def _ab_weight_transfer_set(self) -> None:
-        """Exact weight transfer using set_weights (no pulsed update noise).
+        """Deterministic FP transfer via tile.update() with NoneWithDevice.
 
-        This method directly computes C_new = C + transfer_lr * (A @ B)
-        and sets C weights exactly, bypassing pulsed update quantization.
+        C tile must be constructed with PulseType.NONE_WITH_DEVICE (set in
+        lrtt_tile.py create_update_params). This gives pure FP update with
+        device weight clipping, avoiding get_weights/set_weights CPU roundtrips.
         """
         with torch.no_grad():
-            # Get current weights
-            A_weights = self.tile_a.get_weights()[0]  # [d_size, rank]
-            B_weights = self.tile_b.get_weights()[0]  # [rank, x_size]
-            C_weights = self.tile_c.get_weights()[0]  # [d_size, x_size]
+            # Read raw A, B weights and scale factors
+            A_raw = self.tile_a.tile.get_weights().to(self.device)
+            B_raw = self.tile_b.tile.get_weights().to(self.device)
+            alpha_a = self.tile_a.get_scales()
+            alpha_b = self.tile_b.get_scales()
+            alpha_c = self.tile_c.get_scales()
 
-            # Use only the LoRA rank portion
-            A_lr = A_weights[:, :self.rank]  # [d_size, rank]
-            B_lr = B_weights[:self.rank, :]  # [rank, x_size]
+            A_lr = A_raw[:, :self.rank]
+            if alpha_a is not None:
+                A_lr = A_lr * alpha_a.view(-1, 1)
+            B_lr = B_raw[:self.rank, :]
+            if alpha_b is not None:
+                B_lr = B_lr * alpha_b.view(-1, 1)
 
-            # Compute exact delta: transfer_lr * (A @ B)
-            delta = self.transfer_lr * (A_lr @ B_lr)  # [d_size, x_size]
+            if self.enable_diagnostics:
+                self.last_transfer_delta = (self._eff_transfer_lr * (A_lr @ B_lr)).detach()
 
-            # Compute new C weights
-            C_new = C_weights + delta
+            # Undo alpha_c so update writes correct raw delta
+            if alpha_c is not None:
+                A_adj = A_lr / alpha_c.view(-1, 1)
+            else:
+                A_adj = A_lr
 
-            # Clip to per-element device bounds (respects d2d variation)
-            # FloatingPointDevice doesn't have hidden_parameters, so we need to handle that
-            try:
-                hidden_params = self.tile_c.tile.get_hidden_parameters()
-                if hidden_params is not None and len(hidden_params) >= 2:
-                    max_bound = hidden_params[0]  # [d_size, x_size]
-                    min_bound = hidden_params[1]  # [d_size, x_size]
-                    C_new = torch.clamp(C_new, min_bound, max_bound)
-                # else: FloatingPointDevice - no clipping needed (infinite precision)
-            except (AttributeError, IndexError, RuntimeError):
-                # FloatingPointDevice or other device without hidden_parameters
-                # No clipping needed for floating point
-                pass
-
-            # Set weights directly (exact, no pulsed update)
-            self.tile_c.set_weights(C_new, None)
+            # PWU: W += -lr * d^T @ x  →  we want W += +lr * A_adj @ B_lr
+            # So pass d = -A_adj^T, x = B_lr
+            old_lr = self.tile_c.tile.get_learning_rate()
+            self.tile_c.tile.set_learning_rate(abs(self._eff_transfer_lr))
+            self.tile_c.tile.update(
+                B_lr.contiguous(),
+                (-A_adj).t().contiguous(),
+                False, False, False, False,
+            )
+            self.tile_c.tile.set_learning_rate(old_lr)
 
         self.num_transfers += 1
-        self.transfer_counter = 0
 
         # DEBUG: Check A before reinit (first few transfers only)
         if self.num_transfers < 1:  # 거의 출력 안 함
@@ -1313,7 +1433,7 @@ class LRTTController:
                 Z_norm2 = self._ze_norm2_via_gram(A_cols, B_rows) + 1e-12
                 pilot_frac = max(1e-4, float(self.transfer_pilot_frac))
                 M_total = max(2, int(self.transfer_micro_steps))
-                lr_abs = abs(self.transfer_lr)
+                lr_abs = abs(self._eff_transfer_lr)
 
                 # 파일럿 lr
                 lr_pilot = lr_abs * pilot_frac
@@ -1336,7 +1456,7 @@ class LRTTController:
                         y0 = _forward_c(b_k)
 
                         # 서명 규칙: PWU는 W += -lr * D @ X^T
-                        D_k = -a_k if self.transfer_lr > 0 else a_k
+                        D_k = -a_k if self._eff_transfer_lr > 0 else a_k
                         X_k = b_k
 
                         # 파일럿 전송 1회
@@ -1383,7 +1503,7 @@ class LRTTController:
                             a_k = 0.5 * (a_p - a_m)
                             b_k = 0.5 * (b_p - b_m)
 
-                            D_k = -a_k if self.transfer_lr > 0 else a_k
+                            D_k = -a_k if self._eff_transfer_lr > 0 else a_k
                             X_k = b_k
 
                             # M_rest 회 micro-transfer
@@ -1400,7 +1520,7 @@ class LRTTController:
                     for k in range(self.rank):
                         a_k = A_cols[:, k]
                         b_k = B_rows[k, :]
-                        D_k = -a_k if self.transfer_lr > 0 else a_k
+                        D_k = -a_k if self._eff_transfer_lr > 0 else a_k
                         X_k = b_k
 
                         # M_rest 회 micro-transfer
@@ -1430,7 +1550,6 @@ class LRTTController:
                     self.tile_c.rpu_config.forward.out_noise = old_out_c
 
         self.num_transfers += 1
-        self.transfer_counter = 0
 
         self.reinit()
 
@@ -1469,7 +1588,7 @@ class LRTTController:
                 A_cols, B_rows = self._center_and_normalize(A_cols, B_rows)
 
                 # 3) off 모드: gamma=1.0, 전체 lr 사용
-                lr_abs = abs(self.transfer_lr)
+                lr_abs = abs(self._eff_transfer_lr)
                 M_total = max(1, int(self.transfer_micro_steps))
                 lr_step = lr_abs / M_total
                 self.tile_c.set_learning_rate(lr_step if lr_step > 0 else 1e-12)
@@ -1478,7 +1597,7 @@ class LRTTController:
                 for k in range(self.rank):
                     a_k = A_cols[:, k]
                     b_k = B_rows[k, :]
-                    D_k = -a_k if self.transfer_lr > 0 else a_k
+                    D_k = -a_k if self._eff_transfer_lr > 0 else a_k
                     X_k = b_k
 
                     for _ in range(M_total):
@@ -1498,7 +1617,6 @@ class LRTTController:
                     self.tile_b.rpu_config.backward.out_noise = old_out_b_b
 
         self.num_transfers += 1
-        self.transfer_counter = 0
 
         self.reinit()
 
@@ -1543,11 +1661,11 @@ class LRTTController:
 
                 # 2) ΣΔ 상태/파라미터 확보
                 self._ensure_sd_state()
-                lr_abs = float(abs(self.transfer_lr))
+                lr_abs = float(abs(self._eff_transfer_lr))
                 g = float(self.sd_quantum) if (self.sd_quantum is not None and self.sd_quantum > 0.0) \
                     else max(lr_abs / float(max(1, int(self.transfer_micro_steps))), 1e-12)
 
-                # 랭크별 목표 스칼라 δ_k := |transfer_lr| (모든 k 동일)
+                # 랭크별 목표 스칼라 δ_k := |_eff_transfer_lr| (모든 k 동일)
                 delta = torch.full((self.rank,), lr_abs, device=self.device, dtype=self.dtype)
 
                 # 3) ΣΔ 적분/정수화: h_k 누적 -> 정수 펄스 n_k, 잔여 갱신
@@ -1557,8 +1675,8 @@ class LRTTController:
                 self.sd_acc = self.sd_acc - n.to(self.dtype) * g  # h_k <- h_k - n_k*g
 
                 # 4) C에 정수 펄스 n_k만큼 전송
-                # sign rule: transfer_lr>0 이면 D=-a_k (W += +transfer_lr*A@B를 얻기 위함)
-                sign = -1.0 if (self.transfer_lr > 0) else 1.0
+                # sign rule: _eff_transfer_lr>0 이면 D=-a_k
+                sign = -1.0 if (self._eff_transfer_lr > 0) else 1.0
 
                 # unit pulse의 lr = g 로 통일
                 self.tile_c.set_learning_rate(g)
@@ -1605,7 +1723,6 @@ class LRTTController:
                     self.tile_c.rpu_config.forward.out_noise = old_out_c
 
         self.num_transfers += 1
-        self.transfer_counter = 0
         self.reinit()
 
     def forward_inject(
@@ -1721,9 +1838,67 @@ class LRTTController:
         # 4) Output transpose
         return y.t() if out_trans else y
 
+    def _update_dynamic_te(self, lr_current: float) -> None:
+        """Update transfer_every based on warmup schedule and LR decay ratio.
+
+        Phase 1 (Warmup ramp): TE steps through te_warmup_schedule in equal intervals.
+        Phase 2 (Peak LR): TE fixed at te_base.
+        Phase 3 (LR decay): TE increases proportionally to LR ratio.
+
+        Formula (Phase 3): TE(t) = clip(te_min, te_max, round(TE_0 * (lr_peak / lr_current)^p))
+        """
+        self.te_step_counter += 1
+
+        # Phase 1: Warmup ramp (step-wise schedule)
+        if (self.te_warmup_schedule and self.te_warmup_steps > 0
+                and self.te_step_counter <= self.te_warmup_steps):
+            n_phases = len(self.te_warmup_schedule)
+            phase_len = self.te_warmup_steps / n_phases
+            phase_idx = min(int((self.te_step_counter - 1) / phase_len), n_phases - 1)
+            self.transfer_every = self.te_warmup_schedule[phase_idx]
+            # Still track lr_peak during warmup
+            if lr_current > 0 and (self.lr_peak is None or lr_current > self.lr_peak):
+                self.lr_peak = lr_current
+            return
+
+        if not self.dynamic_te:
+            self.transfer_every = self.te_base
+            return
+
+        if lr_current <= 0:
+            return
+
+        # Phase 2: Peak tracking (lr still increasing after warmup)
+        if self.lr_peak is None or lr_current > self.lr_peak:
+            self.lr_peak = lr_current
+            self.transfer_every = self.te_base
+            return
+
+        # Phase 3: Decay — increase TE proportionally
+        ratio = self.lr_peak / lr_current  # >= 1.0
+        te_proposed = round(self.te_base * (ratio ** self.dynamic_te_power))
+        te_proposed = max(self.dynamic_te_min, min(self.dynamic_te_max, te_proposed))
+
+        # Monotonic non-decreasing
+        self.transfer_every = max(self.transfer_every, te_proposed)
+
     def should_transfer(self) -> bool:
-        """Check if transfer should occur based on counter and schedule."""
-        return self.transfer_counter >= self.transfer_every
+        """Check if transfer should occur based on counter and schedule.
+
+        Uses the same modulo-based boundary crossing check as TikiTaka
+        (see transfer.py and rpu_transfer_device.cpp):
+        - Counter always increments by m_batch (never reset).
+        - effective_te = transfer_every * m_batch when units_in_mbatch=True.
+        - Transfer fires when the current batch crosses an effective_te boundary.
+        This avoids premature transfer when the last mini-batch is smaller.
+        """
+        effective_te = self.transfer_every
+        if self.units_in_mbatch:
+            effective_te = int(math.ceil(self.transfer_every * self._last_m_batch))
+        if effective_te <= 0:
+            return False
+        rest_count = ((self.transfer_counter - self._last_m_batch) % effective_te) + self._last_m_batch
+        return rest_count >= effective_te
 
     def reset_transfer_counter(self) -> None:
         """Reset transfer counter (called after transfer)."""
@@ -1746,7 +1921,9 @@ class LRTTController:
             'reinit_gain': self.reinit_gain,
             'reinit_mode': self.reinit_mode,
             'decay_factor': self.decay_factor,
-            'forward_inject_enabled': self.forward_inject_enabled
+            'forward_inject_enabled': self.forward_inject_enabled,
+            'lr_peak': self.lr_peak,
+            'te_step_counter': self.te_step_counter
         }
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
