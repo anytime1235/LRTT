@@ -41,10 +41,12 @@ All flags:
         --no-nesterov               # Disable nesterov tuning (fix to False, SGD only)
         --reinit-mode <str>         # Fix reinit mode: standard | decay | hybrid (default: tune all)
         --batch-size <int>          # Batch size (default: 64)
+        --grad-accum-steps <int>    # Gradient accumulation steps (default: 1)
         --epochs <int>              # Number of epochs (default: 15)
         --warmup-steps <int>        # LR warmup steps (default: 189)
         --transfer-method <str>     # Transfer method: onehot | direct | set (default: onehot)
         --ab-device <str>           # A/B tile device: 6t1c | fp (default: 6t1c)
+        --c-device <str>            # C tile device: softbounds | ideal (default: softbounds)
         --no-io-noise               # Disable IO out_noise (resolution kept)
         --is-perfect                # Use ideal FP forward/backward (no ADC/DAC/noise)
         --no-quant                  # Disable DAC/ADC quantization (inp_res/out_res)
@@ -59,6 +61,9 @@ All flags:
         --backward-out-bound <float> # Backward pass output bound (default: 12.0)
         --auto-scale-mode <str>     # Auto-scale: none | shared | separate (default: none)
         --correct-gradient-magnitudes  # Correct transfer magnitude by dividing by effective A/B LR
+        --save-digital <path>       # Save digital params (LayerNorm, classifier, out_scaling) after training
+        --load-digital <path>       # Load pre-trained digital params before training
+        --freeze-classifier         # Freeze classifier during training
 
 
 Inline flags (edit directly in script):
