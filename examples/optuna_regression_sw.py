@@ -5,8 +5,8 @@ Searches for optimal a_x_scaling, a_d_scaling, b_d_scaling values
 to maximize R² score. b_x_scaling is fixed at 1.0.
 
 Usage:
-    python optuna_regression.py --n-trials 50
-    python optuna_regression.py --n-trials 100
+    python optuna_regression_sw.py --n-trials 50
+    python optuna_regression_sw.py --n-trials 100
 
 Dashboard:
     pip install optuna-dashboard
@@ -21,6 +21,7 @@ Dashboard:
 import argparse
 import optuna
 from optuna.trial import Trial
+from optuna.integration import BoTorchSampler
 import torch
 import numpy as np
 import json
@@ -47,26 +48,51 @@ FIXED_A_X_SCALING = 0.2651
 FIXED_A_D_SCALING = 0.5359
 FIXED_B_D_SCALING = 0.7103
 FIXED_LORA_ALPHA = 1.0
-FIXED_TRANSFER_EVERY = 1
+FIXED_TRANSFER_EVERY = 1000
 FIXED_DESIRED_BL = 10
-FIXED_LRTT_RANK = 1
-FIXED_C_DW_MIN = 0.0002
+FIXED_LRTT_RANK = 4
+FIXED_C_DW_MIN = 0.0008
 FIXED_C_DESIRED_BL = 10
+FIXED_A_LIFETIME_PER_BATCH = 1  # Batch 단위 lifetime (내부적으로 pulse 단위로 변환됨) - A device
+FIXED_B_LIFETIME_PER_BATCH = 10000000  # B device lifetime (사실상 decay 없음)
+FIXED_LRTT_LR = 0.01   # Learning rate (used when use_manual_scaling=False)
+FIXED_BATCH_SIZE = 1   # Batch size for training
+
+# ============================================================================
+# Batch Size 조정 공식
+# ============================================================================
+# batch_size를 K배 증가시킬 때, 동일한 학습 dynamics 유지를 위해:
+#
+#   new_transfer_every = old_transfer_every / K
+#   new_lifetime = old_lifetime / K
+#   new_lr = old_lr * sqrt(K)  (Linear Scaling Rule, optional)
+#
+# 이유:
+#   - transfer_every, lifetime은 batch 단위로 정의됨
+#   - batch_size 증가 → epoch당 batch 수 감소 → transfer 주기가 epoch 기준으로 늘어남
+#   - 파라미터를 K로 나누면 epoch 기준 동일한 주기 유지
+#
+# 예시 (batch_size 1→4):
+#   transfer_every: 378 → 95 (378/4)
+#   lifetime: 7370 → 1842 (7370/4)
+# ============================================================================
 
 # ============================================================================
 # Search Space Configuration (modify here!)
 # Remove key to use fixed value above
 # ============================================================================
 DEFAULT_SEARCH_SPACE = {
-    'a_x': (0.8, 1.0),           # a_x_scaling range
-    'a_d': (0.4, 0.9),           # a_d_scaling range
-    'b_d': (0.4, 0.85),          # b_d_scaling range
-    'lora_alpha': (0.5, 18.0),   # lora_alpha range (transfer LR)
-    'transfer_every': (1, 10),   # transfer_every range (int)
-    'desired_bl': (1, 10),       # desired_bl range (int, pulse train length)
-    #'lrtt_rank': (1, 4),        # lrtt_rank range (int, log scale)
-    #'c_dw_min': (0.0002, 0.04),  # c_dw_min range (float, log scale)
-    #'c_desired_bl': (1, 20),     # c_desired_bl range (int, pulse train length for C transfer)
+    #'a_x': (0.0, 1.0),           # a_x_scaling range
+    #'a_d': (0.0, 1.0),           # a_d_scaling range
+    #'b_d': (0.0, 1.0),           # b_d_scaling range
+    'lora_alpha': (0.0, 30.0),   # lora_alpha range (transfer LR)
+    #'transfer_every': (1, 1000), # transfer_every range (int)
+    #'desired_bl': (1, 10),      # desired_bl range (int, pulse train length)
+    #'lrtt_rank': (1, 4),         # lrtt_rank range (int, log scale)
+    #'c_dw_min': (0.0002, 0.2),  # c_dw_min range (float, log scale)
+    #'c_desired_bl': (1, 20),    # c_desired_bl range (int, pulse train length for C transfer)
+    'lifetime': (1.0, 1e9), # lifetime range (batch units, log scale)
+    'lrtt_lr': (0.00001, 1.0),   # learning rate range (log scale, used when use_manual_scaling=False)
 }
 
 # Number of runs per trial (average over multiple seeds for noisy environments)
@@ -76,17 +102,17 @@ N_RUNS_PER_TRIAL = 25
 @contextmanager
 def suppress_stdout():
     """Context manager to suppress stdout."""
-    with open(os.devnull, 'w') as devnull:
-        old_stdout = sys.stdout
-        sys.stdout = devnull
-        try:
-            yield
-        finally:
-            sys.stdout = old_stdout
+    import io
+    old_stdout = sys.stdout
+    sys.stdout = io.StringIO()  # Use StringIO instead of devnull to avoid closed file issues
+    try:
+        yield
+    finally:
+        sys.stdout = old_stdout
 
 
 # Import after defining suppress_stdout
-from regression_lrtt_scratch_decay import (
+from regression_lrtt_scratch_decay_sw import (
     ScratchExperimentConfig,
     train_lrtt_scratch,
     generate_target_matrix,
@@ -100,8 +126,12 @@ class TuningConfig(ScratchExperimentConfig):
     pass
 
 
-def create_config(a_x_scaling, a_d_scaling, b_d_scaling, lora_alpha=2.0, transfer_every=10, desired_bl=7, lrtt_rank=1, c_dw_min=0.0002, c_desired_bl=10):
-    """Create a config with specified scaling factors."""
+def create_config(a_x_scaling, a_d_scaling, b_d_scaling, lora_alpha=2.0, transfer_every=10, desired_bl=7, lrtt_rank=1, c_dw_min=0.0002, c_desired_bl=10, lifetime=7370, b_lifetime=10000000, lrtt_lr=0.01, batch_size=1):
+    """Create a config with specified scaling factors.
+
+    Note: batch_size 변경 시 transfer_every, lifetime도 함께 조정 필요.
+    상단의 'Batch Size 조정 공식' 참고.
+    """
     config = TuningConfig()
 
     # Override scaling factors
@@ -121,11 +151,16 @@ def create_config(a_x_scaling, a_d_scaling, b_d_scaling, lora_alpha=2.0, transfe
     config.lrtt_rank = lrtt_rank
     config.c_dw_min = c_dw_min
     config.c_desired_bl = c_desired_bl
+    config.a_lifetime = lifetime  # Batch 단위 lifetime (A device)
+    config.b_lifetime = b_lifetime  # Batch 단위 lifetime (B device)
+    config.lrtt_lr = lrtt_lr    # Learning rate
+    config.lrtt_batch_size = batch_size  # Batch size
+    # use_manual_scaling is inherited from ScratchExperimentConfig
 
     # Disable verbose logging during tuning
     config.log_ab_scaling = False
 
-    # Use lrtt_epochs from ScratchExperimentConfig (same as regression_lrtt_scratch_decay.py)
+    # Use lrtt_epochs from ScratchExperimentConfig (same as regression_lrtt_scratch_decay_sw.py)
 
     return config
 
@@ -142,20 +177,20 @@ def run_single_training(config, seed: int) -> float:
         torch.manual_seed(seed)
         np.random.seed(seed)
 
-        # Generate data
+        # Generate data and train with suppressed output
         complexity_level = "medium"
-        train_dataset = generate_target_dataset(complexity_level, config, train=True, seed=seed)
-        val_dataset = generate_target_dataset(complexity_level, config, train=False, seed=seed)
-
-        # Create DataLoaders
-        train_loader = DataLoader(train_dataset, batch_size=config.lrtt_batch_size, shuffle=True)
-        val_loader = DataLoader(val_dataset, batch_size=config.lrtt_batch_size, shuffle=False)
-
-        # Train model with suppressed output
         with suppress_stdout():
+            train_dataset = generate_target_dataset(complexity_level, config, train=True, seed=seed)
+            val_dataset = generate_target_dataset(complexity_level, config, train=False, seed=seed)
+
+            # Create DataLoaders (pin_memory for faster CPU→GPU transfer)
+            train_loader = DataLoader(train_dataset, batch_size=config.lrtt_batch_size, shuffle=True, pin_memory=True)
+            val_loader = DataLoader(val_dataset, batch_size=config.lrtt_batch_size, shuffle=False, pin_memory=True)
+
+            # Train model (no history collection for speed)
             model, history, epoch_history, _, _, _ = train_lrtt_scratch(
                 config, train_loader, val_loader,
-                seed=seed, use_wandb=False
+                seed=seed, use_wandb=False, collect_history=False
             )
 
         # Get final validation loss
@@ -197,19 +232,67 @@ def _objective_inner(trial: Trial, search_space: dict = None) -> float:
     if search_space is None:
         search_space = DEFAULT_SEARCH_SPACE
 
-    # Sample hyperparameters (if key exists in search_space, tune it; otherwise use fixed value)
-    a_x_scaling = trial.suggest_float("a_x_scaling", *search_space['a_x']) if 'a_x' in search_space else FIXED_A_X_SCALING
-    a_d_scaling = trial.suggest_float("a_d_scaling", *search_space['a_d']) if 'a_d' in search_space else FIXED_A_D_SCALING
-    b_d_scaling = trial.suggest_float("b_d_scaling", *search_space['b_d']) if 'b_d' in search_space else FIXED_B_D_SCALING
-    lora_alpha = trial.suggest_float("lora_alpha", *search_space['lora_alpha']) if 'lora_alpha' in search_space else FIXED_LORA_ALPHA
-    transfer_every = trial.suggest_int("transfer_every", *search_space['transfer_every']) if 'transfer_every' in search_space else FIXED_TRANSFER_EVERY
-    desired_bl = trial.suggest_int("desired_bl", *search_space['desired_bl']) if 'desired_bl' in search_space else FIXED_DESIRED_BL
-    lrtt_rank = trial.suggest_int("lrtt_rank", *search_space['lrtt_rank'], log=True) if 'lrtt_rank' in search_space else FIXED_LRTT_RANK
-    c_dw_min = trial.suggest_float("c_dw_min", *search_space['c_dw_min'], log=True) if 'c_dw_min' in search_space else FIXED_C_DW_MIN
-    c_desired_bl = trial.suggest_int("c_desired_bl", *search_space['c_desired_bl']) if 'c_desired_bl' in search_space else FIXED_C_DESIRED_BL
+    # Sample hyperparameters
+    # All params use suggest_* so they appear in trial_params for TPE to reference prior trials.
+    # Fixed params use suggest with min=max. Scaling params only registered when use_manual_scaling=True.
+    manual = ScratchExperimentConfig.use_manual_scaling
+
+    # Scaling params: suggest when manual=True, plain fixed when manual=False
+    if manual:
+        a_x_scaling = trial.suggest_float("a_x_scaling", *search_space['a_x']) if 'a_x' in search_space else trial.suggest_float("a_x_scaling", FIXED_A_X_SCALING, FIXED_A_X_SCALING)
+        a_d_scaling = trial.suggest_float("a_d_scaling", *search_space['a_d']) if 'a_d' in search_space else trial.suggest_float("a_d_scaling", FIXED_A_D_SCALING, FIXED_A_D_SCALING)
+        b_d_scaling = trial.suggest_float("b_d_scaling", *search_space['b_d']) if 'b_d' in search_space else trial.suggest_float("b_d_scaling", FIXED_B_D_SCALING, FIXED_B_D_SCALING)
+    else:
+        a_x_scaling = FIXED_A_X_SCALING
+        a_d_scaling = FIXED_A_D_SCALING
+        b_d_scaling = FIXED_B_D_SCALING
+
+    lora_alpha = trial.suggest_float("lora_alpha", *search_space['lora_alpha']) if 'lora_alpha' in search_space else trial.suggest_float("lora_alpha", FIXED_LORA_ALPHA, FIXED_LORA_ALPHA)
+    transfer_every = trial.suggest_int("transfer_every", *search_space['transfer_every']) if 'transfer_every' in search_space else trial.suggest_int("transfer_every", FIXED_TRANSFER_EVERY, FIXED_TRANSFER_EVERY)
+    desired_bl = trial.suggest_int("desired_bl", *search_space['desired_bl']) if 'desired_bl' in search_space else trial.suggest_int("desired_bl", FIXED_DESIRED_BL, FIXED_DESIRED_BL)
+    lrtt_rank = trial.suggest_int("lrtt_rank", *search_space['lrtt_rank'], log=True) if 'lrtt_rank' in search_space else trial.suggest_int("lrtt_rank", FIXED_LRTT_RANK, FIXED_LRTT_RANK, log=True)
+    c_dw_min = trial.suggest_float("c_dw_min", *search_space['c_dw_min'], log=True) if 'c_dw_min' in search_space else trial.suggest_float("c_dw_min", FIXED_C_DW_MIN, FIXED_C_DW_MIN, log=True)
+    c_desired_bl = trial.suggest_int("c_desired_bl", *search_space['c_desired_bl']) if 'c_desired_bl' in search_space else trial.suggest_int("c_desired_bl", FIXED_C_DESIRED_BL, FIXED_C_DESIRED_BL)
+    lifetime = trial.suggest_float("lifetime", *search_space['lifetime'], log=True) if 'lifetime' in search_space else trial.suggest_float("lifetime", FIXED_A_LIFETIME_PER_BATCH, FIXED_A_LIFETIME_PER_BATCH, log=True)
+    b_lifetime = trial.suggest_float("b_lifetime", *search_space['b_lifetime'], log=True) if 'b_lifetime' in search_space else trial.suggest_float("b_lifetime", FIXED_B_LIFETIME_PER_BATCH, FIXED_B_LIFETIME_PER_BATCH, log=True)
+    lrtt_lr = trial.suggest_float("lrtt_lr", *search_space['lrtt_lr'], log=True) if 'lrtt_lr' in search_space else trial.suggest_float("lrtt_lr", FIXED_LRTT_LR, FIXED_LRTT_LR, log=True)
+    batch_size = trial.suggest_int("batch_size", *search_space['batch_size']) if 'batch_size' in search_space else trial.suggest_int("batch_size", FIXED_BATCH_SIZE, FIXED_BATCH_SIZE)
+
+    # Print trial parameters at start (skip scaling params if use_manual_scaling=False)
+    params = []
+    manual = ScratchExperimentConfig.use_manual_scaling
+    if manual and 'a_x' in search_space: params.append(f"a_x={a_x_scaling:.3f}")
+    if manual and 'a_d' in search_space: params.append(f"a_d={a_d_scaling:.3f}")
+    if manual and 'b_d' in search_space: params.append(f"b_d={b_d_scaling:.3f}")
+    if 'lora_alpha' in search_space: params.append(f"alpha={lora_alpha:.2f}")
+    if 'transfer_every' in search_space: params.append(f"t_every={transfer_every}")
+    if 'desired_bl' in search_space: params.append(f"bl={desired_bl}")
+    if 'lrtt_rank' in search_space: params.append(f"rank={lrtt_rank}")
+    if 'c_dw_min' in search_space: params.append(f"c_dw={c_dw_min:.5f}")
+    if 'c_desired_bl' in search_space: params.append(f"c_bl={c_desired_bl}")
+    if 'lifetime' in search_space: params.append(f"life={lifetime:.1f}")
+    if 'b_lifetime' in search_space: params.append(f"b_life={b_lifetime:.1f}")
+    if 'lrtt_lr' in search_space: params.append(f"lr={lrtt_lr:.5f}")
+    print(f"[Trial {trial.number:3d}] START | {', '.join(params)}", flush=True)
+
+    # Record config-level parameters as user_attrs (not in search space but important for reproducibility)
+    cfg = ScratchExperimentConfig
+    trial.set_user_attr("reinit_mode", cfg.reinit_mode)
+    trial.set_user_attr("b_init_mode", cfg.b_init_mode)
+    trial.set_user_attr("c_init_value", cfg.c_init_value)
+    trial.set_user_attr("c_device_type", cfg.c_device_type)
+    trial.set_user_attr("transfer_method", cfg.transfer_method)
+    trial.set_user_attr("transfer_rank_schedule", cfg.transfer_rank_schedule)
+    trial.set_user_attr("transfer_ranks_per_step", cfg.transfer_ranks_per_step)
+    trial.set_user_attr("input_dim", cfg.input_dim)
+    trial.set_user_attr("output_dim", cfg.output_dim)
+    trial.set_user_attr("D_prime_train_size", cfg.D_prime_train_size)
+    trial.set_user_attr("input_type", cfg.input_type)
+    trial.set_user_attr("use_manual_scaling", cfg.use_manual_scaling)
+    trial.set_user_attr("n_runs_per_trial", N_RUNS_PER_TRIAL)
 
     # Create config with sampled parameters
-    config = create_config(a_x_scaling, a_d_scaling, b_d_scaling, lora_alpha, transfer_every, desired_bl, lrtt_rank, c_dw_min, c_desired_bl)
+    config = create_config(a_x_scaling, a_d_scaling, b_d_scaling, lora_alpha, transfer_every, desired_bl, lrtt_rank, c_dw_min, c_desired_bl, lifetime, b_lifetime, lrtt_lr, batch_size)
 
     # Run multiple times with different seeds in parallel
     seeds = [42 + run_idx * 100 for run_idx in range(N_RUNS_PER_TRIAL)]
@@ -243,7 +326,7 @@ def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True,
         - Set n_jobs=-1 to run all trials in parallel (limited by semaphore)
 
     Example:
-        python optuna_regression.py --n-trials 50 --max-concurrent 25
+        python optuna_regression_sw.py --n-trials 50 --max-concurrent 25
         → 50 trials start, but only 10 GPU ops run at any time
 
     Args:
@@ -286,12 +369,26 @@ def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True,
         print(f"  a_d_scaling = {FIXED_A_D_SCALING}")
     if 'b_d' not in search_space:
         print(f"  b_d_scaling = {FIXED_B_D_SCALING}")
+    if 'lora_alpha' not in search_space:
+        print(f"  lora_alpha = {FIXED_LORA_ALPHA}")
+    if 'transfer_every' not in search_space:
+        print(f"  transfer_every = {FIXED_TRANSFER_EVERY}")
+    if 'desired_bl' not in search_space:
+        print(f"  desired_bl = {FIXED_DESIRED_BL}")
     if 'lrtt_rank' not in search_space:
         print(f"  lrtt_rank = {FIXED_LRTT_RANK}")
     if 'c_dw_min' not in search_space:
         print(f"  c_dw_min = {FIXED_C_DW_MIN}")
     if 'c_desired_bl' not in search_space:
         print(f"  c_desired_bl = {FIXED_C_DESIRED_BL}")
+    if 'lifetime' not in search_space:
+        print(f"  a_lifetime = {FIXED_A_LIFETIME_PER_BATCH}")
+    if 'b_lifetime' not in search_space:
+        print(f"  b_lifetime = {FIXED_B_LIFETIME_PER_BATCH}")
+    if 'lrtt_lr' not in search_space:
+        print(f"  lrtt_lr = {FIXED_LRTT_LR}")
+    if 'batch_size' not in search_space:
+        print(f"  batch_size = {FIXED_BATCH_SIZE}")
     print(f"Search space:")
     if 'a_x' in search_space:
         print(f"  a_x_scaling:    [{search_space['a_x'][0]}, {search_space['a_x'][1]}]")
@@ -311,6 +408,12 @@ def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True,
         print(f"  c_dw_min:       [{search_space['c_dw_min'][0]}, {search_space['c_dw_min'][1]}] (log)")
     if 'c_desired_bl' in search_space:
         print(f"  c_desired_bl:   [{search_space['c_desired_bl'][0]}, {search_space['c_desired_bl'][1]}]")
+    if 'lifetime' in search_space:
+        print(f"  a_lifetime:     [{search_space['lifetime'][0]}, {search_space['lifetime'][1]}] (log)")
+    if 'b_lifetime' in search_space:
+        print(f"  b_lifetime:     [{search_space['b_lifetime'][0]}, {search_space['b_lifetime'][1]}] (log)")
+    if 'lrtt_lr' in search_space:
+        print(f"  lrtt_lr:        [{search_space['lrtt_lr'][0]}, {search_space['lrtt_lr'][1]}] (log)")
     print(f"{'='*60}\n")
 
     # Create study with SQLite storage (maximize R²)
@@ -321,6 +424,7 @@ def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True,
         storage=storage,
         load_if_exists=True,  # Resume existing study if DB exists
         direction="maximize",
+        sampler=BoTorchSampler(),
         pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=10),
     )
 
@@ -355,14 +459,28 @@ def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True,
             if 'c_dw_min' in trial.params:
                 parts.append(f"c_dw={trial.params['c_dw_min']:.5f},")
             if 'c_desired_bl' in trial.params:
-                parts.append(f"c_bl={trial.params['c_desired_bl']}")
+                parts.append(f"c_bl={trial.params['c_desired_bl']},")
+            if 'lifetime' in trial.params:
+                parts.append(f"lifetime={trial.params['lifetime']:.1f},")
+            if 'b_lifetime' in trial.params:
+                parts.append(f"b_lifetime={trial.params['b_lifetime']:.1f},")
+            if 'lrtt_lr' in trial.params:
+                parts.append(f"lr={trial.params['lrtt_lr']:.5f}")
             msg = " ".join(parts).rstrip(",")
+
+            # Add best trial info
+            best = study.best_trial
+            best_loss = -best.value
+            best_msg = f"    [Best: Trial {best.number}, Loss={best_loss:.6f}]"
+
             # Write to log file first (always works)
             with open(log_file, 'a') as f:
                 f.write(msg + '\n')
+                f.write(best_msg + '\n')
             # Try to print (may fail with n_jobs > 1)
             try:
                 print(msg, flush=True)
+                print(best_msg, flush=True)
             except (ValueError, OSError):
                 pass  # stdout closed in subprocess
 
@@ -373,7 +491,7 @@ def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True,
         lambda trial: objective(trial, search_space),
         n_trials=n_trials,
         n_jobs=actual_n_jobs,
-        show_progress_bar=False,
+        show_progress_bar=True,
         callbacks=[print_callback]
     )
 
@@ -401,6 +519,9 @@ def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True,
     print(f"    lrtt_rank      = {study.best_params.get('lrtt_rank', FIXED_LRTT_RANK)}{'' if 'lrtt_rank' in study.best_params else ' (fixed)'}")
     print(f"    c_dw_min       = {study.best_params.get('c_dw_min', FIXED_C_DW_MIN):.6f}{'' if 'c_dw_min' in study.best_params else ' (fixed)'}")
     print(f"    c_desired_bl   = {study.best_params.get('c_desired_bl', FIXED_C_DESIRED_BL)}{'' if 'c_desired_bl' in study.best_params else ' (fixed)'}")
+    print(f"    a_lifetime     = {study.best_params.get('lifetime', FIXED_A_LIFETIME_PER_BATCH):.4f}{'' if 'lifetime' in study.best_params else ' (fixed)'}")
+    print(f"    b_lifetime     = {study.best_params.get('b_lifetime', FIXED_B_LIFETIME_PER_BATCH):.4f}{'' if 'b_lifetime' in study.best_params else ' (fixed)'}")
+    print(f"    lrtt_lr        = {study.best_params.get('lrtt_lr', FIXED_LRTT_LR):.6f}{'' if 'lrtt_lr' in study.best_params else ' (fixed)'}")
 
     # Top 5 trials
     print(f"\nTop 5 trials (lowest loss):")
@@ -426,7 +547,13 @@ def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True,
         if 'c_dw_min' in t.params:
             parts.append(f"c_dw={t.params['c_dw_min']:.5f},")
         if 'c_desired_bl' in t.params:
-            parts.append(f"c_bl={t.params['c_desired_bl']}")
+            parts.append(f"c_bl={t.params['c_desired_bl']},")
+        if 'lifetime' in t.params:
+            parts.append(f"life={t.params['lifetime']:.1f},")
+        if 'b_lifetime' in t.params:
+            parts.append(f"b_life={t.params['b_lifetime']:.1f},")
+        if 'lrtt_lr' in t.params:
+            parts.append(f"lr={t.params['lrtt_lr']:.5f}")
         print(" ".join(parts).rstrip(","))
 
     # Save results
@@ -458,7 +585,7 @@ def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True,
         print(f"\nResults saved to: {results_file}")
 
     print(f"\n{'='*60}")
-    print("Copy these values to regression_lrtt_scratch_decay.py:")
+    print("Copy these values to regression_lrtt_scratch_decay_sw.py:")
     print(f"{'='*60}")
     print(f"    a_x_scaling = {study.best_params.get('a_x_scaling', FIXED_A_X_SCALING):.4f}")
     print(f"    a_d_scaling = {study.best_params.get('a_d_scaling', FIXED_A_D_SCALING):.4f}")
@@ -470,6 +597,9 @@ def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True,
     print(f"    lrtt_rank = {study.best_params.get('lrtt_rank', FIXED_LRTT_RANK)}")
     print(f"    c_dw_min = {study.best_params.get('c_dw_min', FIXED_C_DW_MIN):.6f}")
     print(f"    c_desired_bl = {study.best_params.get('c_desired_bl', FIXED_C_DESIRED_BL)}")
+    print(f"    a_lifetime = {study.best_params.get('lifetime', FIXED_A_LIFETIME_PER_BATCH):.4f}")
+    print(f"    b_lifetime = {study.best_params.get('b_lifetime', FIXED_B_LIFETIME_PER_BATCH):.4f}")
+    print(f"    lrtt_lr = {study.best_params.get('lrtt_lr', FIXED_LRTT_LR):.6f}")
     print(f"{'='*60}\n")
 
     return study

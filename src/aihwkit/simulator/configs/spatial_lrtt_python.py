@@ -29,7 +29,6 @@ class SpatialPythonLRTTDevice(PythonLRTTDevice):
 
     Inherits all parameters from PythonLRTTDevice including:
     - reinit_mode: Reinit strategy ('standard', 'decay', 'hybrid')
-    - decay_factor: Decay factor for 'decay' and 'hybrid' modes
     """
     
     def get_default_tile_module_class(self):
@@ -49,7 +48,6 @@ class SpatialPythonLRTTPreset:
         transfer_lr: Optional[float] = None,
         unit_cell_devices: Optional[List] = None,
         reinit_mode: str = "standard",
-        decay_factor: float = 0.9
     ) -> SpatialPythonLRTTDevice:
         """Create idealized spatial LRTT device with parameter reduction.
 
@@ -60,7 +58,6 @@ class SpatialPythonLRTTPreset:
             transfer_lr: Transfer learning rate (defaults to lora_alpha)
             unit_cell_devices: Device list [A_device, B_device, C_device]
             reinit_mode: Reinit strategy ('standard', 'decay', 'hybrid')
-            decay_factor: Decay factor for 'decay' and 'hybrid' modes
 
         Returns:
             Configured SpatialPythonLRTTDevice
@@ -84,11 +81,10 @@ class SpatialPythonLRTTPreset:
             units_in_mbatch=False,
             reinit_gain=0.1,
             reinit_mode=reinit_mode,
-            decay_factor=decay_factor,
             correct_gradient_magnitudes=False,
             forward_inject=False
         )
-        
+
     @staticmethod
     def floating_point(
         rank: int = 8,
@@ -96,7 +92,6 @@ class SpatialPythonLRTTPreset:
         lora_alpha: float = 1.0,
         transfer_lr: Optional[float] = None,
         reinit_mode: str = "standard",
-        decay_factor: float = 0.9
     ) -> SpatialPythonLRTTDevice:
         """Create floating point spatial LRTT device for debugging.
 
@@ -108,7 +103,6 @@ class SpatialPythonLRTTPreset:
             lora_alpha: LoRA scaling factor
             transfer_lr: Transfer learning rate (defaults to lora_alpha)
             reinit_mode: Reinit strategy ('standard', 'decay', 'hybrid')
-            decay_factor: Decay factor for 'decay' and 'hybrid' modes
         """
         if transfer_lr is None:
             transfer_lr = lora_alpha
@@ -128,7 +122,6 @@ class SpatialPythonLRTTPreset:
             units_in_mbatch=False,
             reinit_gain=0.1,
             reinit_mode=reinit_mode,
-            decay_factor=decay_factor,
             correct_gradient_magnitudes=False,
             forward_inject=False
         )

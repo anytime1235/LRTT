@@ -77,26 +77,32 @@ class ScratchExperimentConfig:
     complexity_levels = ['medium']
 
     # Training hyperparameters - LRTT scratch training
-    # Note: lrtt_lr is computed from hardware parameters below (see lrtt_lr property)
     lrtt_epochs = 2000
     lrtt_batch_size = 1
-    lrtt_patience = 10  # Allow a bit more training than fine-tuning
+    lrtt_patience = 7  # Allow a bit more training than fine-tuning
     lrtt_grad_clip = 2.0  # Conservative clipping
 
+    # Scaling mode
+    # True: use manual x_scaling/d_scaling (hardware-fixed), lr is placeholder
+    # False: use dynamic scaling with update_management, lr affects training
+    use_manual_scaling = True
+    lrtt_lr = 0.01  # Learning rate (used when use_manual_scaling=False)
+
     # LRTT configuration
-    lrtt_rank = 2  # Rank-1 for minimal overfitting
-    lrtt_transfer_every = 10  # Medium frequency to observe transfer effects
-    lora_alpha = 2.26  # Conservative scaling
+    lrtt_rank = 2  # Rank-2 for 5x5 decomposition
+    lrtt_transfer_every = 9  # Transfer frequency from sweep
+    lora_alpha = 4.65  # From sweep top1
  
-    # Reinit configuration - DECAY MODE
+    # Reinit configuration
     # Options:
     #   "standard"        - A=0 (or Kaiming), B=Kaiming (original LRTT)
-    #   "decay"           - A *= decay_factor, B *= decay_factor (gradual decay)
-    #   "hybrid"          - A=0, B *= decay_factor (A reset, B decayed)
+    #   "decay"           - no reinit, 6T1C capacitor decay handles it
+    #   "hybrid"          - A=0, B unchanged (6T1C decay handles B)
     #   "orthogonal_zero" - A=0, B=Random Orthogonal (frozen)
-    #   "orthogonal_decay"- A *= decay_factor, B=Random Orthogonal (frozen)
-    reinit_mode = "orthogonal_decay"
-    decay_factor = 1.0  # 0.5~0.9 for actual decay, 1.0 = no decay
+    #   "orthogonal_decay"- A unchanged, B=Random Orthogonal (frozen)
+    #   "zero_orthogonal_zero" - A=0, B=0 every transfer (write noise varies)
+    #   "zero_orthogonal_decay"- A unchanged, B=0 every transfer (write noise varies)
+    reinit_mode = "zero_orthogonal_decay"
 
     # A matrix initialization mode
     # Options: 'zero' (LoRA-style, ΔW=0 initially), 'kaiming' (random Kaiming initialization)
@@ -119,13 +125,19 @@ class ScratchExperimentConfig:
     # 'idealized': IdealizedPresetDevice (idealized, noise only)
     # 'floating_point': FloatingPointDevice (idealized, no quantization)
     # 'softbounds': SoftBoundsReferenceDevice (realistic analog with bounds)
-    c_device_type = 'floating_point'
+    c_device_type = 'floating_point'  # Use FloatingPointDevice for exact C initialization
 
     # Transfer method for C update
     # 'set': Exact weight setting (no pulsed update, precise)
     # 'onehot': One-hot transfer (analog-realistic pulsed update)
     # 'direct': Direct transfer (matrix multiply, pulsed update)
     transfer_method = 'set'
+
+    # Transfer rank scheduling
+    # 'all': Transfer all ranks at once (default)
+    # 'round_robin': Cycle through ranks, transferring a subset each time
+    transfer_rank_schedule = 'all'
+    transfer_ranks_per_step = 1  # Number of ranks per transfer in round_robin mode
 
     # C device parameters (for pulsed transfer methods: onehot, direct)
     # Default dw_min by device type:
@@ -135,34 +147,61 @@ class ScratchExperimentConfig:
     c_w_max = 1.0  # Maximum weight value
     c_w_min = -1.0  # Minimum weight value
     c_dw_min = 0.0002  # Minimum weight update step (idealized: 0.0002, softbounds: 0.001)
-    c_desired_bl = 10  # Bit length for C transfer (higher for accuracy)
+    c_desired_bl = 31  # Bit length for C transfer (higher for accuracy)
 
     # SoftBoundsReferenceDevice additional parameters (only used when c_device_type='softbounds')
     # Asymmetry
     c_up_down = 0.0  # up/down asymmetry (0 = symmetric)
     c_up_down_dtod = 0.01  # up/down asymmetry dtod variation
 
+    # A device parameters (6T1C LinearStepDevice)
+    a_dw_min = 0.02
+    a_up_down = 0.0
+    a_w_max = 0.7
+    a_w_min = -0.7
+    a_gamma_up = -0.1678
+    a_gamma_down = 0.1410
+    a_dw_min_dtod = 0.1
+    a_up_down_dtod = 0.01
+    a_w_max_dtod = 0.05
+    a_w_min_dtod = 0.05
+    a_gamma_up_dtod = 0.05
+    a_gamma_down_dtod = 0.05
+    a_dw_min_std = 0.3
+    a_write_noise_std = 0.0182
+    a_lifetime_dtod = 0.1
+    a_lifetime = 11.72  # Batch 단위 lifetime (0 = no decay)
+
+    # B device parameters (None = same as A)
+    b_dw_min = None
+    b_up_down = None
+    b_w_max = None
+    b_w_min = None
+    b_gamma_up = None
+    b_gamma_down = None
+    b_dw_min_dtod = None
+    b_up_down_dtod = None
+    b_w_max_dtod = None
+    b_w_min_dtod = None
+    b_gamma_up_dtod = None
+    b_gamma_down_dtod = None
+    b_dw_min_std = None
+    b_write_noise_std = 0.182
+    b_lifetime_dtod = None
+    b_lifetime = 10000000  # None = same as A lifetime
+
     # Retention configuration
-    # Option 1: retention_ratio_at_transfer (lifetime varies with transfer_every)
-    #   - fraction of A/B weight remaining at transfer time
-    #   - Example: 0.9 means 90% of A/B weights remain after transfer_every steps
-    # Option 2: fixed_lifetime (lifetime stays constant regardless of transfer_every)
-    #   - Set fixed_lifetime to a value > 0 to use fixed lifetime mode
-    #   - When set, retention_ratio_at_transfer is ignored
-    retention_ratio_at_transfer = None  # Used when fixed_lifetime is None
-    fixed_lifetime = 112.6  # Set to e.g. 10.0 to fix lifetime regardless of transfer_every
+    # create_6t1c_device()에서 batch lifetime → pulse lifetime 변환
+    # 트레이닝 루프에서 decay_weights()가 desired_bl번 호출됨
+    # (1 - 1/lifetime_pulse)^desired_bl = (1 - 1/lifetime_batch)
+    # 예: lifetime=11.72이면 4 batch 후 70% retention
     include_retention = True  # Enable/disable retention effects
 
     # Pulse/Update configuration (Hardware-realistic settings)
-    desired_bl = 9  # Bit length for A/B updates (pulse train length)
+    desired_bl = 2  # Bit length for A/B updates (from sweep top1)
     pulse_type = PulseType.STOCHASTIC_COMPRESSED  # Pulse generation type
 
-    # Hardware mode: use fixed manual scaling factors
-    # When use_manual_scaling=True, x_scaling and d_scaling are applied directly
-    # as B (input) and A (gradient) factors, bypassing dynamic calculation
-    use_manual_scaling = True  # Enable hardware-realistic fixed scaling mode
-
-    # Manual scaling factors (hardware-fixed) - Global defaults
+    # Manual scaling factors (used when use_manual_scaling=True)
     # x_scaling: applied to input x (B factor in aihwkit)
     # d_scaling: applied to gradient d (A factor in aihwkit)
     x_scaling = None  # Input (x) scaling factor (global default)
@@ -171,10 +210,10 @@ class ScratchExperimentConfig:
     # Separate A/B tile scaling factors (override global if set)
     # A tile update: x=XB (B projection of input), d=original gradient
     # B tile update: x=original input, d=DA (A^T projection of gradient)
-    a_x_scaling = 0.88  # A tile x scaling (None = use global x_scaling)
-    a_d_scaling = 0.55  # A tile d scaling (None = use global d_scaling)
-    b_x_scaling = 1.0   # B tile x scaling (None = use global x_scaling)
-    b_d_scaling = 0.64  # B tile d scaling (None = use global d_scaling)
+    a_x_scaling = 0.889   # A tile (up-proj) x scaling - from sweep top1
+    a_d_scaling = 0.115   # A tile (up-proj) d scaling - from sweep top1
+    b_x_scaling = 1.0     # B tile (down-proj) x scaling
+    b_d_scaling = 0.732   # B tile (down-proj) d scaling - from sweep top1
 
     # Debug logging for A/B scaling
     log_ab_scaling = True  # Enable x,d max value logging
@@ -190,11 +229,6 @@ class ScratchExperimentConfig:
     # Output options
     save_figures = False  # Save training figures as PNG (disable to save time/space)
 
-    # Note: dw_min is defined in SoftBoundsReferenceDevice (device characteristic)
-    # Effective learning rate in hardware mode:
-    # Δw = x_scaling * d_scaling * x * d * BL * dw_min (approximately)
-    lrtt_lr = 0.1  # Placeholder for optimizer (actual update is hardware-controlled)
-
     # Results directory
     results_dir = "results/lrtt_scratch_decay"
 
@@ -202,7 +236,14 @@ class ScratchExperimentConfig:
 # Device Configuration
 # ============================================================================
 
-def create_6t1c_device(retention_ratio_at_transfer=1.0, transfer_every=10, include_retention=True, fixed_lifetime=None, desired_bl=10):
+def create_6t1c_device(lifetime=0, transfer_every=10, include_retention=True, desired_bl=10,
+                        dw_min=0.02, up_down=0.0, w_max=0.7, w_min=-0.7,
+                        gamma_up=-0.1678, gamma_down=0.1410,
+                        dw_min_dtod=0.1, up_down_dtod=0.01,
+                        w_max_dtod=0.05, w_min_dtod=0.05,
+                        gamma_up_dtod=0.05, gamma_down_dtod=0.05,
+                        dw_min_std=0.3, write_noise_std=0.182,
+                        lifetime_dtod=0.1, label=""):
     """Create 6T1C device for A/B tiles.
 
     6T1C Device Characteristics:
@@ -210,75 +251,82 @@ def create_6t1c_device(retention_ratio_at_transfer=1.0, transfer_every=10, inclu
         - Capacitor-based weight storage with exponential decay
 
     Args:
-        retention_ratio_at_transfer: Fraction of weight remaining after transfer_every steps
-                                     (e.g., 0.9 = 90% retention, 0.5 = 50% retention)
-                                     Ignored if fixed_lifetime is set.
-        transfer_every: Number of steps (samples) between transfers
+        lifetime: Lifetime in BATCH units. Decay per batch = (1 - 1/lifetime).
+                  0 = no decay (perfect retention)
+        transfer_every: Number of batches between transfers (for display only)
         include_retention: Whether to include retention effects
-        fixed_lifetime: If set, use this lifetime directly (in pulse units)
-        desired_bl: Bit length (number of pulses per sample update)
+        desired_bl: Number of pulses per batch. Used to convert batch lifetime
+                    to pulse lifetime so decay is applied per-pulse in post_update_step().
+        dw_min: Minimum weight update step
+        up_down: Up/down asymmetry (0 = symmetric)
+        w_max: Maximum weight value
+        w_min: Minimum weight value
+        gamma_up: Nonlinearity for up pulses
+        gamma_down: Nonlinearity for down pulses
+        dw_min_dtod: Device-to-device variation for dw_min
+        up_down_dtod: Device-to-device variation for up_down
+        w_max_dtod: Device-to-device variation for w_max
+        w_min_dtod: Device-to-device variation for w_min
+        gamma_up_dtod: Device-to-device variation for gamma_up
+        gamma_down_dtod: Device-to-device variation for gamma_down
+        dw_min_std: Cycle-to-cycle variation for dw_min
+        write_noise_std: Write noise standard deviation
+        lifetime_dtod: Device-to-device variation for lifetime
+        label: Label for display (e.g., "A" or "B")
 
     Note:
-        Lifetime is in pulse units. Total pulses between transfers = transfer_every * desired_bl.
-        Retention decay happens per pulse, not per sample.
+        Lifetime is specified in BATCH units but internally converted to PULSE units.
+        The training loop calls decay_weights() desired_bl times per batch
+        (1 from post_update_step + desired_bl-1 extra calls after optimizer.step).
+        Per-pulse lifetime satisfies: (1 - 1/lifetime_pulse)^desired_bl = (1 - 1/lifetime_batch)
     """
     import math
 
-    # Total pulses between transfers
-    total_pulses = transfer_every * desired_bl
+    prefix = f"  6T1C{' ' + label if label else ''}"
 
-    # Calculate lifetime (in pulse units)
-    if not include_retention:
-        lifetime = 0.0
-        print(f"  6T1C retention: DISABLED (perfect retention)")
-    elif fixed_lifetime is not None and fixed_lifetime > 0:
-        # Use fixed lifetime directly (in pulse units)
-        lifetime = fixed_lifetime
-        # Back-calculate retention ratio for display
-        delta = 1.0 / lifetime
-        retention_at_transfer = math.pow(1.0 - delta, total_pulses)
-        print(f"  6T1C retention: lifetime={lifetime:.1f} pulses (fixed) → {retention_at_transfer*100:.1f}% after {transfer_every} steps ({total_pulses} pulses)")
-    elif retention_ratio_at_transfer is not None and retention_ratio_at_transfer < 1.0:
-        # Calculate lifetime from retention ratio
-        # Weight after N pulses: w(N) = w(0) * (1 - delta)^N
-        # At transfer: retention_ratio = (1 - delta)^total_pulses
-        # Solve for delta: delta = 1 - retention_ratio^(1/total_pulses)
-        # lifetime = 1 / delta (in pulse units)
-        delta = 1.0 - math.pow(retention_ratio_at_transfer, 1.0 / total_pulses)
-        lifetime = 1.0 / delta
-        print(f"  6T1C retention: {retention_ratio_at_transfer*100:.1f}% after {transfer_every} steps ({total_pulses} pulses) → lifetime={lifetime:.1f} pulses")
+    if not include_retention or lifetime <= 0:
+        lifetime_pulse = 0.0
+        print(f"{prefix} retention: DISABLED (perfect retention)")
     else:
-        lifetime = 0.0
-        print(f"  6T1C retention: DISABLED (perfect retention)")
+        # Convert batch lifetime to pulse lifetime
+        # (1 - 1/lifetime_pulse)^desired_bl = (1 - 1/lifetime_batch)
+        decay_per_batch = 1.0 - 1.0 / lifetime
+        decay_per_pulse = math.pow(decay_per_batch, 1.0 / desired_bl)
+        lifetime_pulse = 1.0 / (1.0 - decay_per_pulse)
+
+        # Calculate retention at transfer for display
+        retention_at_transfer = math.pow(decay_per_batch, transfer_every)
+        print(f"{prefix} retention: lifetime={lifetime:.1f} batches → lifetime_pulse={lifetime_pulse:.1f} pulses (desired_bl={desired_bl})")
+        print(f"    → {retention_at_transfer*100:.1f}% after {transfer_every} batches")
 
     return LinearStepDevice(
         # Core update parameters (fitted from 6T1C data)
-        dw_min=0.02,  #0.001981
-        up_down=0.0,
-        w_max=0.7,
-        w_min=-0.7,
-        gamma_up=-0.1678,
-        gamma_down=0.1410,
+        dw_min=dw_min,
+        up_down=up_down,
+        w_max=w_max,
+        w_min=w_min,
+        gamma_up=gamma_up,
+        gamma_down=gamma_down,
         mult_noise=True,
 
         # Device-to-device variation
-        dw_min_dtod=0.1,
-        up_down_dtod=0.01,
-        w_max_dtod=0.05,
-        w_min_dtod=0.05,
-        gamma_up_dtod=0.05,
-        gamma_down_dtod=0.05,
+        dw_min_dtod=dw_min_dtod,
+        up_down_dtod=up_down_dtod,
+        w_max_dtod=w_max_dtod,
+        w_min_dtod=w_min_dtod,
+        gamma_up_dtod=gamma_up_dtod,
+        gamma_down_dtod=gamma_down_dtod,
 
         # Cycle-to-cycle variation
-        dw_min_std=0.3,
-        write_noise_std=0.0182,
+        dw_min_std=dw_min_std,
+        write_noise_std=write_noise_std,
 
         # LinearStepDevice specific
         mean_bound_reference=True,
 
-        # Retention (capacitor leakage)
-        lifetime=lifetime,
-        lifetime_dtod=0.1 if include_retention else 0.0
+        # Retention (capacitor leakage) — pulse-unit lifetime
+        lifetime=lifetime_pulse,
+        lifetime_dtod=lifetime_dtod if include_retention else 0.0
     )
 
 
@@ -388,17 +436,60 @@ class LRTTModel(nn.Module):
         from aihwkit.simulator.configs import IOParameters
         from aihwkit.simulator.parameters import WeightNoiseType, BoundManagementType, NoiseManagementType
 
+        # Helper to get B device param, falling back to A param if None
+        def _get_b_param(param_name):
+            b_val = getattr(config, f'b_{param_name}', None)
+            return b_val if b_val is not None else getattr(config, f'a_{param_name}')
+
         # Select devices for A/B tiles
         if config.USE_6T1C_AB:
-            ab_device = create_6t1c_device(
-                retention_ratio_at_transfer=config.retention_ratio_at_transfer,
+            a_device = create_6t1c_device(
+                lifetime=config.a_lifetime,
                 transfer_every=config.lrtt_transfer_every,
                 include_retention=config.include_retention,
-                fixed_lifetime=config.fixed_lifetime,
-                desired_bl=config.desired_bl
+                desired_bl=config.desired_bl,
+                dw_min=config.a_dw_min,
+                up_down=config.a_up_down,
+                w_max=config.a_w_max,
+                w_min=config.a_w_min,
+                gamma_up=config.a_gamma_up,
+                gamma_down=config.a_gamma_down,
+                dw_min_dtod=config.a_dw_min_dtod,
+                up_down_dtod=config.a_up_down_dtod,
+                w_max_dtod=config.a_w_max_dtod,
+                w_min_dtod=config.a_w_min_dtod,
+                gamma_up_dtod=config.a_gamma_up_dtod,
+                gamma_down_dtod=config.a_gamma_down_dtod,
+                dw_min_std=config.a_dw_min_std,
+                write_noise_std=config.a_write_noise_std,
+                lifetime_dtod=config.a_lifetime_dtod,
+                label="A",
+            )
+            b_device = create_6t1c_device(
+                lifetime=config.b_lifetime if config.b_lifetime is not None else config.a_lifetime,
+                transfer_every=config.lrtt_transfer_every,
+                include_retention=config.include_retention,
+                desired_bl=config.desired_bl,
+                dw_min=_get_b_param('dw_min'),
+                up_down=_get_b_param('up_down'),
+                w_max=_get_b_param('w_max'),
+                w_min=_get_b_param('w_min'),
+                gamma_up=_get_b_param('gamma_up'),
+                gamma_down=_get_b_param('gamma_down'),
+                dw_min_dtod=_get_b_param('dw_min_dtod'),
+                up_down_dtod=_get_b_param('up_down_dtod'),
+                w_max_dtod=_get_b_param('w_max_dtod'),
+                w_min_dtod=_get_b_param('w_min_dtod'),
+                gamma_up_dtod=_get_b_param('gamma_up_dtod'),
+                gamma_down_dtod=_get_b_param('gamma_down_dtod'),
+                dw_min_std=_get_b_param('dw_min_std'),
+                write_noise_std=_get_b_param('write_noise_std'),
+                lifetime_dtod=_get_b_param('lifetime_dtod'),
+                label="B",
             )
         else:
-            ab_device = IdealizedPresetDevice()
+            a_device = IdealizedPresetDevice()
+            b_device = IdealizedPresetDevice()
             print("Using IdealizedPresetDevice for A/B matrices")
 
         # Create C device based on configuration
@@ -441,15 +532,14 @@ class LRTTModel(nn.Module):
             transfer_every=config.lrtt_transfer_every,
             lora_alpha=config.lora_alpha,
             reinit_mode=config.reinit_mode,
-            decay_factor=config.decay_factor,
             a_init_mode=config.a_init_mode,  # A initialization mode
             b_init_mode=config.b_init_mode,  # B initialization mode
             forward_inject=False,
             correct_gradient_magnitudes=False,
             unit_cell_devices=[
-                ab_device,  # A matrix
-                ab_device,  # B matrix
-                c_device,   # C matrix
+                a_device,  # A matrix
+                b_device,  # B matrix
+                c_device,  # C matrix
             ],
             # Separate A/B tile scaling factors
             a_x_scaling=config.a_x_scaling,
@@ -463,6 +553,9 @@ class LRTTModel(nn.Module):
             c_desired_bl=config.c_desired_bl,
             # Transfer method for C update (set, onehot, or direct)
             transfer_method=config.transfer_method,
+            # Transfer rank scheduling
+            transfer_rank_schedule=config.transfer_rank_schedule,
+            transfer_ranks_per_step=config.transfer_ranks_per_step,
         )
 
         print(f"A initialization mode: {config.a_init_mode}")
@@ -495,14 +588,15 @@ class LRTTModel(nn.Module):
         # Update parameters for pulse generation
         # When use_manual_scaling=True, A and B are set directly from manual_d_scaling and manual_x_scaling
         # bypassing the dynamic calculation based on lr, dw_min, and input magnitudes
+        # When use_manual_scaling=False, enable BL/update management for dynamic scaling
         update = UpdateParameters(
             desired_bl=config.desired_bl,              # Bit length (pulse train length)
             pulse_type=config.pulse_type,              # Stochastic pulse generation
             use_manual_scaling=config.use_manual_scaling,  # Enable hardware-realistic fixed scaling
             manual_x_scaling=config.x_scaling,         # B factor: scaling for input x
             manual_d_scaling=config.d_scaling,         # A factor: scaling for gradient d
-            update_bl_management=False,                # Disable dynamic BL adjustment
-            update_management=False,                   # Disable dynamic A/B scaling
+            update_bl_management=not config.use_manual_scaling,  # Enable when not using manual scaling
+            update_management=not config.use_manual_scaling,     # Enable when not using manual scaling
         )
 
         rpu_config = PythonLRTTRPUConfig(
@@ -596,8 +690,13 @@ class LRTTModel(nn.Module):
 # ============================================================================
 def train_lrtt_scratch(config: ScratchExperimentConfig,
                       train_loader: DataLoader, val_loader: DataLoader,
-                      seed: int = 42, use_wandb: bool = True) -> tuple:
+                      seed: int = 42, use_wandb: bool = True,
+                      collect_history: bool = True) -> tuple:
     """Train LRTT from scratch on D'.
+
+    Args:
+        collect_history: If False, skip detailed step-wise history collection
+                        for faster training (useful for Optuna sweeps).
 
     Returns:
         Tuple of (model, training_history, epoch_history, C_init, A_init, B_init)
@@ -636,7 +735,7 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
 
     # Record initial state (step=0, before any training)
     C_init_log, A_init_log, B_init_log = model.get_lrtt_components()
-    if A_init_log is not None and B_init_log is not None:
+    if collect_history and A_init_log is not None and B_init_log is not None:
         # Create NaN vectors for initial state (no update yet)
         # A tile (down-proj, code B): x [input_dim], d [rank]
         # B tile (up-proj, code A): x [rank], d [output_dim]
@@ -835,6 +934,15 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
             torch.nn.utils.clip_grad_norm_(model.parameters(), config.lrtt_grad_clip)
             optimizer.step()
 
+            # Per-pulse decay: post_update_step() already called decay_weights() once,
+            # call desired_bl - 1 more times to simulate per-pulse capacitor decay
+            if config.desired_bl > 1:
+                for _ in range(config.desired_bl - 1):
+                    if hasattr(analog_tile.tile_a, "rpu_config") and analog_tile.tile_a.rpu_config.device.requires_decay():
+                        analog_tile.tile_a.decay_weights()
+                    if hasattr(analog_tile.tile_b, "rpu_config") and analog_tile.tile_b.rpu_config.device.requires_decay():
+                        analog_tile.tile_b.decay_weights()
+
             # Debug: Check if A changed after optimizer step
             if epoch == 0 and batch_idx == 0:
                 C, A, B = model.get_lrtt_components()
@@ -852,37 +960,38 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
                     if num_transfers_after > num_transfers_before:
                         is_transfer_step = True
 
-                # Record step-wise history for Excel export
-                # Note: Excel uses standard LoRA notation
-                # Code A tile (up-proj) → Excel B tile, Code B tile (down-proj) → Excel A tile
-                step_history = {
-                    'step': global_step,
-                    'epoch': epoch,
-                    'batch_idx': batch_idx,
-                    'batch_loss': loss.item(),
-                    'is_transfer': is_transfer_step,
-                    'grad_norm': grad_norm,
-                    'grad_C_matrix': grad_C_matrix.cpu().detach().numpy().copy(),
-                    'A_matrix': A.cpu().detach().numpy().copy(),
-                    'B_matrix': B.cpu().detach().numpy().copy(),
-                    'C_matrix': C.cpu().detach().numpy().copy(),
-                    'A_norm': A.norm().item(),
-                    'B_norm': B.norm().item(),
-                    'C_norm': C.norm().item(),
-                    'delta_W_norm': (A @ B).norm().item(),
-                    # Pulse input vectors - Excel notation (A=down-proj, B=up-proj)
-                    # A tile (down-proj) = code B tile: x [input_dim], d [rank]
-                    'A_x_vec': x_B_vec.cpu().detach().numpy().copy(),  # [input_dim]
-                    'A_d_vec': d_B_vec.cpu().detach().numpy().copy(),  # [rank]
-                    'A_p_x_vec': p_x_B_vec.cpu().detach().numpy().copy(),  # [input_dim]
-                    'A_p_d_vec': p_d_B_vec.cpu().detach().numpy().copy(),  # [rank]
-                    # B tile (up-proj) = code A tile: x [rank], d [output_dim]
-                    'B_x_vec': x_A_vec.cpu().detach().numpy().copy(),  # [rank]
-                    'B_d_vec': d_A_vec.cpu().detach().numpy().copy(),  # [output_dim]
-                    'B_p_x_vec': p_x_A_vec.cpu().detach().numpy().copy(),  # [rank]
-                    'B_p_d_vec': p_d_A_vec.cpu().detach().numpy().copy(),  # [output_dim]
-                }
-                training_history.append(step_history)
+                # Record step-wise history for Excel export (skip if not collecting)
+                if collect_history:
+                    # Note: Excel uses standard LoRA notation
+                    # Code A tile (up-proj) → Excel B tile, Code B tile (down-proj) → Excel A tile
+                    step_history = {
+                        'step': global_step,
+                        'epoch': epoch,
+                        'batch_idx': batch_idx,
+                        'batch_loss': loss.item(),
+                        'is_transfer': is_transfer_step,
+                        'grad_norm': grad_norm,
+                        'grad_C_matrix': grad_C_matrix.cpu().detach().numpy().copy(),
+                        'A_matrix': A.cpu().detach().numpy().copy(),
+                        'B_matrix': B.cpu().detach().numpy().copy(),
+                        'C_matrix': C.cpu().detach().numpy().copy(),
+                        'A_norm': A.norm().item(),
+                        'B_norm': B.norm().item(),
+                        'C_norm': C.norm().item(),
+                        'delta_W_norm': (A @ B).norm().item(),
+                        # Pulse input vectors - Excel notation (A=down-proj, B=up-proj)
+                        # A tile (down-proj) = code B tile: x [input_dim], d [rank]
+                        'A_x_vec': x_B_vec.cpu().detach().numpy().copy(),  # [input_dim]
+                        'A_d_vec': d_B_vec.cpu().detach().numpy().copy(),  # [rank]
+                        'A_p_x_vec': p_x_B_vec.cpu().detach().numpy().copy(),  # [input_dim]
+                        'A_p_d_vec': p_d_B_vec.cpu().detach().numpy().copy(),  # [rank]
+                        # B tile (up-proj) = code A tile: x [rank], d [output_dim]
+                        'B_x_vec': x_A_vec.cpu().detach().numpy().copy(),  # [rank]
+                        'B_d_vec': d_A_vec.cpu().detach().numpy().copy(),  # [output_dim]
+                        'B_p_x_vec': p_x_A_vec.cpu().detach().numpy().copy(),  # [rank]
+                        'B_p_d_vec': p_d_A_vec.cpu().detach().numpy().copy(),  # [output_dim]
+                    }
+                    training_history.append(step_history)
 
                 if use_wandb:
                     log_dict = {
@@ -933,6 +1042,13 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
                 transfer_occurred = True
                 C, A, B = model.get_lrtt_components()
                 transfers_this_epoch = current_transfer_count - last_transfer_count
+
+                # Clamp C to [-1, 1] for FloatingPointDevice (no built-in bounds)
+                if config.c_device_type == 'floating_point':
+                    C_clamped = torch.clamp(C, config.c_w_min, config.c_w_max)
+                    model.set_C_weights(C_clamped)
+                    C = C_clamped
+
                 print(f"  [TRANSFER] Epoch {epoch}: {transfers_this_epoch} transfer(s), A norm={A.norm():.4f}, B norm={B.norm():.4f}, C norm={C.norm():.4f}")
 
         # Validation - Use full LRTT model (skip if no val_loader)
@@ -2344,21 +2460,38 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
             'c_init_value',
             'a_init_mode',
             'b_init_mode',
+            'reinit_mode',
             'use_6t1c',
-            'retention_ratio',
-            'fixed_lifetime',
+            'lifetime',
             'include_retention',
             'desired_bl',
             'dw_min',
+            'pulse_type',
             'a_x_scaling',
             'a_d_scaling',
             'b_x_scaling',
             'b_d_scaling',
+            'use_manual_scaling',
+            'lrtt_lr',
             'quantize_x',
             'quantize_d',
             'x_resolution',
             'd_resolution',
+            'c_device_type',
+            'c_dw_min',
+            'c_desired_bl',
+            'c_w_min',
+            'c_w_max',
+            'transfer_method',
+            'transfer_rank_schedule',
+            'transfer_ranks_per_step',
+            'batch_size',
+            'epochs',
+            'patience',
+            'grad_clip',
+            'noise_std',
             'train_samples',
+            'test_samples',
             'input_dim',
             'output_dim',
             'total_steps',
@@ -2378,21 +2511,38 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
             config.c_init_value,
             config.b_init_mode,  # Excel A = Code B (down-projection)
             config.a_init_mode,  # Excel B = Code A (up-projection)
+            config.reinit_mode,
             config.USE_6T1C_AB,
-            config.retention_ratio_at_transfer if config.USE_6T1C_AB else None,
-            config.fixed_lifetime if config.USE_6T1C_AB else None,
+            config.a_lifetime if config.USE_6T1C_AB else None,
             config.include_retention if config.USE_6T1C_AB else None,
             config.desired_bl,
-            0.02,  # dw_min from LinearStepDevice
+            config.a_dw_min,  # dw_min from LinearStepDevice
+            str(config.pulse_type),
             config.b_x_scaling,  # Excel A = Code B (down-projection)
             config.b_d_scaling,  # Excel A = Code B
             config.a_x_scaling,  # Excel B = Code A (up-projection)
             config.a_d_scaling,  # Excel B = Code A
+            config.use_manual_scaling,
+            config.lrtt_lr,
             config.quantize_x,
             config.quantize_d,
             config.x_resolution if config.quantize_x else None,
             config.d_resolution if config.quantize_d else None,
+            config.c_device_type,
+            config.c_dw_min,
+            config.c_desired_bl,
+            config.c_w_min,
+            config.c_w_max,
+            config.transfer_method,
+            config.transfer_rank_schedule,
+            config.transfer_ranks_per_step,
+            config.lrtt_batch_size,
+            config.lrtt_epochs,
+            config.lrtt_patience,
+            config.lrtt_grad_clip,
+            config.noise_std,
             config.D_prime_train_size,
+            config.D_prime_test_size,
             config.input_dim,
             config.output_dim,
             total_steps,
@@ -2408,21 +2558,36 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
             'C matrix initial value (all elements)',
             'A (down-proj) init mode (zero/kaiming)',
             'B (up-proj) init mode (zero/kaiming)',
+            'Reinit mode (standard/decay/orthogonal_zero/orthogonal_decay/...)',
             'Use 6T1C device for A/B matrices',
-            'Retention ratio at transfer (e.g., 0.95 = 95%)',
-            'Fixed lifetime in pulses (overrides retention_ratio)',
+            'Batch lifetime for retention decay',
             'Include retention effects',
-            'Bit length (pulse train length)',
-            'Minimum weight update step',
+            'Bit length (pulse train length) for A/B',
+            'Minimum weight update step for A/B',
+            'Pulse generation type',
             'A tile (down-proj) x scaling',
             'A tile (down-proj) d scaling',
             'B tile (up-proj) x scaling',
             'B tile (up-proj) d scaling',
+            'Use manual scaling (True) or dynamic scaling (False)',
+            'Learning rate (used when use_manual_scaling=False)',
             'Enable input (x) quantization',
             'Enable gradient (d) quantization',
             'Input quantization resolution',
             'Gradient quantization resolution',
+            'C matrix device type (idealized/floating_point/softbounds)',
+            'C matrix minimum weight update step',
+            'C matrix bit length for transfer',
+            'C matrix minimum weight value',
+            'C matrix maximum weight value',
+            'C transfer method (set/onehot/direct)',
+            'Training batch size',
+            'Maximum training epochs',
+            'Early stopping patience',
+            'Gradient clipping value',
+            'Data noise standard deviation',
             'Number of training samples',
+            'Number of test samples',
             'Input dimension',
             'Output dimension',
             'Total training steps',
@@ -2627,12 +2792,9 @@ def run_scratch_experiment(config: ScratchExperimentConfig, complexity_level: st
 
     print(f"\n{'='*60}")
     print(f"Running SCRATCH experiment with seed={seed}, complexity_level={complexity_level}")
-    print(f"REINIT CONFIG: mode={config.reinit_mode}, decay_factor={config.decay_factor}")
+    print(f"REINIT CONFIG: mode={config.reinit_mode}")
     if config.USE_6T1C_AB and config.include_retention:
-        if config.fixed_lifetime is not None:
-            print(f"DEVICE CONFIG: 6T1C_AB=True, fixed_lifetime={config.fixed_lifetime} pulses")
-        else:
-            print(f"DEVICE CONFIG: 6T1C_AB=True, retention={config.retention_ratio_at_transfer*100:.1f}% at transfer")
+        print(f"DEVICE CONFIG: 6T1C_AB=True, a_lifetime={config.a_lifetime} b_lifetime={config.b_lifetime} batches")
     else:
         print(f"DEVICE CONFIG: 6T1C_AB={config.USE_6T1C_AB}, retention={'OFF' if not config.include_retention else 'N/A'}")
     if config.quantize_x or config.quantize_d:
@@ -2656,8 +2818,8 @@ def run_scratch_experiment(config: ScratchExperimentConfig, complexity_level: st
                 'transfer_every': config.lrtt_transfer_every,
                 'lora_alpha': config.lora_alpha,
                 'use_6t1c_ab': config.USE_6T1C_AB,
-                'retention_ratio_at_transfer': config.retention_ratio_at_transfer if config.USE_6T1C_AB else None,
-                'fixed_lifetime': config.fixed_lifetime if config.USE_6T1C_AB else None,
+                'a_lifetime': config.a_lifetime if config.USE_6T1C_AB else None,
+                'b_lifetime': config.b_lifetime if config.USE_6T1C_AB else None,
                 'include_retention': config.include_retention if config.USE_6T1C_AB else None,
                 'quantize_x': config.quantize_x,
                 'quantize_d': config.quantize_d,

@@ -284,7 +284,6 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             lora_alpha=self.lora_alpha,
             reinit_gain=self.reinit_gain,
             reinit_mode=getattr(self.lrtt_config, "reinit_mode", "standard"),
-            decay_factor=getattr(self.lrtt_config, "decay_factor", 1.0),
             a_init_mode=getattr(
                 self.lrtt_config, "a_init_mode", "zero"
             ),  # A matrix initialization mode
@@ -307,6 +306,8 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             multi_read_mode=getattr(self.lrtt_config, "multi_read_mode", "average"),
             update_mode=getattr(self.lrtt_config, "update_mode", "lora"),
             transfer_method=getattr(self.lrtt_config, "transfer_method", "onehot"),
+            transfer_rank_schedule=getattr(self.lrtt_config, "transfer_rank_schedule", "all"),
+            transfer_ranks_per_step=getattr(self.lrtt_config, "transfer_ranks_per_step", 1),
         )
 
         # Apply post-init settings from config._post_init
@@ -819,7 +820,6 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         Note:
             - C tile (6T1C): Has lifetime parameter for retention decay
             - A/B tiles: May be ideal devices (no decay) or capacitor-based
-            - Controller decay_factor is applied every step (if reinit_mode="decay")
         """
         # Apply decay to each tile based on its device config (lifetime decay)
         # tile_a
@@ -840,9 +840,6 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             and self.tile_c.rpu_config.device.requires_decay()
         ):
             self.tile_c.decay_weights()
-
-        # Apply controller's decay_factor every step (if reinit_mode="decay")
-        self.controller.apply_step_decay()
 
         # Apply diffusion if needed
         if (
