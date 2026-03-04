@@ -5,7 +5,7 @@ import torch
 import numpy as np
 from torch.utils.data import DataLoader
 
-from regression_lrtt_scratch_decay import (
+from regression_lrtt_scratch_decay_sw import (
     ScratchExperimentConfig,
     train_lrtt_scratch,
     generate_target_dataset,

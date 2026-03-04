@@ -48,13 +48,13 @@ class PythonLRTTDevice(_PrintableMixin):
     reinit_mode: str = "standard"
     """Reinit strategy after transfer:
     - 'standard': A=0, B=Kaiming (original LRTT)
-    - 'decay': A*=decay_factor, B*=decay_factor (gradual decay)
-    - 'hybrid': A=0, B*=decay_factor (hybrid approach)
-    - 'orthogonal': A=0, B=Random Orthogonal (FROZEN). B @ B.T = I for projection.
+    - 'decay': no reinit, 6T1C capacitor decay handles weight reduction
+    - 'hybrid': A=0, B unchanged (6T1C capacitor decay handles B)
+    - 'orthogonal_zero': A=0, B=Random Orthogonal (FROZEN)
+    - 'orthogonal_decay': A unchanged, B=Random Orthogonal (FROZEN)
+    - 'zero_orthogonal_zero': A=0, B=0 every transfer (write noise varies each time)
+    - 'zero_orthogonal_decay': A unchanged, B=0 every transfer (write noise varies each time)
     """
-
-    decay_factor: float = 0.9
-    """Decay factor for 'decay' and 'hybrid' reinit modes (0 < decay_factor < 1)."""
 
     a_init_mode: str = "zero"
     """A matrix initialization mode for first reinit:
@@ -189,6 +189,18 @@ class PythonLRTTDevice(_PrintableMixin):
     - "set": Exact transfer (set_weights directly, no pulsed update noise)
     Default is "onehot"."""
 
+    # === Transfer Rank Scheduling ===
+    transfer_rank_schedule: str = "all"
+    """Transfer rank scheduling mode:
+    - "all": Transfer all ranks at once (default, original behavior)
+    - "round_robin": Cycle through ranks, transferring a subset each time
+    Default is "all"."""
+
+    transfer_ranks_per_step: int = 1
+    """Number of ranks to transfer per transfer event in round_robin mode.
+    Only used when transfer_rank_schedule="round_robin".
+    Must be >= 1 and <= rank. Default is 1."""
+
     # === Advanced Parameters ===
     units_in_mbatch: bool = False
     """If True, transfer_every is in mini-batch units (TE=1 → every batch).
@@ -316,13 +328,9 @@ class PythonLRTTDevice(_PrintableMixin):
             raise ValueError(f"reinit_gain must be non-negative, got {self.reinit_gain}")
 
         # Validate reinit_mode
-        valid_modes = ["standard", "decay", "hybrid", "orthogonal_zero", "orthogonal_decay"]
+        valid_modes = ["standard", "decay", "hybrid", "orthogonal_zero", "orthogonal_decay", "zero_orthogonal_zero", "zero_orthogonal_decay"]
         if self.reinit_mode not in valid_modes:
             raise ValueError(f"reinit_mode must be one of {valid_modes}, got '{self.reinit_mode}'")
-
-        # Validate decay_factor
-        if not (0 < self.decay_factor <= 1):
-            raise ValueError(f"decay_factor must be in (0, 1], got {self.decay_factor}")
 
         # Validate num_reads
         if self.num_reads < 1:
@@ -392,6 +400,17 @@ class PythonLRTTDevice(_PrintableMixin):
         if self.sd_quantum is not None and self.sd_quantum <= 0:
             raise ValueError(f"sd_quantum must be positive or None, got {self.sd_quantum}")
 
+        # Validate transfer_rank_schedule
+        valid_rank_schedules = ["all", "round_robin"]
+        if self.transfer_rank_schedule not in valid_rank_schedules:
+            raise ValueError(f"transfer_rank_schedule must be one of {valid_rank_schedules}, got '{self.transfer_rank_schedule}'")
+
+        # Validate transfer_ranks_per_step
+        if self.transfer_ranks_per_step < 1:
+            raise ValueError(f"transfer_ranks_per_step must be >= 1, got {self.transfer_ranks_per_step}")
+        if self.transfer_ranks_per_step > self.rank:
+            raise ValueError(f"transfer_ranks_per_step ({self.transfer_ranks_per_step}) must be <= rank ({self.rank})")
+
         # Validate rank_chunk
         if self.rank_chunk is not None and self.rank_chunk <= 0:
             raise ValueError(f"rank_chunk must be positive or None, got {self.rank_chunk}")
@@ -438,7 +457,6 @@ class PythonLRTTDevice(_PrintableMixin):
             'lora_alpha': self.lora_alpha,
             'reinit_gain': self.reinit_gain,
             'reinit_mode': self.reinit_mode,
-            'decay_factor': self.decay_factor,
             'correct_gradient_magnitudes': self.correct_gradient_magnitudes,
             'rank_chunk': self.rank_chunk,
             'ab_bl_mgmt': self.ab_bl_mgmt,
@@ -454,6 +472,8 @@ class PythonLRTTDevice(_PrintableMixin):
             'multi_read_mode': self.multi_read_mode,
             'update_mode': self.update_mode,
             'transfer_method': self.transfer_method,
+            'transfer_rank_schedule': self.transfer_rank_schedule,
+            'transfer_ranks_per_step': self.transfer_ranks_per_step,
         }
         # Post-init settings (set on controller after creation)
         kwargs['_post_init'] = {
@@ -730,7 +750,6 @@ class PythonLRTTPreset(_PrintableMixin):
         include_retention: bool = True,
         c_device: Optional[PulsedDevice] = None,
         reinit_mode: str = "decay",
-        decay_factor: float = 1.0
     ) -> 'PythonLRTTDevice':
         """LRTT with 6T1C devices for A/B tiles and configurable C tile.
 
@@ -758,8 +777,6 @@ class PythonLRTTPreset(_PrintableMixin):
                       Can be any PulsedDevice: IdealizedPresetDevice, PCM, RRAM, etc.
             reinit_mode: Reinit strategy after transfer ('standard', 'decay', 'hybrid').
                          Default 'decay' for 6T1C to allow natural retention decay.
-            decay_factor: Decay factor for reinit (default 1.0 = no artificial reinit,
-                          only natural 6T1C retention decay affects A/B weights).
 
         Returns:
             PythonLRTTDevice configuration with 6T1C A/B and custom C device
@@ -831,7 +848,6 @@ class PythonLRTTPreset(_PrintableMixin):
             lora_alpha=lora_alpha,
             reinit_gain=1.0,
             reinit_mode=reinit_mode,
-            decay_factor=decay_factor,
             forward_inject=False,
             unit_cell_devices=[sixt1c_device, sixt1c_device, c_device]
         )

@@ -60,7 +60,6 @@ class LRTTController:
         lora_alpha: float = 1.0,
         reinit_gain: float = 1.0,
         reinit_mode: str = "standard",
-        decay_factor: float = 1.0,
         a_init_mode: str = "zero",  # "zero" or "kaiming"
         b_init_mode: str = "kaiming",  # "kaiming" or "zero"
         correct_gradient_magnitudes: bool = False,
@@ -72,6 +71,8 @@ class LRTTController:
         multi_read_mode: str = "average",
         update_mode: str = "lora",  # "lora" or "reconstruction"
         transfer_method: str = "onehot",  # "onehot", "direct", or "set"
+        transfer_rank_schedule: str = "all",  # "all" or "round_robin"
+        transfer_ranks_per_step: int = 1,  # ranks per transfer in round_robin mode
         device: Optional[torch.device] = None,  # Explicit device to avoid get_weights()
         dtype: torch.dtype = torch.float32      # Explicit dtype
     ):
@@ -91,11 +92,12 @@ class LRTTController:
             reinit_gain: Kaiming uniform initialization multiplier (1.0 = standard PyTorch default)
             reinit_mode: Reinit strategy after transfer:
                         "standard" - A=0, B=Kaiming (original LRTT)
-                        "decay" - A*=decay_factor, B*=decay_factor (gradual decay)
-                        "hybrid" - A=0, B*=decay_factor (hybrid approach)
+                        "decay" - no reinit, 6T1C capacitor decay handles weight reduction
+                        "hybrid" - A=0, B unchanged
                         "orthogonal_zero" - A=0, B=Random Orthogonal (FROZEN)
-                        "orthogonal_decay" - A*=decay_factor, B=Random Orthogonal (FROZEN)
-            decay_factor: Decay factor for "decay" and "hybrid" modes (0 < decay_factor < 1)
+                        "orthogonal_decay" - no reinit on A, B=Random Orthogonal (FROZEN)
+                        "zero_orthogonal_zero" - A=0, B=0 every transfer (write noise varies)
+                        "zero_orthogonal_decay" - A unchanged, B=0 every transfer (write noise varies)
             correct_gradient_magnitudes: Scale lr by sqrt(rank) for gradient correction
             rank_chunk: Chunk size for transfer (None = full rank)
             ab_bl_mgmt: BL management for A/B updates {update_bl_management, update_management, desired_BL}
@@ -128,7 +130,6 @@ class LRTTController:
         self.lora_alpha = lora_alpha
         self.reinit_gain = reinit_gain
         self.reinit_mode = reinit_mode
-        self.decay_factor = decay_factor
         self.a_init_mode = a_init_mode
         self.b_init_mode = b_init_mode
         self.correct_gradient_magnitudes = correct_gradient_magnitudes
@@ -156,6 +157,9 @@ class LRTTController:
         self.multi_read_mode = multi_read_mode
         self.update_mode = update_mode
         self.transfer_method = transfer_method
+        self.transfer_rank_schedule = transfer_rank_schedule
+        self.transfer_ranks_per_step = transfer_ranks_per_step
+        self._rr_rank_idx: int = 0  # Round-robin pointer: next transfer start rank
 
         # BL management settings
         self.ab_bl_mgmt = ab_bl_mgmt or {}
@@ -501,32 +505,23 @@ class LRTTController:
         tile.set_weights(weights)
 
     def apply_step_decay(self) -> None:
-        """Apply decay_factor to A,B weights every step.
+        """No-op. Kept for backward compatibility.
 
-        Called by LRTTTile.post_update_step() to apply decay every mini-batch
-        instead of only at transfer time.
-
-        Only applies when reinit_mode is "decay".
+        Decay is handled by 6T1C capacitor decay in post_update_step().
         """
-        if self.reinit_mode != "decay":
-            return
-
-        if self.decay_factor == 1.0:
-            # No decay needed
-            return
-
-        self._decay_persistent_weights(self.tile_a, self.decay_factor)
-        self._decay_persistent_weights(self.tile_b, self.decay_factor)
+        pass
 
     def reinit(self) -> None:
         """Reinit A,B matrices based on reinit_mode, a_init_mode, and b_init_mode.
 
         Reinit modes:
         - "standard": Always reinitialize A and B
-        - "decay": First time initialize, after transfer apply decay
-        - "hybrid": A=0, B*=decay_factor (hybrid approach)
+        - "decay": First time initialize, no reinit after transfer (6T1C decay handles it)
+        - "hybrid": A=0, B unchanged after transfer
         - "orthogonal_zero": A=0, B=Random Orthogonal (FROZEN)
-        - "orthogonal_decay": A*=decay_factor, B=Random Orthogonal (FROZEN)
+        - "orthogonal_decay": A unchanged, B=Random Orthogonal (FROZEN)
+        - "zero_orthogonal_zero": A=0, B=0 every transfer (write noise varies each time)
+        - "zero_orthogonal_decay": A unchanged, B=0 every transfer (write noise varies each time)
 
         A initialization (controlled by a_init_mode):
         - "zero": A=0 (LoRA-style, ensures ΔW=0 initially)
@@ -564,8 +559,8 @@ class LRTTController:
                 _set_raw(self.tile_b, B_init)
 
             elif self.reinit_mode == "decay":
-                # Decay mode: First time use a_init_mode for A, B=Kaiming
-                # After transfer: apply decay instead of reinit
+                # Decay mode: First time initialize, no reinit after transfer
+                # 6T1C capacitor decay handles weight reduction naturally
                 if not self._tiles_initialized:
                     # First time: Use a_init_mode for A initialization
                     if self.a_init_mode == "kaiming":
@@ -587,7 +582,7 @@ class LRTTController:
                 # else: decay is applied every step via apply_step_decay(), not at transfer time
 
             elif self.reinit_mode == "hybrid":
-                # A=0, B decayed or initialized
+                # A=0, B unchanged (6T1C capacitor decay handles B reduction)
                 A_zeros = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
                 _set_raw(self.tile_a, A_zeros)
 
@@ -600,11 +595,7 @@ class LRTTController:
                         nn.init.kaiming_uniform_(B_init, a=math.sqrt(5))
                         B_init *= self.reinit_gain
                     _set_raw(self.tile_b, B_init)
-                elif self.decay_factor != 1.0:
-                    # After transfer: Decay B (skip if decay_factor == 1.0)
-                    B_raw = _get_raw_gpu(self.tile_b) * self.decay_factor
-                    _set_raw(self.tile_b, B_raw)
-                # else: decay_factor == 1.0, no decay needed
+                # else: B unchanged, 6T1C capacitor decay handles it
 
             elif self.reinit_mode == "orthogonal_zero":
                 # B = Random Orthogonal (FROZEN), A = 0 after each transfer
@@ -620,7 +611,7 @@ class LRTTController:
                 # else: B is frozen, don't change it
 
             elif self.reinit_mode == "orthogonal_decay":
-                # B = Random Orthogonal (FROZEN), A *= decay_factor after each transfer
+                # B = Random Orthogonal (FROZEN), A unchanged (6T1C decay handles it)
                 if not self._tiles_initialized:
                     A_zeros = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
                     _set_raw(self.tile_a, A_zeros)
@@ -630,15 +621,32 @@ class LRTTController:
                     B_orthogonal = Q.t() * math.sqrt(self.x_size / self.rank)
                     _set_raw(self.tile_b, B_orthogonal)
                     self._b_frozen = True
-                elif self.decay_factor != 1.0:
-                    # After transfer: Decay A, B is frozen
-                    A_raw = _get_raw_gpu(self.tile_a) * self.decay_factor
-                    _set_raw(self.tile_a, A_raw)
-                # else: decay_factor == 1.0, no decay needed
+                # else: A unchanged, 6T1C capacitor decay handles it
+
+            elif self.reinit_mode == "zero_orthogonal_zero":
+                # A=0, B=0 every transfer (non-trainable)
+                # B is re-set to zero each transfer so device write noise differs each time
+                A_zeros = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
+                _set_raw(self.tile_a, A_zeros)
+                B_zeros = torch.zeros(self.rank, self.x_size, device=self.device, dtype=self.dtype)
+                _set_raw(self.tile_b, B_zeros)
+                self._b_frozen = True
+
+            elif self.reinit_mode == "zero_orthogonal_decay":
+                # A unchanged (6T1C decay handles it), B=0 every transfer (non-trainable)
+                # B is re-set to zero each transfer so device write noise differs each time
+                if not self._tiles_initialized:
+                    A_zeros = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
+                    _set_raw(self.tile_a, A_zeros)
+                # else: A unchanged, 6T1C capacitor decay handles it
+                B_zeros = torch.zeros(self.rank, self.x_size, device=self.device, dtype=self.dtype)
+                _set_raw(self.tile_b, B_zeros)
+                self._b_frozen = True
 
             else:
                 raise ValueError(f"Unknown reinit_mode: {self.reinit_mode}. "
-                                 f"Must be 'standard', 'decay', 'hybrid', 'orthogonal_zero', or 'orthogonal_decay'")
+                                 f"Must be 'standard', 'decay', 'hybrid', 'orthogonal_zero', "
+                                 f"'orthogonal_decay', 'zero_orthogonal_zero', or 'zero_orthogonal_decay'")
 
         # Apply device clipping if available
         if hasattr(self.tile_a, 'clip_weights'):
@@ -660,6 +668,84 @@ class LRTTController:
         # Reset counters
         self.transfer_counter = 0
         self._tiles_initialized = True
+
+    def _reinit_ranks(self, rank_indices: List[int]) -> None:
+        """Reinit only the specified ranks of A and B after transfer.
+
+        If all ranks are selected, delegates to full reinit().
+        Otherwise, performs per-rank read-modify-write on A columns and B rows.
+
+        Args:
+            rank_indices: List of rank indices to reinitialize.
+        """
+        # Full rank case → delegate to existing reinit()
+        if len(rank_indices) == self.rank:
+            self.reinit()
+            return
+
+        with torch.no_grad():
+            def _get_raw(tile):
+                return tile.tile.get_weights().to(self.device)
+
+            def _set_raw(tile, w):
+                tile.tile.set_weights(w)
+
+            A_full = _get_raw(self.tile_a)  # [d_size, rank]
+            B_full = _get_raw(self.tile_b)  # [rank, x_size]
+
+            for k in rank_indices:
+                if self.reinit_mode == "standard":
+                    # A[:, k] = 0, B[k, :] = Kaiming
+                    if self.a_init_mode == "kaiming":
+                        col = torch.empty(self.d_size, 1, device=self.device, dtype=self.dtype)
+                        nn.init.kaiming_uniform_(col, a=math.sqrt(5))
+                        A_full[:, k] = col.squeeze(1) * self.reinit_gain
+                    else:
+                        A_full[:, k] = 0.0
+
+                    if self.b_init_mode == "zero":
+                        B_full[k, :] = 0.0
+                    else:
+                        row = torch.empty(1, self.x_size, device=self.device, dtype=self.dtype)
+                        nn.init.kaiming_uniform_(row, a=math.sqrt(5))
+                        B_full[k, :] = row.squeeze(0) * self.reinit_gain
+
+                elif self.reinit_mode == "decay":
+                    # No reinit — 6T1C capacitor decay handles it
+                    pass
+
+                elif self.reinit_mode == "hybrid":
+                    # A[:, k] = 0, B unchanged
+                    A_full[:, k] = 0.0
+
+                elif self.reinit_mode == "orthogonal_zero":
+                    # A[:, k] = 0, B frozen
+                    A_full[:, k] = 0.0
+
+                elif self.reinit_mode == "orthogonal_decay":
+                    # A unchanged, B frozen — no-op
+                    pass
+
+                elif self.reinit_mode == "zero_orthogonal_zero":
+                    # A[:, k] = 0, B[k, :] = 0
+                    A_full[:, k] = 0.0
+                    B_full[k, :] = 0.0
+
+                elif self.reinit_mode == "zero_orthogonal_decay":
+                    # A unchanged, B[k, :] = 0
+                    B_full[k, :] = 0.0
+
+            _set_raw(self.tile_a, A_full)
+            _set_raw(self.tile_b, B_full)
+
+        # Apply device clipping if available
+        if hasattr(self.tile_a, 'clip_weights'):
+            self.tile_a.clip_weights()
+        if hasattr(self.tile_b, 'clip_weights'):
+            self.tile_b.clip_weights()
+
+        # Reset transfer counter
+        self.transfer_counter = 0
 
     def ab_weight_update(
         self,
@@ -985,91 +1071,82 @@ class LRTTController:
 
         Transfer: C += transfer_lr * (A @ B)
 
+        Supports per-rank round-robin scheduling via transfer_rank_schedule:
+        - "all": Transfer all ranks at once (default, original behavior)
+        - "round_robin": Cycle through ranks, transferring transfer_ranks_per_step
+          ranks each time. After transfer, only the transferred ranks are reinit'd.
+
         Args:
             method: Transfer method override.
                    "onehot" - One-hot reading (analog-realistic pulsed update)
                    "direct" - Direct weight access (pulsed update)
                    "set" - Exact weight setting (no pulsed update, precise)
                    If None, use self.transfer_method setting.
-
-        Direct mode:
-        1. Get weights to CPU first to avoid GPU memory spike
-        2. For chunks of rank: pack D_chunk = A[:, off:off+cur], X_chunk = B[off:off+cur, :]
-        3. Move only chunks to GPU for update
-        4. Call visible pulsed updater: C.update(X_chunk^T, D_chunk, lr=|transfer_lr|)
-        5. Handle sign rule: negate D when transfer_lr > 0
-        6. Unconditionally call reinit() after transfer
-
-        One-hot mode:
-        1. Read A columns using forward pass with one-hot vectors
-        2. Read B rows using backward pass with one-hot vectors
-        3. Accumulate outer products into C (pulsed)
-        4. Unconditionally call reinit() after transfer
-
-        Set mode:
-        1. Compute delta = transfer_lr * (A @ B)
-        2. C_new = C + delta (exact, no pulsed update)
-        3. set_weights(C_new) directly
-        4. Unconditionally call reinit() after transfer
         """
         # Use instance setting if not specified
         if method is None:
             method = self.transfer_method
 
+        # Compute rank indices to transfer
+        if self.transfer_rank_schedule == "round_robin":
+            n = self.transfer_ranks_per_step
+            rank_indices = [(self._rr_rank_idx + i) % self.rank for i in range(n)]
+        else:
+            rank_indices = list(range(self.rank))
+
+        # Dispatch to transfer method
         if method == "onehot":
-            self._ab_weight_transfer_onehot()
+            self._ab_weight_transfer_onehot(rank_indices)
         elif method == "direct":
-            self._ab_weight_transfer_direct()
+            self._ab_weight_transfer_direct(rank_indices)
         elif method == "set":
-            self._ab_weight_transfer_set()
+            self._ab_weight_transfer_set(rank_indices)
         else:
             raise ValueError(f"Unknown transfer method: {method}. Use 'onehot', 'direct', or 'set'.")
 
-    def _ab_weight_transfer_direct(self) -> None:
-        """Original transfer implementation using direct weight access."""
+        # Reinit only the transferred ranks
+        self._reinit_ranks(rank_indices)
+
+        # Advance round-robin pointer
+        if self.transfer_rank_schedule == "round_robin":
+            self._rr_rank_idx = (self._rr_rank_idx + self.transfer_ranks_per_step) % self.rank
+
+    def _ab_weight_transfer_direct(self, rank_indices: List[int]) -> None:
+        """Original transfer implementation using direct weight access.
+
+        Args:
+            rank_indices: List of rank indices to transfer.
+        """
         with torch.no_grad():
             # Get weights (they come in the tile's native device)
             A_weights = self.tile_a.get_weights()[0]  # [d_size, rank]
             B_weights = self.tile_b.get_weights()[0]  # [rank, x_size]
 
-            A_lr = A_weights[:, :self.rank]  # [d_size, rank]
+            A_lr = A_weights[:, rank_indices]  # [d_size, len(rank_indices)]
+            B_lr = B_weights[rank_indices, :]  # [len(rank_indices), x_size]
 
             # Transfer in chunks to manage memory
             lr_eff = abs(self.transfer_lr)
             old_lr = self.tile_c.get_learning_rate()
             self.tile_c.set_learning_rate(lr_eff)
 
-            # Apply transfer BL management
-            if self.transfer_bl_mgmt:
-                # Apply transfer_bl_mgmt settings
-                pass
-
-            chunk_size = self.rank_chunk
-            for off in range(0, self.rank, chunk_size):
-                end = min(off + chunk_size, self.rank)
-                cur = end - off
+            n_sel = len(rank_indices)
+            chunk_size = min(self.rank_chunk, n_sel)
+            for off in range(0, n_sel, chunk_size):
+                end = min(off + chunk_size, n_sel)
 
                 # Pack chunks (keep on same device as tiles)
                 D_chunk = A_lr[:, off:end].contiguous()  # [d_size, cur]
-                X_chunk = B_weights[off:end, :].contiguous()     # [cur, x_size]
+                X_chunk = B_lr[off:end, :].contiguous()  # [cur, x_size]
 
                 # Sign rule: PWU computes W += -lr * D @ X^T, we want W += +transfer_lr * D @ X^T
-                # So when transfer_lr > 0, negate D to get correct sign
                 if self.transfer_lr > 0:
                     D_chunk = -D_chunk
-                elif self.transfer_lr < 0:
-                    # transfer_lr < 0: want W += transfer_lr * D @ X^T (negative), so keep D positive
-                    # PWU does W += -lr * D @ X^T with lr > 0, so net effect is W += -D @ X^T (negative) ✓
-                    pass
 
                 # Use controller's device (single source of truth)
                 dev = self.device
                 X_chunk_d = X_chunk.contiguous().to(dev, non_blocking=True)
                 D_chunk_t_d = D_chunk.t().contiguous().to(dev, non_blocking=True)
-
-                # Debug assertion to ensure same device
-                assert X_chunk_d.device == D_chunk_t_d.device, \
-                    f"Device mismatch: X={X_chunk_d.device}, D={D_chunk_t_d.device}"
 
                 # Pulsed update to C tile
                 if hasattr(self.tile_c, '_orig_update'):
@@ -1082,31 +1159,15 @@ class LRTTController:
             self.tile_c.set_learning_rate(old_lr)
         self.num_transfers += 1
 
-        # DEBUG: Check A before reinit (first few transfers only)
-        if self.num_transfers < 1:
-            A_before_reinit = self.tile_a.get_weights()[0] if hasattr(self.tile_a, 'get_weights') else None
-            if A_before_reinit is not None:
-                print(f"TRANSFER #{self.num_transfers} - Before reinit: A norm={A_before_reinit.norm():.6f}")
-
-        # Unconditional reinit after transfer
-        self.reinit()
-
-        # DEBUG: Check A after reinit (first few transfers only)
-        if self.num_transfers < 1:  # 거의 출력 안 함
-            A_after_reinit = self.tile_a.get_weights()[0] if hasattr(self.tile_a, 'get_weights') else None
-            if A_after_reinit is not None:
-                print(f"TRANSFER #{self.num_transfers} - After reinit ({self.reinit_mode}): A norm={A_after_reinit.norm():.6f}")
-                if self.reinit_mode == "decay":
-                    expected = A_before_reinit.norm() * self.decay_factor if A_before_reinit is not None else 0
-                    print(f"  Expected A norm (decay): {expected:.6f}")
-                print()
-
-    def _ab_weight_transfer_set(self) -> None:
+    def _ab_weight_transfer_set(self, rank_indices: List[int]) -> None:
         """Deterministic FP transfer via tile.update() with NoneWithDevice.
 
         C tile must be constructed with PulseType.NONE_WITH_DEVICE (set in
         lrtt_tile.py create_update_params). This gives pure FP update with
         device weight clipping, avoiding get_weights/set_weights CPU roundtrips.
+
+        Args:
+            rank_indices: List of rank indices to transfer.
         """
         with torch.no_grad():
             # Read raw A, B weights and scale factors
@@ -1116,10 +1177,10 @@ class LRTTController:
             alpha_b = self.tile_b.get_scales()
             alpha_c = self.tile_c.get_scales()
 
-            A_lr = A_raw[:, :self.rank]
+            A_lr = A_raw[:, rank_indices]
             if alpha_a is not None:
                 A_lr = A_lr * alpha_a.view(-1, 1)
-            B_lr = B_raw[:self.rank, :]
+            B_lr = B_raw[rank_indices, :]
             if alpha_b is not None:
                 B_lr = B_lr * alpha_b.view(-1, 1)
 
@@ -1145,26 +1206,7 @@ class LRTTController:
 
         self.num_transfers += 1
 
-        # DEBUG: Check A before reinit (first few transfers only)
-        if self.num_transfers < 1:  # 거의 출력 안 함
-            A_before_reinit = self.tile_a.get_weights()[0] if hasattr(self.tile_a, 'get_weights') else None
-            if A_before_reinit is not None:
-                print(f"TRANSFER #{self.num_transfers} - Before reinit: A norm={A_before_reinit.norm():.6f}")
-
-        # Unconditional reinit after transfer
-        self.reinit()
-
-        # DEBUG: Check A after reinit (first few transfers only)
-        if self.num_transfers < 1:  # 거의 출력 안 함
-            A_after_reinit = self.tile_a.get_weights()[0] if hasattr(self.tile_a, 'get_weights') else None
-            if A_after_reinit is not None:
-                print(f"TRANSFER #{self.num_transfers} - After reinit ({self.reinit_mode}): A norm={A_after_reinit.norm():.6f}")
-                if self.reinit_mode == "decay":
-                    expected = A_before_reinit.norm() * self.decay_factor if A_before_reinit is not None else 0
-                    print(f"  Expected A norm (decay): {expected:.6f}")
-                print()
-
-    def _read_ab_onehot_symmetric(self) -> tuple:
+    def _read_ab_onehot_symmetric(self, rank_indices: Optional[List[int]] = None) -> tuple:
         """± one-hot differential read with optional AGC and two-amplitude modes.
 
         Three operation modes based on settings:
@@ -1178,9 +1220,15 @@ class LRTTController:
 
         Also supports legacy num_reads for backward compatibility.
 
+        Args:
+            rank_indices: List of rank indices to read. If None, reads all ranks.
+
         Returns:
-            (A_cols: [d_size, rank], B_rows: [rank, x_size])
+            (A_cols: [d_size, len(rank_indices)], B_rows: [len(rank_indices), x_size])
         """
+        if rank_indices is None:
+            rank_indices = list(range(self.rank))
+
         # Ensure one-hot cache exists on correct device
         if self._transfer_vec_a is None or self._transfer_vec_a.device != self.device:
             self._transfer_vec_a = torch.eye(
@@ -1194,29 +1242,27 @@ class LRTTController:
 
         # Fast path: batch processing (no AGC, no two_amp, single read)
         if read_count == 1 and not self.agc_enabled and not self.two_amp_enabled:
+            I_sel = I[rank_indices]  # [len(rank_indices), rank]
             if self.differential_read:
-                # Batch differential read: 4 GPU calls instead of 4*rank
-                A_p = self.tile_a.forward(I)    # [rank, d_size]
-                A_m = self.tile_a.forward(-I)   # [rank, d_size]
-                B_p = self.tile_b.backward(I)   # [rank, x_size]
-                B_m = self.tile_b.backward(-I)  # [rank, x_size]
-                A_cols = (0.5 * (A_p - A_m)).T  # [d_size, rank]
-                B_rows = 0.5 * (B_p - B_m)      # [rank, x_size]
+                A_p = self.tile_a.forward(I_sel)    # [n_sel, d_size]
+                A_m = self.tile_a.forward(-I_sel)   # [n_sel, d_size]
+                B_p = self.tile_b.backward(I_sel)   # [n_sel, x_size]
+                B_m = self.tile_b.backward(-I_sel)  # [n_sel, x_size]
+                A_cols = (0.5 * (A_p - A_m)).T  # [d_size, n_sel]
+                B_rows = 0.5 * (B_p - B_m)      # [n_sel, x_size]
             else:
-                # Batch simple read: 2 GPU calls instead of 2*rank
-                A_cols = self.tile_a.forward(I).T   # [d_size, rank]
-                B_rows = self.tile_b.backward(I)    # [rank, x_size]
+                A_cols = self.tile_a.forward(I_sel).T   # [d_size, n_sel]
+                B_rows = self.tile_b.backward(I_sel)    # [n_sel, x_size]
             return A_cols, B_rows
 
         # Slow path: per-rank processing (for AGC, two_amp, or multi-read)
         A_cols = []
         B_rows = []
 
-        for k in range(self.rank):
+        for k in rank_indices:
             e = I[k].unsqueeze(0)  # [1, rank], +one-hot
 
             if self.two_amp_enabled:
-                # Two-amplitude read to cancel odd offset
                 a_k, _, _ = self._two_amp_read(
                     self.tile_a, e, mode="fwd",
                     read_n_avg=read_count, margin=self.agc_margin
@@ -1226,7 +1272,6 @@ class LRTTController:
                     read_n_avg=read_count, margin=self.agc_margin
                 )
             elif self.agc_enabled:
-                # AGC mode: find optimal amplitude, then differential read
                 amp_a = self._pick_amp_agc(self.tile_a, e, mode="fwd",
                                            margin=self.agc_margin, max_iters=self.agc_max_iters)
                 amp_b = self._pick_amp_agc(self.tile_b, e, mode="bwd",
@@ -1236,27 +1281,24 @@ class LRTTController:
                 b_k = self._diff_read(self.tile_b, e, amp=amp_b, mode="bwd", read_n_avg=read_count).squeeze(0)
             elif read_count == 1:
                 if self.differential_read:
-                    # Differential read: cancels DC offset (2x tile ops)
-                    a_p = self.tile_a.forward(e).squeeze(0)   # [d_size]
-                    a_m = self.tile_a.forward(-e).squeeze(0)  # [d_size]
-                    b_p = self.tile_b.backward(e).squeeze(0)  # [x_size]
-                    b_m = self.tile_b.backward(-e).squeeze(0) # [x_size]
+                    a_p = self.tile_a.forward(e).squeeze(0)
+                    a_m = self.tile_a.forward(-e).squeeze(0)
+                    b_p = self.tile_b.backward(e).squeeze(0)
+                    b_m = self.tile_b.backward(-e).squeeze(0)
                     a_k = 0.5 * (a_p - a_m)
                     b_k = 0.5 * (b_p - b_m)
                 else:
-                    # Simple read: faster but includes DC offset (1x tile ops)
-                    a_k = self.tile_a.forward(e).squeeze(0)   # [d_size]
-                    b_k = self.tile_b.backward(e).squeeze(0)  # [x_size]
+                    a_k = self.tile_a.forward(e).squeeze(0)
+                    b_k = self.tile_b.backward(e).squeeze(0)
             else:
-                # Multi-read averaging with amplitude=1.0
                 a_k = self._diff_read(self.tile_a, e, amp=1.0, mode="fwd", read_n_avg=read_count).squeeze(0)
                 b_k = self._diff_read(self.tile_b, e, amp=1.0, mode="bwd", read_n_avg=read_count).squeeze(0)
 
             A_cols.append(a_k)
             B_rows.append(b_k)
 
-        A_cols = torch.stack(A_cols, dim=1)  # [d_size, rank]
-        B_rows = torch.stack(B_rows, dim=0)  # [rank, x_size]
+        A_cols = torch.stack(A_cols, dim=1)  # [d_size, n_sel]
+        B_rows = torch.stack(B_rows, dim=0)  # [n_sel, x_size]
         return A_cols, B_rows
 
     def _center_and_normalize(self, A_cols: Tensor, B_rows: Tensor, eps: float = 1e-8) -> tuple:
@@ -1297,25 +1339,28 @@ class LRTTController:
         G_B = B_rows @ B_rows.t()      # [rank, rank]
         return (G_A * G_B).sum().item()
 
-    def _ab_weight_transfer_onehot(self) -> None:
+    def _ab_weight_transfer_onehot(self, rank_indices: List[int]) -> None:
         """One-hot 기반 전송 (모드에 따라 off, pilot, sigma_delta 방식 선택).
 
         Transfer modes:
         - "off": No calibration, simple direct transfer (default)
         - "pilot": Pilot-based γ calibration for scale correction
         - "sigma_delta": ΣΔ quantization with residual accumulation
+
+        Args:
+            rank_indices: List of rank indices to transfer.
         """
         # 모드 결정 (transfer_mode 우선, 없으면 transfer_gamma_mode 사용)
         mode = getattr(self, 'transfer_mode', None) or self.transfer_gamma_mode
 
         if mode == "sigma_delta":
-            self._ab_weight_transfer_onehot_sigma_delta()
+            self._ab_weight_transfer_onehot_sigma_delta(rank_indices)
         elif mode == "pilot":
-            self._ab_weight_transfer_onehot_pilot()
+            self._ab_weight_transfer_onehot_pilot(rank_indices)
         else:  # "off" (default)
-            self._ab_weight_transfer_onehot_off()
+            self._ab_weight_transfer_onehot_off(rank_indices)
 
-    def _ab_weight_transfer_onehot_pilot(self) -> None:
+    def _ab_weight_transfer_onehot_pilot(self, rank_indices: List[int]) -> None:
         """One-hot 기반 전송 (± 차분, 파일럿 γ 보정, micro-transfer 포함).
 
         Hardware-friendly transfer using:
@@ -1349,11 +1394,13 @@ class LRTTController:
                 self.tile_c.rpu_config.forward.out_noise = 0.0
 
             try:
-                # 1) ± one-hot 차분 읽기
-                A_cols, B_rows = self._read_ab_onehot_symmetric()
+                # 1) ± one-hot 차분 읽기 (selected ranks only)
+                A_cols, B_rows = self._read_ab_onehot_symmetric(rank_indices)
 
                 # (선택) 중심화/정규화
                 A_cols, B_rows = self._center_and_normalize(A_cols, B_rows)
+
+                n_sel = len(rank_indices)
 
                 # 2) 파일럿 기반 γ 산출 (스칼라 캘리브레이션)
                 Z_norm2 = self._ze_norm2_via_gram(A_cols, B_rows) + 1e-12
@@ -1374,9 +1421,9 @@ class LRTTController:
                         y = self.tile_c.forward(x_row.unsqueeze(0))  # [1, d_size]
                         return y.squeeze(0)
 
-                    for k in range(self.rank):
-                        a_k = A_cols[:, k]
-                        b_k = B_rows[k, :]
+                    for ki in range(n_sel):
+                        a_k = A_cols[:, ki]
+                        b_k = B_rows[ki, :]
 
                         # 전송 전 응답
                         y0 = _forward_c(b_k)
@@ -1417,7 +1464,7 @@ class LRTTController:
                     self.tile_c.set_learning_rate(lr_step if lr_step > 0 else 1e-12)
 
                     I = self._transfer_vec_a
-                    for k in range(self.rank):
+                    for k in rank_indices:
                         e = I[k].unsqueeze(0)
 
                         for _ in range(num_reads):
@@ -1443,9 +1490,9 @@ class LRTTController:
                     lr_step = lr_remain / M_rest if M_rest > 0 else 0.0
                     self.tile_c.set_learning_rate(lr_step if lr_step > 0 else 1e-12)
 
-                    for k in range(self.rank):
-                        a_k = A_cols[:, k]
-                        b_k = B_rows[k, :]
+                    for ki in range(n_sel):
+                        a_k = A_cols[:, ki]
+                        b_k = B_rows[ki, :]
                         D_k = -a_k if self.transfer_lr > 0 else a_k
                         X_k = b_k
 
@@ -1477,9 +1524,7 @@ class LRTTController:
 
         self.num_transfers += 1
 
-        self.reinit()
-
-    def _ab_weight_transfer_onehot_off(self) -> None:
+    def _ab_weight_transfer_onehot_off(self, rank_indices: List[int]) -> None:
         """One-hot 기반 전송 (off 모드: calibration 없이 직접 전송).
 
         Simple transfer without pilot calibration or sigma-delta:
@@ -1509,9 +1554,11 @@ class LRTTController:
                 self.tile_b.rpu_config.backward.out_noise = 0.0
 
             try:
-                # 2) ± one-hot 차분 읽기
-                A_cols, B_rows = self._read_ab_onehot_symmetric()
+                # 2) ± one-hot 차분 읽기 (selected ranks only)
+                A_cols, B_rows = self._read_ab_onehot_symmetric(rank_indices)
                 A_cols, B_rows = self._center_and_normalize(A_cols, B_rows)
+
+                n_sel = len(rank_indices)
 
                 # 3) off 모드: gamma=1.0, 전체 lr 사용
                 lr_abs = abs(self.transfer_lr)
@@ -1520,9 +1567,9 @@ class LRTTController:
                 self.tile_c.set_learning_rate(lr_step if lr_step > 0 else 1e-12)
 
                 # 4) micro-transfer
-                for k in range(self.rank):
-                    a_k = A_cols[:, k]
-                    b_k = B_rows[k, :]
+                for ki in range(n_sel):
+                    a_k = A_cols[:, ki]
+                    b_k = B_rows[ki, :]
                     D_k = -a_k if self.transfer_lr > 0 else a_k
                     X_k = b_k
 
@@ -1544,9 +1591,7 @@ class LRTTController:
 
         self.num_transfers += 1
 
-        self.reinit()
-
-    def _ab_weight_transfer_onehot_sigma_delta(self) -> None:
+    def _ab_weight_transfer_onehot_sigma_delta(self, rank_indices: List[int]) -> None:
         """One-hot 기반 전송 (ΣΔ 방식: 랭크별 적분기 h_k + 고정 quantum g).
 
         Sigma-Delta quantization:
@@ -1579,11 +1624,13 @@ class LRTTController:
                 self.tile_c.rpu_config.forward.out_noise = 0.0
 
             try:
-                # 1) ± one-hot 차분 읽기: A_cols[d, r], B_rows[r, x]
-                A_cols, B_rows = self._read_ab_onehot_symmetric()
+                # 1) ± one-hot 차분 읽기: A_cols[d, n_sel], B_rows[n_sel, x]
+                A_cols, B_rows = self._read_ab_onehot_symmetric(rank_indices)
 
                 # (선택) 중심화/정규화
                 A_cols, B_rows = self._center_and_normalize(A_cols, B_rows)
+
+                n_sel = len(rank_indices)
 
                 # 2) ΣΔ 상태/파라미터 확보
                 self._ensure_sd_state()
@@ -1591,17 +1638,14 @@ class LRTTController:
                 g = float(self.sd_quantum) if (self.sd_quantum is not None and self.sd_quantum > 0.0) \
                     else max(lr_abs / float(max(1, int(self.transfer_micro_steps))), 1e-12)
 
-                # 랭크별 목표 스칼라 δ_k := |transfer_lr| (모든 k 동일)
-                delta = torch.full((self.rank,), lr_abs, device=self.device, dtype=self.dtype)
-
-                # 3) ΣΔ 적분/정수화: h_k 누적 -> 정수 펄스 n_k, 잔여 갱신
-                self.sd_acc = self.sd_acc + delta  # h_k += δ_k
-                n_float = self.sd_acc / g          # n* ≈ h_k/g
-                n = torch.round(n_float).to(torch.int64)  # 정수 펄스
-                self.sd_acc = self.sd_acc - n.to(self.dtype) * g  # h_k <- h_k - n_k*g
+                # Only accumulate delta for selected ranks
+                self.sd_acc[rank_indices] += lr_abs
+                n_sel_acc = self.sd_acc[rank_indices]
+                n_float = n_sel_acc / g
+                n = torch.round(n_float).to(torch.int64)
+                self.sd_acc[rank_indices] = n_sel_acc - n.to(self.dtype) * g
 
                 # 4) C에 정수 펄스 n_k만큼 전송
-                # sign rule: transfer_lr>0 이면 D=-a_k (W += +transfer_lr*A@B를 얻기 위함)
                 sign = -1.0 if (self.transfer_lr > 0) else 1.0
 
                 # unit pulse의 lr = g 로 통일
@@ -1610,20 +1654,18 @@ class LRTTController:
                 nonzero = int((n != 0).sum().item())
                 max_rep = int(n.abs().max().item()) if nonzero > 0 else 0
 
-                for k in range(self.rank):
-                    reps = int(n[k].item())
+                for ki in range(n_sel):
+                    reps = int(n[ki].item())
                     if reps == 0:
                         continue
 
-                    a_k = (sign * A_cols[:, k]).unsqueeze(0)  # [1, d]
-                    b_k = B_rows[k, :].unsqueeze(0)          # [1, x]
+                    a_k = (sign * A_cols[:, ki]).unsqueeze(0)  # [1, d]
+                    b_k = B_rows[ki, :].unsqueeze(0)           # [1, x]
 
-                    # 양수/음수 reps 모두 지원: reps<0이면 부호를 D로 흡수
                     if reps < 0:
                         a_k = -a_k
                         reps = -reps
 
-                    # reps 번 unit 업데이트
                     for _ in range(reps):
                         if hasattr(self.tile_c, '_orig_update'):
                             self.tile_c._orig_update(b_k, a_k)
@@ -1631,7 +1673,7 @@ class LRTTController:
                             self.tile_c.update(b_k, a_k)
 
                 # 디버그 (초기 몇 회만)
-                if self.num_transfers < 1:  # 거의 출력 안 함
+                if self.num_transfers < 1:
                     res_max = float(self.sd_acc.abs().max().item())
                     print(f"[ΣΔ transfer] g={g:.3e}, nonzero_ranks={nonzero}, max_reps={max_rep}, "
                           f"residual_max<=g/2? {res_max <= 0.5*g + 1e-12} (res_max={res_max:.3e})")
@@ -1649,7 +1691,6 @@ class LRTTController:
                     self.tile_c.rpu_config.forward.out_noise = old_out_c
 
         self.num_transfers += 1
-        self.reinit()
 
     def forward_inject(
         self,
@@ -1846,10 +1887,12 @@ class LRTTController:
             'lora_alpha': self.lora_alpha,
             'reinit_gain': self.reinit_gain,
             'reinit_mode': self.reinit_mode,
-            'decay_factor': self.decay_factor,
             'forward_inject_enabled': self.forward_inject_enabled,
             'lr_peak': self.lr_peak,
-            'te_step_counter': self.te_step_counter
+            'te_step_counter': self.te_step_counter,
+            'transfer_rank_schedule': self.transfer_rank_schedule,
+            'transfer_ranks_per_step': self.transfer_ranks_per_step,
+            '_rr_rank_idx': self._rr_rank_idx,
         }
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:

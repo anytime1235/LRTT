@@ -1,1620 +1,749 @@
 {
-  "study_name": "vitsptlsa_lrtt_main",
-  "n_trials": 80,
-  "best_trial": 25,
-  "best_value": 59.83,
+  "study_name": "vitsptlsa_main",
+  "n_trials": 55,
+  "best_trial": 23,
+  "best_value": 59.12,
   "best_params": {
-    "rank_exp": 4,
-    "transfer_every": 133871,
-    "lora_alpha": 1.8505661572992898e-05,
-    "transfer_lr_scale": 1.0,
-    "learning_rate": 0.00011463598019479134,
-    "batch_size": 8,
-    "weight_decay": 5.8157941307002455e-06,
-    "tau_sec": 42.446744175299806,
-    "reinit_mode": "hybrid",
-    "optimizer": "AnalogAdam"
+    "rank_exp": 5,
+    "transfer_every": 227,
+    "lora_alpha": 0.10764054609013377,
+    "transfer_lr_scale": 1.1317406705925384,
+    "learning_rate": 0.018452735554321906,
+    "weight_decay": 0.00170085825405963
   },
   "trials": [
     {
       "number": 0,
       "state": "COMPLETE",
-      "value": 23.04,
+      "value": 43.15,
       "params": {
-        "rank_exp": 6,
-        "transfer_every": 372,
-        "lora_alpha": 0.14458939812883556,
-        "transfer_lr_scale": 0.39597564448881667,
-        "learning_rate": 0.0050565482628337115,
-        "batch_size": 32,
-        "weight_decay": 0.015545117961357394,
-        "tau_sec": 590842.7606806954,
-        "reinit_mode": "decay",
-        "optimizer": "AnalogAdam"
+        "rank_exp": 1,
+        "transfer_every": 634,
+        "lora_alpha": 8.040214584068787,
+        "transfer_lr_scale": 6.896117273857402,
+        "learning_rate": 4.013151709199427e-05,
+        "weight_decay": 0.0001369375685844283
       },
-      "datetime_start": "2026-02-03T15:33:07.801060",
-      "datetime_complete": "2026-02-03T15:46:24.956268",
-      "duration_seconds": 797.155208
+      "datetime_start": "2026-01-20T14:02:08.217017",
+      "datetime_complete": "2026-01-20T15:53:39.377947",
+      "duration_seconds": 6691.16093
     },
     {
       "number": 1,
       "state": "COMPLETE",
-      "value": 38.55,
+      "value": 10.0,
       "params": {
-        "rank_exp": 6,
-        "transfer_every": 31007,
-        "lora_alpha": 0.13328738643667462,
-        "transfer_lr_scale": 7.830350836187832,
-        "learning_rate": 2.9745108619702853e-05,
-        "batch_size": 32,
-        "weight_decay": 6.6067989958728275e-06,
-        "tau_sec": 60652.7792721173,
-        "reinit_mode": "standard",
-        "optimizer": "AnalogSGD"
+        "rank_exp": 3,
+        "transfer_every": 4,
+        "lora_alpha": 2.8982583936589092,
+        "transfer_lr_scale": 1.4730495413619764,
+        "learning_rate": 0.4162447961996521,
+        "weight_decay": 1.7077022308849608e-05
       },
-      "datetime_start": "2026-02-03T15:46:24.995946",
-      "datetime_complete": "2026-02-03T16:18:35.970054",
-      "duration_seconds": 1930.974108
+      "datetime_start": "2026-01-20T14:02:25.676035",
+      "datetime_complete": "2026-01-20T16:52:45.254694",
+      "duration_seconds": 10219.578659
     },
     {
       "number": 2,
       "state": "COMPLETE",
-      "value": 10.03,
+      "value": 10.0,
       "params": {
-        "rank_exp": 2,
-        "transfer_every": 9118,
-        "lora_alpha": 0.0005535249532853242,
-        "transfer_lr_scale": 4.621067036023805,
-        "learning_rate": 0.31119336051701574,
-        "batch_size": 32,
-        "weight_decay": 0.02837337617995494,
-        "tau_sec": 40492.585045186686,
-        "reinit_mode": "decay",
-        "optimizer": "AnalogAdam"
+        "rank_exp": 6,
+        "transfer_every": 58,
+        "lora_alpha": 0.0029053130415793624,
+        "transfer_lr_scale": 2.8152170287964537,
+        "learning_rate": 0.3854705124465954,
+        "weight_decay": 0.0003188333667687447
       },
-      "datetime_start": "2026-02-03T16:18:36.033318",
-      "datetime_complete": "2026-02-03T16:25:42.626781",
-      "duration_seconds": 426.593463
+      "datetime_start": "2026-01-20T15:53:39.401154",
+      "datetime_complete": "2026-01-20T17:03:40.629871",
+      "duration_seconds": 4201.228717
     },
     {
       "number": 3,
       "state": "COMPLETE",
-      "value": 32.37,
+      "value": 34.47,
       "params": {
-        "rank_exp": 0,
-        "transfer_every": 42,
-        "lora_alpha": 0.009318513799299122,
-        "transfer_lr_scale": 0.5371361533972586,
-        "learning_rate": 0.06000310669584912,
-        "batch_size": 32,
-        "weight_decay": 0.0031281483927135434,
-        "tau_sec": 48693961.489621475,
-        "reinit_mode": "standard",
-        "optimizer": "AnalogSGD"
+        "rank_exp": 4,
+        "transfer_every": 30123,
+        "lora_alpha": 0.008262128747549712,
+        "transfer_lr_scale": 0.1838621004877125,
+        "learning_rate": 0.010278122351506373,
+        "weight_decay": 0.003356866223142147
       },
-      "datetime_start": "2026-02-03T16:25:42.649220",
-      "datetime_complete": "2026-02-03T16:35:44.245124",
-      "duration_seconds": 601.595904
+      "datetime_start": "2026-01-20T16:52:45.266983",
+      "datetime_complete": "2026-01-20T17:35:26.907954",
+      "duration_seconds": 2561.640971
     },
     {
       "number": 4,
       "state": "COMPLETE",
-      "value": 41.2,
+      "value": 56.26,
       "params": {
-        "rank_exp": 7,
-        "transfer_every": 10663,
-        "lora_alpha": 2.0508067390385114,
-        "transfer_lr_scale": 0.5222941569693307,
-        "learning_rate": 0.00394755207855534,
-        "batch_size": 32,
-        "weight_decay": 0.012768299222745451,
-        "tau_sec": 16585.33983131448,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogSGD"
+        "rank_exp": 4,
+        "transfer_every": 22,
+        "lora_alpha": 0.1239578970105002,
+        "transfer_lr_scale": 1.0569853452595688,
+        "learning_rate": 0.02952968334072977,
+        "weight_decay": 0.0001899357626088718
       },
-      "datetime_start": "2026-02-03T16:35:44.274483",
-      "datetime_complete": "2026-02-03T16:44:59.532615",
-      "duration_seconds": 555.258132
+      "datetime_start": "2026-01-21T01:01:13.605881",
+      "datetime_complete": "2026-01-21T07:29:59.677393",
+      "duration_seconds": 23326.071512
     },
     {
       "number": 5,
       "state": "COMPLETE",
-      "value": 10.0,
+      "value": 53.81,
       "params": {
-        "rank_exp": 7,
-        "transfer_every": 338,
-        "lora_alpha": 0.9556696156635803,
-        "transfer_lr_scale": 0.8523206639626334,
-        "learning_rate": 0.4452401880052722,
-        "batch_size": 8,
-        "weight_decay": 0.0015567637794260017,
-        "tau_sec": 3.3571138814628716,
-        "reinit_mode": "standard",
-        "optimizer": "AnalogAdam"
+        "rank_exp": 4,
+        "transfer_every": 68,
+        "lora_alpha": 0.11196947035267348,
+        "transfer_lr_scale": 0.20842069725901788,
+        "learning_rate": 9.942133671934302e-05,
+        "weight_decay": 0.0035453344990928016
       },
-      "datetime_start": "2026-02-03T17:14:04.494332",
-      "datetime_complete": "2026-02-03T18:22:19.447201",
-      "duration_seconds": 4094.952869
+      "datetime_start": "2026-01-21T01:01:18.744348",
+      "datetime_complete": "2026-01-21T08:24:57.161087",
+      "duration_seconds": 26618.416739
     },
     {
       "number": 6,
       "state": "COMPLETE",
-      "value": 43.76,
+      "value": 52.71,
       "params": {
-        "rank_exp": 5,
-        "transfer_every": 40810,
-        "lora_alpha": 8.814309223227534,
-        "transfer_lr_scale": 0.11285767355615761,
-        "learning_rate": 0.03516993342556628,
-        "batch_size": 8,
-        "weight_decay": 0.0001107861782745242,
-        "tau_sec": 1.9649304578103692,
-        "reinit_mode": "standard",
-        "optimizer": "AnalogSGD"
+        "rank_exp": 3,
+        "transfer_every": 67,
+        "lora_alpha": 0.7384686142306455,
+        "transfer_lr_scale": 0.370239817259457,
+        "learning_rate": 0.005425803930734436,
+        "weight_decay": 0.0007781555536590282
       },
-      "datetime_start": "2026-02-03T17:14:50.427937",
-      "datetime_complete": "2026-02-03T20:27:32.586433",
-      "duration_seconds": 11562.158496
+      "datetime_start": "2026-01-21T19:01:19.331962",
+      "datetime_complete": "2026-01-21T20:55:12.307540",
+      "duration_seconds": 6832.975578
     },
     {
       "number": 7,
       "state": "COMPLETE",
-      "value": 27.69,
+      "value": 48.91,
       "params": {
-        "rank_exp": 3,
-        "transfer_every": 19145,
-        "lora_alpha": 2.0009623345277054,
-        "transfer_lr_scale": 0.3973979608833535,
-        "learning_rate": 0.015623290195143164,
-        "batch_size": 8,
-        "weight_decay": 0.004729163102756155,
-        "tau_sec": 3009.528597911215,
-        "reinit_mode": "standard",
-        "optimizer": "AnalogSGD"
+        "rank_exp": 5,
+        "transfer_every": 155,
+        "lora_alpha": 0.18164096645353645,
+        "transfer_lr_scale": 0.10205453535559757,
+        "learning_rate": 0.0031688634087622546,
+        "weight_decay": 0.0010560354569577816
       },
-      "datetime_start": "2026-02-03T17:15:37.615412",
-      "datetime_complete": "2026-02-03T17:49:38.613395",
-      "duration_seconds": 2040.997983
+      "datetime_start": "2026-01-22T00:03:36.025979",
+      "datetime_complete": "2026-01-22T00:58:49.196958",
+      "duration_seconds": 3313.170979
     },
     {
       "number": 8,
       "state": "COMPLETE",
-      "value": 36.66,
+      "value": 54.57,
       "params": {
-        "rank_exp": 3,
-        "transfer_every": 7472,
-        "lora_alpha": 0.8276878076212917,
-        "transfer_lr_scale": 2.4563209520788902,
-        "learning_rate": 0.022172326545104835,
-        "batch_size": 8,
-        "weight_decay": 2.3143454763300127e-06,
-        "tau_sec": 21.763162555448318,
-        "reinit_mode": "standard",
-        "optimizer": "AnalogSGD"
+        "rank_exp": 1,
+        "transfer_every": 3554,
+        "lora_alpha": 0.0011904049128362898,
+        "transfer_lr_scale": 2.367830239676765,
+        "learning_rate": 6.194384455772155e-05,
+        "weight_decay": 1.7819450825177265e-06
       },
-      "datetime_start": "2026-02-03T17:49:38.648139",
-      "datetime_complete": "2026-02-03T18:20:53.530583",
-      "duration_seconds": 1874.882444
+      "datetime_start": "2026-01-22T17:07:41.889085",
+      "datetime_complete": "2026-01-22T21:20:04.014461",
+      "duration_seconds": 15142.125376
     },
     {
       "number": 9,
       "state": "COMPLETE",
-      "value": 48.37,
+      "value": 54.7,
       "params": {
-        "rank_exp": 0,
-        "transfer_every": 269,
-        "lora_alpha": 0.0034382927871544153,
-        "transfer_lr_scale": 0.10968153150472865,
-        "learning_rate": 0.000993557934126033,
-        "batch_size": 8,
-        "weight_decay": 0.002495238706936597,
-        "tau_sec": 754052.5235015835,
-        "reinit_mode": "decay",
-        "optimizer": "AnalogSGD"
+        "rank_exp": 2,
+        "transfer_every": 11,
+        "lora_alpha": 0.0060592106387248445,
+        "transfer_lr_scale": 0.21803676924430185,
+        "learning_rate": 0.011966654215646652,
+        "weight_decay": 6.2676647931752086e-06
       },
-      "datetime_start": "2026-02-03T18:20:53.574322",
-      "datetime_complete": "2026-02-03T19:11:08.603925",
-      "duration_seconds": 3015.029603
+      "datetime_start": "2026-01-22T21:20:04.056329",
+      "datetime_complete": "2026-01-23T00:15:22.078493",
+      "duration_seconds": 10518.022164
     },
     {
       "number": 10,
       "state": "COMPLETE",
-      "value": 55.26,
+      "value": 35.91,
       "params": {
         "rank_exp": 7,
-        "transfer_every": 71074,
-        "lora_alpha": 2.9960029254394205,
-        "transfer_lr_scale": 0.10796362916300396,
-        "learning_rate": 0.0031617250965720474,
-        "batch_size": 8,
-        "weight_decay": 1.16022615208634e-06,
-        "tau_sec": 46272.44403433688,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
+        "transfer_every": 1,
+        "lora_alpha": 0.052677877459547565,
+        "transfer_lr_scale": 0.632781233962305,
+        "learning_rate": 0.03983312995629615,
+        "weight_decay": 2.2494188444935558e-05
       },
-      "datetime_start": "2026-02-03T19:11:08.662774",
-      "datetime_complete": "2026-02-03T20:46:46.434225",
-      "duration_seconds": 5737.771451
+      "datetime_start": "2026-01-23T00:15:22.171903",
+      "datetime_complete": "2026-01-24T14:18:22.393857",
+      "duration_seconds": 136980.221954
     },
     {
       "number": 11,
       "state": "COMPLETE",
-      "value": 55.8,
+      "value": 55.56,
       "params": {
-        "rank_exp": 5,
-        "transfer_every": 119,
-        "lora_alpha": 0.0004014207159261026,
-        "transfer_lr_scale": 2.715620979896859,
-        "learning_rate": 3.074222799601197e-05,
-        "batch_size": 8,
-        "weight_decay": 0.00011826690642564958,
-        "tau_sec": 3047955.7132880213,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
+        "rank_exp": 2,
+        "transfer_every": 8,
+        "lora_alpha": 0.019323450095503885,
+        "transfer_lr_scale": 0.6742703108350576,
+        "learning_rate": 0.0004772200528842196,
+        "weight_decay": 1.1927628237941457e-06
       },
-      "datetime_start": "2026-02-03T20:46:46.488326",
-      "datetime_complete": "2026-02-04T00:13:20.960862",
-      "duration_seconds": 12394.472536
+      "datetime_start": "2026-01-24T14:18:22.496149",
+      "datetime_complete": "2026-01-24T20:16:54.850965",
+      "duration_seconds": 21512.354816
     },
     {
       "number": 12,
       "state": "COMPLETE",
-      "value": 15.0,
+      "value": 52.56,
       "params": {
-        "rank_exp": 3,
-        "transfer_every": 13,
-        "lora_alpha": 2.5211780807766715,
-        "transfer_lr_scale": 7.536352663763433,
-        "learning_rate": 0.000707558163088836,
-        "batch_size": 8,
-        "weight_decay": 3.965586009683383e-05,
-        "tau_sec": 76144425.2033439,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
+        "rank_exp": 0,
+        "transfer_every": 8,
+        "lora_alpha": 0.024140820475746002,
+        "transfer_lr_scale": 0.8106755778557662,
+        "learning_rate": 0.00045562243877944104,
+        "weight_decay": 3.7795106277956237e-05
       },
-      "datetime_start": "2026-02-04T07:58:26.445419",
-      "datetime_complete": "2026-02-04T09:57:26.379758",
-      "duration_seconds": 7139.934339
+      "datetime_start": "2026-01-24T20:16:54.887554",
+      "datetime_complete": "2026-01-24T22:24:01.625325",
+      "duration_seconds": 7626.737771
     },
     {
       "number": 13,
       "state": "COMPLETE",
-      "value": 56.46,
+      "value": 28.43,
       "params": {
-        "rank_exp": 5,
-        "transfer_every": 787875,
-        "lora_alpha": 0.00013440784606813544,
-        "transfer_lr_scale": 2.2578035364853983,
-        "learning_rate": 2.0848605511207212e-05,
-        "batch_size": 8,
-        "weight_decay": 1.0748055721300026e-06,
-        "tau_sec": 382.4390686362309,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
+        "rank_exp": 2,
+        "transfer_every": 1,
+        "lora_alpha": 0.35261414687763293,
+        "transfer_lr_scale": 1.4449204006619403,
+        "learning_rate": 0.0008132703338940447,
+        "weight_decay": 2.0219603282810497e-06
       },
-      "datetime_start": "2026-02-04T14:58:53.105964",
-      "datetime_complete": "2026-02-04T23:05:35.263903",
-      "duration_seconds": 29202.157939
+      "datetime_start": "2026-01-24T22:24:01.653332",
+      "datetime_complete": "2026-01-25T00:53:18.305211",
+      "duration_seconds": 8956.651879
     },
     {
       "number": 14,
       "state": "COMPLETE",
-      "value": 45.81,
+      "value": 55.94,
       "params": {
-        "rank_exp": 6,
-        "transfer_every": 219,
-        "lora_alpha": 0.2458786807162596,
-        "transfer_lr_scale": 0.10880122074812293,
-        "learning_rate": 0.0013452143307297521,
-        "batch_size": 8,
-        "weight_decay": 2.204791303382291e-05,
-        "tau_sec": 282.0990349465604,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
+        "rank_exp": 5,
+        "transfer_every": 18,
+        "lora_alpha": 0.02823745432325749,
+        "transfer_lr_scale": 0.47943365832049767,
+        "learning_rate": 0.00032477541961716374,
+        "weight_decay": 8.879475261457166e-05
       },
-      "datetime_start": "2026-02-04T14:59:24.395352",
-      "datetime_complete": "2026-02-04T16:59:51.942561",
-      "duration_seconds": 7227.547209
+      "datetime_start": "2026-01-25T00:53:18.319037",
+      "datetime_complete": "2026-01-25T07:38:19.291182",
+      "duration_seconds": 24300.972145
     },
     {
       "number": 15,
       "state": "COMPLETE",
-      "value": 10.0,
+      "value": 27.75,
       "params": {
-        "rank_exp": 6,
-        "transfer_every": 3173,
-        "lora_alpha": 3.004545875742942,
-        "transfer_lr_scale": 0.6046223937428536,
-        "learning_rate": 0.16713400051835273,
-        "batch_size": 8,
-        "weight_decay": 1.051271938294913e-06,
-        "tau_sec": 435.59548483864927,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
+        "rank_exp": 5,
+        "transfer_every": 20,
+        "lora_alpha": 0.8423864060236734,
+        "transfer_lr_scale": 0.43334554298506583,
+        "learning_rate": 1.4666893498950688e-05,
+        "weight_decay": 9.420442562836661e-05
       },
-      "datetime_start": "2026-02-04T15:00:53.049477",
-      "datetime_complete": "2026-02-04T16:39:05.366868",
-      "duration_seconds": 5892.317391
+      "datetime_start": "2026-01-25T07:38:19.301501",
+      "datetime_complete": "2026-01-25T09:07:53.981946",
+      "duration_seconds": 5374.680445
     },
     {
       "number": 16,
       "state": "COMPLETE",
-      "value": 16.98,
+      "value": 55.19,
       "params": {
-        "rank_exp": 1,
-        "transfer_every": 5,
-        "lora_alpha": 0.0007488865310018235,
-        "transfer_lr_scale": 4.89264340058415,
-        "learning_rate": 0.09822767674054836,
-        "batch_size": 8,
-        "weight_decay": 1.0569887289588377e-06,
-        "tau_sec": 559.6410751728562,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
+        "rank_exp": 6,
+        "transfer_every": 313,
+        "lora_alpha": 0.046311869012270766,
+        "transfer_lr_scale": 5.372152132971863,
+        "learning_rate": 0.04430855966169128,
+        "weight_decay": 0.00011496068488856956
       },
-      "datetime_start": "2026-02-04T15:01:07.817120",
-      "datetime_complete": "2026-02-04T16:00:33.614014",
-      "duration_seconds": 3565.796894
+      "datetime_start": "2026-01-25T09:07:53.992908",
+      "datetime_complete": "2026-01-25T11:15:58.244151",
+      "duration_seconds": 7684.251243
     },
     {
       "number": 17,
       "state": "COMPLETE",
-      "value": 56.32,
+      "value": 52.47,
       "params": {
-        "batch_size": 8,
         "rank_exp": 5,
-        "transfer_every": 625401,
-        "lora_alpha": 0.00012299278656635685,
-        "transfer_lr_scale": 1.9846038243471802,
-        "learning_rate": 1.5326490207856253e-05,
-        "weight_decay": 1.0299610308681715e-06,
-        "tau_sec": 450.494569716638,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
+        "transfer_every": 3,
+        "lora_alpha": 0.26980004065336716,
+        "transfer_lr_scale": 1.15637278958092,
+        "learning_rate": 0.00014107453133889875,
+        "weight_decay": 0.009792832698730694
       },
-      "datetime_start": "2026-02-04T15:01:25.449226",
-      "datetime_complete": "2026-02-05T00:25:27.154520",
-      "duration_seconds": 33841.705294
+      "datetime_start": "2026-01-25T11:15:58.257078",
+      "datetime_complete": "2026-01-26T22:05:58.660371",
+      "duration_seconds": 125400.403293
     },
     {
       "number": 18,
       "state": "COMPLETE",
-      "value": 55.88,
+      "value": 57.01,
       "params": {
-        "rank_exp": 5,
-        "transfer_every": 390281,
-        "lora_alpha": 0.00012989965517603208,
-        "transfer_lr_scale": 1.763813211503775,
-        "learning_rate": 1.77403383754104e-05,
-        "batch_size": 8,
-        "weight_decay": 1.8180468275331484e-05,
-        "tau_sec": 2746309.0301938727,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
+        "rank_exp": 7,
+        "transfer_every": 20,
+        "lora_alpha": 0.016749969820053168,
+        "transfer_lr_scale": 2.728406438561294,
+        "learning_rate": 0.0017686315981627143,
+        "weight_decay": 0.00040041687441764225
       },
-      "datetime_start": "2026-02-04T16:00:33.676893",
-      "datetime_complete": "2026-02-05T00:00:03.242246",
-      "duration_seconds": 28769.565353
+      "datetime_start": "2026-01-26T22:05:58.808565",
+      "datetime_complete": "2026-01-27T16:07:34.881651",
+      "duration_seconds": 64896.073086
     },
     {
       "number": 19,
       "state": "COMPLETE",
-      "value": 56.41,
+      "value": 53.78,
       "params": {
-        "rank_exp": 5,
-        "transfer_every": 765779,
-        "lora_alpha": 0.00019320300776900427,
-        "transfer_lr_scale": 1.791916855315289,
-        "learning_rate": 2.5033272545491027e-05,
-        "batch_size": 8,
-        "weight_decay": 1.4215443573865657e-05,
-        "tau_sec": 3119590.8155438323,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
+        "rank_exp": 7,
+        "transfer_every": 1133,
+        "lora_alpha": 0.008428027910897652,
+        "transfer_lr_scale": 3.9083871983934513,
+        "learning_rate": 0.0018313467904217432,
+        "weight_decay": 0.0005627006066225253
       },
-      "datetime_start": "2026-02-04T16:39:05.401063",
-      "datetime_complete": "2026-02-05T03:41:04.732449",
-      "duration_seconds": 39719.331386
+      "datetime_start": "2026-01-27T16:07:34.959350",
+      "datetime_complete": "2026-01-27T19:43:26.872971",
+      "duration_seconds": 12951.913621
+    },
+    {
+      "number": 20,
+      "state": "COMPLETE",
+      "value": 33.85,
+      "params": {
+        "rank_exp": 6,
+        "transfer_every": 29,
+        "lora_alpha": 0.06818600473265281,
+        "transfer_lr_scale": 2.0379425305181487,
+        "learning_rate": 0.08151346958273613,
+        "weight_decay": 0.0002734602770090675
+      },
+      "datetime_start": "2026-01-27T19:43:26.895992",
+      "datetime_complete": "2026-01-27T21:31:12.898804",
+      "duration_seconds": 6466.002812
     },
     {
       "number": 21,
       "state": "COMPLETE",
-      "value": 40.16,
+      "value": 51.57,
       "params": {
         "rank_exp": 4,
-        "transfer_every": 1,
-        "lora_alpha": 0.00010723427415693517,
-        "transfer_lr_scale": 1.7014749396161073,
-        "learning_rate": 1.2909306945471542e-05,
-        "batch_size": 8,
-        "weight_decay": 0.000476242386285848,
-        "tau_sec": 1096505.293340712,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
+        "transfer_every": 26,
+        "lora_alpha": 0.016974926135371538,
+        "transfer_lr_scale": 0.4443822808834949,
+        "learning_rate": 0.00024854871409388365,
+        "weight_decay": 5.112975278396077e-05
       },
-      "datetime_start": "2026-02-04T23:05:35.339024",
-      "datetime_complete": "2026-02-05T06:52:46.029757",
-      "duration_seconds": 28030.690733
+      "datetime_start": "2026-01-27T21:31:12.914826",
+      "datetime_complete": "2026-01-28T00:27:54.762713",
+      "duration_seconds": 10601.847887
     },
     {
       "number": 22,
       "state": "COMPLETE",
-      "value": 58.86,
+      "value": 29.88,
       "params": {
-        "rank_exp": 4,
-        "transfer_every": 781449,
-        "lora_alpha": 0.00017665942424220332,
-        "transfer_lr_scale": 1.652096939647117,
-        "learning_rate": 0.00014445748735159288,
-        "batch_size": 8,
-        "weight_decay": 9.134620922234784e-06,
-        "tau_sec": 42.77096569293069,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
+        "rank_exp": 7,
+        "transfer_every": 3,
+        "lora_alpha": 0.032157616886168444,
+        "transfer_lr_scale": 3.7642647836496645,
+        "learning_rate": 0.0014914978522367398,
+        "weight_decay": 0.00028032875616935027
       },
-      "datetime_start": "2026-02-05T00:00:03.297955",
-      "datetime_complete": "2026-02-05T06:23:11.717868",
-      "duration_seconds": 22988.419913
+      "datetime_start": "2026-01-28T00:27:54.821859",
+      "datetime_complete": "2026-01-28T17:02:07.451793",
+      "duration_seconds": 59652.629934
     },
     {
       "number": 23,
       "state": "COMPLETE",
-      "value": 59.69,
+      "value": 59.12,
       "params": {
-        "rank_exp": 4,
-        "transfer_every": 143942,
-        "lora_alpha": 1.433275630888542e-05,
-        "transfer_lr_scale": 1.0,
-        "learning_rate": 0.00012527813353336702,
-        "batch_size": 8,
-        "weight_decay": 4.557049969937542e-06,
-        "tau_sec": 931190412.7598784,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
+        "rank_exp": 5,
+        "transfer_every": 227,
+        "lora_alpha": 0.10764054609013377,
+        "transfer_lr_scale": 1.1317406705925384,
+        "learning_rate": 0.018452735554321906,
+        "weight_decay": 0.00170085825405963
       },
-      "datetime_start": "2026-02-05T10:54:33.237213",
-      "datetime_complete": "2026-02-05T19:11:42.256752",
-      "duration_seconds": 29829.019539
+      "datetime_start": "2026-01-28T17:02:07.511429",
+      "datetime_complete": "2026-01-28T23:16:27.896476",
+      "duration_seconds": 22460.385047
     },
     {
       "number": 24,
       "state": "COMPLETE",
-      "value": 59.75,
+      "value": 30.96,
       "params": {
-        "rank_exp": 4,
-        "transfer_every": 133416,
-        "lora_alpha": 1.2184434017930215e-05,
-        "transfer_lr_scale": 1.0,
-        "learning_rate": 0.00011487752318557694,
-        "batch_size": 8,
-        "weight_decay": 5.062766946621772e-06,
-        "tau_sec": 29.513064859963986,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
+        "rank_exp": 6,
+        "transfer_every": 155,
+        "lora_alpha": 0.10114304051360659,
+        "transfer_lr_scale": 9.082085507572106,
+        "learning_rate": 0.018683024923660762,
+        "weight_decay": 0.002502231209591018
       },
-      "datetime_start": "2026-02-05T10:54:36.713043",
-      "datetime_complete": "2026-02-05T20:13:14.025514",
-      "duration_seconds": 33517.312471
+      "datetime_start": "2026-01-29T02:07:13.129219",
+      "datetime_complete": "2026-01-29T02:41:15.777163",
+      "duration_seconds": 2042.647944
     },
     {
       "number": 25,
       "state": "COMPLETE",
-      "value": 59.83,
+      "value": 58.43,
       "params": {
-        "rank_exp": 4,
-        "transfer_every": 133871,
-        "lora_alpha": 1.8505661572992898e-05,
-        "transfer_lr_scale": 1.0,
-        "learning_rate": 0.00011463598019479134,
-        "batch_size": 8,
-        "weight_decay": 5.8157941307002455e-06,
-        "tau_sec": 42.446744175299806,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
+        "rank_exp": 3,
+        "transfer_every": 147,
+        "lora_alpha": 0.5393123338420758,
+        "transfer_lr_scale": 1.0086237045280493,
+        "learning_rate": 0.003923617707675647,
+        "weight_decay": 0.0011331336483876684
       },
-      "datetime_start": "2026-02-05T10:54:40.839974",
-      "datetime_complete": "2026-02-05T18:22:54.784999",
-      "duration_seconds": 26893.945025
+      "datetime_start": "2026-01-29T02:41:15.962456",
+      "datetime_complete": "2026-01-29T05:51:39.418335",
+      "duration_seconds": 11423.455879
     },
     {
       "number": 26,
       "state": "COMPLETE",
-      "value": 48.46,
+      "value": 56.7,
       "params": {
         "rank_exp": 3,
-        "transfer_every": 826,
-        "lora_alpha": 1.708,
-        "transfer_lr_scale": 1.0,
-        "learning_rate": 0.0009856,
-        "batch_size": 8,
-        "weight_decay": 0.001003,
-        "tau_sec": 1.0,
-        "reinit_mode": "decay",
-        "optimizer": "AnalogSGD"
+        "transfer_every": 247,
+        "lora_alpha": 0.7087594274141119,
+        "transfer_lr_scale": 1.7962153367215021,
+        "learning_rate": 0.0037526332033088576,
+        "weight_decay": 0.0015205932037400853
       },
-      "datetime_start": "2026-02-05T10:58:59.951822",
-      "datetime_complete": "2026-02-05T15:06:16.942066",
-      "duration_seconds": 14836.990244
+      "datetime_start": "2026-01-29T05:51:39.520134",
+      "datetime_complete": "2026-01-29T08:59:47.755497",
+      "duration_seconds": 11288.235363
     },
     {
       "number": 27,
       "state": "COMPLETE",
-      "value": 48.46,
+      "value": 35.73,
       "params": {
-        "rank_exp": 3,
-        "transfer_every": 826,
-        "lora_alpha": 1.708,
-        "transfer_lr_scale": 1.0,
-        "learning_rate": 0.0009856,
-        "batch_size": 8,
-        "weight_decay": 0.001003,
-        "tau_sec": 100.0,
-        "reinit_mode": "decay",
-        "optimizer": "AnalogSGD"
+        "rank_exp": 7,
+        "transfer_every": 1759,
+        "lora_alpha": 1.8280433690173885,
+        "transfer_lr_scale": 3.174828797480725,
+        "learning_rate": 0.0070887057745566175,
+        "weight_decay": 0.005590640018459504
       },
-      "datetime_start": "2026-02-05T15:06:16.998042",
-      "datetime_complete": "2026-02-05T19:55:07.878595",
-      "duration_seconds": 17330.880553
+      "datetime_start": "2026-01-29T08:59:47.770917",
+      "datetime_complete": "2026-01-29T10:07:02.943992",
+      "duration_seconds": 4035.173075
     },
     {
       "number": 28,
       "state": "COMPLETE",
-      "value": 48.72,
+      "value": 13.79,
       "params": {
-        "rank_exp": 3,
-        "transfer_every": 826,
-        "lora_alpha": 1.708,
-        "transfer_lr_scale": 1.0,
-        "learning_rate": 0.0009856,
-        "batch_size": 8,
-        "weight_decay": 0.001003,
-        "tau_sec": 10000.0,
-        "reinit_mode": "decay",
-        "optimizer": "AnalogSGD"
+        "rank_exp": 6,
+        "transfer_every": 482,
+        "lora_alpha": 0.4589719860156651,
+        "transfer_lr_scale": 1.0599521665510265,
+        "learning_rate": 0.09859336545841713,
+        "weight_decay": 0.0019000332189311488
       },
-      "datetime_start": "2026-02-05T18:22:54.863558",
-      "datetime_complete": "2026-02-05T21:58:50.074946",
-      "duration_seconds": 12955.211388
+      "datetime_start": "2026-01-29T10:07:02.958740",
+      "datetime_complete": "2026-01-29T12:13:20.769504",
+      "duration_seconds": 7577.810764
     },
     {
       "number": 29,
       "state": "COMPLETE",
-      "value": 51.25,
+      "value": 52.54,
       "params": {
-        "rank_exp": 3,
-        "transfer_every": 826,
-        "lora_alpha": 1.708,
-        "transfer_lr_scale": 1.0,
-        "learning_rate": 0.0009856,
-        "batch_size": 8,
-        "weight_decay": 0.001003,
-        "tau_sec": 1000000.0,
-        "reinit_mode": "decay",
-        "optimizer": "AnalogSGD"
+        "rank_exp": 1,
+        "transfer_every": 138,
+        "lora_alpha": 5.904489644942251,
+        "transfer_lr_scale": 5.042669830692101,
+        "learning_rate": 0.002457890050865257,
+        "weight_decay": 0.0005483697240780996
       },
-      "datetime_start": "2026-02-05T19:11:42.365829",
-      "datetime_complete": "2026-02-06T01:06:07.963570",
-      "duration_seconds": 21265.597741
+      "datetime_start": "2026-01-30T23:56:28.328671",
+      "datetime_complete": "2026-01-31T02:08:54.182642",
+      "duration_seconds": 7945.853971
     },
     {
       "number": 30,
       "state": "COMPLETE",
-      "value": 44.62,
+      "value": 57.7,
+      "params": {
+        "rank_exp": 3,
+        "transfer_every": 619,
+        "lora_alpha": 2.4146001650634235,
+        "transfer_lr_scale": 1.6329550549305756,
+        "learning_rate": 0.0007858467720740117,
+        "weight_decay": 0.001247548399838616
+      },
+      "datetime_start": "2026-01-31T02:08:54.271207",
+      "datetime_complete": "2026-01-31T05:19:25.424578",
+      "duration_seconds": 11431.153371
+    },
+    {
+      "number": 31,
+      "state": "COMPLETE",
+      "value": 58.87,
       "params": {
         "rank_exp": 3,
         "transfer_every": 826,
         "lora_alpha": 1.708193330362237,
         "transfer_lr_scale": 1.503182145441034,
         "learning_rate": 0.0009855678913452384,
-        "batch_size": 8,
-        "weight_decay": 0.001002659521614318,
-        "tau_sec": 46505.0,
-        "reinit_mode": "standard",
-        "optimizer": "AnalogSGD"
+        "weight_decay": 0.001002659521614318
       },
-      "datetime_start": "2026-02-05T20:09:31.992513",
-      "datetime_complete": "2026-02-05T22:27:15.139924",
-      "duration_seconds": 8263.147411
+      "datetime_start": "2026-01-31T05:19:25.481201",
+      "datetime_complete": "2026-01-31T08:18:36.973191",
+      "duration_seconds": 10751.49199
     },
     {
       "number": 32,
       "state": "COMPLETE",
-      "value": 36.28,
+      "value": 53.71,
       "params": {
-        "rank_exp": 5,
-        "transfer_every": 5188,
-        "lora_alpha": 0.009991978359165215,
-        "transfer_lr_scale": 0.5857488017907444,
-        "learning_rate": 0.009274355759731635,
-        "batch_size": 8,
-        "weight_decay": 4.538285334743397e-06,
-        "tau_sec": 4175804.9658182506,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
+        "rank_exp": 3,
+        "transfer_every": 735,
+        "lora_alpha": 2.151546541580876,
+        "transfer_lr_scale": 1.5247416888004288,
+        "learning_rate": 0.0011251697683547788,
+        "weight_decay": 0.0011534086086465434
       },
-      "datetime_start": "2026-02-05T22:46:32.442100",
-      "datetime_complete": "2026-02-05T23:58:18.173744",
-      "duration_seconds": 4305.731644
+      "datetime_start": "2026-01-31T08:18:37.005923",
+      "datetime_complete": "2026-01-31T10:01:07.520564",
+      "duration_seconds": 6150.514641
     },
     {
       "number": 33,
-      "state": "COMPLETE",
-      "value": 21.98,
+      "state": "FAIL",
+      "value": null,
       "params": {
-        "rank_exp": 5,
-        "transfer_every": 1,
-        "lora_alpha": 1.0434871293301777,
-        "transfer_lr_scale": 1.79439314746492,
-        "learning_rate": 0.00024266854933210915,
-        "batch_size": 8,
-        "weight_decay": 0.0010461004556656787,
-        "tau_sec": 76.22112803249223,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
+        "rank_exp": 2,
+        "transfer_every": 1511,
+        "lora_alpha": 5.709295691198038,
+        "transfer_lr_scale": 1.3421381149973148,
+        "learning_rate": 0.0007880403275073823,
+        "weight_decay": 0.005785336326478411
       },
-      "datetime_start": "2026-02-05T22:46:39.032242",
-      "datetime_complete": "2026-02-06T09:50:48.254639",
-      "duration_seconds": 39849.222397
+      "datetime_start": "2026-01-31T10:01:07.570423",
+      "datetime_complete": "2026-01-31T11:12:41.875494",
+      "duration_seconds": 4294.305071
     },
     {
       "number": 34,
-      "state": "COMPLETE",
-      "value": 24.38,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 571,
-        "lora_alpha": 0.01884465681074876,
-        "transfer_lr_scale": 1.003675599064777,
-        "learning_rate": 0.02077805528641228,
-        "batch_size": 8,
-        "weight_decay": 0.003111082383280354,
-        "tau_sec": 1833.8875289350806,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
-      },
-      "datetime_start": "2026-02-05T23:49:31.414328",
-      "datetime_complete": "2026-02-06T03:56:18.668374",
-      "duration_seconds": 14807.254046
+      "state": "FAIL",
+      "value": null,
+      "params": {},
+      "datetime_start": "2026-01-31T11:12:44.424976",
+      "datetime_complete": "2026-01-31T11:12:44.585381",
+      "duration_seconds": 0.160405
     },
     {
       "number": 35,
-      "state": "COMPLETE",
-      "value": 30.8,
-      "params": {
-        "rank_exp": 4,
-        "transfer_every": 14,
-        "lora_alpha": 0.0028713599677627375,
-        "transfer_lr_scale": 0.5144298537446909,
-        "learning_rate": 0.0024774728147704695,
-        "batch_size": 8,
-        "weight_decay": 0.0014892908318607685,
-        "tau_sec": 3479149.2335038763,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
-      },
-      "datetime_start": "2026-02-05T23:58:18.215006",
-      "datetime_complete": "2026-02-06T01:04:59.156899",
-      "duration_seconds": 4000.941893
+      "state": "FAIL",
+      "value": null,
+      "params": {},
+      "datetime_start": "2026-01-31T11:12:44.617165",
+      "datetime_complete": "2026-01-31T11:12:44.649789",
+      "duration_seconds": 0.032624
     },
     {
       "number": 36,
-      "state": "COMPLETE",
-      "value": 56.93,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 205,
-        "lora_alpha": 0.0014111725073347645,
-        "transfer_lr_scale": 0.8058975905804059,
-        "learning_rate": 0.0009350790421609802,
-        "batch_size": 8,
-        "weight_decay": 1.2651073578991598e-05,
-        "tau_sec": 1976.5035243375592,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
-      },
-      "datetime_start": "2026-02-06T01:04:59.248211",
-      "datetime_complete": "2026-02-06T06:49:21.658823",
-      "duration_seconds": 20662.410612
+      "state": "FAIL",
+      "value": null,
+      "params": {},
+      "datetime_start": "2026-01-31T11:12:44.691586",
+      "datetime_complete": "2026-01-31T11:12:44.732452",
+      "duration_seconds": 0.040866
     },
     {
       "number": 37,
-      "state": "COMPLETE",
-      "value": 27.37,
-      "params": {
-        "rank_exp": 4,
-        "transfer_every": 5976,
-        "lora_alpha": 0.0023880434159759536,
-        "transfer_lr_scale": 1.0232604411864914,
-        "learning_rate": 0.010136830006723418,
-        "batch_size": 8,
-        "weight_decay": 0.0018565747112345536,
-        "tau_sec": 7.78788352249104,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
-      },
-      "datetime_start": "2026-02-06T03:56:18.727861",
-      "datetime_complete": "2026-02-06T07:31:11.340486",
-      "duration_seconds": 12892.612625
+      "state": "FAIL",
+      "value": null,
+      "params": {},
+      "datetime_start": "2026-01-31T11:12:44.760426",
+      "datetime_complete": "2026-01-31T11:12:45.259334",
+      "duration_seconds": 0.498908
     },
     {
       "number": 38,
-      "state": "COMPLETE",
-      "value": 19.5,
-      "params": {
-        "rank_exp": 4,
-        "transfer_every": 6,
-        "lora_alpha": 0.9006394385595416,
-        "transfer_lr_scale": 1.2113763401561743,
-        "learning_rate": 0.011851770375631517,
-        "batch_size": 8,
-        "weight_decay": 8.828469287217514e-06,
-        "tau_sec": 998385389.9800752,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
-      },
-      "datetime_start": "2026-02-06T03:57:19.949743",
-      "datetime_complete": "2026-02-06T05:41:46.612928",
-      "duration_seconds": 6266.663185
+      "state": "FAIL",
+      "value": null,
+      "params": {},
+      "datetime_start": "2026-01-31T11:12:46.585175",
+      "datetime_complete": "2026-01-31T11:12:48.032776",
+      "duration_seconds": 1.447601
     },
     {
       "number": 39,
-      "state": "COMPLETE",
-      "value": 43.24,
-      "params": {
-        "rank_exp": 3,
-        "transfer_every": 826,
-        "lora_alpha": 1.708,
-        "transfer_lr_scale": 1.0,
-        "learning_rate": 0.0009856,
-        "batch_size": 8,
-        "weight_decay": 0.001,
-        "tau_sec": 1e+16,
-        "reinit_mode": "decay",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T04:21:07.111799",
-      "datetime_complete": "2026-02-06T04:21:07.111799",
-      "duration_seconds": 0.0
+      "state": "FAIL",
+      "value": null,
+      "params": {},
+      "datetime_start": "2026-01-31T11:12:48.884982",
+      "datetime_complete": "2026-01-31T11:12:49.864172",
+      "duration_seconds": 0.97919
     },
     {
       "number": 40,
-      "state": "COMPLETE",
-      "value": 22.26,
-      "params": {
-        "rank_exp": 3,
-        "transfer_every": 3,
-        "lora_alpha": 0.9435253409686173,
-        "transfer_lr_scale": 1.0539753425601728,
-        "learning_rate": 0.06491567962214273,
-        "batch_size": 8,
-        "weight_decay": 1.452751205851763e-06,
-        "tau_sec": 1530.059549274608,
-        "reinit_mode": "decay",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T05:41:46.652656",
-      "datetime_complete": "2026-02-06T06:59:13.101636",
-      "duration_seconds": 4646.44898
+      "state": "FAIL",
+      "value": null,
+      "params": {},
+      "datetime_start": "2026-01-31T11:12:50.686361",
+      "datetime_complete": "2026-01-31T11:12:50.712933",
+      "duration_seconds": 0.026572
     },
     {
       "number": 41,
-      "state": "COMPLETE",
-      "value": 55.23,
-      "params": {
-        "rank_exp": 3,
-        "transfer_every": 15223,
-        "lora_alpha": 0.7494527725304583,
-        "transfer_lr_scale": 1.000508836039726,
-        "learning_rate": 0.00325549284625905,
-        "batch_size": 8,
-        "weight_decay": 0.0011435931972167454,
-        "tau_sec": 106046.10448362223,
-        "reinit_mode": "decay",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T06:49:21.711929",
-      "datetime_complete": "2026-02-06T11:37:15.501750",
-      "duration_seconds": 17273.789821
+      "state": "FAIL",
+      "value": null,
+      "params": {},
+      "datetime_start": "2026-01-31T11:12:50.730674",
+      "datetime_complete": "2026-01-31T11:12:50.757077",
+      "duration_seconds": 0.026403
     },
     {
       "number": 42,
-      "state": "COMPLETE",
-      "value": 27.88,
-      "params": {
-        "rank_exp": 7,
-        "transfer_every": 18412,
-        "lora_alpha": 0.010476240915668036,
-        "transfer_lr_scale": 1.516522785747938,
-        "learning_rate": 0.01516237969812439,
-        "batch_size": 8,
-        "weight_decay": 0.003961827196122543,
-        "tau_sec": 118.63481417240507,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
-      },
-      "datetime_start": "2026-02-06T06:59:13.139791",
-      "datetime_complete": "2026-02-06T12:13:45.508051",
-      "duration_seconds": 18872.36826
+      "state": "FAIL",
+      "value": null,
+      "params": {},
+      "datetime_start": "2026-01-31T11:12:50.776140",
+      "datetime_complete": "2026-01-31T11:12:50.800763",
+      "duration_seconds": 0.024623
     },
     {
       "number": 43,
-      "state": "COMPLETE",
-      "value": 15.54,
-      "params": {
-        "rank_exp": 7,
-        "transfer_every": 37,
-        "lora_alpha": 2.237745304729185,
-        "transfer_lr_scale": 1.5599723965762682,
-        "learning_rate": 4.3918626179356144e-05,
-        "batch_size": 8,
-        "weight_decay": 7.859202194112162e-06,
-        "tau_sec": 4648.1401739732255,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
-      },
-      "datetime_start": "2026-02-06T07:31:11.405518",
-      "datetime_complete": "2026-02-06T09:23:59.567371",
-      "duration_seconds": 6768.161853
+      "state": "FAIL",
+      "value": null,
+      "params": {},
+      "datetime_start": "2026-01-31T11:12:51.068689",
+      "datetime_complete": "2026-01-31T11:12:51.294134",
+      "duration_seconds": 0.225445
     },
     {
       "number": 44,
-      "state": "COMPLETE",
-      "value": 28.29,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 3948,
-        "lora_alpha": 0.008940274526825255,
-        "transfer_lr_scale": 0.5627576624677119,
-        "learning_rate": 0.009183230164370795,
-        "batch_size": 8,
-        "weight_decay": 2.7111462056530937e-05,
-        "tau_sec": 88700217.2476749,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
-      },
-      "datetime_start": "2026-02-06T09:23:59.647237",
-      "datetime_complete": "2026-02-06T09:38:26.882644",
-      "duration_seconds": 867.235407
+      "state": "FAIL",
+      "value": null,
+      "params": {},
+      "datetime_start": "2026-01-31T11:12:51.604778",
+      "datetime_complete": "2026-01-31T11:12:51.657522",
+      "duration_seconds": 0.052744
+    },
+    {
+      "number": 45,
+      "state": "FAIL",
+      "value": null,
+      "params": {},
+      "datetime_start": "2026-01-31T11:12:51.667287",
+      "datetime_complete": "2026-01-31T11:12:51.674042",
+      "duration_seconds": 0.006755
     },
     {
       "number": 46,
-      "state": "COMPLETE",
-      "value": 35.87,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 100,
-        "lora_alpha": 0.001102635126906902,
-        "transfer_lr_scale": 52.85898929266763,
-        "learning_rate": 0.00025819750747508745,
-        "batch_size": 8,
-        "weight_decay": 0.00013166316816898787,
-        "tau_sec": 1081598.2940400506,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T12:45:23.098974",
-      "datetime_complete": "2026-02-06T13:42:19.289489",
-      "duration_seconds": 3416.190515
+      "state": "FAIL",
+      "value": null,
+      "params": {},
+      "datetime_start": "2026-01-31T11:12:51.682944",
+      "datetime_complete": "2026-01-31T11:12:51.704272",
+      "duration_seconds": 0.021328
     },
     {
       "number": 47,
-      "state": "COMPLETE",
-      "value": 21.2,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 1000,
-        "lora_alpha": 350.2591918477498,
-        "transfer_lr_scale": 22.881557749300033,
-        "learning_rate": 0.0010597454798873898,
-        "batch_size": 8,
-        "weight_decay": 1.4663930627668673e-06,
-        "tau_sec": 440.93705832942356,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T12:46:19.935809",
-      "datetime_complete": "2026-02-06T13:46:19.528739",
-      "duration_seconds": 3599.59293
+      "state": "FAIL",
+      "value": null,
+      "params": {},
+      "datetime_start": "2026-01-31T11:12:51.738811",
+      "datetime_complete": "2026-01-31T11:12:51.745460",
+      "duration_seconds": 0.006649
     },
     {
       "number": 48,
-      "state": "COMPLETE",
-      "value": 39.77,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 413,
-        "lora_alpha": 0.004262347462693683,
-        "transfer_lr_scale": 18.201999908207977,
-        "learning_rate": 7.570964172723026e-05,
-        "batch_size": 8,
-        "weight_decay": 0.0068333434421794246,
-        "tau_sec": 17870386.303482458,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T12:51:02.796761",
-      "datetime_complete": "2026-02-06T15:41:01.107597",
-      "duration_seconds": 10198.310836
+      "state": "FAIL",
+      "value": null,
+      "params": {},
+      "datetime_start": "2026-01-31T11:12:51.755651",
+      "datetime_complete": "2026-01-31T11:12:51.762582",
+      "duration_seconds": 0.006931
     },
     {
       "number": 49,
-      "state": "COMPLETE",
-      "value": 27.93,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 101,
-        "lora_alpha": 0.23245776285804748,
-        "transfer_lr_scale": 32.7807843684399,
-        "learning_rate": 0.02980253485985235,
-        "batch_size": 8,
-        "weight_decay": 0.001017674789859702,
-        "tau_sec": 25216.73881187763,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T12:51:20.090723",
-      "datetime_complete": "2026-02-06T14:38:59.668254",
-      "duration_seconds": 6459.577531
+      "state": "FAIL",
+      "value": null,
+      "params": {},
+      "datetime_start": "2026-01-31T11:12:51.771237",
+      "datetime_complete": "2026-01-31T11:12:51.791518",
+      "duration_seconds": 0.020281
     },
     {
       "number": 50,
-      "state": "COMPLETE",
-      "value": 35.44,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 91,
-        "lora_alpha": 0.001142985415721229,
-        "transfer_lr_scale": 18.440756242208504,
-        "learning_rate": 4.036508117839502e-05,
-        "batch_size": 8,
-        "weight_decay": 1.18081145062819e-06,
-        "tau_sec": 295734330.58367276,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T12:51:41.723556",
-      "datetime_complete": "2026-02-06T14:27:31.640581",
-      "duration_seconds": 5749.917025
+      "state": "FAIL",
+      "value": null,
+      "params": {},
+      "datetime_start": "2026-01-31T11:12:51.802607",
+      "datetime_complete": "2026-01-31T11:12:51.810957",
+      "duration_seconds": 0.00835
     },
     {
       "number": 51,
-      "state": "COMPLETE",
-      "value": 53.0,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 9172,
-        "lora_alpha": 0.0017504062459976807,
-        "transfer_lr_scale": 0.0027749379062852854,
-        "learning_rate": 0.001031699353507312,
-        "batch_size": 8,
-        "weight_decay": 7.892929764464092e-06,
-        "tau_sec": 265.59590757502883,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T12:51:59.958131",
-      "datetime_complete": "2026-02-06T15:59:30.418780",
-      "duration_seconds": 11250.460649
+      "state": "FAIL",
+      "value": null,
+      "params": {},
+      "datetime_start": "2026-01-31T11:12:51.821818",
+      "datetime_complete": "2026-01-31T11:12:51.830569",
+      "duration_seconds": 0.008751
     },
     {
       "number": 52,
-      "state": "COMPLETE",
-      "value": 23.73,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 100,
-        "lora_alpha": 3.535835228261076,
-        "transfer_lr_scale": 94.87532134535367,
-        "learning_rate": 0.001187664308457656,
-        "batch_size": 8,
-        "weight_decay": 7.874825543973733e-06,
-        "tau_sec": 66926.1410197087,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T13:42:19.323987",
-      "datetime_complete": "2026-02-06T14:34:43.902278",
-      "duration_seconds": 3144.578291
+      "state": "FAIL",
+      "value": null,
+      "params": {},
+      "datetime_start": "2026-01-31T11:12:51.838844",
+      "datetime_complete": "2026-01-31T11:12:51.860468",
+      "duration_seconds": 0.021624
     },
     {
       "number": 53,
-      "state": "COMPLETE",
-      "value": 21.23,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 1000,
-        "lora_alpha": 16.942816837950357,
-        "transfer_lr_scale": 0.08492825304596896,
-        "learning_rate": 0.013837847900255192,
-        "batch_size": 8,
-        "weight_decay": 1.3287141942236077e-06,
-        "tau_sec": 16605.294993312622,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T13:46:19.570734",
-      "datetime_complete": "2026-02-06T14:52:33.293767",
-      "duration_seconds": 3973.723033
+      "state": "FAIL",
+      "value": null,
+      "params": {},
+      "datetime_start": "2026-01-31T11:12:51.870269",
+      "datetime_complete": "2026-01-31T11:12:51.877863",
+      "duration_seconds": 0.007594
     },
     {
       "number": 54,
-      "state": "COMPLETE",
-      "value": 21.06,
-      "params": {
-        "rank_exp": 0,
-        "transfer_every": 64,
-        "lora_alpha": 170.27839341121427,
-        "transfer_lr_scale": 0.013684907477764227,
-        "learning_rate": 0.03509414297020552,
-        "batch_size": 8,
-        "weight_decay": 3.134776577222716e-05,
-        "tau_sec": 177852.77163561335,
-        "reinit_mode": "decay",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T14:27:31.704037",
-      "datetime_complete": "2026-02-06T16:28:07.769111",
-      "duration_seconds": 7236.065074
-    },
-    {
-      "number": 56,
-      "state": "COMPLETE",
-      "value": 36.02,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 11,
-        "lora_alpha": 81.69901843473777,
-        "transfer_lr_scale": 1.9189017020903296,
-        "learning_rate": 2.6035237920671046e-05,
-        "batch_size": 8,
-        "weight_decay": 1.3115742606614675e-05,
-        "tau_sec": 889979193.0327256,
-        "reinit_mode": "decay",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T14:38:59.733326",
-      "datetime_complete": "2026-02-06T19:17:49.232070",
-      "duration_seconds": 16729.498744
-    },
-    {
-      "number": 57,
-      "state": "COMPLETE",
-      "value": 35.45,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 1000,
-        "lora_alpha": 0.7440316739343521,
-        "transfer_lr_scale": 126.89012296813115,
-        "learning_rate": 0.0010280300877303155,
-        "batch_size": 8,
-        "weight_decay": 2.5362634096250983e-05,
-        "tau_sec": 17518.665821101567,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T14:52:33.353477",
-      "datetime_complete": "2026-02-06T15:54:50.447086",
-      "duration_seconds": 3737.093609
-    },
-    {
-      "number": 58,
-      "state": "COMPLETE",
-      "value": 34.0,
-      "params": {
-        "rank_exp": 0,
-        "transfer_every": 51,
-        "lora_alpha": 39.7507257088886,
-        "transfer_lr_scale": 131.2337370691669,
-        "learning_rate": 0.00013422306936543255,
-        "batch_size": 8,
-        "weight_decay": 0.0003108988405228839,
-        "tau_sec": 19.785793471001828,
-        "reinit_mode": "decay",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T15:41:01.146318",
-      "datetime_complete": "2026-02-06T16:50:40.292062",
-      "duration_seconds": 4179.145744
-    },
-    {
-      "number": 59,
-      "state": "COMPLETE",
-      "value": 39.49,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 1000,
-        "lora_alpha": 0.8162606461028709,
-        "transfer_lr_scale": 38.06671810852236,
-        "learning_rate": 0.023626113114017057,
-        "batch_size": 8,
-        "weight_decay": 0.0005025513754023971,
-        "tau_sec": 258463.088840454,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T15:54:50.488657",
-      "datetime_complete": "2026-02-06T18:16:21.655305",
-      "duration_seconds": 8491.166648
-    },
-    {
-      "number": 60,
-      "state": "COMPLETE",
-      "value": 33.81,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 100,
-        "lora_alpha": 0.018878962703547875,
-        "transfer_lr_scale": 1.9365408852306196,
-        "learning_rate": 5.8025290953373625e-05,
-        "batch_size": 8,
-        "weight_decay": 0.00015736154821247394,
-        "tau_sec": 2.634343494781443,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T15:56:43.696284",
-      "datetime_complete": "2026-02-06T17:08:06.252027",
-      "duration_seconds": 4282.555743
-    },
-    {
-      "number": 61,
-      "state": "COMPLETE",
-      "value": 27.0,
-      "params": {
-        "rank_exp": 2,
-        "transfer_every": 172,
-        "lora_alpha": 0.2272411905604527,
-        "transfer_lr_scale": 23.45578818949462,
-        "learning_rate": 2.3013190987029998e-05,
-        "batch_size": 8,
-        "weight_decay": 2.2741530986848025e-06,
-        "tau_sec": 5.125793540466568,
-        "reinit_mode": "decay",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T15:59:30.471592",
-      "datetime_complete": "2026-02-06T18:50:08.385963",
-      "duration_seconds": 10237.914371
-    },
-    {
-      "number": 62,
-      "state": "COMPLETE",
-      "value": 20.78,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 1,
-        "lora_alpha": 125.26279339898774,
-        "transfer_lr_scale": 0.0036549036754792313,
-        "learning_rate": 0.028320325168177594,
-        "batch_size": 8,
-        "weight_decay": 0.002399468027347537,
-        "tau_sec": 3063.841544369078,
-        "reinit_mode": "decay",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T16:28:07.852156",
-      "datetime_complete": "2026-02-07T02:34:29.197986",
-      "duration_seconds": 36381.34583
-    },
-    {
-      "number": 63,
-      "state": "COMPLETE",
-      "value": 22.56,
-      "params": {
-        "rank_exp": 4,
-        "transfer_every": 20,
-        "lora_alpha": 162.06786226188635,
-        "transfer_lr_scale": 2.2106579507409245,
-        "learning_rate": 0.021677949851071344,
-        "batch_size": 8,
-        "weight_decay": 2.761243364861254e-05,
-        "tau_sec": 73507414.06840326,
-        "reinit_mode": "decay",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T16:50:40.323700",
-      "datetime_complete": "2026-02-06T23:24:35.258584",
-      "duration_seconds": 23634.934884
-    },
-    {
-      "number": 64,
-      "state": "COMPLETE",
-      "value": 30.24,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 100,
-        "lora_alpha": 0.16387534081728905,
-        "transfer_lr_scale": 0.3903570788500619,
-        "learning_rate": 3.777543278271786e-05,
-        "batch_size": 8,
-        "weight_decay": 6.339532917410332e-06,
-        "tau_sec": 686.0294239605943,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T17:08:06.310684",
-      "datetime_complete": "2026-02-06T18:52:57.638137",
-      "duration_seconds": 6291.327453
-    },
-    {
-      "number": 65,
-      "state": "COMPLETE",
-      "value": 20.54,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 1000,
-        "lora_alpha": 838.6844321435022,
-        "transfer_lr_scale": 0.41797011767036135,
-        "learning_rate": 0.00476735404453009,
-        "batch_size": 8,
-        "weight_decay": 0.00018492767815488233,
-        "tau_sec": 1414.8520560627692,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T18:16:21.689095",
-      "datetime_complete": "2026-02-06T19:33:28.256719",
-      "duration_seconds": 4626.567624
-    },
-    {
-      "number": 66,
-      "state": "COMPLETE",
-      "value": 28.07,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 22,
-        "lora_alpha": 2.493671707292458,
-        "transfer_lr_scale": 0.1756632419063533,
-        "learning_rate": 0.00031060941522063104,
-        "batch_size": 8,
-        "weight_decay": 0.0014285852856576492,
-        "tau_sec": 318.7072141262969,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
-      },
-      "datetime_start": "2026-02-06T18:50:08.438573",
-      "datetime_complete": "2026-02-06T21:01:48.628978",
-      "duration_seconds": 7900.190405
-    },
-    {
-      "number": 67,
-      "state": "COMPLETE",
-      "value": 24.06,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 100,
-        "lora_alpha": 17.935290120620653,
-        "transfer_lr_scale": 0.9912951745105194,
-        "learning_rate": 0.010385260754832622,
-        "batch_size": 8,
-        "weight_decay": 1.0260163454102223e-05,
-        "tau_sec": 1.3104737419024,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T18:52:57.686735",
-      "datetime_complete": "2026-02-06T19:57:47.637642",
-      "duration_seconds": 3889.950907
-    },
-    {
-      "number": 68,
-      "state": "COMPLETE",
-      "value": 57.19,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 22721,
-        "lora_alpha": 0.013804508303834657,
-        "transfer_lr_scale": 3.4178312097773063,
-        "learning_rate": 3.195722893308987e-05,
-        "batch_size": 8,
-        "weight_decay": 4.873298819440818e-06,
-        "tau_sec": 128347.32659560062,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
-      },
-      "datetime_start": "2026-02-06T19:17:49.280949",
-      "datetime_complete": "2026-02-07T02:54:16.183105",
-      "duration_seconds": 27386.902156
-    },
-    {
-      "number": 69,
-      "state": "COMPLETE",
-      "value": 14.03,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 1000,
-        "lora_alpha": 0.17046724947100317,
-        "transfer_lr_scale": 1.2522943521178762,
-        "learning_rate": 0.06051645427719962,
-        "batch_size": 8,
-        "weight_decay": 0.005579085266695895,
-        "tau_sec": 1000834.232041644,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
-      },
-      "datetime_start": "2026-02-06T19:33:28.297725",
-      "datetime_complete": "2026-02-06T20:25:48.897118",
-      "duration_seconds": 3140.599393
-    },
-    {
-      "number": 70,
-      "state": "COMPLETE",
-      "value": 41.16,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 100,
-        "lora_alpha": 0.25296001849609956,
-        "transfer_lr_scale": 0.15085489480482567,
-        "learning_rate": 0.0020346279462840284,
-        "batch_size": 8,
-        "weight_decay": 6.678748778088827e-05,
-        "tau_sec": 13028334.182439854,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T19:57:47.680289",
-      "datetime_complete": "2026-02-06T21:48:06.333430",
-      "duration_seconds": 6618.653141
-    },
-    {
-      "number": 71,
-      "state": "COMPLETE",
-      "value": 37.58,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 1000,
-        "lora_alpha": 0.004895771145469529,
-        "transfer_lr_scale": 76.67905452429173,
-        "learning_rate": 0.06302269376130112,
-        "batch_size": 8,
-        "weight_decay": 1.992858773878753e-06,
-        "tau_sec": 324912.15806400945,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T20:25:48.958188",
-      "datetime_complete": "2026-02-06T21:43:22.268054",
-      "duration_seconds": 4653.309866
-    },
-    {
-      "number": 72,
-      "state": "COMPLETE",
-      "value": 44.04,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 47,
-        "lora_alpha": 0.034183881127996814,
-        "transfer_lr_scale": 0.14019362465759905,
-        "learning_rate": 0.00013453080195127294,
-        "batch_size": 8,
-        "weight_decay": 5.911089397884567e-06,
-        "tau_sec": 7.264284319303657,
-        "reinit_mode": "decay",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T21:01:48.686026",
-      "datetime_complete": "2026-02-07T00:45:10.775817",
-      "duration_seconds": 13402.089791
-    },
-    {
-      "number": 73,
-      "state": "COMPLETE",
-      "value": 17.27,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 1000,
-        "lora_alpha": 121.88562999420851,
-        "transfer_lr_scale": 0.00693470246958839,
-        "learning_rate": 0.02636329711938209,
-        "batch_size": 8,
-        "weight_decay": 0.0011370571449578649,
-        "tau_sec": 21335.02424124984,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T21:43:22.327428",
-      "datetime_complete": "2026-02-06T22:40:08.090710",
-      "duration_seconds": 3405.763282
-    },
-    {
-      "number": 74,
-      "state": "COMPLETE",
-      "value": 26.17,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 100,
-        "lora_alpha": 39.323008911331144,
-        "transfer_lr_scale": 1.5953975097246818,
-        "learning_rate": 0.009068859127122048,
-        "batch_size": 8,
-        "weight_decay": 0.0008730811714570535,
-        "tau_sec": 1612547.7531722009,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T21:48:06.370502",
-      "datetime_complete": "2026-02-06T23:08:14.598993",
-      "duration_seconds": 4808.228491
-    },
-    {
-      "number": 75,
-      "state": "COMPLETE",
-      "value": 26.4,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 1000,
-        "lora_alpha": 0.0020896602757746055,
-        "transfer_lr_scale": 0.025094055882793058,
-        "learning_rate": 0.04727487792467606,
-        "batch_size": 8,
-        "weight_decay": 0.0019204077465777927,
-        "tau_sec": 270892.0843006208,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T22:40:08.145277",
-      "datetime_complete": "2026-02-07T01:09:03.053847",
-      "duration_seconds": 8934.90857
-    },
-    {
-      "number": 76,
-      "state": "COMPLETE",
-      "value": 31.14,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 100,
-        "lora_alpha": 0.5579159458257393,
-        "transfer_lr_scale": 0.8453851006440113,
-        "learning_rate": 0.0006352805051549403,
-        "batch_size": 8,
-        "weight_decay": 0.0007194364302006264,
-        "tau_sec": 92194322.15873517,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-06T23:08:14.654067",
-      "datetime_complete": "2026-02-07T00:54:04.542871",
-      "duration_seconds": 6349.888804
-    },
-    {
-      "number": 77,
-      "state": "COMPLETE",
-      "value": 43.04,
-      "params": {
-        "rank_exp": 3,
-        "transfer_every": 318,
-        "lora_alpha": 19.021511541258523,
-        "transfer_lr_scale": 414.2052427028317,
-        "learning_rate": 0.00016758118610439202,
-        "batch_size": 8,
-        "weight_decay": 7.5080930265449955e-06,
-        "tau_sec": 50856.34639600354,
-        "reinit_mode": "decay",
-        "optimizer": "AnalogAdam"
-      },
-      "datetime_start": "2026-02-06T23:24:35.321661",
-      "datetime_complete": "2026-02-07T03:53:44.236601",
-      "duration_seconds": 16148.91494
-    },
-    {
-      "number": 78,
-      "state": "COMPLETE",
-      "value": 17.6,
-      "params": {
-        "rank_exp": 4,
-        "transfer_every": 290,
-        "lora_alpha": 0.13092852363712346,
-        "transfer_lr_scale": 17.55388695839018,
-        "learning_rate": 0.04762757145670943,
-        "batch_size": 8,
-        "weight_decay": 0.0014233813564203392,
-        "tau_sec": 72.96218759120035,
-        "reinit_mode": "decay",
-        "optimizer": "AnalogAdam"
-      },
-      "datetime_start": "2026-02-07T00:45:10.848625",
-      "datetime_complete": "2026-02-07T01:55:00.602036",
-      "duration_seconds": 4189.753411
-    },
-    {
-      "number": 79,
-      "state": "COMPLETE",
-      "value": 19.66,
-      "params": {
-        "rank_exp": 5,
-        "transfer_every": 1000,
-        "lora_alpha": 1.560537057902096,
-        "transfer_lr_scale": 0.05693733877120457,
-        "learning_rate": 0.005320948890799835,
-        "batch_size": 8,
-        "weight_decay": 0.008866128627254275,
-        "tau_sec": 3364.8440976483475,
-        "reinit_mode": "hybrid",
-        "optimizer": "AnalogAdam"
-      },
-      "datetime_start": "2026-02-07T01:09:03.092717",
-      "datetime_complete": "2026-02-07T01:31:52.128816",
-      "duration_seconds": 1369.036099
-    },
-    {
-      "number": 80,
-      "state": "COMPLETE",
-      "value": 37.7,
-      "params": {
-        "rank_exp": 6,
-        "transfer_every": 9131,
-        "lora_alpha": 14.764268489082845,
-        "transfer_lr_scale": 0.11753598494119943,
-        "learning_rate": 0.009089991701735075,
-        "batch_size": 8,
-        "weight_decay": 1.7529955878981336e-05,
-        "tau_sec": 140092923.43371597,
-        "reinit_mode": "decay",
-        "optimizer": "AnalogSGD"
-      },
-      "datetime_start": "2026-02-07T01:55:00.666593",
-      "datetime_complete": "2026-02-07T02:54:17.339376",
-      "duration_seconds": 3556.672783
-    },
-    {
-      "number": 81,
-      "state": "RUNNING",
+      "state": "FAIL",
       "value": null,
-      "params": {
-        "rank_exp": 6,
-        "transfer_every": 228,
-        "lora_alpha": 0.011732560628176791,
-        "transfer_lr_scale": 1.3845179653639774,
-        "learning_rate": 3.254745027542865e-05,
-        "batch_size": 8,
-        "weight_decay": 1.780779843590582e-06,
-        "tau_sec": 4099.203318612454,
-        "reinit_mode": "decay",
-        "optimizer": "AnalogAdam"
-      },
-      "datetime_start": "2026-02-07T02:34:29.256089",
-      "datetime_complete": null,
-      "duration_seconds": null
-    },
-    {
-      "number": 82,
-      "state": "RUNNING",
-      "value": null,
-      "params": {
-        "rank_exp": 0,
-        "transfer_every": 321,
-        "lora_alpha": 764.893279815374,
-        "transfer_lr_scale": 0.014474860477323196,
-        "learning_rate": 0.00028411026900124046,
-        "batch_size": 8,
-        "weight_decay": 0.00023207466374181932,
-        "tau_sec": 138219525.98253697,
-        "reinit_mode": "decay",
-        "optimizer": "AnalogAdam"
-      },
-      "datetime_start": "2026-02-07T02:54:16.226429",
-      "datetime_complete": null,
-      "duration_seconds": null
-    },
-    {
-      "number": 83,
-      "state": "RUNNING",
-      "value": null,
-      "params": {
-        "rank_exp": 4,
-        "transfer_every": 2,
-        "lora_alpha": 23.306563941893685,
-        "transfer_lr_scale": 0.0016900527761568058,
-        "learning_rate": 1.1356695866936018e-05,
-        "batch_size": 8,
-        "weight_decay": 0.00016733093902845088,
-        "tau_sec": 288.2186525436322,
-        "reinit_mode": "decay",
-        "optimizer": "AnalogAdam"
-      },
-      "datetime_start": "2026-02-07T02:54:17.438037",
-      "datetime_complete": null,
-      "duration_seconds": null
+      "params": {},
+      "datetime_start": "2026-01-31T11:12:51.886150",
+      "datetime_complete": "2026-01-31T11:12:51.894259",
+      "duration_seconds": 0.008109
     }
   ]
 }

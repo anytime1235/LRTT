@@ -77,26 +77,32 @@ class ScratchExperimentConfig:
     complexity_levels = ['medium']
 
     # Training hyperparameters - LRTT scratch training
-    # Note: lrtt_lr is computed from hardware parameters below (see lrtt_lr property)
     lrtt_epochs = 2000
-    lrtt_batch_size = 1
-    lrtt_patience = 10  # Allow a bit more training than fine-tuning
+    lrtt_batch_size = 8
+    lrtt_patience = 7  # Allow a bit more training than fine-tuning
     lrtt_grad_clip = 2.0  # Conservative clipping
 
+    # Scaling mode
+    # True: use manual x_scaling/d_scaling (hardware-fixed), lr is placeholder
+    # False: use dynamic scaling with update_management, lr affects training
+    use_manual_scaling = False
+    lrtt_lr = 0.2852  # Learning rate (used when use_manual_scaling=False)
+
     # LRTT configuration
-    lrtt_rank = 1  # Rank-1 for minimal overfitting
-    lrtt_transfer_every = 10  # Medium frequency to observe transfer effects
-    lora_alpha = 0.04  # Conservative scaling
+    lrtt_rank = 4  # 5th best trial (Trial 21)
+    lrtt_transfer_every = 116  # 5th best trial transfer_every
+    lora_alpha = 12.89  # 5th best trial lora_alpha
  
-    # Reinit configuration - DECAY MODE
+    # Reinit configuration
     # Options:
     #   "standard"        - A=0 (or Kaiming), B=Kaiming (original LRTT)
-    #   "decay"           - A *= decay_factor, B *= decay_factor (gradual decay)
-    #   "hybrid"          - A=0, B *= decay_factor (A reset, B decayed)
+    #   "decay"           - no reinit, 6T1C capacitor decay handles it
+    #   "hybrid"          - A=0, B unchanged (6T1C decay handles B)
     #   "orthogonal_zero" - A=0, B=Random Orthogonal (frozen)
-    #   "orthogonal_decay"- A *= decay_factor, B=Random Orthogonal (frozen)
+    #   "orthogonal_decay"- A unchanged, B=Random Orthogonal (frozen)
+    #   "zero_orthogonal_zero" - A=0, B=0 every transfer (write noise varies)
+    #   "zero_orthogonal_decay"- A unchanged, B=0 every transfer (write noise varies)
     reinit_mode = "decay"
-    decay_factor = 1.0  # 0.5~0.9 for actual decay, 1.0 = no decay
 
     # A matrix initialization mode
     # Options: 'zero' (LoRA-style, ΔW=0 initially), 'kaiming' (random Kaiming initialization)
@@ -119,13 +125,19 @@ class ScratchExperimentConfig:
     # 'idealized': IdealizedPresetDevice (idealized, noise only)
     # 'floating_point': FloatingPointDevice (idealized, no quantization)
     # 'softbounds': SoftBoundsReferenceDevice (realistic analog with bounds)
-    c_device_type = 'floting_point'
+    c_device_type = 'softbounds'
 
     # Transfer method for C update
     # 'set': Exact weight setting (no pulsed update, precise)
     # 'onehot': One-hot transfer (analog-realistic pulsed update)
     # 'direct': Direct transfer (matrix multiply, pulsed update)
     transfer_method = 'onehot'
+
+    # Transfer rank scheduling
+    # 'all': Transfer all ranks at once (default)
+    # 'round_robin': Cycle through ranks, transferring a subset each time
+    transfer_rank_schedule = 'all'
+    transfer_ranks_per_step = 1  # Number of ranks per transfer in round_robin mode
 
     # C device parameters (for pulsed transfer methods: onehot, direct)
     # Default dw_min by device type:
@@ -134,7 +146,7 @@ class ScratchExperimentConfig:
     #   - floating_point (FloatingPointDevice): N/A (exact, no pulse)
     c_w_max = 1.0  # Maximum weight value
     c_w_min = -1.0  # Minimum weight value
-    c_dw_min = 0.0002  # Minimum weight update step (idealized: 0.0002, softbounds: 0.001)
+    c_dw_min = 0.000804  # 5th best trial (Trial 21) c_dw_min
     c_desired_bl = 10  # Bit length for C transfer (higher for accuracy)
 
     # SoftBoundsReferenceDevice additional parameters (only used when c_device_type='softbounds')
@@ -142,27 +154,19 @@ class ScratchExperimentConfig:
     c_up_down = 0.0  # up/down asymmetry (0 = symmetric)
     c_up_down_dtod = 0.01  # up/down asymmetry dtod variation
 
-    # Retention configuration
-    # Option 1: retention_ratio_at_transfer (lifetime varies with transfer_every)
-    #   - fraction of A/B weight remaining at transfer time
-    #   - Example: 0.9 means 90% of A/B weights remain after transfer_every steps
-    # Option 2: fixed_lifetime (lifetime stays constant regardless of transfer_every)
-    #   - Set fixed_lifetime to a value > 0 to use fixed lifetime mode
-    #   - When set, retention_ratio_at_transfer is ignored
-    retention_ratio_at_transfer = None  # Used when fixed_lifetime is None
-    fixed_lifetime = 112.6  # Set to e.g. 10.0 to fix lifetime regardless of transfer_every
+    # Retention configuration (BATCH 단위, 내부적으로 pulse 단위로 변환됨)
+    # create_6t1c_device()에서 batch lifetime → pulse lifetime 변환
+    # 트레이닝 루프에서 decay_weights()가 desired_bl번 호출됨
+    # (1 - 1/lifetime_pulse)^desired_bl = (1 - 1/lifetime_batch)
+    # 예: lifetime=24.89이면 378 batch 후 95% retention
+    lifetime = 24.89  # Batch 단위 lifetime (0 = no decay)
     include_retention = True  # Enable/disable retention effects
 
     # Pulse/Update configuration (Hardware-realistic settings)
-    desired_bl = 8  # Bit length for A/B updates (pulse train length)
+    desired_bl = 10  # Bit length for A/B updates (pulse train length)
     pulse_type = PulseType.STOCHASTIC_COMPRESSED  # Pulse generation type
 
-    # Hardware mode: use fixed manual scaling factors
-    # When use_manual_scaling=True, x_scaling and d_scaling are applied directly
-    # as B (input) and A (gradient) factors, bypassing dynamic calculation
-    use_manual_scaling = True  # Enable hardware-realistic fixed scaling mode
-
-    # Manual scaling factors (hardware-fixed) - Global defaults
+    # Manual scaling factors (used when use_manual_scaling=True)
     # x_scaling: applied to input x (B factor in aihwkit)
     # d_scaling: applied to gradient d (A factor in aihwkit)
     x_scaling = None  # Input (x) scaling factor (global default)
@@ -171,10 +175,10 @@ class ScratchExperimentConfig:
     # Separate A/B tile scaling factors (override global if set)
     # A tile update: x=XB (B projection of input), d=original gradient
     # B tile update: x=original input, d=DA (A^T projection of gradient)
-    a_x_scaling = 0.088  # A tile x scaling (None = use global x_scaling)
-    a_d_scaling = 0.592  # A tile d scaling (None = use global d_scaling)
+    a_x_scaling = 0.604  # A tile x scaling - 5th best trial (Trial 21)
+    a_d_scaling = 0.343  # A tile d scaling - 5th best trial (Trial 21)
     b_x_scaling = 1.0   # B tile x scaling (None = use global x_scaling)
-    b_d_scaling = 0.903  # B tile d scaling (None = use global d_scaling)
+    b_d_scaling = 0.419  # B tile d scaling - 5th best trial (Trial 21)
 
     # Debug logging for A/B scaling
     log_ab_scaling = True  # Enable x,d max value logging
@@ -190,11 +194,6 @@ class ScratchExperimentConfig:
     # Output options
     save_figures = False  # Save training figures as PNG (disable to save time/space)
 
-    # Note: dw_min is defined in SoftBoundsReferenceDevice (device characteristic)
-    # Effective learning rate in hardware mode:
-    # Δw = x_scaling * d_scaling * x * d * BL * dw_min (approximately)
-    lrtt_lr = 0.1  # Placeholder for optimizer (actual update is hardware-controlled)
-
     # Results directory
     results_dir = "results/lrtt_scratch_decay"
 
@@ -202,7 +201,7 @@ class ScratchExperimentConfig:
 # Device Configuration
 # ============================================================================
 
-def create_6t1c_device(retention_ratio_at_transfer=1.0, transfer_every=10, include_retention=True, fixed_lifetime=None, desired_bl=10):
+def create_6t1c_device(lifetime=0, transfer_every=10, include_retention=True, desired_bl=10):
     """Create 6T1C device for A/B tiles.
 
     6T1C Device Characteristics:
@@ -210,53 +209,42 @@ def create_6t1c_device(retention_ratio_at_transfer=1.0, transfer_every=10, inclu
         - Capacitor-based weight storage with exponential decay
 
     Args:
-        retention_ratio_at_transfer: Fraction of weight remaining after transfer_every steps
-                                     (e.g., 0.9 = 90% retention, 0.5 = 50% retention)
-                                     Ignored if fixed_lifetime is set.
-        transfer_every: Number of steps (samples) between transfers
+        lifetime: Lifetime in BATCH units. Decay per batch = (1 - 1/lifetime).
+                  0 = no decay (perfect retention)
+        transfer_every: Number of batches between transfers (for display only)
         include_retention: Whether to include retention effects
-        fixed_lifetime: If set, use this lifetime directly (in pulse units)
-        desired_bl: Bit length (number of pulses per sample update)
+        desired_bl: Number of pulses per batch. Used to convert batch lifetime
+                    to pulse lifetime so decay is applied per-pulse in post_update_step().
 
     Note:
-        Lifetime is in pulse units. Total pulses between transfers = transfer_every * desired_bl.
-        Retention decay happens per pulse, not per sample.
+        Lifetime is specified in BATCH units but internally converted to PULSE units.
+        The training loop calls decay_weights() desired_bl times per batch
+        (1 from post_update_step + desired_bl-1 extra calls after optimizer.step).
+        Per-pulse lifetime satisfies: (1 - 1/lifetime_pulse)^desired_bl = (1 - 1/lifetime_batch)
     """
     import math
 
-    # Total pulses between transfers
-    total_pulses = transfer_every * desired_bl
-
-    # Calculate lifetime (in pulse units)
-    if not include_retention:
-        lifetime = 0.0
+    if not include_retention or lifetime <= 0:
+        lifetime_pulse = 0.0
         print(f"  6T1C retention: DISABLED (perfect retention)")
-    elif fixed_lifetime is not None and fixed_lifetime > 0:
-        # Use fixed lifetime directly (in pulse units)
-        lifetime = fixed_lifetime
-        # Back-calculate retention ratio for display
-        delta = 1.0 / lifetime
-        retention_at_transfer = math.pow(1.0 - delta, total_pulses)
-        print(f"  6T1C retention: lifetime={lifetime:.1f} pulses (fixed) → {retention_at_transfer*100:.1f}% after {transfer_every} steps ({total_pulses} pulses)")
-    elif retention_ratio_at_transfer is not None and retention_ratio_at_transfer < 1.0:
-        # Calculate lifetime from retention ratio
-        # Weight after N pulses: w(N) = w(0) * (1 - delta)^N
-        # At transfer: retention_ratio = (1 - delta)^total_pulses
-        # Solve for delta: delta = 1 - retention_ratio^(1/total_pulses)
-        # lifetime = 1 / delta (in pulse units)
-        delta = 1.0 - math.pow(retention_ratio_at_transfer, 1.0 / total_pulses)
-        lifetime = 1.0 / delta
-        print(f"  6T1C retention: {retention_ratio_at_transfer*100:.1f}% after {transfer_every} steps ({total_pulses} pulses) → lifetime={lifetime:.1f} pulses")
     else:
-        lifetime = 0.0
-        print(f"  6T1C retention: DISABLED (perfect retention)")
+        # Convert batch lifetime to pulse lifetime
+        # (1 - 1/lifetime_pulse)^desired_bl = (1 - 1/lifetime_batch)
+        decay_per_batch = 1.0 - 1.0 / lifetime
+        decay_per_pulse = math.pow(decay_per_batch, 1.0 / desired_bl)
+        lifetime_pulse = 1.0 / (1.0 - decay_per_pulse)
+
+        # Calculate retention at transfer for display
+        retention_at_transfer = math.pow(decay_per_batch, transfer_every)
+        print(f"  6T1C retention: lifetime={lifetime:.1f} batches → lifetime_pulse={lifetime_pulse:.1f} pulses (desired_bl={desired_bl})")
+        print(f"    → {retention_at_transfer*100:.1f}% after {transfer_every} batches")
 
     return LinearStepDevice(
         # Core update parameters (fitted from 6T1C data)
-        dw_min=0.02,  #0.001981
+        dw_min=0.001981, #0.001981,
         up_down=0.0,
-        w_max=0.7,
-        w_min=-0.7,
+        w_max=1.0,
+        w_min=-1.0,
         gamma_up=-0.1678,
         gamma_down=0.1410,
         mult_noise=True,
@@ -271,13 +259,13 @@ def create_6t1c_device(retention_ratio_at_transfer=1.0, transfer_every=10, inclu
 
         # Cycle-to-cycle variation
         dw_min_std=0.3,
-        write_noise_std=0.0182,
+        write_noise_std=0,  #0.0182
 
         # LinearStepDevice specific
         mean_bound_reference=True,
 
-        # Retention (capacitor leakage)
-        lifetime=lifetime,
+        # Retention (capacitor leakage) — pulse-unit lifetime
+        lifetime=lifetime_pulse,
         lifetime_dtod=0.1 if include_retention else 0.0
     )
 
@@ -391,10 +379,9 @@ class LRTTModel(nn.Module):
         # Select devices for A/B tiles
         if config.USE_6T1C_AB:
             ab_device = create_6t1c_device(
-                retention_ratio_at_transfer=config.retention_ratio_at_transfer,
+                lifetime=config.lifetime,
                 transfer_every=config.lrtt_transfer_every,
                 include_retention=config.include_retention,
-                fixed_lifetime=config.fixed_lifetime,
                 desired_bl=config.desired_bl
             )
         else:
@@ -412,10 +399,10 @@ class LRTTModel(nn.Module):
                 up_down=config.c_up_down,
                 up_down_dtod=config.c_up_down_dtod,
                 # Device-to-device variations (hardcoded)
-                w_max_dtod=0.3,
-                w_min_dtod=0.3,
-                dw_min_dtod=0.3,
-                dw_min_std=0.3,
+                w_max_dtod=0.0,
+                w_min_dtod=0.0,
+                dw_min_dtod=0.0,
+                dw_min_std=0.0,
                 # Noise (hardcoded)
                 write_noise_std=0.0,
                 diffusion=0.0,
@@ -433,19 +420,26 @@ class LRTTModel(nn.Module):
             c_device = FloatingPointDevice()
             print("Using FloatingPointDevice for C matrix (idealized, no quantization)")
         else:  # 'idealized' (default)
-            c_device = IdealizedPresetDevice(dw_min=config.c_dw_min)
-            print(f"Using IdealizedPresetDevice for C matrix (dw_min={config.c_dw_min})")
+            c_device = IdealizedPresetDevice(
+                dw_min=config.c_dw_min,
+                dw_min_dtod=0.0,  # No device-to-device variation
+                dw_min_std=0.0,   # No cycle-to-cycle variation
+                w_max_dtod=0.0,   # No weight bound variation
+                w_min_dtod=0.0,   # No weight bound variation
+            )
+            print(f"Using IdealizedPresetDevice for C matrix (dw_min={config.c_dw_min}, all dtod=0)")
 
         device_config = PythonLRTTDevice(
             rank=config.lrtt_rank,
             transfer_every=config.lrtt_transfer_every,
             lora_alpha=config.lora_alpha,
             reinit_mode=config.reinit_mode,
-            decay_factor=config.decay_factor,
             a_init_mode=config.a_init_mode,  # A initialization mode
             b_init_mode=config.b_init_mode,  # B initialization mode
             forward_inject=False,
             correct_gradient_magnitudes=False,
+            transfer_micro_steps=1,  # Microsteps for smoother transfer (1=off)
+            differential_read=False,  # Use +e/-e differential read
             unit_cell_devices=[
                 ab_device,  # A matrix
                 ab_device,  # B matrix
@@ -463,6 +457,9 @@ class LRTTModel(nn.Module):
             c_desired_bl=config.c_desired_bl,
             # Transfer method for C update (set, onehot, or direct)
             transfer_method=config.transfer_method,
+            # Transfer rank scheduling
+            transfer_rank_schedule=config.transfer_rank_schedule,
+            transfer_ranks_per_step=config.transfer_ranks_per_step,
         )
 
         print(f"A initialization mode: {config.a_init_mode}")
@@ -495,14 +492,15 @@ class LRTTModel(nn.Module):
         # Update parameters for pulse generation
         # When use_manual_scaling=True, A and B are set directly from manual_d_scaling and manual_x_scaling
         # bypassing the dynamic calculation based on lr, dw_min, and input magnitudes
+        # When use_manual_scaling=False, enable BL/update management for dynamic scaling
         update = UpdateParameters(
             desired_bl=config.desired_bl,              # Bit length (pulse train length)
             pulse_type=config.pulse_type,              # Stochastic pulse generation
             use_manual_scaling=config.use_manual_scaling,  # Enable hardware-realistic fixed scaling
             manual_x_scaling=config.x_scaling,         # B factor: scaling for input x
             manual_d_scaling=config.d_scaling,         # A factor: scaling for gradient d
-            update_bl_management=False,                # Disable dynamic BL adjustment
-            update_management=False,                   # Disable dynamic A/B scaling
+            update_bl_management=not config.use_manual_scaling,  # Enable when not using manual scaling
+            update_management=not config.use_manual_scaling,     # Enable when not using manual scaling
         )
 
         rpu_config = PythonLRTTRPUConfig(
@@ -596,8 +594,13 @@ class LRTTModel(nn.Module):
 # ============================================================================
 def train_lrtt_scratch(config: ScratchExperimentConfig,
                       train_loader: DataLoader, val_loader: DataLoader,
-                      seed: int = 42, use_wandb: bool = True) -> tuple:
+                      seed: int = 42, use_wandb: bool = True,
+                      collect_history: bool = True) -> tuple:
     """Train LRTT from scratch on D'.
+
+    Args:
+        collect_history: If False, skip detailed step-wise history collection
+                        for faster training (useful for Optuna sweeps).
 
     Returns:
         Tuple of (model, training_history, epoch_history, C_init, A_init, B_init)
@@ -636,7 +639,7 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
 
     # Record initial state (step=0, before any training)
     C_init_log, A_init_log, B_init_log = model.get_lrtt_components()
-    if A_init_log is not None and B_init_log is not None:
+    if collect_history and A_init_log is not None and B_init_log is not None:
         # Create NaN vectors for initial state (no update yet)
         # A tile (down-proj, code B): x [input_dim], d [rank]
         # B tile (up-proj, code A): x [rank], d [output_dim]
@@ -708,7 +711,7 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
     for epoch in range(config.lrtt_epochs):
         # Training
         model.train()
-        train_loss = 0.0
+        train_loss = torch.tensor(0.0, device=DEVICE)  # Accumulate on GPU
         for batch_idx, (X_batch, Y_batch) in enumerate(train_loader):
             X_batch, Y_batch = X_batch.to(DEVICE), Y_batch.to(DEVICE)
 
@@ -765,62 +768,64 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
                 print(f"    d_abs_max: {d_abs_max:.6f}")
                 print(f"    ======================================\n")
 
-            # Compute gradient norm before backward (d = ∂L/∂y)
-            # MSE gradient: d = (2/N) * (y_pred - y_target)
-            N = Y_pred.numel()
-            grad_d = (2.0 / N) * (Y_pred - Y_batch)
-            grad_norm = grad_d.norm().item()
+            # Compute history-related values only if collecting history
+            if collect_history:
+                # Compute gradient norm before backward (d = ∂L/∂y)
+                # MSE gradient: d = (2/N) * (y_pred - y_target)
+                N = Y_pred.numel()
+                grad_d = (2.0 / N) * (Y_pred - Y_batch)
+                grad_norm = grad_d.norm().item()
 
-            # Apply quantization to gradient if enabled
-            if config.quantize_d:
-                grad_d = torch.round(grad_d / config.d_resolution) * config.d_resolution
+                # Apply quantization to gradient if enabled
+                if config.quantize_d:
+                    grad_d = torch.round(grad_d / config.d_resolution) * config.d_resolution
 
-            # Compute gradient matrix for C: ∂L/∂C = grad_d.T @ X_batch / batch_size
-            # Shape: [output_dim, input_dim] - same as C
-            grad_C_matrix = (grad_d.T @ X_batch) / X_batch.size(0)
+                # Compute gradient matrix for C: ∂L/∂C = grad_d.T @ X_batch / batch_size
+                # Shape: [output_dim, input_dim] - same as C
+                grad_C_matrix = (grad_d.T @ X_batch) / X_batch.size(0)
 
-            # Compute x, d values for A and B tiles (before update)
-            # Get current A, B for computing projected values
-            C_pre, A_pre, B_pre = model.get_lrtt_components()
-            A_pre = A_pre.to(DEVICE)
-            B_pre = B_pre.to(DEVICE)
+                # Compute x, d values for A and B tiles (before update)
+                # Get current A, B for computing projected values
+                C_pre, A_pre, B_pre = model.get_lrtt_components()
+                A_pre = A_pre.to(DEVICE)
+                B_pre = B_pre.to(DEVICE)
 
-            # Apply quantization to input if enabled
-            X_quantized = X_batch
-            if config.quantize_x:
-                X_quantized = torch.round(X_batch / config.x_resolution) * config.x_resolution
+                # Apply quantization to input if enabled
+                X_quantized = X_batch
+                if config.quantize_x:
+                    X_quantized = torch.round(X_batch / config.x_resolution) * config.x_resolution
 
-            # A tile (code) = B tile (standard, up-projection) [output_dim, rank]
-            # x_A = input projected through B: X @ B.T [batch, rank]
-            # d_A = gradient at output: grad_d [batch, output_dim]
-            x_A = X_quantized @ B_pre.T  # [batch, rank]
-            d_A = grad_d  # [batch, output_dim]
+                # A tile (code) = B tile (standard, up-projection) [output_dim, rank]
+                # x_A = input projected through B: X @ B.T [batch, rank]
+                # d_A = gradient at output: grad_d [batch, output_dim]
+                x_A = X_quantized @ B_pre.T  # [batch, rank]
+                d_A = grad_d  # [batch, output_dim]
 
-            # B tile (code) = A tile (standard, down-projection) [rank, input_dim]
-            # x_B = original input: X [batch, input_dim]
-            # d_B = gradient projected through A: grad_d @ A [batch, rank]
-            x_B = X_quantized  # [batch, input_dim]
-            d_B = grad_d @ A_pre  # [batch, rank]
+                # B tile (code) = A tile (standard, down-projection) [rank, input_dim]
+                # x_B = original input: X [batch, input_dim]
+                # d_B = gradient projected through A: grad_d @ A [batch, rank]
+                x_B = X_quantized  # [batch, input_dim]
+                d_B = grad_d @ A_pre  # [batch, rank]
 
-            # Compute max absolute values per position (over batch dimension)
-            # For A tile (code, up-proj): x_A [batch, rank], d_A [batch, output_dim]
-            # For B tile (code, down-proj): x_B [batch, input_dim], d_B [batch, rank]
-            x_A_vec = x_A.abs().max(dim=0).values  # [rank]
-            d_A_vec = d_A.abs().max(dim=0).values  # [output_dim]
-            x_B_vec = x_B.abs().max(dim=0).values  # [input_dim]
-            d_B_vec = d_B.abs().max(dim=0).values  # [rank]
+                # Compute max absolute values per position (over batch dimension)
+                # For A tile (code, up-proj): x_A [batch, rank], d_A [batch, output_dim]
+                # For B tile (code, down-proj): x_B [batch, input_dim], d_B [batch, rank]
+                x_A_vec = x_A.abs().max(dim=0).values  # [rank]
+                d_A_vec = d_A.abs().max(dim=0).values  # [output_dim]
+                x_B_vec = x_B.abs().max(dim=0).values  # [input_dim]
+                d_B_vec = d_B.abs().max(dim=0).values  # [rank]
 
-            # Compute scaled probabilities (clipped to [0, 1])
-            # Note: In Excel notation, A=down-proj (code B), B=up-proj (code A)
-            a_x_scale = config.a_x_scaling or 1.0
-            a_d_scale = config.a_d_scaling or 1.0
-            b_x_scale = config.b_x_scaling or 1.0
-            b_d_scale = config.b_d_scaling or 1.0
+                # Compute scaled probabilities (clipped to [0, 1])
+                # Note: In Excel notation, A=down-proj (code B), B=up-proj (code A)
+                a_x_scale = config.a_x_scaling or 1.0
+                a_d_scale = config.a_d_scaling or 1.0
+                b_x_scale = config.b_x_scaling or 1.0
+                b_d_scale = config.b_d_scaling or 1.0
 
-            p_x_A_vec = (a_x_scale * x_A_vec).clamp(max=1.0)  # [rank]
-            p_d_A_vec = (a_d_scale * d_A_vec).clamp(max=1.0)  # [output_dim]
-            p_x_B_vec = (b_x_scale * x_B_vec).clamp(max=1.0)  # [input_dim]
-            p_d_B_vec = (b_d_scale * d_B_vec).clamp(max=1.0)  # [rank]
+                p_x_A_vec = (a_x_scale * x_A_vec).clamp(max=1.0)  # [rank]
+                p_d_A_vec = (a_d_scale * d_A_vec).clamp(max=1.0)  # [output_dim]
+                p_x_B_vec = (b_x_scale * x_B_vec).clamp(max=1.0)  # [input_dim]
+                p_d_B_vec = (b_d_scale * d_B_vec).clamp(max=1.0)  # [rank]
 
             # Backward pass
             loss.backward()
@@ -835,91 +840,102 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
             torch.nn.utils.clip_grad_norm_(model.parameters(), config.lrtt_grad_clip)
             optimizer.step()
 
+            # Per-pulse decay: post_update_step() already called decay_weights() once,
+            # call desired_bl - 1 more times to simulate per-pulse capacitor decay
+            if config.desired_bl > 1:
+                for _ in range(config.desired_bl - 1):
+                    if hasattr(analog_tile.tile_a, "rpu_config") and analog_tile.tile_a.rpu_config.device.requires_decay():
+                        analog_tile.tile_a.decay_weights()
+                    if hasattr(analog_tile.tile_b, "rpu_config") and analog_tile.tile_b.rpu_config.device.requires_decay():
+                        analog_tile.tile_b.decay_weights()
+
             # Debug: Check if A changed after optimizer step
             if epoch == 0 and batch_idx == 0:
                 C, A, B = model.get_lrtt_components()
                 print(f"    After step - A norm: {A.norm():.6f}, B norm: {B.norm():.6f}")
 
-            train_loss += loss.item() * X_batch.size(0)
+            train_loss += loss.detach() * X_batch.size(0)  # Keep on GPU
 
-            # Log A, B, C cell values after each batch update
-            C, A, B = model.get_lrtt_components()
-            if A is not None and B is not None:
-                # Check if transfer occurred by comparing num_transfers
-                is_transfer_step = False
-                if hasattr(analog_tile, 'controller'):
-                    num_transfers_after = analog_tile.controller.num_transfers
-                    if num_transfers_after > num_transfers_before:
-                        is_transfer_step = True
+            # Log A, B, C cell values after each batch update (skip if not needed)
+            if collect_history or use_wandb:
+                C, A, B = model.get_lrtt_components()
+                if A is not None and B is not None:
+                    # Check if transfer occurred by comparing num_transfers
+                    is_transfer_step = False
+                    if hasattr(analog_tile, 'controller'):
+                        num_transfers_after = analog_tile.controller.num_transfers
+                        if num_transfers_after > num_transfers_before:
+                            is_transfer_step = True
 
-                # Record step-wise history for Excel export
-                # Note: Excel uses standard LoRA notation
-                # Code A tile (up-proj) → Excel B tile, Code B tile (down-proj) → Excel A tile
-                step_history = {
-                    'step': global_step,
-                    'epoch': epoch,
-                    'batch_idx': batch_idx,
-                    'batch_loss': loss.item(),
-                    'is_transfer': is_transfer_step,
-                    'grad_norm': grad_norm,
-                    'grad_C_matrix': grad_C_matrix.cpu().detach().numpy().copy(),
-                    'A_matrix': A.cpu().detach().numpy().copy(),
-                    'B_matrix': B.cpu().detach().numpy().copy(),
-                    'C_matrix': C.cpu().detach().numpy().copy(),
-                    'A_norm': A.norm().item(),
-                    'B_norm': B.norm().item(),
-                    'C_norm': C.norm().item(),
-                    'delta_W_norm': (A @ B).norm().item(),
-                    # Pulse input vectors - Excel notation (A=down-proj, B=up-proj)
-                    # A tile (down-proj) = code B tile: x [input_dim], d [rank]
-                    'A_x_vec': x_B_vec.cpu().detach().numpy().copy(),  # [input_dim]
-                    'A_d_vec': d_B_vec.cpu().detach().numpy().copy(),  # [rank]
-                    'A_p_x_vec': p_x_B_vec.cpu().detach().numpy().copy(),  # [input_dim]
-                    'A_p_d_vec': p_d_B_vec.cpu().detach().numpy().copy(),  # [rank]
-                    # B tile (up-proj) = code A tile: x [rank], d [output_dim]
-                    'B_x_vec': x_A_vec.cpu().detach().numpy().copy(),  # [rank]
-                    'B_d_vec': d_A_vec.cpu().detach().numpy().copy(),  # [output_dim]
-                    'B_p_x_vec': p_x_A_vec.cpu().detach().numpy().copy(),  # [rank]
-                    'B_p_d_vec': p_d_A_vec.cpu().detach().numpy().copy(),  # [output_dim]
-                }
-                training_history.append(step_history)
+                    # Record step-wise history for Excel export (skip if not collecting)
+                    if collect_history:
+                        # Note: Excel uses standard LoRA notation
+                        # Code A tile (up-proj) → Excel B tile, Code B tile (down-proj) → Excel A tile
+                        step_history = {
+                            'step': global_step,
+                            'epoch': epoch,
+                            'batch_idx': batch_idx,
+                            'batch_loss': loss.item(),
+                            'is_transfer': is_transfer_step,
+                            'grad_norm': grad_norm,
+                            'grad_C_matrix': grad_C_matrix.cpu().detach().numpy().copy(),
+                            'A_matrix': A.cpu().detach().numpy().copy(),
+                            'B_matrix': B.cpu().detach().numpy().copy(),
+                            'C_matrix': C.cpu().detach().numpy().copy(),
+                            'A_norm': A.norm().item(),
+                            'B_norm': B.norm().item(),
+                            'C_norm': C.norm().item(),
+                            'delta_W_norm': (A @ B).norm().item(),
+                            # Pulse input vectors - Excel notation (A=down-proj, B=up-proj)
+                            # A tile (down-proj) = code B tile: x [input_dim], d [rank]
+                            'A_x_vec': x_B_vec.cpu().detach().numpy().copy(),  # [input_dim]
+                            'A_d_vec': d_B_vec.cpu().detach().numpy().copy(),  # [rank]
+                            'A_p_x_vec': p_x_B_vec.cpu().detach().numpy().copy(),  # [input_dim]
+                            'A_p_d_vec': p_d_B_vec.cpu().detach().numpy().copy(),  # [rank]
+                            # B tile (up-proj) = code A tile: x [rank], d [output_dim]
+                            'B_x_vec': x_A_vec.cpu().detach().numpy().copy(),  # [rank]
+                            'B_d_vec': d_A_vec.cpu().detach().numpy().copy(),  # [output_dim]
+                            'B_p_x_vec': p_x_A_vec.cpu().detach().numpy().copy(),  # [rank]
+                            'B_p_d_vec': p_d_A_vec.cpu().detach().numpy().copy(),  # [output_dim]
+                        }
+                        training_history.append(step_history)
 
-                if use_wandb:
-                    log_dict = {
-                        'scratch/step': global_step,
-                        'scratch/epoch': epoch,
-                        'scratch/batch_idx': batch_idx,
-                        'scratch/batch_loss': loss.item(),
-                        'scratch/is_transfer_step': is_transfer_step,
-                        'scratch/A_norm_step': A.norm().item(),
-                        'scratch/B_norm_step': B.norm().item(),
-                        'scratch/C_norm_step': C.norm().item(),
-                        'scratch/delta_norm_step': (A @ B).norm().item()
-                    }
+                    if use_wandb:
+                        log_dict = {
+                            'scratch/step': global_step,
+                            'scratch/epoch': epoch,
+                            'scratch/batch_idx': batch_idx,
+                            'scratch/batch_loss': loss.item(),
+                            'scratch/is_transfer_step': is_transfer_step,
+                            'scratch/A_norm_step': A.norm().item(),
+                            'scratch/B_norm_step': B.norm().item(),
+                            'scratch/C_norm_step': C.norm().item(),
+                            'scratch/delta_norm_step': (A @ B).norm().item()
+                        }
 
-                    # Log individual A cells (A is [input_dim, rank])
-                    for i in range(A.shape[0]):
-                        for r in range(A.shape[1]):
-                            log_dict[f'scratch/A[{i},{r}]_step'] = A[i, r].item()
+                        # Log individual A cells (A is [input_dim, rank])
+                        for i in range(A.shape[0]):
+                            for r in range(A.shape[1]):
+                                log_dict[f'scratch/A[{i},{r}]_step'] = A[i, r].item()
 
-                    # Log individual B cells (B is [rank, input_dim])
-                    for r in range(B.shape[0]):
-                        for j in range(B.shape[1]):
-                            log_dict[f'scratch/B[{r},{j}]_step'] = B[r, j].item()
+                        # Log individual B cells (B is [rank, input_dim])
+                        for r in range(B.shape[0]):
+                            for j in range(B.shape[1]):
+                                log_dict[f'scratch/B[{r},{j}]_step'] = B[r, j].item()
 
-                    # Log individual C cells (C is [input_dim, input_dim])
-                    for i in range(C.shape[0]):
-                        for j in range(C.shape[1]):
-                            log_dict[f'scratch/C[{i},{j}]_step'] = C[i, j].item()
+                        # Log individual C cells (C is [input_dim, input_dim])
+                        for i in range(C.shape[0]):
+                            for j in range(C.shape[1]):
+                                log_dict[f'scratch/C[{i},{j}]_step'] = C[i, j].item()
 
-                    wandb.log(log_dict)
-            else:
-                if global_step <= 5:
-                    print(f"  [WARNING] Step {global_step}: A or B is None, skipping log")
+                        wandb.log(log_dict)
+                else:
+                    if global_step <= 5:
+                        print(f"  [WARNING] Step {global_step}: A or B is None, skipping log")
 
             global_step += 1
 
-        train_loss /= len(train_loader.dataset)
+        train_loss = (train_loss / len(train_loader.dataset)).item()  # GPU sync once per epoch
 
         # Check for transfer event (compare with last_transfer_count)
         # NOTE: Use num_transfers (cumulative), not transfer_counter (resets after each transfer)
@@ -933,25 +949,38 @@ def train_lrtt_scratch(config: ScratchExperimentConfig,
                 transfer_occurred = True
                 C, A, B = model.get_lrtt_components()
                 transfers_this_epoch = current_transfer_count - last_transfer_count
+
+                # Clamp C to [-1, 1] for FloatingPointDevice (no built-in bounds)
+                if config.c_device_type == 'floating_point':
+                    C_clamped = torch.clamp(C, config.c_w_min, config.c_w_max)
+                    model.set_C_weights(C_clamped)
+                    C = C_clamped
+
                 print(f"  [TRANSFER] Epoch {epoch}: {transfers_this_epoch} transfer(s), A norm={A.norm():.4f}, B norm={B.norm():.4f}, C norm={C.norm():.4f}")
 
-        # Validation - Use full LRTT model (skip if no val_loader)
-        if val_loader is not None:
+        # Validation - Only run when needed for early stopping (epoch 0 or transfer)
+        # This saves significant time by skipping validation on most epochs
+        need_validation = (epoch == 0 or transfer_occurred) and val_loader is not None
+        if need_validation:
             model.eval()
-            val_loss = 0.0
+            val_loss = torch.tensor(0.0, device=DEVICE)  # Accumulate on GPU
             with torch.no_grad():
                 for X_batch, Y_batch in val_loader:
                     X_batch, Y_batch = X_batch.to(DEVICE), Y_batch.to(DEVICE)
                     Y_pred = model(X_batch)
                     loss = F.mse_loss(Y_pred, Y_batch)
-                    val_loss += loss.item() * X_batch.size(0)
+                    val_loss += loss * X_batch.size(0)  # Keep on GPU
 
-            val_loss /= len(val_loader.dataset)
+            val_loss = (val_loss / len(val_loader.dataset)).item()  # GPU sync once
             loss_for_stopping = val_loss
-        else:
+        elif val_loader is None:
             # No validation set - use train_loss for early stopping
             val_loss = None
             loss_for_stopping = train_loss
+        else:
+            # Skip validation this epoch (not needed for early stopping)
+            val_loss = None
+            loss_for_stopping = None  # Won't be used since early stopping only checks on transfer
 
         # Record epoch-level history
         epoch_history.append({
@@ -1573,6 +1602,28 @@ def run_multi_param_experiments(param_configs: list,
         print(f"Running experiment: {label}")
         print(f"{'='*60}")
 
+        # Initialize wandb run for this experiment
+        if use_wandb:
+            run_name = f"multi_{label}_r{config.lrtt_rank}_t{config.lrtt_transfer_every}_alpha{config.lora_alpha}"
+            wandb.init(
+                project="regression-lrtt-scratch",
+                name=run_name,
+                config={
+                    'experiment_type': 'multi-param',
+                    'label': label,
+                    'complexity_level': complexity_level,
+                    'seed': seed,
+                    'lrtt_lr': config.lrtt_lr,
+                    'lrtt_rank': config.lrtt_rank,
+                    'transfer_every': config.lrtt_transfer_every,
+                    'lora_alpha': config.lora_alpha,
+                    'use_6t1c_ab': config.USE_6T1C_AB,
+                    'lifetime': config.lifetime if config.USE_6T1C_AB else None,
+                    'include_retention': config.include_retention if config.USE_6T1C_AB else None,
+                },
+                reinit=True
+            )
+
         # Reset random state
         torch.manual_seed(seed)
         np.random.seed(seed)
@@ -1608,6 +1659,16 @@ def run_multi_param_experiments(param_configs: list,
         trajectories[label] = training_history
 
         print(f"  Final MSE: {mse:.6f}, R²: {r2:.4f}")
+
+        # Finish wandb run for this experiment
+        if use_wandb:
+            wandb.log({
+                'final/mse': mse,
+                'final/r2': r2,
+            })
+            wandb.summary['final_mse'] = mse
+            wandb.summary['final_r2'] = r2
+            wandb.finish()
 
     # Generate combined plots
     print(f"\n{'='*60}")
@@ -2344,21 +2405,38 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
             'c_init_value',
             'a_init_mode',
             'b_init_mode',
+            'reinit_mode',
             'use_6t1c',
-            'retention_ratio',
-            'fixed_lifetime',
+            'lifetime',
             'include_retention',
             'desired_bl',
             'dw_min',
+            'pulse_type',
             'a_x_scaling',
             'a_d_scaling',
             'b_x_scaling',
             'b_d_scaling',
+            'use_manual_scaling',
+            'lrtt_lr',
             'quantize_x',
             'quantize_d',
             'x_resolution',
             'd_resolution',
+            'c_device_type',
+            'c_dw_min',
+            'c_desired_bl',
+            'c_w_min',
+            'c_w_max',
+            'transfer_method',
+            'transfer_rank_schedule',
+            'transfer_ranks_per_step',
+            'batch_size',
+            'epochs',
+            'patience',
+            'grad_clip',
+            'noise_std',
             'train_samples',
+            'test_samples',
             'input_dim',
             'output_dim',
             'total_steps',
@@ -2378,21 +2456,38 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
             config.c_init_value,
             config.b_init_mode,  # Excel A = Code B (down-projection)
             config.a_init_mode,  # Excel B = Code A (up-projection)
+            config.reinit_mode,
             config.USE_6T1C_AB,
-            config.retention_ratio_at_transfer if config.USE_6T1C_AB else None,
-            config.fixed_lifetime if config.USE_6T1C_AB else None,
+            config.lifetime if config.USE_6T1C_AB else None,
             config.include_retention if config.USE_6T1C_AB else None,
             config.desired_bl,
             0.02,  # dw_min from LinearStepDevice
+            str(config.pulse_type),
             config.b_x_scaling,  # Excel A = Code B (down-projection)
             config.b_d_scaling,  # Excel A = Code B
             config.a_x_scaling,  # Excel B = Code A (up-projection)
             config.a_d_scaling,  # Excel B = Code A
+            config.use_manual_scaling,
+            config.lrtt_lr,
             config.quantize_x,
             config.quantize_d,
             config.x_resolution if config.quantize_x else None,
             config.d_resolution if config.quantize_d else None,
+            config.c_device_type,
+            config.c_dw_min,
+            config.c_desired_bl,
+            config.c_w_min,
+            config.c_w_max,
+            config.transfer_method,
+            config.transfer_rank_schedule,
+            config.transfer_ranks_per_step,
+            config.lrtt_batch_size,
+            config.lrtt_epochs,
+            config.lrtt_patience,
+            config.lrtt_grad_clip,
+            config.noise_std,
             config.D_prime_train_size,
+            config.D_prime_test_size,
             config.input_dim,
             config.output_dim,
             total_steps,
@@ -2408,21 +2503,36 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
             'C matrix initial value (all elements)',
             'A (down-proj) init mode (zero/kaiming)',
             'B (up-proj) init mode (zero/kaiming)',
+            'Reinit mode (standard/decay/orthogonal_zero/orthogonal_decay/...)',
             'Use 6T1C device for A/B matrices',
-            'Retention ratio at transfer (e.g., 0.95 = 95%)',
-            'Fixed lifetime in pulses (overrides retention_ratio)',
+            'Batch lifetime for retention decay',
             'Include retention effects',
-            'Bit length (pulse train length)',
-            'Minimum weight update step',
+            'Bit length (pulse train length) for A/B',
+            'Minimum weight update step for A/B',
+            'Pulse generation type',
             'A tile (down-proj) x scaling',
             'A tile (down-proj) d scaling',
             'B tile (up-proj) x scaling',
             'B tile (up-proj) d scaling',
+            'Use manual scaling (True) or dynamic scaling (False)',
+            'Learning rate (used when use_manual_scaling=False)',
             'Enable input (x) quantization',
             'Enable gradient (d) quantization',
             'Input quantization resolution',
             'Gradient quantization resolution',
+            'C matrix device type (idealized/floating_point/softbounds)',
+            'C matrix minimum weight update step',
+            'C matrix bit length for transfer',
+            'C matrix minimum weight value',
+            'C matrix maximum weight value',
+            'C transfer method (set/onehot/direct)',
+            'Training batch size',
+            'Maximum training epochs',
+            'Early stopping patience',
+            'Gradient clipping value',
+            'Data noise standard deviation',
             'Number of training samples',
+            'Number of test samples',
             'Input dimension',
             'Output dimension',
             'Total training steps',
@@ -2627,12 +2737,9 @@ def run_scratch_experiment(config: ScratchExperimentConfig, complexity_level: st
 
     print(f"\n{'='*60}")
     print(f"Running SCRATCH experiment with seed={seed}, complexity_level={complexity_level}")
-    print(f"REINIT CONFIG: mode={config.reinit_mode}, decay_factor={config.decay_factor}")
+    print(f"REINIT CONFIG: mode={config.reinit_mode}")
     if config.USE_6T1C_AB and config.include_retention:
-        if config.fixed_lifetime is not None:
-            print(f"DEVICE CONFIG: 6T1C_AB=True, fixed_lifetime={config.fixed_lifetime} pulses")
-        else:
-            print(f"DEVICE CONFIG: 6T1C_AB=True, retention={config.retention_ratio_at_transfer*100:.1f}% at transfer")
+        print(f"DEVICE CONFIG: 6T1C_AB=True, lifetime={config.lifetime} batches")
     else:
         print(f"DEVICE CONFIG: 6T1C_AB={config.USE_6T1C_AB}, retention={'OFF' if not config.include_retention else 'N/A'}")
     if config.quantize_x or config.quantize_d:
@@ -2656,8 +2763,7 @@ def run_scratch_experiment(config: ScratchExperimentConfig, complexity_level: st
                 'transfer_every': config.lrtt_transfer_every,
                 'lora_alpha': config.lora_alpha,
                 'use_6t1c_ab': config.USE_6T1C_AB,
-                'retention_ratio_at_transfer': config.retention_ratio_at_transfer if config.USE_6T1C_AB else None,
-                'fixed_lifetime': config.fixed_lifetime if config.USE_6T1C_AB else None,
+                'lifetime': config.lifetime if config.USE_6T1C_AB else None,
                 'include_retention': config.include_retention if config.USE_6T1C_AB else None,
                 'quantize_x': config.quantize_x,
                 'quantize_d': config.quantize_d,
@@ -2840,21 +2946,30 @@ if __name__ == "__main__":
         # Multi-param experiments with combined plots
         # Define parameter configurations to compare (modify here!)
         param_configs = [
-            {'label': 't=1 (set)', 'lrtt_transfer_every': 1, 'transfer_method': 'set',
-             'a_x_scaling': 0.255, 'a_d_scaling': 0.574, 'b_d_scaling': 0.331,
-             'lora_alpha': 0.10, 'desired_bl': 4},
-            {'label': 't=1 (bl10dw0.001)', 'lrtt_transfer_every': 1, 'transfer_method': 'onehot',
-             'c_desired_bl': 10, 'c_dw_min': 0.001,
-             'a_x_scaling': 0.255, 'a_d_scaling': 0.574, 'b_d_scaling': 0.331,
-             'lora_alpha': 0.10, 'desired_bl': 4},
-            {'label': 't=1 (bl10dw0.01)', 'lrtt_transfer_every': 1, 'transfer_method': 'onehot',
-             'c_desired_bl': 10, 'c_dw_min': 0.01,
-             'a_x_scaling': 0.255, 'a_d_scaling': 0.574, 'b_d_scaling': 0.331,
-             'lora_alpha': 0.10, 'desired_bl': 4},
-            {'label': 't=1 (bl10dw0.1)', 'lrtt_transfer_every': 1, 'transfer_method': 'onehot',
-             'c_desired_bl': 10, 'c_dw_min': 0.1,
-             'a_x_scaling': 0.255, 'a_d_scaling': 0.574, 'b_d_scaling': 0.331,
-             'lora_alpha': 0.10, 'desired_bl': 4},
+            {'label': 'r=1', 'lrtt_transfer_every': 864, 'lrtt_rank' : 1, 'lora_alpha': 16.81, 'c_dw_min' : 0.00116, 'lifetime' : 68.1, 'lrtt_lr': 0.1052},
+            {'label': 'r=2', 'lrtt_transfer_every': 592, 'lrtt_rank' : 2, 'lora_alpha': 9.87, 'c_dw_min' : 0.000576, 'lifetime' : 15039841, 'lrtt_lr': 0.0621},
+            {'label': 'r=3', 'lrtt_transfer_every': 656, 'lrtt_rank' : 3, 'lora_alpha': 12.21, 'c_dw_min' : 0.000500, 'lifetime' : 42721, 'lrtt_lr': 0.1204},
+            {'label': 'r=4', 'lrtt_transfer_every': 928, 'lrtt_rank' : 4, 'lora_alpha': 12.89, 'c_dw_min' : 0.000804, 'lifetime' : 199.1, 'lrtt_lr': 0.1008},
+
+            #{'label': 't=408', 'lrtt_transfer_every': 408, 'lora_alpha': 5.07, 'c_dw_min' : 0.000615, 'lifetime' : 8893, 'lrtt_lr': 0.0650},
+            #{'label': 't=592', 'lrtt_transfer_every': 592, 'lora_alpha': 10.56, 'c_dw_min' : 0.00171, 'lifetime' : 4015848, 'lrtt_lr': 0.0105},
+            #{'label': 't=704', 'lrtt_transfer_every': 704, 'lora_alpha': 18.60, 'c_dw_min' : 0.000478, 'lifetime' : 86936, 'lrtt_lr': 0.0488},
+            #{'label': 't=1000', 'lrtt_transfer_every': 1000, 'lora_alpha': 20.47, 'c_dw_min' : 0.00110, 'lifetime' : 997760, 'lrtt_lr': 0.00267},
+            #{'label': 't=1 (set)', 'lrtt_transfer_every': 1, 'transfer_method': 'set',
+            # 'a_x_scaling': 0.255, 'a_d_scaling': 0.574, 'b_d_scaling': 0.331,
+            # 'lora_alpha': 0.10, 'desired_bl': 4},
+            #{'label': 't=1 (bl10dw0.001)', 'lrtt_transfer_every': 1, 'transfer_method': 'onehot',
+            # 'c_desired_bl': 10, 'c_dw_min': 0.001,
+            # 'a_x_scaling': 0.255, 'a_d_scaling': 0.574, 'b_d_scaling': 0.331,
+            # 'lora_alpha': 0.10, 'desired_bl': 4},
+            #{'label': 't=1 (bl10dw0.01)', 'lrtt_transfer_every': 1, 'transfer_method': 'onehot',
+            # 'c_desired_bl': 10, 'c_dw_min': 0.01,
+            # 'a_x_scaling': 0.255, 'a_d_scaling': 0.574, 'b_d_scaling': 0.331,
+            # 'lora_alpha': 0.10, 'desired_bl': 4},
+            #{'label': 't=1 (bl10dw0.1)', 'lrtt_transfer_every': 1, 'transfer_method': 'onehot',
+            # 'c_desired_bl': 10, 'c_dw_min': 0.1,
+            # 'a_x_scaling': 0.255, 'a_d_scaling': 0.574, 'b_d_scaling': 0.331,
+            # 'lora_alpha': 0.10, 'desired_bl': 4},
             # Add more configurations as needed:
             #{'label': 't=10', 'lrtt_transfer_every': 10, ...},
             #{'label': 't=100', 'lrtt_transfer_every': 100, ...},
