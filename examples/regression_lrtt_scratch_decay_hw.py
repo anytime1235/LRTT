@@ -554,10 +554,8 @@ class LRTTModel(nn.Module):
             # Transfer method for C update (set, onehot, or direct)
             transfer_method=config.transfer_method,
             # Transfer rank scheduling
-            **({
-                'transfer_rank_schedule': config.transfer_rank_schedule,
-                'transfer_ranks_per_step': config.transfer_ranks_per_step,
-            } if 'transfer_rank_schedule' in PythonLRTTDevice.__dataclass_fields__ else {}),
+            transfer_rank_schedule=config.transfer_rank_schedule,
+            transfer_ranks_per_step=config.transfer_ranks_per_step,
         )
 
         print(f"A initialization mode: {config.a_init_mode}")
