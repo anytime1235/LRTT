@@ -465,7 +465,8 @@ def create_frozen_analog_config(lrtt_config=None, out_noise=0.0):
 
 def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, tau_sec=0.0,
                        c_dw_min=0.001, c_desired_bl=None, out_noise=0.0, ab_weight_scaling_omega=0.0,
-                       auto_scale_mode='none', correct_gradient_magnitudes=False):
+                       auto_scale_mode='none', correct_gradient_magnitudes=False,
+                       transfer_rank_schedule='all', transfer_ranks_per_step=1):
     """Create LRTT RPU configuration for analog layers."""
     ab_device = _create_ab_device(tau_sec=tau_sec)
     c_device = _create_c_device(dw_min=c_dw_min)
@@ -500,6 +501,8 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, 
     device_config.no_adc_ab_projection = OPT_CONFIG.get('no_adc_ab_proj', False)
     device_config.auto_scale_mode = auto_scale_mode
     device_config.correct_gradient_magnitudes = correct_gradient_magnitudes
+    device_config.transfer_rank_schedule = transfer_rank_schedule
+    device_config.transfer_ranks_per_step = transfer_ranks_per_step
     if c_desired_bl is not None:
         device_config.c_desired_bl = c_desired_bl
 
@@ -642,6 +645,8 @@ def create_model(params):
             ab_weight_scaling_omega=params["ab_weight_scaling_omega"],
             auto_scale_mode=OPT_CONFIG['auto_scale_mode'],
             correct_gradient_magnitudes=OPT_CONFIG['correct_gradient_magnitudes'],
+            transfer_rank_schedule=params.get("transfer_rank_schedule", "all"),
+            transfer_ranks_per_step=int(params.get("transfer_ranks_per_step", 1)),
         )
 
         # Convert to analog with exclusions (only LRTT targets get converted)

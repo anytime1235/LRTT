@@ -57,6 +57,8 @@ FIXED_A_LIFETIME_PER_BATCH = 11.72  # Batch 단위 lifetime (내부적으로 pul
 FIXED_B_LIFETIME_PER_BATCH = 10000000  # B device lifetime (사실상 decay 없음)
 FIXED_LRTT_LR = 0.01   # Learning rate (used when use_manual_scaling=False)
 FIXED_BATCH_SIZE = 1   # Batch size for training
+FIXED_TRANSFER_RANK_SCHEDULE = 'all'  # 'all' or 'round_robin'
+FIXED_TRANSFER_RANKS_PER_STEP = 1     # Ranks per transfer step (only used in round_robin)
 
 # ============================================================================
 # Batch Size 조정 공식
@@ -126,7 +128,7 @@ class TuningConfig(ScratchExperimentConfig):
     pass
 
 
-def create_config(a_x_scaling, a_d_scaling, b_d_scaling, lora_alpha=2.0, transfer_every=10, desired_bl=7, lrtt_rank=1, c_dw_min=0.0002, c_desired_bl=10, lifetime=7370, b_lifetime=10000000, lrtt_lr=0.01, batch_size=1):
+def create_config(a_x_scaling, a_d_scaling, b_d_scaling, lora_alpha=2.0, transfer_every=10, desired_bl=7, lrtt_rank=1, c_dw_min=0.0002, c_desired_bl=10, lifetime=7370, b_lifetime=10000000, lrtt_lr=0.01, batch_size=1, transfer_rank_schedule='all', transfer_ranks_per_step=1):
     """Create a config with specified scaling factors.
 
     Note: batch_size 변경 시 transfer_every, lifetime도 함께 조정 필요.
@@ -155,6 +157,8 @@ def create_config(a_x_scaling, a_d_scaling, b_d_scaling, lora_alpha=2.0, transfe
     config.b_lifetime = b_lifetime  # Batch 단위 lifetime (B device)
     config.lrtt_lr = lrtt_lr    # Learning rate
     config.lrtt_batch_size = batch_size  # Batch size
+    config.transfer_rank_schedule = transfer_rank_schedule
+    config.transfer_ranks_per_step = transfer_ranks_per_step
     # use_manual_scaling is inherited from ScratchExperimentConfig
 
     # Disable verbose logging during tuning
@@ -259,6 +263,8 @@ def _objective_inner(trial: Trial, search_space: dict = None) -> float:
     b_lifetime = trial.suggest_float("b_lifetime", *search_space['b_lifetime'], log=True) if 'b_lifetime' in search_space else trial.suggest_float("b_lifetime", FIXED_B_LIFETIME_PER_BATCH, FIXED_B_LIFETIME_PER_BATCH, log=True)
     lrtt_lr = trial.suggest_float("lrtt_lr", *search_space['lrtt_lr'], log=True) if 'lrtt_lr' in search_space else trial.suggest_float("lrtt_lr", FIXED_LRTT_LR, FIXED_LRTT_LR, log=True)
     batch_size = trial.suggest_int("batch_size", *search_space['batch_size']) if 'batch_size' in search_space else trial.suggest_int("batch_size", FIXED_BATCH_SIZE, FIXED_BATCH_SIZE)
+    transfer_rank_schedule = trial.suggest_categorical("transfer_rank_schedule", search_space['transfer_rank_schedule']) if 'transfer_rank_schedule' in search_space else trial.suggest_categorical("transfer_rank_schedule", [FIXED_TRANSFER_RANK_SCHEDULE])
+    transfer_ranks_per_step = trial.suggest_int("transfer_ranks_per_step", *search_space['transfer_ranks_per_step']) if 'transfer_ranks_per_step' in search_space else trial.suggest_int("transfer_ranks_per_step", FIXED_TRANSFER_RANKS_PER_STEP, FIXED_TRANSFER_RANKS_PER_STEP)
 
     # Print all trial parameters at start
     params = []
@@ -276,6 +282,8 @@ def _objective_inner(trial: Trial, search_space: dict = None) -> float:
     params.append(f"b_life={b_lifetime:.1f}")
     params.append(f"lr={lrtt_lr:.5f}")
     if 'batch_size' in search_space: params.append(f"bs={batch_size}")
+    params.append(f"rank_sched={transfer_rank_schedule}")
+    params.append(f"ranks_per_step={transfer_ranks_per_step}")
     print(f"[Trial {trial.number:3d}] START | {', '.join(params)}", flush=True)
 
     # Record config-level parameters as user_attrs (not in search space but important for reproducibility)
@@ -285,8 +293,7 @@ def _objective_inner(trial: Trial, search_space: dict = None) -> float:
     trial.set_user_attr("c_init_value", cfg.c_init_value)
     trial.set_user_attr("c_device_type", cfg.c_device_type)
     trial.set_user_attr("transfer_method", cfg.transfer_method)
-    trial.set_user_attr("transfer_rank_schedule", cfg.transfer_rank_schedule)
-    trial.set_user_attr("transfer_ranks_per_step", cfg.transfer_ranks_per_step)
+    # transfer_rank_schedule and transfer_ranks_per_step are now in trial.params via suggest_*
     trial.set_user_attr("input_dim", cfg.input_dim)
     trial.set_user_attr("output_dim", cfg.output_dim)
     trial.set_user_attr("D_prime_train_size", cfg.D_prime_train_size)
@@ -295,7 +302,7 @@ def _objective_inner(trial: Trial, search_space: dict = None) -> float:
     trial.set_user_attr("n_runs_per_trial", N_RUNS_PER_TRIAL)
 
     # Create config with sampled parameters
-    config = create_config(a_x_scaling, a_d_scaling, b_d_scaling, lora_alpha, transfer_every, desired_bl, lrtt_rank, c_dw_min, c_desired_bl, lifetime, b_lifetime, lrtt_lr, batch_size)
+    config = create_config(a_x_scaling, a_d_scaling, b_d_scaling, lora_alpha, transfer_every, desired_bl, lrtt_rank, c_dw_min, c_desired_bl, lifetime, b_lifetime, lrtt_lr, batch_size, transfer_rank_schedule, transfer_ranks_per_step)
 
     # Run multiple times with different seeds in parallel
     seeds = [42 + run_idx * 100 for run_idx in range(N_RUNS_PER_TRIAL)]
@@ -451,10 +458,12 @@ def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True,
                 ("lora_alpha", ".2f"), ("transfer_every", "d"), ("desired_bl", "d"),
                 ("lrtt_rank", "d"), ("c_dw_min", ".5f"), ("c_desired_bl", "d"),
                 ("lifetime", ".1f"), ("b_lifetime", ".1f"), ("lrtt_lr", ".5f"),
-                ("batch_size", "d"),
+                ("batch_size", "d"), ("transfer_ranks_per_step", "d"),
             ]:
                 if key in p:
                     parts.append(f"{key}={p[key]:{fmt}},")
+            if "transfer_rank_schedule" in p:
+                parts.append(f"rank_sched={p['transfer_rank_schedule']},")
             msg = " ".join(parts).rstrip(",")
 
             # Add best trial info
