@@ -427,44 +427,68 @@ class LRTTSimulatorTile(SimulatorTile, Module):
     def _hook_tile_updates_fi(self) -> None:
         """Hook setup for forward_inject=True.
 
-        tile_a/tile_b: rescale d_input (remove α), use last_lr_eff from controller,
-                       then call orig_update for stochastic pulse update.
+        tile_a/tile_b: rescale d_input (remove α), cache values, and defer
+                       tile updates until both tiles' hooks have fired. This
+                       allows EMA statistics to be updated from autograd-cached
+                       values before computing lr_eff_a/b.
         tile_c: no-op (C frozen), handle transfer counter.
-
-        Note: auto_scale_mode != 'none' is not supported with forward_inject=True
-        because EMA cannot be updated without _ab_weight_update_lora().
         """
         ctrl = self.controller
         alpha = ctrl.lora_alpha
 
-        # Guard: auto_scale not supported in FI path
-        if ctrl.auto_scale_mode != "none":
-            raise ValueError(
-                f"auto_scale_mode='{ctrl.auto_scale_mode}' is not supported with "
-                f"forward_inject=True. Use auto_scale_mode='none' or forward_inject=False."
-            )
-
         def hooked_ab(tile, tile_name):
             def update_wrapper(x_input, d_input, *args, **kwargs):
-                # Remove α from gradient, move it to learning rate
                 d_rescaled = d_input / alpha
+                m_batch = x_input.shape[0]
 
-                # Use last_lr_eff_a/b from controller (set by fast_lr in 'none' mode)
-                lr_base = tile.get_learning_rate()
-                if ctrl._is_hardware_mode():
-                    lr_eff = 1.0
-                else:
-                    lr_eff = ctrl.last_lr_eff_a if tile_name == "tile_a" else ctrl.last_lr_eff_b
-
-                tile.set_learning_rate(lr_eff)
-                tile._orig_update(x_input, d_rescaled, *args, **kwargs)
-                tile.set_learning_rate(lr_base)
-
-                # Track update count
+                # Cache this tile's inputs (order-independent)
                 if tile_name == "tile_a":
+                    ctrl._fi_a_tile = tile
+                    ctrl._fi_a_x = x_input       # XB = B·x
+                    ctrl._fi_a_d = d_rescaled     # d (α removed)
+                    ctrl._fi_a_m_batch = m_batch
+                else:  # tile_b
+                    ctrl._fi_b_tile = tile
+                    ctrl._fi_b_x = x_input       # x
+                    ctrl._fi_b_d = d_rescaled     # DA = A^T·d (α removed)
+
+                # Once both tiles have cached, do EMA → lr_eff → update both
+                if hasattr(ctrl, '_fi_a_tile') and hasattr(ctrl, '_fi_b_tile'):
+                    # Compute lr_eff_a/b (mirroring _ab_weight_update_lora logic)
+                    if ctrl._is_hardware_mode():
+                        lr_eff_a = lr_eff_b = 1.0
+                    elif ctrl.auto_scale_mode == "none":
+                        lr_eff_a = lr_eff_b = ctrl.fast_lr
+                    else:
+                        ctrl._update_autoscale_ema(
+                            ctrl._fi_b_x, ctrl._fi_a_d,     # x, d
+                            ctrl._fi_a_x, ctrl._fi_b_d,     # XB, DA
+                            ctrl._fi_a_m_batch)
+                        lr_eff_a = ctrl.last_lr_eff_a
+                        lr_eff_b = ctrl.last_lr_eff_b
+                    # Store for correct_gradient_magnitudes / transfer LR
+                    ctrl.last_lr_eff_a = lr_eff_a
+                    ctrl.last_lr_eff_b = lr_eff_b
+
+                    # tile_a update
+                    lr_a_old = ctrl._fi_a_tile.get_learning_rate()
+                    ctrl._fi_a_tile.set_learning_rate(lr_eff_a)
+                    ctrl._fi_a_tile._orig_update(ctrl._fi_a_x, ctrl._fi_a_d)
+                    ctrl._fi_a_tile.set_learning_rate(lr_a_old)
                     ctrl.num_a_updates += 1
-                else:
-                    ctrl.num_b_updates += 1
+
+                    # tile_b update (skip if B frozen in orthogonal mode)
+                    if not ctrl._b_frozen:
+                        lr_b_old = ctrl._fi_b_tile.get_learning_rate()
+                        ctrl._fi_b_tile.set_learning_rate(lr_eff_b)
+                        ctrl._fi_b_tile._orig_update(ctrl._fi_b_x, ctrl._fi_b_d)
+                        ctrl._fi_b_tile.set_learning_rate(lr_b_old)
+                        ctrl.num_b_updates += 1
+
+                    # Clean up cached tensors
+                    del ctrl._fi_a_tile, ctrl._fi_a_x, ctrl._fi_a_d, ctrl._fi_a_m_batch
+                    del ctrl._fi_b_tile, ctrl._fi_b_x, ctrl._fi_b_d
+
                 return None
             return update_wrapper
 

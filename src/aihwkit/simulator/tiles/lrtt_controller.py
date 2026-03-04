@@ -762,6 +762,44 @@ class LRTTController:
             self.m_da = torch.tensor(0.0, device=device)
         self._autoscale_ema_initialized = True
 
+    def _update_autoscale_ema(
+        self, x: Tensor, d: Tensor, XB: Tensor, DA: Tensor, m_batch: int
+    ) -> None:
+        """Update EMA statistics and compute lr_eff_a/b for auto_scale_mode.
+
+        This is extracted from _ab_weight_update_lora so it can also be called
+        from the forward_inject=True hook path.
+
+        Args:
+            x: Input activations [batch, x_size]
+            d: Gradient w.r.t. output [batch, d_size]
+            XB: B·x projection [batch, rank]
+            DA: A^T·d projection [batch, rank]
+            m_batch: Batch size (for tau calculation)
+        """
+        tau = (1.0 - self.auto_momentum) / m_batch
+        self._lazy_init_ema(x.device)
+
+        if self.auto_scale_mode == "shared":
+            self.m_x = (1 - tau) * self.m_x + tau * x.abs().amax()
+            self.m_d = (1 - tau) * self.m_d + tau * d.abs().amax()
+            denom = self.m_x * self.m_d
+            fast_lr_t = x.new_tensor(self.fast_lr)
+            lr_eff = torch.where(denom > 0, fast_lr_t / denom, fast_lr_t).item()
+            self.last_lr_eff_a = lr_eff
+            self.last_lr_eff_b = lr_eff
+        elif self.auto_scale_mode == "separate":
+            self.m_x = (1 - tau) * self.m_x + tau * x.abs().amax()
+            self.m_d = (1 - tau) * self.m_d + tau * d.abs().amax()
+            self.m_xb = (1 - tau) * self.m_xb + tau * XB.abs().amax()
+            self.m_da = (1 - tau) * self.m_da + tau * DA.abs().amax()
+            denom_a = self.m_xb * self.m_d
+            fa = x.new_tensor(self.fast_lr * self.gran_a)
+            self.last_lr_eff_a = torch.where(denom_a > 0, fa / denom_a, fa).item()
+            denom_b = self.m_x * self.m_da
+            fb = x.new_tensor(self.fast_lr * self.gran_b)
+            self.last_lr_eff_b = torch.where(denom_b > 0, fb / denom_b, fb).item()
+
     def _ab_weight_update_lora(
         self,
         x: Tensor,
@@ -790,35 +828,14 @@ class LRTTController:
         m_batch = x.shape[0]
 
         if self._is_hardware_mode():
-            lr_eff_a = lr_eff_b = 1.0
+            self.last_lr_eff_a = self.last_lr_eff_b = 1.0
         elif self.auto_scale_mode == "none":
-            lr_eff_a = lr_eff_b = self.fast_lr
-        elif self.auto_scale_mode == "shared":
-            tau = (1.0 - self.auto_momentum) / m_batch
-            self._lazy_init_ema(x.device)
-            self.m_x = (1 - tau) * self.m_x + tau * x.abs().amax()
-            self.m_d = (1 - tau) * self.m_d + tau * d.abs().amax()
-            denom = self.m_x * self.m_d
-            fast_lr_t = x.new_tensor(self.fast_lr)
-            lr_eff_a = lr_eff_b = torch.where(denom > 0, fast_lr_t / denom, fast_lr_t).item()
-        elif self.auto_scale_mode == "separate":
-            tau = (1.0 - self.auto_momentum) / m_batch
-            self._lazy_init_ema(x.device)
-            self.m_x = (1 - tau) * self.m_x + tau * x.abs().amax()
-            self.m_d = (1 - tau) * self.m_d + tau * d.abs().amax()
-            self.m_xb = (1 - tau) * self.m_xb + tau * XB.abs().amax()
-            self.m_da = (1 - tau) * self.m_da + tau * DA.abs().amax()
-            denom_a = self.m_xb * self.m_d
-            fa = x.new_tensor(self.fast_lr * self.gran_a)
-            lr_eff_a = torch.where(denom_a > 0, fa / denom_a, fa).item()
-            denom_b = self.m_x * self.m_da
-            fb = x.new_tensor(self.fast_lr * self.gran_b)
-            lr_eff_b = torch.where(denom_b > 0, fb / denom_b, fb).item()
+            self.last_lr_eff_a = self.last_lr_eff_b = self.fast_lr
         else:
-            lr_eff_a = lr_eff_b = self.fast_lr
+            self._update_autoscale_ema(x, d, XB, DA, m_batch)
 
-        self.last_lr_eff_a = lr_eff_a   # Python float
-        self.last_lr_eff_b = lr_eff_b
+        lr_eff_a = self.last_lr_eff_a
+        lr_eff_b = self.last_lr_eff_b
 
         # === Debug Logging: x,d max values for A and B tiles ===
         self._ab_update_step += 1
