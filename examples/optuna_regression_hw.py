@@ -304,7 +304,7 @@ def _objective_inner(trial: Trial, search_space: dict = None) -> float:
         futures = {executor.submit(run_single_training, config, seed): seed for seed in seeds}
         for future in as_completed(futures):
             loss = future.result()
-            if loss < float('inf'):
+            if loss < float('inf') and not np.isnan(loss):
                 losses.append(loss)
 
     # Final cleanup
@@ -315,7 +315,7 @@ def _objective_inner(trial: Trial, search_space: dict = None) -> float:
     if losses:
         avg_loss = np.mean(losses)
         return -avg_loss
-    return -float('inf')
+    return -1e10  # Finite fallback (BoTorchSampler crashes on -inf/NaN)
 
 
 def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True, search_space: dict = None, max_concurrent: int = 25, n_jobs: int = 1):
