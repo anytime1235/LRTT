@@ -48,13 +48,13 @@ FIXED_A_X_SCALING = 0.2651
 FIXED_A_D_SCALING = 0.5359
 FIXED_B_D_SCALING = 0.7103
 FIXED_LORA_ALPHA = 1.0
-FIXED_TRANSFER_EVERY = 1000
+FIXED_TRANSFER_EVERY = 25
 FIXED_DESIRED_BL = 10
 FIXED_LRTT_RANK = 2
 FIXED_C_DW_MIN = 0.0008
 FIXED_C_DESIRED_BL = 31
-FIXED_A_LIFETIME_PER_BATCH = 11.72  # Batch 단위 lifetime (내부적으로 pulse 단위로 변환됨) - A device
-FIXED_B_LIFETIME_PER_BATCH = 10000000  # B device lifetime (사실상 decay 없음)
+FIXED_A_LIFETIME_PER_BATCH = 78.32  # Batch 단위 lifetime (내부적으로 pulse 단위로 변환됨) - A device
+FIXED_B_LIFETIME_PER_BATCH = 78.32  # B device lifetime (사실상 decay 없음)
 FIXED_LRTT_LR = 0.01   # Learning rate (used when use_manual_scaling=False)
 FIXED_BATCH_SIZE = 1   # Batch size for training
 
@@ -86,7 +86,7 @@ DEFAULT_SEARCH_SPACE = {
     'a_d': (0.0, 1.0),           # a_d_scaling range
     'b_d': (0.0, 1.0),           # b_d_scaling range
     'lora_alpha': (0.0, 30.0),   # lora_alpha range (transfer LR)
-    'transfer_every': (1, 30), # transfer_every range (int)
+    #'transfer_every': (1, 30), # transfer_every range (int)
     'desired_bl': (1, 10),      # desired_bl range (int, pulse train length)
     #'lrtt_rank': (1, 4),         # lrtt_rank range (int, log scale)
     #'c_dw_min': (0.0002, 0.2),  # c_dw_min range (float, log scale)
@@ -315,7 +315,7 @@ def _objective_inner(trial: Trial, search_space: dict = None) -> float:
     if losses:
         avg_loss = np.mean(losses)
         return -avg_loss
-    return -float('inf')
+    return -1e10  # Finite fallback (BoTorchSampler crashes on -inf/NaN)
 
 
 def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True, search_space: dict = None, max_concurrent: int = 25, n_jobs: int = 1):

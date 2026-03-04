@@ -315,7 +315,7 @@ def _objective_inner(trial: Trial, search_space: dict = None) -> float:
     if losses:
         avg_loss = np.mean(losses)
         return -avg_loss
-    return -float('inf')
+    return -1e10  # Finite fallback (BoTorchSampler crashes on -inf/NaN)
 
 
 def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True, search_space: dict = None, max_concurrent: int = 25, n_jobs: int = 1):
