@@ -1317,7 +1317,7 @@ class LRTTController:
             B_rows = B_rows - B_rows.mean(dim=1, keepdim=True)
 
         if self.transfer_normalize:
-            for k in range(self.rank):
+            for k in range(A_cols.shape[1]):
                 ak = A_cols[:, k]
                 bk = B_rows[k, :]
                 na = ak.norm()
