@@ -258,21 +258,22 @@ def _objective_inner(trial: Trial, search_space: dict = None) -> float:
     lrtt_lr = trial.suggest_float("lrtt_lr", *search_space['lrtt_lr'], log=True) if 'lrtt_lr' in search_space else trial.suggest_float("lrtt_lr", FIXED_LRTT_LR, FIXED_LRTT_LR, log=True)
     batch_size = trial.suggest_int("batch_size", *search_space['batch_size']) if 'batch_size' in search_space else trial.suggest_int("batch_size", FIXED_BATCH_SIZE, FIXED_BATCH_SIZE)
 
-    # Print trial parameters at start (skip scaling params if use_manual_scaling=False)
+    # Print all trial parameters at start
     params = []
     manual = ScratchExperimentConfig.use_manual_scaling
-    if manual and 'a_x' in search_space: params.append(f"a_x={a_x_scaling:.3f}")
-    if manual and 'a_d' in search_space: params.append(f"a_d={a_d_scaling:.3f}")
-    if manual and 'b_d' in search_space: params.append(f"b_d={b_d_scaling:.3f}")
-    if 'lora_alpha' in search_space: params.append(f"alpha={lora_alpha:.2f}")
-    if 'transfer_every' in search_space: params.append(f"t_every={transfer_every}")
-    if 'desired_bl' in search_space: params.append(f"bl={desired_bl}")
-    if 'lrtt_rank' in search_space: params.append(f"rank={lrtt_rank}")
-    if 'c_dw_min' in search_space: params.append(f"c_dw={c_dw_min:.5f}")
-    if 'c_desired_bl' in search_space: params.append(f"c_bl={c_desired_bl}")
-    if 'lifetime' in search_space: params.append(f"life={lifetime:.1f}")
-    if 'b_lifetime' in search_space: params.append(f"b_life={b_lifetime:.1f}")
-    if 'lrtt_lr' in search_space: params.append(f"lr={lrtt_lr:.5f}")
+    if manual: params.append(f"a_x={a_x_scaling:.3f}")
+    if manual: params.append(f"a_d={a_d_scaling:.3f}")
+    if manual: params.append(f"b_d={b_d_scaling:.3f}")
+    params.append(f"alpha={lora_alpha:.2f}")
+    params.append(f"t_every={transfer_every}")
+    params.append(f"bl={desired_bl}")
+    params.append(f"rank={lrtt_rank}")
+    params.append(f"c_dw={c_dw_min:.5f}")
+    params.append(f"c_bl={c_desired_bl}")
+    params.append(f"life={lifetime:.1f}")
+    params.append(f"b_life={b_lifetime:.1f}")
+    params.append(f"lr={lrtt_lr:.5f}")
+    if 'batch_size' in search_space: params.append(f"bs={batch_size}")
     print(f"[Trial {trial.number:3d}] START | {', '.join(params)}", flush=True)
 
     # Record config-level parameters as user_attrs (not in search space but important for reproducibility)
@@ -441,31 +442,17 @@ def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True,
     def print_callback(study, trial):
         if trial.value is not None and trial.value > -float('inf'):
             loss = -trial.value  # Convert back to positive loss
+            p = trial.params
             parts = [f"  Trial {trial.number:3d}: Loss={loss:.6f} |"]
-            if 'a_x_scaling' in trial.params:
-                parts.append(f"a_x={trial.params['a_x_scaling']:.3f},")
-            if 'a_d_scaling' in trial.params:
-                parts.append(f"a_d={trial.params['a_d_scaling']:.3f},")
-            if 'b_d_scaling' in trial.params:
-                parts.append(f"b_d={trial.params['b_d_scaling']:.3f},")
-            if 'lora_alpha' in trial.params:
-                parts.append(f"alpha={trial.params['lora_alpha']:.2f},")
-            if 'transfer_every' in trial.params:
-                parts.append(f"t_every={trial.params['transfer_every']},")
-            if 'desired_bl' in trial.params:
-                parts.append(f"bl={trial.params['desired_bl']},")
-            if 'lrtt_rank' in trial.params:
-                parts.append(f"rank={trial.params['lrtt_rank']},")
-            if 'c_dw_min' in trial.params:
-                parts.append(f"c_dw={trial.params['c_dw_min']:.5f},")
-            if 'c_desired_bl' in trial.params:
-                parts.append(f"c_bl={trial.params['c_desired_bl']},")
-            if 'lifetime' in trial.params:
-                parts.append(f"lifetime={trial.params['lifetime']:.1f},")
-            if 'b_lifetime' in trial.params:
-                parts.append(f"b_lifetime={trial.params['b_lifetime']:.1f},")
-            if 'lrtt_lr' in trial.params:
-                parts.append(f"lr={trial.params['lrtt_lr']:.5f}")
+            for key, fmt in [
+                ("a_x_scaling", ".3f"), ("a_d_scaling", ".3f"), ("b_d_scaling", ".3f"),
+                ("lora_alpha", ".2f"), ("transfer_every", "d"), ("desired_bl", "d"),
+                ("lrtt_rank", "d"), ("c_dw_min", ".5f"), ("c_desired_bl", "d"),
+                ("lifetime", ".1f"), ("b_lifetime", ".1f"), ("lrtt_lr", ".5f"),
+                ("batch_size", "d"),
+            ]:
+                if key in p:
+                    parts.append(f"{key}={p[key]:{fmt}},")
             msg = " ".join(parts).rstrip(",")
 
             # Add best trial info
