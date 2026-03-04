@@ -207,6 +207,8 @@ def run_single_training(config, seed: int) -> float:
         return final_val_loss
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return float('inf')
     finally:
         # Release semaphore
