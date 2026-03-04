@@ -49,7 +49,6 @@ Inline flags (edit directly in script):
     TE_WARMUP_STEPS = 0            # Steps before reaching target TE
     TE_WARMUP_SCHEDULE = []         # Warmup TE schedule list
     REINIT_GAIN = 1.0               # Reinitialization gain
-    DECAY_FACTOR = 1.0              # Decay factor for reinit
     TARGET_MODULES = [...]          # Modules to convert to analog
     TRAIN_SUBSET_SIZE = 0           # Training data subset (0 = full)
     EVAL_SUBSET_SIZE = 0            # Evaluation data subset (0 = full)
@@ -234,7 +233,6 @@ TE_WARMUP_SCHEDULE = []
 
 # Fixed LRTT parameters
 REINIT_GAIN = 1.0
-DECAY_FACTOR = 1.0
 TRANSFER_METHOD = "onehot"  # "onehot", "direct", or "set"
 AB_DEVICE = "6t1c"  # "6t1c", "fp", or "ideal"
 C_DEVICE = "softbounds"  # "softbounds" or "ideal"
@@ -493,7 +491,6 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, 
         fast_lr=fast_lr,
         reinit_gain=REINIT_GAIN,
         reinit_mode=reinit_mode,
-        decay_factor=DECAY_FACTOR,
         unit_cell_devices=[ab_device, ab_device, c_device],
         train_c_bias=False,        # C tile bias frozen
         mapping_ab=MappingParameter(

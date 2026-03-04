@@ -47,7 +47,6 @@ Inline flags (edit directly in script):
     TE_WARMUP_STEPS = 0            # Steps before reaching target TE
     TE_WARMUP_SCHEDULE = []         # Warmup TE schedule list
     REINIT_GAIN = 1.0               # Reinitialization gain
-    DECAY_FACTOR = 1.0              # Decay factor for reinit
     TARGET_MODULES = [...]          # Modules to convert to analog
     TRAIN_SUBSET_SIZE = 0           # Training data subset (0 = full)
     EVAL_SUBSET_SIZE = 0            # Evaluation data subset (0 = full)
@@ -232,7 +231,6 @@ TE_WARMUP_SCHEDULE = []
 
 # Fixed LRTT parameters
 REINIT_GAIN = 1.0
-DECAY_FACTOR = 1.0
 TRANSFER_METHOD = "onehot"  # "onehot", "direct", or "set"
 AB_DEVICE = "6t1c"  # "6t1c", "fp", or "ideal"
 C_DEVICE = "softbounds"  # "softbounds" or "ideal"
@@ -480,7 +478,6 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, 
         fast_lr=fast_lr,
         reinit_gain=REINIT_GAIN,
         reinit_mode=reinit_mode,
-        decay_factor=DECAY_FACTOR,
         unit_cell_devices=[ab_device, ab_device, c_device],
         train_c_bias=False,        # C tile bias frozen
         mapping_ab=MappingParameter(
@@ -1065,7 +1062,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         torch.cuda.empty_cache()
 
     # Hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 1e-5, 1e0, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 1e-4, 2e-2, log=True)
 
     # LRTT parameters: skip sweep if --no-transfer (A/B frozen, no transfer happens)
     if OPT_CONFIG['no_transfer']:
@@ -1076,11 +1073,11 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         fast_lr = 1.0            # fixed (no effect)
         tau_sec = 0.0            # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 1e-5, 1e0, log=True)
+        transfer_lr = trial.suggest_float('transfer_lr', 5e-4, 1e4, log=True)
         transfer_every = trial.suggest_int('transfer_every', 1, 500, log=True)
-        rank_exp = trial.suggest_int('rank_exp', 0, 5)
+        rank_exp = trial.suggest_int('rank_exp', 0, 7)
         rank = 2 ** rank_exp
-        fast_lr = trial.suggest_float('fast_lr', 1e-1, 1e1, log=True)
+        fast_lr = trial.suggest_float('fast_lr', 1e-1, 1e0, log=True)
         tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
 
     # C tile pulsed transfer params (only meaningful for onehot/direct)
