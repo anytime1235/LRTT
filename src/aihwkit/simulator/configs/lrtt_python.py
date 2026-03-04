@@ -55,6 +55,13 @@ class PythonLRTTDevice(_PrintableMixin):
     Used only for forward-injection scaling (y = Cx + α·ABx).
     No longer affects A/B learning rate — use fast_lr instead."""
 
+    fi_continuous_alpha: bool = False
+    """When True and forward_inject=True, override lora_alpha with transfer_lr
+    (or transfer_lr * lr_sgd when scale_transfer_lr=True) so that the forward
+    injection scaling α equals the effective transfer learning rate every step.
+    This ensures continuity: the α used in y = Cx + α·ABx matches the
+    lr used in C += lr·AB transfer."""
+
     fast_lr: float = 1.0
     """Fixed learning rate constant for A/B weight updates (replaces lr*lora_alpha).
     In auto_scale_mode='none': lr_eff = fast_lr.
@@ -517,6 +524,7 @@ class PythonLRTTDevice(_PrintableMixin):
             'transfer_method': self.transfer_method,
             'transfer_rank_schedule': self.transfer_rank_schedule,
             'transfer_ranks_per_step': self.transfer_ranks_per_step,
+            'fi_continuous_alpha': self.fi_continuous_alpha,
         }
         # Post-init settings (set on controller after creation)
         kwargs['_post_init'] = {

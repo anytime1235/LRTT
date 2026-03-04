@@ -308,6 +308,7 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             transfer_method=getattr(self.lrtt_config, "transfer_method", "onehot"),
             transfer_rank_schedule=getattr(self.lrtt_config, "transfer_rank_schedule", "all"),
             transfer_ranks_per_step=getattr(self.lrtt_config, "transfer_ranks_per_step", 1),
+            fi_continuous_alpha=getattr(self.lrtt_config, "fi_continuous_alpha", False),
         )
 
         # Apply post-init settings from config._post_init
@@ -434,10 +435,10 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         tile_c: no-op (C frozen), handle transfer counter.
         """
         ctrl = self.controller
-        alpha = ctrl.lora_alpha
 
         def hooked_ab(tile, tile_name):
             def update_wrapper(x_input, d_input, *args, **kwargs):
+                alpha = ctrl.effective_alpha
                 d_rescaled = d_input / alpha
                 m_batch = x_input.shape[0]
 
@@ -642,7 +643,7 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             # Full LRTT backward: C^T·d + α * B^T·(A^T·d)
             da = self.tile_a.backward(d_bf)  # [batch, rank]
             xg_ab = self.tile_b.backward(da)  # [batch, x_size]
-            x_grad = xg_c + self.lora_alpha * xg_ab
+            x_grad = xg_c + self.controller.effective_alpha * xg_ab
         else:
             # forward_inject=False: Upstream gets C-only gradient.
             # A,B updates are handled entirely by ab_weight_update() which does
@@ -721,7 +722,7 @@ class LRTTSimulatorTile(SimulatorTile, Module):
 
         # Compose effective weights
         W_eff = compose_lrtt_weights(
-            visible_weights, A_weights, B_weights, self.lora_alpha, self.rank
+            visible_weights, A_weights, B_weights, self.controller.effective_alpha, self.rank
         )
 
         return W_eff, None

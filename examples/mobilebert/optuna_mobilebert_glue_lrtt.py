@@ -79,6 +79,7 @@ All flags:
         --transfer-rank-schedule <str>  # Transfer rank schedule: all | round_robin (default: all)
         --transfer-ranks-per-step <int> # Ranks per transfer step in round_robin mode (default: 1)
         --no-scale-transfer-lr          # Disable scaling transfer LR by SGD LR
+        --fi-continuous-alpha           # Use transfer LR as forward-injection α (continuity)
 
 
 Inline flags (edit directly in script):
@@ -351,6 +352,7 @@ OPT_CONFIG = {
     'transfer_rank_schedule': 'all',
     'transfer_ranks_per_step': 1,
     'scale_transfer_lr': True,
+    'fi_continuous_alpha': False,
 }
 
 
@@ -423,6 +425,8 @@ def get_study_name_suffix():
         suffix += f"_trs-{OPT_CONFIG['transfer_rank_schedule']}-{OPT_CONFIG['transfer_ranks_per_step']}"
     if not OPT_CONFIG.get('scale_transfer_lr', True):
         suffix += "_no-stlr"
+    if OPT_CONFIG.get('fi_continuous_alpha', False):
+        suffix += "_fica"
 
     # Add lora target (always include for clarity)
     suffix += f"_{LORA_TARGET}"
@@ -550,7 +554,8 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, 
                        c_dw_min=0.001, c_desired_bl=None, out_noise=0.0, ab_weight_scaling_omega=0.0,
                        auto_scale_mode='none', correct_gradient_magnitudes=False,
                        transfer_rank_schedule='all', transfer_ranks_per_step=1,
-                       scale_transfer_lr=True):
+                       scale_transfer_lr=True,
+                       fi_continuous_alpha=False):
     """Create LRTT RPU configuration for analog layers."""
     ab_device = _create_ab_device(tau_sec=tau_sec)
     c_device = _create_c_device(dw_min=c_dw_min)
@@ -588,6 +593,7 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, 
     device_config.transfer_rank_schedule = transfer_rank_schedule
     device_config.transfer_ranks_per_step = transfer_ranks_per_step
     device_config.scale_transfer_lr = scale_transfer_lr
+    device_config.fi_continuous_alpha = fi_continuous_alpha
     if c_desired_bl is not None:
         device_config.c_desired_bl = c_desired_bl
 
@@ -740,6 +746,7 @@ def create_model(params):
             transfer_rank_schedule=OPT_CONFIG['transfer_rank_schedule'],
             transfer_ranks_per_step=OPT_CONFIG['transfer_ranks_per_step'],
             scale_transfer_lr=OPT_CONFIG['scale_transfer_lr'],
+            fi_continuous_alpha=OPT_CONFIG['fi_continuous_alpha'],
         )
 
         # Convert to analog with exclusions (only LRTT targets get converted)
@@ -1453,6 +1460,8 @@ def main():
                         help='Number of ranks per transfer step in round_robin mode (default: 1)')
     parser.add_argument('--no-scale-transfer-lr', action='store_true',
                         help='Disable scaling transfer LR by SGD LR (default: scale enabled)')
+    parser.add_argument('--fi-continuous-alpha', action='store_true',
+                        help='Use transfer LR as forward-injection α (continuity condition)')
     args = parser.parse_args()
 
     # Update global config
@@ -1485,6 +1494,7 @@ def main():
     OPT_CONFIG['transfer_rank_schedule'] = args.transfer_rank_schedule
     OPT_CONFIG['transfer_ranks_per_step'] = args.transfer_ranks_per_step
     OPT_CONFIG['scale_transfer_lr'] = not args.no_scale_transfer_lr
+    OPT_CONFIG['fi_continuous_alpha'] = args.fi_continuous_alpha
     ENCODER_ANALOG = args.encoder_analog
     EMBEDDING_ANALOG = args.embedding_analog
     HEAD_ANALOG = args.head_analog

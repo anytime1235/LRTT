@@ -76,6 +76,7 @@ class LRTTController:
         transfer_method: str = "onehot",  # "onehot", "direct", or "set"
         transfer_rank_schedule: str = "all",  # "all" or "round_robin"
         transfer_ranks_per_step: int = 1,  # ranks per transfer in round_robin mode
+        fi_continuous_alpha: bool = False,  # α = eff_transfer_lr when FI=True
         device: Optional[torch.device] = None,  # Explicit device to avoid get_weights()
         dtype: torch.dtype = torch.float32      # Explicit dtype
     ):
@@ -154,6 +155,7 @@ class LRTTController:
         self._last_lr_sgd = 1.0
         self.rank_chunk = rank_chunk or rank
         self.forward_inject_enabled = forward_inject
+        self.fi_continuous_alpha = fi_continuous_alpha
 
         # Dynamic TE state
         self.dynamic_te = dynamic_te
@@ -279,6 +281,22 @@ class LRTTController:
         # === Hardware Mode Flag ===
         self._hardware_mode: Optional[bool] = None
         """Cache for hardware mode detection (use_manual_scaling=True)."""
+
+    @property
+    def effective_alpha(self) -> float:
+        """Return the forward-injection scaling factor α.
+
+        When fi_continuous_alpha is True and forward injection is enabled,
+        α equals the effective transfer learning rate (transfer_lr, or
+        transfer_lr * lr_sgd when scale_transfer_lr is True).
+        Otherwise falls back to the static lora_alpha.
+        """
+        if self.fi_continuous_alpha and self.forward_inject_enabled:
+            lr_tr = self.transfer_lr
+            if self.scale_transfer_lr:
+                lr_tr *= self._last_lr_sgd
+            return lr_tr
+        return self.lora_alpha
 
     def _is_hardware_mode(self) -> bool:
         """Check if tiles are in hardware mode (use_manual_scaling=True).
@@ -1792,7 +1810,7 @@ class LRTTController:
         B_lr = self.tile_b.get_weights()[0]        # [rank, x_size]
 
         # WARNING: This creates a large intermediate tensor W_eff
-        W_eff = C_weights + self.lora_alpha * (A_lr @ B_lr)
+        W_eff = C_weights + self.effective_alpha * (A_lr @ B_lr)
 
         # Set temporary weights and forward
         original_weights = C_weights.clone()
@@ -1820,7 +1838,7 @@ class LRTTController:
         B_weights = self.tile_b.get_weights()[0][:self.rank, :]  # [rank, x_size]
 
         # Compute effective weight matrix: W_eff = C^T + α * B^T @ A^T
-        W_eff = C_weights.t() + self.lora_alpha * (B_weights.t() @ A_weights.t())
+        W_eff = C_weights.t() + self.effective_alpha * (B_weights.t() @ A_weights.t())
 
         # Ensure same device as input
         W_eff = W_eff.to(x.device)
@@ -1851,7 +1869,7 @@ class LRTTController:
         y_c = self.tile_c.forward(x_bf)    # [batch, d_size]
 
         # 3) Composition
-        y = y_c + self.lora_alpha * y_ab   # [batch, d_size]
+        y = y_c + self.effective_alpha * y_ab   # [batch, d_size]
 
         # 4) Output transpose
         return y.t() if out_trans else y
