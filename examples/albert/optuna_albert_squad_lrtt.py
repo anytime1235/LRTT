@@ -276,6 +276,9 @@ OPT_CONFIG = {
     'learn_out_scaling': True,  # If True, C tile out_scaling is trainable
     'auto_scale_mode': 'none',
     'correct_gradient_magnitudes': False,
+    'transfer_rank_schedule': 'all',
+    'transfer_ranks_per_step': 1,
+    'scale_transfer_lr': True,
 }
 
 
@@ -340,6 +343,10 @@ def get_study_name_suffix():
         suffix += f"_as-{OPT_CONFIG['auto_scale_mode']}"
     if OPT_CONFIG.get('correct_gradient_magnitudes', False):
         suffix += "_cgm"
+    if OPT_CONFIG.get('transfer_rank_schedule', 'all') != 'all':
+        suffix += f"_trs-{OPT_CONFIG['transfer_rank_schedule']}-{OPT_CONFIG['transfer_ranks_per_step']}"
+    if not OPT_CONFIG.get('scale_transfer_lr', True):
+        suffix += "_no-stlr"
 
     # Add lora target (always include for clarity)
     suffix += f"_{LORA_TARGET}"
@@ -466,7 +473,8 @@ def create_frozen_analog_config(lrtt_config=None, out_noise=0.0):
 def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, tau_sec=0.0,
                        c_dw_min=0.001, c_desired_bl=None, out_noise=0.0, ab_weight_scaling_omega=0.0,
                        auto_scale_mode='none', correct_gradient_magnitudes=False,
-                       transfer_rank_schedule='all', transfer_ranks_per_step=1):
+                       transfer_rank_schedule='all', transfer_ranks_per_step=1,
+                       scale_transfer_lr=True):
     """Create LRTT RPU configuration for analog layers."""
     ab_device = _create_ab_device(tau_sec=tau_sec)
     c_device = _create_c_device(dw_min=c_dw_min)
@@ -503,6 +511,7 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, 
     device_config.correct_gradient_magnitudes = correct_gradient_magnitudes
     device_config.transfer_rank_schedule = transfer_rank_schedule
     device_config.transfer_ranks_per_step = transfer_ranks_per_step
+    device_config.scale_transfer_lr = scale_transfer_lr
     if c_desired_bl is not None:
         device_config.c_desired_bl = c_desired_bl
 
@@ -647,8 +656,9 @@ def create_model(params):
             ab_weight_scaling_omega=params["ab_weight_scaling_omega"],
             auto_scale_mode=OPT_CONFIG['auto_scale_mode'],
             correct_gradient_magnitudes=OPT_CONFIG['correct_gradient_magnitudes'],
-            transfer_rank_schedule=params.get("transfer_rank_schedule", "all"),
-            transfer_ranks_per_step=int(params.get("transfer_ranks_per_step", 1)),
+            transfer_rank_schedule=OPT_CONFIG['transfer_rank_schedule'],
+            transfer_ranks_per_step=OPT_CONFIG['transfer_ranks_per_step'],
+            scale_transfer_lr=OPT_CONFIG['scale_transfer_lr'],
         )
 
         # Convert to analog with exclusions (only LRTT targets get converted)
@@ -1485,6 +1495,13 @@ def main():
                         help='Auto-scale mode for A/B LR normalization (default: none)')
     parser.add_argument('--correct-gradient-magnitudes', action='store_true',
                         help='Correct transfer magnitude by dividing by effective A/B LR')
+    parser.add_argument('--transfer-rank-schedule', type=str, default='all',
+                        choices=['all', 'round_robin'],
+                        help='Transfer rank schedule (default: all)')
+    parser.add_argument('--transfer-ranks-per-step', type=int, default=1,
+                        help='Number of ranks per transfer step in round_robin mode (default: 1)')
+    parser.add_argument('--no-scale-transfer-lr', action='store_true',
+                        help='Disable scaling transfer LR by SGD LR (default: scale enabled)')
     args = parser.parse_args()
 
     # Update global config
@@ -1511,6 +1528,9 @@ def main():
     OPT_CONFIG['learn_out_scaling'] = not args.no_learn_out_scaling
     OPT_CONFIG['auto_scale_mode'] = args.auto_scale_mode
     OPT_CONFIG['correct_gradient_magnitudes'] = args.correct_gradient_magnitudes
+    OPT_CONFIG['transfer_rank_schedule'] = args.transfer_rank_schedule
+    OPT_CONFIG['transfer_ranks_per_step'] = args.transfer_ranks_per_step
+    OPT_CONFIG['scale_transfer_lr'] = not args.no_scale_transfer_lr
     ENCODER_ANALOG = args.encoder_analog
     EMBEDDING_ANALOG = args.embedding_analog
     HEAD_ANALOG = args.head_analog
