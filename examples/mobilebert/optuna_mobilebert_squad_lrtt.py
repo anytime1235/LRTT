@@ -41,6 +41,9 @@ All flags:
         --backward-out-bound <float> # Backward pass output bound (default: 12.0)
         --auto-scale-mode <str>     # Auto-scale: none | shared | separate (default: none)
         --correct-gradient-magnitudes  # Correct transfer magnitude by dividing by effective A/B LR
+        --transfer-rank-schedule <str>  # Transfer rank schedule: all | round_robin (default: all)
+        --transfer-ranks-per-step <int> # Ranks per transfer step in round_robin mode (default: 1)
+        --no-scale-transfer-lr          # Disable scaling transfer LR by SGD LR
 
 
 Inline flags (edit directly in script):
