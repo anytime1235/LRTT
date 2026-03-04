@@ -90,7 +90,7 @@ class ScratchExperimentConfig:
 
     # LRTT configuration
     lrtt_rank = 2  # Rank-2 for 5x5 decomposition
-    lrtt_transfer_every = 9  # Transfer frequency from sweep
+    lrtt_transfer_every = 25  # Transfer frequency from sweep
     lora_alpha = 4.65  # From sweep top1
  
     # Reinit configuration
@@ -102,7 +102,7 @@ class ScratchExperimentConfig:
     #   "orthogonal_decay"- A unchanged, B=Random Orthogonal (frozen)
     #   "zero_orthogonal_zero" - A=0, B=0 every transfer (write noise varies)
     #   "zero_orthogonal_decay"- A unchanged, B=0 every transfer (write noise varies)
-    reinit_mode = "zero_orthogonal_decay"
+    reinit_mode = "hybrid"
 
     # A matrix initialization mode
     # Options: 'zero' (LoRA-style, ΔW=0 initially), 'kaiming' (random Kaiming initialization)
@@ -136,7 +136,7 @@ class ScratchExperimentConfig:
     # Transfer rank scheduling
     # 'all': Transfer all ranks at once (default)
     # 'round_robin': Cycle through ranks, transferring a subset each time
-    transfer_rank_schedule = 'all'
+    transfer_rank_schedule = 'round_robin'
     transfer_ranks_per_step = 1  # Number of ranks per transfer in round_robin mode
 
     # C device parameters (for pulsed transfer methods: onehot, direct)
@@ -554,8 +554,10 @@ class LRTTModel(nn.Module):
             # Transfer method for C update (set, onehot, or direct)
             transfer_method=config.transfer_method,
             # Transfer rank scheduling
-            transfer_rank_schedule=config.transfer_rank_schedule,
-            transfer_ranks_per_step=config.transfer_ranks_per_step,
+            **({
+                'transfer_rank_schedule': config.transfer_rank_schedule,
+                'transfer_ranks_per_step': config.transfer_ranks_per_step,
+            } if 'transfer_rank_schedule' in PythonLRTTDevice.__dataclass_fields__ else {}),
         )
 
         print(f"A initialization mode: {config.a_init_mode}")
