@@ -1206,6 +1206,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         best_train_loss = float('inf')
         train_loss_no_improvement = 0
 
+        _nan_detected = False
         for epoch in range(1, N_EPOCHS + 1):
             model.train()
             total_loss = 0.0
@@ -1224,6 +1225,10 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
                     start_positions=start_positions, end_positions=end_positions,
                 )
                 loss = outputs.loss / GRAD_ACCUM_STEPS
+                if torch.isnan(loss):
+                    tqdm.write(f"[Trial {trial.number}] NaN loss at epoch {epoch}. Aborting.")
+                    _nan_detected = True
+                    break
                 loss.backward()
 
                 if (micro_step + 1) % GRAD_ACCUM_STEPS == 0:
@@ -1235,6 +1240,9 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
                 total_loss += loss.item() * GRAD_ACCUM_STEPS
                 num_batches += 1
                 pbar.set_postfix(loss=f"{loss.item() * GRAD_ACCUM_STEPS:.4f}")
+
+            if _nan_detected:
+                break
 
             train_loss = total_loss / num_batches if num_batches > 0 else 0.0
 
