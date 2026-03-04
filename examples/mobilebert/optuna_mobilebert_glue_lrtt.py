@@ -61,6 +61,7 @@ All flags:
         --ab-device <str>           # A/B tile device: 6t1c | fp (default: 6t1c)
         --c-device <str>            # C tile device: softbounds | ideal (default: softbounds)
         --no-io-noise               # Disable IO out_noise (resolution kept)
+        --forward-inject            # Enable forward noise injection
         --is-perfect                # Use ideal FP forward/backward (no ADC/DAC/noise)
         --no-quant                  # Disable DAC/ADC quantization (inp_res/out_res)
         --lora-target <str>         # LoRA target: none | qonly | konly | vonly | qkv | qkvo | ffn | dense | allnobn | all (default: qkv)
@@ -301,6 +302,7 @@ TRANSFER_METHOD = "onehot"  # "onehot", "direct", or "set"
 AB_DEVICE = "6t1c"  # "6t1c", "fp", or "ideal"
 C_DEVICE = "softbounds"  # "softbounds" or "ideal"
 IO_NOISE = True  # If False, disable out_noise (resolution kept)
+FORWARD_INJECT = False  # If True, enable forward noise injection
 IS_PERFECT = False  # If True, forward/backward use ideal FP matmul (no ADC/DAC/noise)
 NO_QUANT = False  # If True, disable DAC/ADC quantization (inp_res/out_res → -1)
 ENCODER_ANALOG = False  # If True, non-LRTT encoder layers become frozen analog instead of digital
@@ -376,6 +378,9 @@ def get_study_name_suffix():
 
     if not IO_NOISE:
         suffix += "_noio"
+
+    if FORWARD_INJECT:
+        suffix += "_fwinj"
 
     if IS_PERFECT:
         suffix += "_perfect"
@@ -567,7 +572,7 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, 
     device_config.transfer_method = TRANSFER_METHOD
     device_config.update_mode = "lora"
     device_config.a_init_mode = "zero"
-    device_config.forward_inject = False
+    device_config.forward_inject = FORWARD_INJECT
     device_config.no_adc_ab_projection = OPT_CONFIG.get('no_adc_ab_proj', False)
     device_config.auto_scale_mode = auto_scale_mode
     device_config.correct_gradient_magnitudes = correct_gradient_magnitudes
@@ -1344,7 +1349,7 @@ def print_study_summary(study):
 # =============================================================================
 
 def main():
-    global TASK_NAME, NUM_LABELS, BATCH_SIZE, GRAD_ACCUM_STEPS, N_EPOCHS, WARMUP_STEPS, TRANSFER_METHOD, AB_DEVICE, C_DEVICE, IO_NOISE, IS_PERFECT, NO_QUANT, LORA_TARGET, HEAD_LAYER, ENCODER_ANALOG, EMBEDDING_ANALOG, HEAD_ANALOG, BACKWARD_INP_BOUND, BACKWARD_OUT_BOUND
+    global TASK_NAME, NUM_LABELS, BATCH_SIZE, GRAD_ACCUM_STEPS, N_EPOCHS, WARMUP_STEPS, TRANSFER_METHOD, AB_DEVICE, C_DEVICE, IO_NOISE, FORWARD_INJECT, IS_PERFECT, NO_QUANT, LORA_TARGET, HEAD_LAYER, ENCODER_ANALOG, EMBEDDING_ANALOG, HEAD_ANALOG, BACKWARD_INP_BOUND, BACKWARD_OUT_BOUND
 
     parser = argparse.ArgumentParser(description="Optuna sweep for MobileBERT GLUE LRTT")
     parser.add_argument('--task', type=str, default='sst2',
@@ -1385,6 +1390,8 @@ def main():
                         help=f'C tile device type (default: {C_DEVICE})')
     parser.add_argument('--no-io-noise', action='store_true',
                         help='Disable IO out_noise (resolution kept)')
+    parser.add_argument('--forward-inject', action='store_true',
+                        help='Enable forward noise injection')
     parser.add_argument('--is-perfect', action='store_true',
                         help='Use ideal FP forward/backward (no ADC/DAC/noise)')
     parser.add_argument('--no-quant', action='store_true',
@@ -1430,6 +1437,7 @@ def main():
     AB_DEVICE = args.ab_device
     C_DEVICE = args.c_device
     IO_NOISE = not args.no_io_noise
+    FORWARD_INJECT = args.forward_inject
     IS_PERFECT = args.is_perfect
     NO_QUANT = args.no_quant
     LORA_TARGET = args.lora_target
