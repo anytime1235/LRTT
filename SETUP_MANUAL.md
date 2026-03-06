@@ -15,7 +15,7 @@ NVIDIA 드라이버가 설치되어 있어야 합니다 (`nvidia-smi`로 확인)
 ```bash
 # 빌드 도구 + OpenBLAS
 apt update
-apt install -y build-essential cmake ninja-build python3-dev libopenblas-dev wget
+apt install -y build-essential cmake ninja-build python3-dev libopenblas-dev wget tmux
 
 # NVIDIA CUDA 12.1 Toolkit (이미 nvcc가 있으면 건너뛰기: nvcc --version)
 wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
@@ -118,7 +118,7 @@ uv pip install --system transformers==4.47.1 datasets==4.5.0 evaluate==0.4.6 \
 NVIDIA 드라이버(`nvidia-smi`)만 있으면 CUDA toolkit 유무와 관계없이 동작합니다.
 
 ```bash
-apt update && apt install -y build-essential cmake ninja-build python3-dev libopenblas-dev wget && \
+apt update && apt install -y build-essential cmake ninja-build python3-dev libopenblas-dev wget tmux && \
 wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb && \
 dpkg -i cuda-keyring_1.1-1_all.deb && apt update && apt install -y cuda-toolkit-12-1 && \
 export PATH=/usr/local/cuda-12.1/bin:$PATH && \
@@ -137,7 +137,7 @@ uv pip install --system transformers==4.47.1 datasets==4.5.0 evaluate==0.4.6 opt
 ### CPU 버전
 
 ```bash
-apt update && apt install -y build-essential cmake ninja-build python3-dev libopenblas-dev && \
+apt update && apt install -y build-essential cmake ninja-build python3-dev libopenblas-dev tmux && \
 pip install uv && \
 uv pip install --system scikit-build pybind11 mypy && \
 uv pip install --system torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cpu && \
@@ -221,6 +221,7 @@ LRTT_vit/
 | libopenblas-dev | - | apt, BLAS 라이브러리 |
 | build-essential | - | apt, GCC/G++ 컴파일러 |
 | ninja-build | - | apt, 빠른 빌드 시스템 |
+| tmux | - | apt, SSH 끊김 시 실험 보호 |
 | cuda-toolkit-12-1 | 12.1 | apt (NVIDIA repo), CUDA 없을 때만 |
 
 curl -fsSL https://claude.ai/install.sh | bash
