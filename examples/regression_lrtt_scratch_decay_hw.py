@@ -77,7 +77,7 @@ class ScratchExperimentConfig:
     complexity_levels = ['medium']
 
     # Training hyperparameters - LRTT scratch training
-    lrtt_epochs = 2000
+    lrtt_epochs = 25
     lrtt_batch_size = 1
     lrtt_patience = 7  # Allow a bit more training than fine-tuning
     lrtt_grad_clip = 2.0  # Conservative clipping
@@ -90,7 +90,7 @@ class ScratchExperimentConfig:
 
     # LRTT configuration
     lrtt_rank = 2  # Rank-2 for 5x5 decomposition
-    lrtt_transfer_every = 25  # Transfer frequency from sweep
+    lrtt_transfer_every = 10  # Transfer frequency from sweep
     lora_alpha = 4.65  # From sweep top1
  
     # Reinit configuration
@@ -102,7 +102,7 @@ class ScratchExperimentConfig:
     #   "orthogonal_decay"- A unchanged, B=Random Orthogonal (frozen)
     #   "zero_orthogonal_zero" - A=0, B=0 every transfer (write noise varies)
     #   "zero_orthogonal_decay"- A unchanged, B=0 every transfer (write noise varies)
-    reinit_mode = "hybrid"
+    reinit_mode = "decay"
 
     # A matrix initialization mode
     # Options: 'zero' (LoRA-style, ΔW=0 initially), 'kaiming' (random Kaiming initialization)
@@ -2581,6 +2581,8 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
             'C matrix minimum weight value',
             'C matrix maximum weight value',
             'C transfer method (set/onehot/direct)',
+            'Transfer rank schedule (all/round_robin)',
+            'Ranks per transfer step (round_robin mode)',
             'Training batch size',
             'Maximum training epochs',
             'Early stopping patience',
