@@ -49,11 +49,19 @@ rm -rf _skbuild build
 
 export GPU_ARCH=$(nvidia-smi --query-gpu=compute_cap -i 0 --format=csv,noheader | tr -d '.')
 export CMAKE_ARGS="-GNinja -DRPU_CUDA_ARCHITECTURES=$GPU_ARCH -DCMAKE_CUDA_ARCHITECTURES=$GPU_ARCH"
+export CMAKE_BUILD_PARALLEL_LEVEL=2   # CUDA 컴파일 메모리 부족 방지 (WSL2 등)
 USE_CUDA=1 pip install -e .
 USE_CUDA=1 python setup.py build_ext --inplace
 ```
 
 > **참고**: editable 빌드(`pip install -e .`)는 C++ 확장 빌드를 포함하므로 uv 대신 pip을 사용합니다. `build_ext --inplace`는 컴파일된 C++ 확장(.so)을 소스 트리에 배치하여 editable 모드에서 import할 수 있게 합니다.
+>
+> **WSL2 메모리 주의**: CUDA 파일 컴파일은 파일당 2-4GB RAM을 소비합니다. Ninja 기본 설정은 모든 CPU 코어를 병렬로 사용하므로, WSL2 등 메모리가 제한된 환경에서는 OOM으로 인해 WSL이 크래시할 수 있습니다. `CMAKE_BUILD_PARALLEL_LEVEL=2`로 병렬 수를 제한하세요.
+>
+> **Blackwell GPU (RTX 50xx, compute_120)**: CUDA toolkit 12.0에서는 `compute_120`을 지원하지 않아 빌드가 실패합니다. 이 경우 `GPU_ARCH=89`로 수동 지정하면 PTX JIT 호환으로 동작합니다:
+> ```bash
+> export CMAKE_ARGS="-GNinja -DRPU_CUDA_ARCHITECTURES=89 -DCMAKE_CUDA_ARCHITECTURES=89"
+> ```
 
 ### 1.4 Python 의존성 설치
 
@@ -156,6 +164,7 @@ uv pip install --system transformers==4.47.1 datasets==4.5.0 evaluate==0.4.6 opt
 
 | GPU 시리즈 | 아키텍처 | GPU_ARCH | PyTorch 설치 명령어 |
 |-----------|---------|----------|-------------------|
+| RTX 50xx, B200 | Blackwell | 120 (→ **89로 지정**) | CUDA 12.8+ 필요. toolkit이 12.0~12.6이면 `GPU_ARCH=89`로 수동 지정 (PTX JIT 호환) |
 | H100, H200 | Hopper | 90 | `uv pip install --system torch==2.3.1+cu121 torchvision==0.18.1+cu121 --index-url https://download.pytorch.org/whl/cu121` |
 | RTX 40xx, L40 | Ada Lovelace | 89 | `uv pip install --system torch==2.3.1+cu121 torchvision==0.18.1+cu121 --index-url https://download.pytorch.org/whl/cu121` |
 | A100, A30 | Ampere | 80 | `uv pip install --system torch==2.3.1+cu121 torchvision==0.18.1+cu121 --index-url https://download.pytorch.org/whl/cu121` |

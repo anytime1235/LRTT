@@ -72,6 +72,10 @@ public:
   void getAverageLogAbsMax(T &m_x, T &m_d, int m_batch) const;
   void getAbsMax(T &m_x, T &m_d, int m_batch) const;
 
+  /** Set neutral (pass-through) values for manual scaling mode.
+   *  scale_values = 1.0 (no x/d rebalancing), K_values = BL (fixed). */
+  void setNeutralValues(int m_batch, int BL);
+
 private:
   void initializeBuffers(int m_batch);
 

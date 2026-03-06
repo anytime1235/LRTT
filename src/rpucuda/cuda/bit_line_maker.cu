@@ -2023,9 +2023,19 @@ void BitLineMaker<T>::makeCounts(
       umh_ = RPU::make_unique<UpdateManagementHelper<T>>(context_, x_size_, d_size_);
     }
     if (um_if) {
-      umh_->computeKandScaleValues(
-          x_in, d_in, weight_granularity, lr, current_um_, current_ublm_, m_batch, x_trans, d_trans,
-          current_BL_, up.um_reg_scale, up.um_grad_scale);
+      if (up.use_manual_scaling && !up.update_management && !up.update_bl_management) {
+        // Manual scaling mode: run compute to initialize buffers, then
+        // overwrite with neutral values so pulse probabilities depend
+        // only on manual_x/d_scaling, not on lr or input magnitudes.
+        umh_->computeKandScaleValues(
+            x_in, d_in, weight_granularity, lr, true, true, m_batch, x_trans, d_trans,
+            current_BL_, up.um_reg_scale, up.um_grad_scale);
+        umh_->setNeutralValues(m_batch, current_BL_);
+      } else {
+        umh_->computeKandScaleValues(
+            x_in, d_in, weight_granularity, lr, current_um_, current_ublm_, m_batch, x_trans, d_trans,
+            current_BL_, up.um_reg_scale, up.um_grad_scale);
+      }
 
       scale_values = umh_->getScaleValueData();
       K_values = umh_->getKValueData();
