@@ -730,6 +730,17 @@ void UpdateManagementHelper<T>::computeKandScaleValues(
   }
 }
 
+template <typename T>
+void UpdateManagementHelper<T>::setNeutralValues(int m_batch, int BL) {
+  // For manual scaling: scale=1.0 means no x/d rebalancing,
+  // K=BL means fixed pulse count (same as desired_BL).
+  if (buffer_m_batch_ < m_batch) {
+    this->initializeBuffers(m_batch);
+  }
+  dev_scale_values_->setConst((T)1.0);
+  dev_K_values_->setConst(BL);
+}
+
 #define RPU_UMH_ITER_TEMPLATE(NUM_T, XITERT, DITERT)                                               \
   template void UpdateManagementHelper<NUM_T>::computeKandScaleValues(                             \
       XITERT, DITERT, const NUM_T, const NUM_T, const bool, const bool, const int, const bool,     \
