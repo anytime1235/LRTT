@@ -1,0 +1,557 @@
+{"op_code":0,"worker_id":"991c2bc5-20da-4ada-8085-b53167d69fb5-140413981949952","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"991c2bc5-20da-4ada-8085-b53167d69fb5-140413981949952","study_id":0,"datetime_start":"2026-03-04T06:17:48.015717"}
+{"op_code":5,"worker_id":"991c2bc5-20da-4ada-8085-b53167d69fb5-140413981949952","trial_id":0,"param_name":"learning_rate","param_value_internal":0.3543607348492588,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"991c2bc5-20da-4ada-8085-b53167d69fb5-140413981949952","trial_id":0,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"991c2bc5-20da-4ada-8085-b53167d69fb5-140413981949952","trial_id":0,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"991c2bc5-20da-4ada-8085-b53167d69fb5-140413981949952","trial_id":0,"step":1,"intermediate_value":9.891032358547294}
+{"op_code":8,"worker_id":"991c2bc5-20da-4ada-8085-b53167d69fb5-140413981949952","trial_id":0,"user_attr":{"train_loss_epoch_1":4.426006865566016}}
+{"op_code":7,"worker_id":"991c2bc5-20da-4ada-8085-b53167d69fb5-140413981949952","trial_id":0,"step":2,"intermediate_value":10.24919045360856}
+{"op_code":8,"worker_id":"991c2bc5-20da-4ada-8085-b53167d69fb5-140413981949952","trial_id":0,"user_attr":{"train_loss_epoch_2":4.355173921972756}}
+{"op_code":7,"worker_id":"991c2bc5-20da-4ada-8085-b53167d69fb5-140413981949952","trial_id":0,"step":3,"intermediate_value":10.24919045360856}
+{"op_code":8,"worker_id":"991c2bc5-20da-4ada-8085-b53167d69fb5-140413981949952","trial_id":0,"user_attr":{"train_loss_epoch_3":4.335645892884997}}
+{"op_code":7,"worker_id":"991c2bc5-20da-4ada-8085-b53167d69fb5-140413981949952","trial_id":0,"step":4,"intermediate_value":10.24919045360856}
+{"op_code":8,"worker_id":"991c2bc5-20da-4ada-8085-b53167d69fb5-140413981949952","trial_id":0,"user_attr":{"train_loss_epoch_4":4.300423396635185}}
+{"op_code":7,"worker_id":"991c2bc5-20da-4ada-8085-b53167d69fb5-140413981949952","trial_id":0,"step":5,"intermediate_value":10.24919045360856}
+{"op_code":8,"worker_id":"991c2bc5-20da-4ada-8085-b53167d69fb5-140413981949952","trial_id":0,"user_attr":{"train_loss_epoch_5":4.279386763327167}}
+{"op_code":6,"worker_id":"991c2bc5-20da-4ada-8085-b53167d69fb5-140413981949952","trial_id":0,"state":1,"values":[10.24919045360856],"datetime_complete":"2026-03-04T11:09:38.016666"}
+{"op_code":4,"worker_id":"991c2bc5-20da-4ada-8085-b53167d69fb5-140413981949952","study_id":0,"datetime_start":"2026-03-04T11:09:38.018589"}
+{"op_code":5,"worker_id":"991c2bc5-20da-4ada-8085-b53167d69fb5-140413981949952","trial_id":1,"param_name":"learning_rate","param_value_internal":0.07909103539334147,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"991c2bc5-20da-4ada-8085-b53167d69fb5-140413981949952","trial_id":1,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"991c2bc5-20da-4ada-8085-b53167d69fb5-140413981949952","trial_id":1,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":8,"worker_id":"991c2bc5-20da-4ada-8085-b53167d69fb5-140413981949952","trial_id":1,"user_attr":{"error":"NVML_SUCCESS == r INTERNAL ASSERT FAILED at \"../c10/cuda/CUDACachingAllocator.cpp\":844, please report a bug to PyTorch. "}}
+{"op_code":6,"worker_id":"991c2bc5-20da-4ada-8085-b53167d69fb5-140413981949952","trial_id":1,"state":3,"values":null,"datetime_complete":"2026-03-04T11:12:12.478903"}
+{"op_code":0,"worker_id":"1fcad12a-9c4d-4750-9631-21c719791710-139778601693184","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"1fcad12a-9c4d-4750-9631-21c719791710-139778601693184","study_id":0,"datetime_start":null,"state":4,"value":null,"values":null,"distributions":{},"params":{},"user_attrs":{},"system_attrs":{"fixed_params":{"learning_rate":0.07909103539334147,"ab_weight_scaling_omega":0.0,"min_lr_rate":0.0}},"intermediate_values":{}}
+{"op_code":6,"worker_id":"1fcad12a-9c4d-4750-9631-21c719791710-139778601693184","trial_id":2,"state":0,"values":null,"datetime_start":"2026-03-04T11:12:23.498762"}
+{"op_code":5,"worker_id":"1fcad12a-9c4d-4750-9631-21c719791710-139778601693184","trial_id":2,"param_name":"learning_rate","param_value_internal":0.07909103539334147,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"1fcad12a-9c4d-4750-9631-21c719791710-139778601693184","trial_id":2,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"1fcad12a-9c4d-4750-9631-21c719791710-139778601693184","trial_id":2,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"1fcad12a-9c4d-4750-9631-21c719791710-139778601693184","trial_id":2,"step":1,"intermediate_value":12.221992341078852}
+{"op_code":8,"worker_id":"1fcad12a-9c4d-4750-9631-21c719791710-139778601693184","trial_id":2,"user_attr":{"train_loss_epoch_1":4.035636960215994}}
+{"op_code":7,"worker_id":"1fcad12a-9c4d-4750-9631-21c719791710-139778601693184","trial_id":2,"step":2,"intermediate_value":12.221992341078852}
+{"op_code":8,"worker_id":"1fcad12a-9c4d-4750-9631-21c719791710-139778601693184","trial_id":2,"user_attr":{"train_loss_epoch_2":4.150061333977649}}
+{"op_code":7,"worker_id":"1fcad12a-9c4d-4750-9631-21c719791710-139778601693184","trial_id":2,"step":3,"intermediate_value":12.221992341078852}
+{"op_code":8,"worker_id":"1fcad12a-9c4d-4750-9631-21c719791710-139778601693184","trial_id":2,"user_attr":{"train_loss_epoch_3":4.132856244606582}}
+{"op_code":6,"worker_id":"1fcad12a-9c4d-4750-9631-21c719791710-139778601693184","trial_id":2,"state":1,"values":[12.221992341078852],"datetime_complete":"2026-03-04T13:40:08.476546"}
+{"op_code":0,"worker_id":"377d4699-2909-41ab-8482-7258b1cde8f4-140676730073088","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"377d4699-2909-41ab-8482-7258b1cde8f4-140676730073088","study_id":0,"datetime_start":"2026-03-04T13:40:19.410546"}
+{"op_code":5,"worker_id":"377d4699-2909-41ab-8482-7258b1cde8f4-140676730073088","trial_id":3,"param_name":"learning_rate","param_value_internal":1.7434408079571422e-05,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"377d4699-2909-41ab-8482-7258b1cde8f4-140676730073088","trial_id":3,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"377d4699-2909-41ab-8482-7258b1cde8f4-140676730073088","trial_id":3,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"377d4699-2909-41ab-8482-7258b1cde8f4-140676730073088","trial_id":3,"step":1,"intermediate_value":11.18716194217479}
+{"op_code":8,"worker_id":"377d4699-2909-41ab-8482-7258b1cde8f4-140676730073088","trial_id":3,"user_attr":{"train_loss_epoch_1":4.869820204918301}}
+{"op_code":7,"worker_id":"377d4699-2909-41ab-8482-7258b1cde8f4-140676730073088","trial_id":3,"step":2,"intermediate_value":13.89558927089947}
+{"op_code":8,"worker_id":"377d4699-2909-41ab-8482-7258b1cde8f4-140676730073088","trial_id":3,"user_attr":{"train_loss_epoch_2":3.9828732935070668}}
+{"op_code":7,"worker_id":"377d4699-2909-41ab-8482-7258b1cde8f4-140676730073088","trial_id":3,"step":3,"intermediate_value":16.194134220444884}
+{"op_code":8,"worker_id":"377d4699-2909-41ab-8482-7258b1cde8f4-140676730073088","trial_id":3,"user_attr":{"train_loss_epoch_3":3.7803483700687646}}
+{"op_code":7,"worker_id":"377d4699-2909-41ab-8482-7258b1cde8f4-140676730073088","trial_id":3,"step":4,"intermediate_value":18.27133137151799}
+{"op_code":8,"worker_id":"377d4699-2909-41ab-8482-7258b1cde8f4-140676730073088","trial_id":3,"user_attr":{"train_loss_epoch_4":3.6788612365722657}}
+{"op_code":7,"worker_id":"377d4699-2909-41ab-8482-7258b1cde8f4-140676730073088","trial_id":3,"step":5,"intermediate_value":18.905547841298578}
+{"op_code":8,"worker_id":"377d4699-2909-41ab-8482-7258b1cde8f4-140676730073088","trial_id":3,"user_attr":{"train_loss_epoch_5":3.6284895244329602}}
+{"op_code":6,"worker_id":"377d4699-2909-41ab-8482-7258b1cde8f4-140676730073088","trial_id":3,"state":1,"values":[18.905547841298578],"datetime_complete":"2026-03-04T19:20:43.682953"}
+{"op_code":4,"worker_id":"377d4699-2909-41ab-8482-7258b1cde8f4-140676730073088","study_id":0,"datetime_start":"2026-03-04T19:20:43.684939"}
+{"op_code":5,"worker_id":"377d4699-2909-41ab-8482-7258b1cde8f4-140676730073088","trial_id":4,"param_name":"learning_rate","param_value_internal":0.3131007867441337,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"377d4699-2909-41ab-8482-7258b1cde8f4-140676730073088","trial_id":4,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"377d4699-2909-41ab-8482-7258b1cde8f4-140676730073088","trial_id":4,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":8,"worker_id":"377d4699-2909-41ab-8482-7258b1cde8f4-140676730073088","trial_id":4,"user_attr":{"error":"NVML_SUCCESS == r INTERNAL ASSERT FAILED at \"../c10/cuda/CUDACachingAllocator.cpp\":844, please report a bug to PyTorch. "}}
+{"op_code":6,"worker_id":"377d4699-2909-41ab-8482-7258b1cde8f4-140676730073088","trial_id":4,"state":3,"values":null,"datetime_complete":"2026-03-04T19:21:49.470966"}
+{"op_code":0,"worker_id":"c822654e-a978-42a5-a0e7-b791bdac5f3b-139946581606400","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"c822654e-a978-42a5-a0e7-b791bdac5f3b-139946581606400","study_id":0,"datetime_start":null,"state":4,"value":null,"values":null,"distributions":{},"params":{},"user_attrs":{},"system_attrs":{"fixed_params":{"learning_rate":0.3131007867441337,"ab_weight_scaling_omega":0.0,"min_lr_rate":0.0}},"intermediate_values":{}}
+{"op_code":6,"worker_id":"c822654e-a978-42a5-a0e7-b791bdac5f3b-139946581606400","trial_id":5,"state":0,"values":null,"datetime_start":"2026-03-04T19:22:00.533284"}
+{"op_code":5,"worker_id":"c822654e-a978-42a5-a0e7-b791bdac5f3b-139946581606400","trial_id":5,"param_name":"learning_rate","param_value_internal":0.3131007867441337,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"c822654e-a978-42a5-a0e7-b791bdac5f3b-139946581606400","trial_id":5,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"c822654e-a978-42a5-a0e7-b791bdac5f3b-139946581606400","trial_id":5,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"c822654e-a978-42a5-a0e7-b791bdac5f3b-139946581606400","trial_id":5,"step":1,"intermediate_value":10.247621065442935}
+{"op_code":8,"worker_id":"c822654e-a978-42a5-a0e7-b791bdac5f3b-139946581606400","trial_id":5,"user_attr":{"train_loss_epoch_1":4.395137713381384}}
+{"op_code":7,"worker_id":"c822654e-a978-42a5-a0e7-b791bdac5f3b-139946581606400","trial_id":5,"step":2,"intermediate_value":10.247621065442935}
+{"op_code":8,"worker_id":"c822654e-a978-42a5-a0e7-b791bdac5f3b-139946581606400","trial_id":5,"user_attr":{"train_loss_epoch_2":4.339331601557288}}
+{"op_code":7,"worker_id":"c822654e-a978-42a5-a0e7-b791bdac5f3b-139946581606400","trial_id":5,"step":3,"intermediate_value":10.247621065442935}
+{"op_code":8,"worker_id":"c822654e-a978-42a5-a0e7-b791bdac5f3b-139946581606400","trial_id":5,"user_attr":{"train_loss_epoch_3":4.307124214852267}}
+{"op_code":7,"worker_id":"c822654e-a978-42a5-a0e7-b791bdac5f3b-139946581606400","trial_id":5,"step":4,"intermediate_value":10.441260053810668}
+{"op_code":8,"worker_id":"c822654e-a978-42a5-a0e7-b791bdac5f3b-139946581606400","trial_id":5,"user_attr":{"train_loss_epoch_4":4.289085101034299}}
+{"op_code":7,"worker_id":"c822654e-a978-42a5-a0e7-b791bdac5f3b-139946581606400","trial_id":5,"step":5,"intermediate_value":10.441260053810668}
+{"op_code":8,"worker_id":"c822654e-a978-42a5-a0e7-b791bdac5f3b-139946581606400","trial_id":5,"user_attr":{"train_loss_epoch_5":4.25567593054902}}
+{"op_code":6,"worker_id":"c822654e-a978-42a5-a0e7-b791bdac5f3b-139946581606400","trial_id":5,"state":1,"values":[10.441260053810668],"datetime_complete":"2026-03-04T23:25:50.742302"}
+{"op_code":0,"worker_id":"1c018184-3288-4305-9983-8ce03da5ceeb-140341324009472","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"1c018184-3288-4305-9983-8ce03da5ceeb-140341324009472","study_id":0,"datetime_start":"2026-03-04T23:26:01.809679"}
+{"op_code":5,"worker_id":"1c018184-3288-4305-9983-8ce03da5ceeb-140341324009472","trial_id":6,"param_name":"learning_rate","param_value_internal":0.40784416440449806,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"1c018184-3288-4305-9983-8ce03da5ceeb-140341324009472","trial_id":6,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"1c018184-3288-4305-9983-8ce03da5ceeb-140341324009472","trial_id":6,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"1c018184-3288-4305-9983-8ce03da5ceeb-140341324009472","trial_id":6,"step":1,"intermediate_value":2.300263637268742}
+{"op_code":8,"worker_id":"1c018184-3288-4305-9983-8ce03da5ceeb-140341324009472","trial_id":6,"user_attr":{"train_loss_epoch_1":5.798555248539622}}
+{"op_code":7,"worker_id":"1c018184-3288-4305-9983-8ce03da5ceeb-140341324009472","trial_id":6,"step":2,"intermediate_value":2.300263637268742}
+{"op_code":8,"worker_id":"1c018184-3288-4305-9983-8ce03da5ceeb-140341324009472","trial_id":6,"user_attr":{"train_loss_epoch_2":5.859293344285753}}
+{"op_code":7,"worker_id":"1c018184-3288-4305-9983-8ce03da5ceeb-140341324009472","trial_id":6,"step":3,"intermediate_value":2.300263637268742}
+{"op_code":8,"worker_id":"1c018184-3288-4305-9983-8ce03da5ceeb-140341324009472","trial_id":6,"user_attr":{"train_loss_epoch_3":5.862174290240942}}
+{"op_code":6,"worker_id":"1c018184-3288-4305-9983-8ce03da5ceeb-140341324009472","trial_id":6,"state":1,"values":[2.300263637268742],"datetime_complete":"2026-03-05T02:05:11.418610"}
+{"op_code":4,"worker_id":"1c018184-3288-4305-9983-8ce03da5ceeb-140341324009472","study_id":0,"datetime_start":"2026-03-05T02:05:11.420279"}
+{"op_code":5,"worker_id":"1c018184-3288-4305-9983-8ce03da5ceeb-140341324009472","trial_id":7,"param_name":"learning_rate","param_value_internal":0.2113203538770489,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"1c018184-3288-4305-9983-8ce03da5ceeb-140341324009472","trial_id":7,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"1c018184-3288-4305-9983-8ce03da5ceeb-140341324009472","trial_id":7,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":8,"worker_id":"1c018184-3288-4305-9983-8ce03da5ceeb-140341324009472","trial_id":7,"user_attr":{"error":"NVML_SUCCESS == r INTERNAL ASSERT FAILED at \"../c10/cuda/CUDACachingAllocator.cpp\":844, please report a bug to PyTorch. "}}
+{"op_code":6,"worker_id":"1c018184-3288-4305-9983-8ce03da5ceeb-140341324009472","trial_id":7,"state":3,"values":null,"datetime_complete":"2026-03-05T02:05:33.571120"}
+{"op_code":0,"worker_id":"aa448003-632b-40a9-aac3-c27965c8f9d2-140358812659712","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"aa448003-632b-40a9-aac3-c27965c8f9d2-140358812659712","study_id":0,"datetime_start":null,"state":4,"value":null,"values":null,"distributions":{},"params":{},"user_attrs":{},"system_attrs":{"fixed_params":{"learning_rate":0.2113203538770489,"ab_weight_scaling_omega":0.0,"min_lr_rate":0.0}},"intermediate_values":{}}
+{"op_code":6,"worker_id":"aa448003-632b-40a9-aac3-c27965c8f9d2-140358812659712","trial_id":8,"state":0,"values":null,"datetime_start":"2026-03-05T02:05:44.893352"}
+{"op_code":5,"worker_id":"aa448003-632b-40a9-aac3-c27965c8f9d2-140358812659712","trial_id":8,"param_name":"learning_rate","param_value_internal":0.2113203538770489,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"aa448003-632b-40a9-aac3-c27965c8f9d2-140358812659712","trial_id":8,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"aa448003-632b-40a9-aac3-c27965c8f9d2-140358812659712","trial_id":8,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"aa448003-632b-40a9-aac3-c27965c8f9d2-140358812659712","trial_id":8,"step":1,"intermediate_value":10.081587421027237}
+{"op_code":8,"worker_id":"aa448003-632b-40a9-aac3-c27965c8f9d2-140358812659712","trial_id":8,"user_attr":{"train_loss_epoch_1":4.322652513659657}}
+{"op_code":7,"worker_id":"aa448003-632b-40a9-aac3-c27965c8f9d2-140358812659712","trial_id":8,"step":2,"intermediate_value":10.378946807024485}
+{"op_code":8,"worker_id":"aa448003-632b-40a9-aac3-c27965c8f9d2-140358812659712","trial_id":8,"user_attr":{"train_loss_epoch_2":4.285330872381887}}
+{"op_code":7,"worker_id":"aa448003-632b-40a9-aac3-c27965c8f9d2-140358812659712","trial_id":8,"step":3,"intermediate_value":10.594862287782776}
+{"op_code":8,"worker_id":"aa448003-632b-40a9-aac3-c27965c8f9d2-140358812659712","trial_id":8,"user_attr":{"train_loss_epoch_3":4.262675389069857}}
+{"op_code":7,"worker_id":"aa448003-632b-40a9-aac3-c27965c8f9d2-140358812659712","trial_id":8,"step":4,"intermediate_value":10.757215192104617}
+{"op_code":8,"worker_id":"aa448003-632b-40a9-aac3-c27965c8f9d2-140358812659712","trial_id":8,"user_attr":{"train_loss_epoch_4":4.2401256911571705}}
+{"op_code":7,"worker_id":"aa448003-632b-40a9-aac3-c27965c8f9d2-140358812659712","trial_id":8,"step":5,"intermediate_value":10.757215192104617}
+{"op_code":8,"worker_id":"aa448003-632b-40a9-aac3-c27965c8f9d2-140358812659712","trial_id":8,"user_attr":{"train_loss_epoch_5":4.208235652377593}}
+{"op_code":6,"worker_id":"aa448003-632b-40a9-aac3-c27965c8f9d2-140358812659712","trial_id":8,"state":1,"values":[10.757215192104617],"datetime_complete":"2026-03-05T06:08:20.632289"}
+{"op_code":0,"worker_id":"8a9ca0d6-b1e6-49e5-8166-85cd17c21f0c-140624646860800","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"8a9ca0d6-b1e6-49e5-8166-85cd17c21f0c-140624646860800","study_id":0,"datetime_start":"2026-03-05T06:08:32.094471"}
+{"op_code":5,"worker_id":"8a9ca0d6-b1e6-49e5-8166-85cd17c21f0c-140624646860800","trial_id":9,"param_name":"learning_rate","param_value_internal":2.3530195588523906e-05,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"8a9ca0d6-b1e6-49e5-8166-85cd17c21f0c-140624646860800","trial_id":9,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"8a9ca0d6-b1e6-49e5-8166-85cd17c21f0c-140624646860800","trial_id":9,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"8a9ca0d6-b1e6-49e5-8166-85cd17c21f0c-140624646860800","trial_id":9,"step":1,"intermediate_value":12.32268397717845}
+{"op_code":8,"worker_id":"8a9ca0d6-b1e6-49e5-8166-85cd17c21f0c-140624646860800","trial_id":9,"user_attr":{"train_loss_epoch_1":4.694535505351658}}
+{"op_code":7,"worker_id":"8a9ca0d6-b1e6-49e5-8166-85cd17c21f0c-140624646860800","trial_id":9,"step":2,"intermediate_value":16.717957451231573}
+{"op_code":8,"worker_id":"8a9ca0d6-b1e6-49e5-8166-85cd17c21f0c-140624646860800","trial_id":9,"user_attr":{"train_loss_epoch_2":3.8286452787032297}}
+{"op_code":7,"worker_id":"8a9ca0d6-b1e6-49e5-8166-85cd17c21f0c-140624646860800","trial_id":9,"step":3,"intermediate_value":21.51247524445843}
+{"op_code":8,"worker_id":"8a9ca0d6-b1e6-49e5-8166-85cd17c21f0c-140624646860800","trial_id":9,"user_attr":{"train_loss_epoch_3":3.607082027729934}}
+{"op_code":7,"worker_id":"8a9ca0d6-b1e6-49e5-8166-85cd17c21f0c-140624646860800","trial_id":9,"step":4,"intermediate_value":24.890740082478175}
+{"op_code":8,"worker_id":"8a9ca0d6-b1e6-49e5-8166-85cd17c21f0c-140624646860800","trial_id":9,"user_attr":{"train_loss_epoch_4":3.464257719329379}}
+{"op_code":7,"worker_id":"8a9ca0d6-b1e6-49e5-8166-85cd17c21f0c-140624646860800","trial_id":9,"step":5,"intermediate_value":26.006802777345587}
+{"op_code":8,"worker_id":"8a9ca0d6-b1e6-49e5-8166-85cd17c21f0c-140624646860800","trial_id":9,"user_attr":{"train_loss_epoch_5":3.3907386609209262}}
+{"op_code":6,"worker_id":"8a9ca0d6-b1e6-49e5-8166-85cd17c21f0c-140624646860800","trial_id":9,"state":1,"values":[26.006802777345587],"datetime_complete":"2026-03-05T11:49:02.430224"}
+{"op_code":4,"worker_id":"8a9ca0d6-b1e6-49e5-8166-85cd17c21f0c-140624646860800","study_id":0,"datetime_start":"2026-03-05T11:49:02.432130"}
+{"op_code":5,"worker_id":"8a9ca0d6-b1e6-49e5-8166-85cd17c21f0c-140624646860800","trial_id":10,"param_name":"learning_rate","param_value_internal":9.893613921487372e-05,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"8a9ca0d6-b1e6-49e5-8166-85cd17c21f0c-140624646860800","trial_id":10,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"8a9ca0d6-b1e6-49e5-8166-85cd17c21f0c-140624646860800","trial_id":10,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":8,"worker_id":"8a9ca0d6-b1e6-49e5-8166-85cd17c21f0c-140624646860800","trial_id":10,"user_attr":{"error":"NVML_SUCCESS == r INTERNAL ASSERT FAILED at \"../c10/cuda/CUDACachingAllocator.cpp\":844, please report a bug to PyTorch. "}}
+{"op_code":6,"worker_id":"8a9ca0d6-b1e6-49e5-8166-85cd17c21f0c-140624646860800","trial_id":10,"state":3,"values":null,"datetime_complete":"2026-03-05T11:50:23.931776"}
+{"op_code":0,"worker_id":"0ca5fb68-0b23-4153-9742-3a8314136420-139931766419456","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"0ca5fb68-0b23-4153-9742-3a8314136420-139931766419456","study_id":0,"datetime_start":null,"state":4,"value":null,"values":null,"distributions":{},"params":{},"user_attrs":{},"system_attrs":{"fixed_params":{"learning_rate":9.893613921487372e-05,"ab_weight_scaling_omega":0.0,"min_lr_rate":0.0}},"intermediate_values":{}}
+{"op_code":6,"worker_id":"0ca5fb68-0b23-4153-9742-3a8314136420-139931766419456","trial_id":11,"state":0,"values":null,"datetime_start":"2026-03-05T11:50:35.383864"}
+{"op_code":5,"worker_id":"0ca5fb68-0b23-4153-9742-3a8314136420-139931766419456","trial_id":11,"param_name":"learning_rate","param_value_internal":9.893613921487372e-05,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"0ca5fb68-0b23-4153-9742-3a8314136420-139931766419456","trial_id":11,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"0ca5fb68-0b23-4153-9742-3a8314136420-139931766419456","trial_id":11,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"0ca5fb68-0b23-4153-9742-3a8314136420-139931766419456","trial_id":11,"step":1,"intermediate_value":39.18120309849309}
+{"op_code":8,"worker_id":"0ca5fb68-0b23-4153-9742-3a8314136420-139931766419456","trial_id":11,"user_attr":{"train_loss_epoch_1":3.8451109401059687}}
+{"op_code":7,"worker_id":"0ca5fb68-0b23-4153-9742-3a8314136420-139931766419456","trial_id":11,"step":2,"intermediate_value":50.29652207303877}
+{"op_code":8,"worker_id":"0ca5fb68-0b23-4153-9742-3a8314136420-139931766419456","trial_id":11,"user_attr":{"train_loss_epoch_2":2.678693082410813}}
+{"op_code":7,"worker_id":"0ca5fb68-0b23-4153-9742-3a8314136420-139931766419456","trial_id":11,"step":3,"intermediate_value":54.09311874943716}
+{"op_code":8,"worker_id":"0ca5fb68-0b23-4153-9742-3a8314136420-139931766419456","trial_id":11,"user_attr":{"train_loss_epoch_3":2.4619948232552002}}
+{"op_code":7,"worker_id":"0ca5fb68-0b23-4153-9742-3a8314136420-139931766419456","trial_id":11,"step":4,"intermediate_value":56.42888997880212}
+{"op_code":8,"worker_id":"0ca5fb68-0b23-4153-9742-3a8314136420-139931766419456","trial_id":11,"user_attr":{"train_loss_epoch_4":2.3650085885985557}}
+{"op_code":7,"worker_id":"0ca5fb68-0b23-4153-9742-3a8314136420-139931766419456","trial_id":11,"step":5,"intermediate_value":57.19605171375939}
+{"op_code":8,"worker_id":"0ca5fb68-0b23-4153-9742-3a8314136420-139931766419456","trial_id":11,"user_attr":{"train_loss_epoch_5":2.3241533319553924}}
+{"op_code":6,"worker_id":"0ca5fb68-0b23-4153-9742-3a8314136420-139931766419456","trial_id":11,"state":1,"values":[57.19605171375939],"datetime_complete":"2026-03-05T16:06:28.903381"}
+{"op_code":0,"worker_id":"b04f5468-fbbf-4e01-b73f-c73a73cabd70-140559746949120","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"b04f5468-fbbf-4e01-b73f-c73a73cabd70-140559746949120","study_id":0,"datetime_start":"2026-03-05T16:06:39.974071"}
+{"op_code":5,"worker_id":"b04f5468-fbbf-4e01-b73f-c73a73cabd70-140559746949120","trial_id":12,"param_name":"learning_rate","param_value_internal":4.170352903008304e-05,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"b04f5468-fbbf-4e01-b73f-c73a73cabd70-140559746949120","trial_id":12,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"b04f5468-fbbf-4e01-b73f-c73a73cabd70-140559746949120","trial_id":12,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"b04f5468-fbbf-4e01-b73f-c73a73cabd70-140559746949120","trial_id":12,"step":1,"intermediate_value":16.37327309699742}
+{"op_code":8,"worker_id":"b04f5468-fbbf-4e01-b73f-c73a73cabd70-140559746949120","trial_id":12,"user_attr":{"train_loss_epoch_1":4.383566151854145}}
+{"op_code":7,"worker_id":"b04f5468-fbbf-4e01-b73f-c73a73cabd70-140559746949120","trial_id":12,"step":2,"intermediate_value":30.579122396809556}
+{"op_code":8,"worker_id":"b04f5468-fbbf-4e01-b73f-c73a73cabd70-140559746949120","trial_id":12,"user_attr":{"train_loss_epoch_2":3.4641738759792915}}
+{"op_code":7,"worker_id":"b04f5468-fbbf-4e01-b73f-c73a73cabd70-140559746949120","trial_id":12,"step":3,"intermediate_value":38.85442306718165}
+{"op_code":8,"worker_id":"b04f5468-fbbf-4e01-b73f-c73a73cabd70-140559746949120","trial_id":12,"user_attr":{"train_loss_epoch_3":3.084237908024775}}
+{"op_code":7,"worker_id":"b04f5468-fbbf-4e01-b73f-c73a73cabd70-140559746949120","trial_id":12,"step":4,"intermediate_value":42.31978285879337}
+{"op_code":8,"worker_id":"b04f5468-fbbf-4e01-b73f-c73a73cabd70-140559746949120","trial_id":12,"user_attr":{"train_loss_epoch_4":2.8908007219877994}}
+{"op_code":7,"worker_id":"b04f5468-fbbf-4e01-b73f-c73a73cabd70-140559746949120","trial_id":12,"step":5,"intermediate_value":43.33654142193692}
+{"op_code":8,"worker_id":"b04f5468-fbbf-4e01-b73f-c73a73cabd70-140559746949120","trial_id":12,"user_attr":{"train_loss_epoch_5":2.8137155447548965}}
+{"op_code":6,"worker_id":"b04f5468-fbbf-4e01-b73f-c73a73cabd70-140559746949120","trial_id":12,"state":1,"values":[43.33654142193692],"datetime_complete":"2026-03-05T21:47:59.627330"}
+{"op_code":4,"worker_id":"b04f5468-fbbf-4e01-b73f-c73a73cabd70-140559746949120","study_id":0,"datetime_start":"2026-03-05T21:47:59.628992"}
+{"op_code":5,"worker_id":"b04f5468-fbbf-4e01-b73f-c73a73cabd70-140559746949120","trial_id":13,"param_name":"learning_rate","param_value_internal":1.099365412655857e-05,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"b04f5468-fbbf-4e01-b73f-c73a73cabd70-140559746949120","trial_id":13,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"b04f5468-fbbf-4e01-b73f-c73a73cabd70-140559746949120","trial_id":13,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":8,"worker_id":"b04f5468-fbbf-4e01-b73f-c73a73cabd70-140559746949120","trial_id":13,"user_attr":{"error":"NVML_SUCCESS == r INTERNAL ASSERT FAILED at \"../c10/cuda/CUDACachingAllocator.cpp\":844, please report a bug to PyTorch. "}}
+{"op_code":6,"worker_id":"b04f5468-fbbf-4e01-b73f-c73a73cabd70-140559746949120","trial_id":13,"state":3,"values":null,"datetime_complete":"2026-03-05T21:48:19.013855"}
+{"op_code":0,"worker_id":"f0bf33e0-0d41-4b5f-82b5-21bc89a23b9e-139770466750464","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"f0bf33e0-0d41-4b5f-82b5-21bc89a23b9e-139770466750464","study_id":0,"datetime_start":null,"state":4,"value":null,"values":null,"distributions":{},"params":{},"user_attrs":{},"system_attrs":{"fixed_params":{"learning_rate":1.099365412655857e-05,"ab_weight_scaling_omega":0.0,"min_lr_rate":0.0}},"intermediate_values":{}}
+{"op_code":6,"worker_id":"f0bf33e0-0d41-4b5f-82b5-21bc89a23b9e-139770466750464","trial_id":14,"state":0,"values":null,"datetime_start":"2026-03-05T21:48:30.207985"}
+{"op_code":5,"worker_id":"f0bf33e0-0d41-4b5f-82b5-21bc89a23b9e-139770466750464","trial_id":14,"param_name":"learning_rate","param_value_internal":1.099365412655857e-05,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"f0bf33e0-0d41-4b5f-82b5-21bc89a23b9e-139770466750464","trial_id":14,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"f0bf33e0-0d41-4b5f-82b5-21bc89a23b9e-139770466750464","trial_id":14,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"f0bf33e0-0d41-4b5f-82b5-21bc89a23b9e-139770466750464","trial_id":14,"step":1,"intermediate_value":10.516634182815503}
+{"op_code":8,"worker_id":"f0bf33e0-0d41-4b5f-82b5-21bc89a23b9e-139770466750464","trial_id":14,"user_attr":{"train_loss_epoch_1":5.0976874778573835}}
+{"op_code":7,"worker_id":"f0bf33e0-0d41-4b5f-82b5-21bc89a23b9e-139770466750464","trial_id":14,"step":2,"intermediate_value":11.675659930404162}
+{"op_code":8,"worker_id":"f0bf33e0-0d41-4b5f-82b5-21bc89a23b9e-139770466750464","trial_id":14,"user_attr":{"train_loss_epoch_2":4.256744625898647}}
+{"op_code":7,"worker_id":"f0bf33e0-0d41-4b5f-82b5-21bc89a23b9e-139770466750464","trial_id":14,"step":3,"intermediate_value":12.789469754835103}
+{"op_code":8,"worker_id":"f0bf33e0-0d41-4b5f-82b5-21bc89a23b9e-139770466750464","trial_id":14,"user_attr":{"train_loss_epoch_3":4.011165996204065}}
+{"op_code":7,"worker_id":"f0bf33e0-0d41-4b5f-82b5-21bc89a23b9e-139770466750464","trial_id":14,"step":4,"intermediate_value":13.568011353439278}
+{"op_code":8,"worker_id":"f0bf33e0-0d41-4b5f-82b5-21bc89a23b9e-139770466750464","trial_id":14,"user_attr":{"train_loss_epoch_4":3.912210345688342}}
+{"op_code":7,"worker_id":"f0bf33e0-0d41-4b5f-82b5-21bc89a23b9e-139770466750464","trial_id":14,"step":5,"intermediate_value":13.705583277929765}
+{"op_code":8,"worker_id":"f0bf33e0-0d41-4b5f-82b5-21bc89a23b9e-139770466750464","trial_id":14,"user_attr":{"train_loss_epoch_5":3.873101461221287}}
+{"op_code":6,"worker_id":"f0bf33e0-0d41-4b5f-82b5-21bc89a23b9e-139770466750464","trial_id":14,"state":1,"values":[13.705583277929765],"datetime_complete":"2026-03-06T02:04:46.668247"}
+{"op_code":0,"worker_id":"b1656710-f973-4c98-af30-ae89512f26ac-140415316148224","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"b1656710-f973-4c98-af30-ae89512f26ac-140415316148224","study_id":0,"datetime_start":"2026-03-06T02:04:57.904787"}
+{"op_code":5,"worker_id":"b1656710-f973-4c98-af30-ae89512f26ac-140415316148224","trial_id":15,"param_name":"learning_rate","param_value_internal":0.00012927449742442435,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"b1656710-f973-4c98-af30-ae89512f26ac-140415316148224","trial_id":15,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"b1656710-f973-4c98-af30-ae89512f26ac-140415316148224","trial_id":15,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"b1656710-f973-4c98-af30-ae89512f26ac-140415316148224","trial_id":15,"step":1,"intermediate_value":45.80421156644392}
+{"op_code":8,"worker_id":"b1656710-f973-4c98-af30-ae89512f26ac-140415316148224","trial_id":15,"user_attr":{"train_loss_epoch_1":3.647889766072839}}
+{"op_code":7,"worker_id":"b1656710-f973-4c98-af30-ae89512f26ac-140415316148224","trial_id":15,"step":2,"intermediate_value":54.05796315291371}
+{"op_code":8,"worker_id":"b1656710-f973-4c98-af30-ae89512f26ac-140415316148224","trial_id":15,"user_attr":{"train_loss_epoch_2":2.5320581203553734}}
+{"op_code":0,"worker_id":"52af5b29-f4fc-4e0a-b1a1-df463d1d33e3-140650134147072","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"52af5b29-f4fc-4e0a-b1a1-df463d1d33e3-140650134147072","study_id":0,"datetime_start":"2026-03-06T09:51:13.622280"}
+{"op_code":5,"worker_id":"52af5b29-f4fc-4e0a-b1a1-df463d1d33e3-140650134147072","trial_id":16,"param_name":"learning_rate","param_value_internal":0.00013248266078985023,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"52af5b29-f4fc-4e0a-b1a1-df463d1d33e3-140650134147072","trial_id":16,"param_name":"transfer_lr","param_value_internal":0.00028210151706540735,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"52af5b29-f4fc-4e0a-b1a1-df463d1d33e3-140650134147072","trial_id":16,"param_name":"transfer_every","param_value_internal":80.0,"distribution":"{\"name\": \"IntDistribution\", \"attributes\": {\"log\": true, \"step\": 1, \"low\": 1, \"high\": 500}}"}
+{"op_code":5,"worker_id":"52af5b29-f4fc-4e0a-b1a1-df463d1d33e3-140650134147072","trial_id":16,"param_name":"rank_exp","param_value_internal":1.0,"distribution":"{\"name\": \"IntDistribution\", \"attributes\": {\"log\": false, \"step\": 1, \"low\": 0, \"high\": 5}}"}
+{"op_code":5,"worker_id":"52af5b29-f4fc-4e0a-b1a1-df463d1d33e3-140650134147072","trial_id":16,"param_name":"fast_lr","param_value_internal":1.5707870035798328,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.1, \"high\": 10.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"52af5b29-f4fc-4e0a-b1a1-df463d1d33e3-140650134147072","trial_id":16,"param_name":"tau_sec","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"52af5b29-f4fc-4e0a-b1a1-df463d1d33e3-140650134147072","trial_id":16,"param_name":"c_dw_min","param_value_internal":0.001,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.001, \"high\": 0.001, \"log\": false}}"}
+{"op_code":5,"worker_id":"52af5b29-f4fc-4e0a-b1a1-df463d1d33e3-140650134147072","trial_id":16,"param_name":"c_desired_bl","param_value_internal":31.0,"distribution":"{\"name\": \"IntDistribution\", \"attributes\": {\"log\": false, \"step\": 1, \"low\": 31, \"high\": 31}}"}
+{"op_code":5,"worker_id":"52af5b29-f4fc-4e0a-b1a1-df463d1d33e3-140650134147072","trial_id":16,"param_name":"out_noise","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"52af5b29-f4fc-4e0a-b1a1-df463d1d33e3-140650134147072","trial_id":16,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"52af5b29-f4fc-4e0a-b1a1-df463d1d33e3-140650134147072","trial_id":16,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"52af5b29-f4fc-4e0a-b1a1-df463d1d33e3-140650134147072","trial_id":16,"param_name":"weight_decay","param_value_internal":6.468096132755967e-07,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-07, \"high\": 0.01, \"log\": true}}"}
+{"op_code":5,"worker_id":"52af5b29-f4fc-4e0a-b1a1-df463d1d33e3-140650134147072","trial_id":16,"param_name":"reinit_mode","param_value_internal":0,"distribution":"{\"name\": \"CategoricalDistribution\", \"attributes\": {\"choices\": [\"standard\", \"decay\", \"hybrid\"]}}"}
+{"op_code":6,"worker_id":"52af5b29-f4fc-4e0a-b1a1-df463d1d33e3-140650134147072","trial_id":16,"state":3,"values":null,"datetime_complete":"2026-03-06T09:52:13.089901"}
+{"op_code":0,"worker_id":"52fab9f8-e940-400e-a61b-b10b8dad6065-140674614931456","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"52fab9f8-e940-400e-a61b-b10b8dad6065-140674614931456","study_id":0,"datetime_start":"2026-03-06T09:54:01.439134"}
+{"op_code":5,"worker_id":"52fab9f8-e940-400e-a61b-b10b8dad6065-140674614931456","trial_id":17,"param_name":"learning_rate","param_value_internal":0.00013670596170325304,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"52fab9f8-e940-400e-a61b-b10b8dad6065-140674614931456","trial_id":17,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"52fab9f8-e940-400e-a61b-b10b8dad6065-140674614931456","trial_id":17,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"52fab9f8-e940-400e-a61b-b10b8dad6065-140674614931456","trial_id":17,"step":1,"intermediate_value":46.408833398850746}
+{"op_code":8,"worker_id":"52fab9f8-e940-400e-a61b-b10b8dad6065-140674614931456","trial_id":17,"user_attr":{"train_loss_epoch_1":3.6846196440823356}}
+{"op_code":7,"worker_id":"52fab9f8-e940-400e-a61b-b10b8dad6065-140674614931456","trial_id":17,"step":2,"intermediate_value":54.89952091927378}
+{"op_code":8,"worker_id":"52fab9f8-e940-400e-a61b-b10b8dad6065-140674614931456","trial_id":17,"user_attr":{"train_loss_epoch_2":2.508114694644442}}
+{"op_code":7,"worker_id":"52fab9f8-e940-400e-a61b-b10b8dad6065-140674614931456","trial_id":17,"step":3,"intermediate_value":59.73024262870257}
+{"op_code":8,"worker_id":"52fab9f8-e940-400e-a61b-b10b8dad6065-140674614931456","trial_id":17,"user_attr":{"train_loss_epoch_3":2.305613588576071}}
+{"op_code":7,"worker_id":"52fab9f8-e940-400e-a61b-b10b8dad6065-140674614931456","trial_id":17,"step":4,"intermediate_value":62.110864252415226}
+{"op_code":8,"worker_id":"52fab9f8-e940-400e-a61b-b10b8dad6065-140674614931456","trial_id":17,"user_attr":{"train_loss_epoch_4":2.193232070785874}}
+{"op_code":7,"worker_id":"52fab9f8-e940-400e-a61b-b10b8dad6065-140674614931456","trial_id":17,"step":5,"intermediate_value":62.88817081398319}
+{"op_code":8,"worker_id":"52fab9f8-e940-400e-a61b-b10b8dad6065-140674614931456","trial_id":17,"user_attr":{"train_loss_epoch_5":2.1381636050981556}}
+{"op_code":6,"worker_id":"52fab9f8-e940-400e-a61b-b10b8dad6065-140674614931456","trial_id":17,"state":1,"values":[62.88817081398319],"datetime_complete":"2026-03-06T15:36:01.763316"}
+{"op_code":4,"worker_id":"52fab9f8-e940-400e-a61b-b10b8dad6065-140674614931456","study_id":0,"datetime_start":"2026-03-06T15:36:01.766021"}
+{"op_code":5,"worker_id":"52fab9f8-e940-400e-a61b-b10b8dad6065-140674614931456","trial_id":18,"param_name":"learning_rate","param_value_internal":0.0002857016201810179,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"52fab9f8-e940-400e-a61b-b10b8dad6065-140674614931456","trial_id":18,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"52fab9f8-e940-400e-a61b-b10b8dad6065-140674614931456","trial_id":18,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":8,"worker_id":"52fab9f8-e940-400e-a61b-b10b8dad6065-140674614931456","trial_id":18,"user_attr":{"error":"NVML_SUCCESS == r INTERNAL ASSERT FAILED at \"../c10/cuda/CUDACachingAllocator.cpp\":844, please report a bug to PyTorch. "}}
+{"op_code":6,"worker_id":"52fab9f8-e940-400e-a61b-b10b8dad6065-140674614931456","trial_id":18,"state":3,"values":null,"datetime_complete":"2026-03-06T15:39:04.219842"}
+{"op_code":0,"worker_id":"f4024d19-7049-49b4-a607-2b4c2347b766-140026151604224","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"f4024d19-7049-49b4-a607-2b4c2347b766-140026151604224","study_id":0,"datetime_start":null,"state":4,"value":null,"values":null,"distributions":{},"params":{},"user_attrs":{},"system_attrs":{"fixed_params":{"learning_rate":0.0002857016201810179,"ab_weight_scaling_omega":0.0,"min_lr_rate":0.0}},"intermediate_values":{}}
+{"op_code":6,"worker_id":"f4024d19-7049-49b4-a607-2b4c2347b766-140026151604224","trial_id":19,"state":0,"values":null,"datetime_start":"2026-03-06T15:39:15.150491"}
+{"op_code":5,"worker_id":"f4024d19-7049-49b4-a607-2b4c2347b766-140026151604224","trial_id":19,"param_name":"learning_rate","param_value_internal":0.0002857016201810179,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"f4024d19-7049-49b4-a607-2b4c2347b766-140026151604224","trial_id":19,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"f4024d19-7049-49b4-a607-2b4c2347b766-140026151604224","trial_id":19,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"f4024d19-7049-49b4-a607-2b4c2347b766-140026151604224","trial_id":19,"step":1,"intermediate_value":56.449320213553165}
+{"op_code":8,"worker_id":"f4024d19-7049-49b4-a607-2b4c2347b766-140026151604224","trial_id":19,"user_attr":{"train_loss_epoch_1":3.2006251320796273}}
+{"op_code":7,"worker_id":"f4024d19-7049-49b4-a607-2b4c2347b766-140026151604224","trial_id":19,"step":2,"intermediate_value":67.13027990159927}
+{"op_code":8,"worker_id":"f4024d19-7049-49b4-a607-2b4c2347b766-140026151604224","trial_id":19,"user_attr":{"train_loss_epoch_2":2.12894747153179}}
+{"op_code":7,"worker_id":"f4024d19-7049-49b4-a607-2b4c2347b766-140026151604224","trial_id":19,"step":3,"intermediate_value":70.17837342482787}
+{"op_code":8,"worker_id":"f4024d19-7049-49b4-a607-2b4c2347b766-140026151604224","trial_id":19,"user_attr":{"train_loss_epoch_3":1.9121858374669838}}
+{"op_code":7,"worker_id":"f4024d19-7049-49b4-a607-2b4c2347b766-140026151604224","trial_id":19,"step":4,"intermediate_value":71.53168720808121}
+{"op_code":8,"worker_id":"f4024d19-7049-49b4-a607-2b4c2347b766-140026151604224","trial_id":19,"user_attr":{"train_loss_epoch_4":1.8354307955020357}}
+{"op_code":7,"worker_id":"f4024d19-7049-49b4-a607-2b4c2347b766-140026151604224","trial_id":19,"step":5,"intermediate_value":71.79594491194831}
+{"op_code":8,"worker_id":"f4024d19-7049-49b4-a607-2b4c2347b766-140026151604224","trial_id":19,"user_attr":{"train_loss_epoch_5":1.807757796391978}}
+{"op_code":6,"worker_id":"f4024d19-7049-49b4-a607-2b4c2347b766-140026151604224","trial_id":19,"state":1,"values":[71.79594491194831],"datetime_complete":"2026-03-06T19:55:58.792954"}
+{"op_code":0,"worker_id":"952e1bef-bd42-4af3-b32f-26a12c6425bb-140599267516416","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"952e1bef-bd42-4af3-b32f-26a12c6425bb-140599267516416","study_id":0,"datetime_start":"2026-03-06T19:56:10.110058"}
+{"op_code":5,"worker_id":"952e1bef-bd42-4af3-b32f-26a12c6425bb-140599267516416","trial_id":20,"param_name":"learning_rate","param_value_internal":0.00048440711967476815,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"952e1bef-bd42-4af3-b32f-26a12c6425bb-140599267516416","trial_id":20,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"952e1bef-bd42-4af3-b32f-26a12c6425bb-140599267516416","trial_id":20,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"952e1bef-bd42-4af3-b32f-26a12c6425bb-140599267516416","trial_id":20,"step":1,"intermediate_value":65.64454037131713}
+{"op_code":8,"worker_id":"952e1bef-bd42-4af3-b32f-26a12c6425bb-140599267516416","trial_id":20,"user_attr":{"train_loss_epoch_1":2.9100420212034934}}
+{"op_code":7,"worker_id":"952e1bef-bd42-4af3-b32f-26a12c6425bb-140599267516416","trial_id":20,"step":2,"intermediate_value":72.04630448683744}
+{"op_code":8,"worker_id":"952e1bef-bd42-4af3-b32f-26a12c6425bb-140599267516416","trial_id":20,"user_attr":{"train_loss_epoch_2":1.886492429645404}}
+{"op_code":7,"worker_id":"952e1bef-bd42-4af3-b32f-26a12c6425bb-140599267516416","trial_id":20,"step":3,"intermediate_value":73.67422179390772}
+{"op_code":8,"worker_id":"952e1bef-bd42-4af3-b32f-26a12c6425bb-140599267516416","trial_id":20,"user_attr":{"train_loss_epoch_3":1.7537525916810282}}
+{"op_code":7,"worker_id":"952e1bef-bd42-4af3-b32f-26a12c6425bb-140599267516416","trial_id":20,"step":4,"intermediate_value":74.39031114953606}
+{"op_code":8,"worker_id":"952e1bef-bd42-4af3-b32f-26a12c6425bb-140599267516416","trial_id":20,"user_attr":{"train_loss_epoch_4":1.69949514672039}}
+{"op_code":7,"worker_id":"952e1bef-bd42-4af3-b32f-26a12c6425bb-140599267516416","trial_id":20,"step":5,"intermediate_value":74.65015950858628}
+{"op_code":8,"worker_id":"952e1bef-bd42-4af3-b32f-26a12c6425bb-140599267516416","trial_id":20,"user_attr":{"train_loss_epoch_5":1.676124851490424}}
+{"op_code":6,"worker_id":"952e1bef-bd42-4af3-b32f-26a12c6425bb-140599267516416","trial_id":20,"state":1,"values":[74.65015950858628],"datetime_complete":"2026-03-07T01:33:14.794333"}
+{"op_code":4,"worker_id":"952e1bef-bd42-4af3-b32f-26a12c6425bb-140599267516416","study_id":0,"datetime_start":"2026-03-07T01:33:14.796140"}
+{"op_code":5,"worker_id":"952e1bef-bd42-4af3-b32f-26a12c6425bb-140599267516416","trial_id":21,"param_name":"learning_rate","param_value_internal":0.0006185514421820798,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"952e1bef-bd42-4af3-b32f-26a12c6425bb-140599267516416","trial_id":21,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"952e1bef-bd42-4af3-b32f-26a12c6425bb-140599267516416","trial_id":21,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":8,"worker_id":"952e1bef-bd42-4af3-b32f-26a12c6425bb-140599267516416","trial_id":21,"user_attr":{"error":"NVML_SUCCESS == r INTERNAL ASSERT FAILED at \"../c10/cuda/CUDACachingAllocator.cpp\":844, please report a bug to PyTorch. "}}
+{"op_code":6,"worker_id":"952e1bef-bd42-4af3-b32f-26a12c6425bb-140599267516416","trial_id":21,"state":3,"values":null,"datetime_complete":"2026-03-07T01:36:23.446868"}
+{"op_code":0,"worker_id":"d5102e4f-d5fb-4d43-83ee-eea82aa3c11e-140445490438144","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"d5102e4f-d5fb-4d43-83ee-eea82aa3c11e-140445490438144","study_id":0,"datetime_start":null,"state":4,"value":null,"values":null,"distributions":{},"params":{},"user_attrs":{},"system_attrs":{"fixed_params":{"learning_rate":0.0006185514421820798,"ab_weight_scaling_omega":0.0,"min_lr_rate":0.0}},"intermediate_values":{}}
+{"op_code":6,"worker_id":"d5102e4f-d5fb-4d43-83ee-eea82aa3c11e-140445490438144","trial_id":22,"state":0,"values":null,"datetime_start":"2026-03-07T01:36:34.118475"}
+{"op_code":5,"worker_id":"d5102e4f-d5fb-4d43-83ee-eea82aa3c11e-140445490438144","trial_id":22,"param_name":"learning_rate","param_value_internal":0.0006185514421820798,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"d5102e4f-d5fb-4d43-83ee-eea82aa3c11e-140445490438144","trial_id":22,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"d5102e4f-d5fb-4d43-83ee-eea82aa3c11e-140445490438144","trial_id":22,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"d5102e4f-d5fb-4d43-83ee-eea82aa3c11e-140445490438144","trial_id":22,"step":1,"intermediate_value":68.47241505547555}
+{"op_code":8,"worker_id":"d5102e4f-d5fb-4d43-83ee-eea82aa3c11e-140445490438144","trial_id":22,"user_attr":{"train_loss_epoch_1":2.7712915497247557}}
+{"op_code":7,"worker_id":"d5102e4f-d5fb-4d43-83ee-eea82aa3c11e-140445490438144","trial_id":22,"step":2,"intermediate_value":72.92199331542997}
+{"op_code":8,"worker_id":"d5102e4f-d5fb-4d43-83ee-eea82aa3c11e-140445490438144","trial_id":22,"user_attr":{"train_loss_epoch_2":1.8114585005904187}}
+{"op_code":7,"worker_id":"d5102e4f-d5fb-4d43-83ee-eea82aa3c11e-140445490438144","trial_id":22,"step":3,"intermediate_value":74.63110818255521}
+{"op_code":8,"worker_id":"d5102e4f-d5fb-4d43-83ee-eea82aa3c11e-140445490438144","trial_id":22,"user_attr":{"train_loss_epoch_3":1.700999825086074}}
+{"op_code":7,"worker_id":"d5102e4f-d5fb-4d43-83ee-eea82aa3c11e-140445490438144","trial_id":22,"step":4,"intermediate_value":75.16919429198482}
+{"op_code":8,"worker_id":"d5102e4f-d5fb-4d43-83ee-eea82aa3c11e-140445490438144","trial_id":22,"user_attr":{"train_loss_epoch_4":1.6523751560573365}}
+{"op_code":7,"worker_id":"d5102e4f-d5fb-4d43-83ee-eea82aa3c11e-140445490438144","trial_id":22,"step":5,"intermediate_value":75.63550376453342}
+{"op_code":8,"worker_id":"d5102e4f-d5fb-4d43-83ee-eea82aa3c11e-140445490438144","trial_id":22,"user_attr":{"train_loss_epoch_5":1.6329318262852768}}
+{"op_code":6,"worker_id":"d5102e4f-d5fb-4d43-83ee-eea82aa3c11e-140445490438144","trial_id":22,"state":1,"values":[75.63550376453342],"datetime_complete":"2026-03-07T05:52:03.187468"}
+{"op_code":0,"worker_id":"6f7e16e8-2a27-4194-ac95-4c7e1a1eb2e2-139856263217152","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"6f7e16e8-2a27-4194-ac95-4c7e1a1eb2e2-139856263217152","study_id":0,"datetime_start":"2026-03-07T05:52:13.963967"}
+{"op_code":5,"worker_id":"6f7e16e8-2a27-4194-ac95-4c7e1a1eb2e2-139856263217152","trial_id":23,"param_name":"learning_rate","param_value_internal":0.0006199231875105,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"6f7e16e8-2a27-4194-ac95-4c7e1a1eb2e2-139856263217152","trial_id":23,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"6f7e16e8-2a27-4194-ac95-4c7e1a1eb2e2-139856263217152","trial_id":23,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"6f7e16e8-2a27-4194-ac95-4c7e1a1eb2e2-139856263217152","trial_id":23,"step":1,"intermediate_value":68.71098799278417}
+{"op_code":8,"worker_id":"6f7e16e8-2a27-4194-ac95-4c7e1a1eb2e2-139856263217152","trial_id":23,"user_attr":{"train_loss_epoch_1":2.7752268976635404}}
+{"op_code":7,"worker_id":"6f7e16e8-2a27-4194-ac95-4c7e1a1eb2e2-139856263217152","trial_id":23,"step":2,"intermediate_value":73.49046160518195}
+{"op_code":8,"worker_id":"6f7e16e8-2a27-4194-ac95-4c7e1a1eb2e2-139856263217152","trial_id":23,"user_attr":{"train_loss_epoch_2":1.809253978018515}}
+{"op_code":7,"worker_id":"6f7e16e8-2a27-4194-ac95-4c7e1a1eb2e2-139856263217152","trial_id":23,"step":3,"intermediate_value":74.84366076907486}
+{"op_code":8,"worker_id":"6f7e16e8-2a27-4194-ac95-4c7e1a1eb2e2-139856263217152","trial_id":23,"user_attr":{"train_loss_epoch_3":1.7007962623585853}}
+{"op_code":7,"worker_id":"6f7e16e8-2a27-4194-ac95-4c7e1a1eb2e2-139856263217152","trial_id":23,"step":4,"intermediate_value":75.46663450305569}
+{"op_code":8,"worker_id":"6f7e16e8-2a27-4194-ac95-4c7e1a1eb2e2-139856263217152","trial_id":23,"user_attr":{"train_loss_epoch_4":1.6530757231440971}}
+{"op_code":7,"worker_id":"6f7e16e8-2a27-4194-ac95-4c7e1a1eb2e2-139856263217152","trial_id":23,"step":5,"intermediate_value":75.6209625069144}
+{"op_code":8,"worker_id":"6f7e16e8-2a27-4194-ac95-4c7e1a1eb2e2-139856263217152","trial_id":23,"user_attr":{"train_loss_epoch_5":1.6306552507689975}}
+{"op_code":6,"worker_id":"6f7e16e8-2a27-4194-ac95-4c7e1a1eb2e2-139856263217152","trial_id":23,"state":1,"values":[75.6209625069144],"datetime_complete":"2026-03-07T11:27:11.024721"}
+{"op_code":4,"worker_id":"6f7e16e8-2a27-4194-ac95-4c7e1a1eb2e2-139856263217152","study_id":0,"datetime_start":"2026-03-07T11:27:11.072476"}
+{"op_code":5,"worker_id":"6f7e16e8-2a27-4194-ac95-4c7e1a1eb2e2-139856263217152","trial_id":24,"param_name":"learning_rate","param_value_internal":0.0006311450133563366,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"6f7e16e8-2a27-4194-ac95-4c7e1a1eb2e2-139856263217152","trial_id":24,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"6f7e16e8-2a27-4194-ac95-4c7e1a1eb2e2-139856263217152","trial_id":24,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":8,"worker_id":"6f7e16e8-2a27-4194-ac95-4c7e1a1eb2e2-139856263217152","trial_id":24,"user_attr":{"error":"NVML_SUCCESS == r INTERNAL ASSERT FAILED at \"../c10/cuda/CUDACachingAllocator.cpp\":844, please report a bug to PyTorch. "}}
+{"op_code":6,"worker_id":"6f7e16e8-2a27-4194-ac95-4c7e1a1eb2e2-139856263217152","trial_id":24,"state":3,"values":null,"datetime_complete":"2026-03-07T11:30:17.159875"}
+{"op_code":0,"worker_id":"d64ac376-c272-44ef-ab90-cb1ddf00ff5b-140635926728704","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"d64ac376-c272-44ef-ab90-cb1ddf00ff5b-140635926728704","study_id":0,"datetime_start":null,"state":4,"value":null,"values":null,"distributions":{},"params":{},"user_attrs":{},"system_attrs":{"fixed_params":{"learning_rate":0.0006311450133563366,"ab_weight_scaling_omega":0.0,"min_lr_rate":0.0}},"intermediate_values":{}}
+{"op_code":6,"worker_id":"d64ac376-c272-44ef-ab90-cb1ddf00ff5b-140635926728704","trial_id":25,"state":0,"values":null,"datetime_start":"2026-03-07T11:30:27.992569"}
+{"op_code":5,"worker_id":"d64ac376-c272-44ef-ab90-cb1ddf00ff5b-140635926728704","trial_id":25,"param_name":"learning_rate","param_value_internal":0.0006311450133563366,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"d64ac376-c272-44ef-ab90-cb1ddf00ff5b-140635926728704","trial_id":25,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"d64ac376-c272-44ef-ab90-cb1ddf00ff5b-140635926728704","trial_id":25,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"d64ac376-c272-44ef-ab90-cb1ddf00ff5b-140635926728704","trial_id":25,"step":1,"intermediate_value":68.65891751999703}
+{"op_code":8,"worker_id":"d64ac376-c272-44ef-ab90-cb1ddf00ff5b-140635926728704","trial_id":25,"user_attr":{"train_loss_epoch_1":2.7615423873369855}}
+{"op_code":7,"worker_id":"d64ac376-c272-44ef-ab90-cb1ddf00ff5b-140635926728704","trial_id":25,"step":2,"intermediate_value":73.0494452030189}
+{"op_code":8,"worker_id":"d64ac376-c272-44ef-ab90-cb1ddf00ff5b-140635926728704","trial_id":25,"user_attr":{"train_loss_epoch_2":1.8068133181722936}}
+{"op_code":7,"worker_id":"d64ac376-c272-44ef-ab90-cb1ddf00ff5b-140635926728704","trial_id":25,"step":3,"intermediate_value":74.57929844240056}
+{"op_code":8,"worker_id":"d64ac376-c272-44ef-ab90-cb1ddf00ff5b-140635926728704","trial_id":25,"user_attr":{"train_loss_epoch_3":1.697681072395518}}
+{"op_code":7,"worker_id":"d64ac376-c272-44ef-ab90-cb1ddf00ff5b-140635926728704","trial_id":25,"step":4,"intermediate_value":75.32297442691296}
+{"op_code":8,"worker_id":"d64ac376-c272-44ef-ab90-cb1ddf00ff5b-140635926728704","trial_id":25,"user_attr":{"train_loss_epoch_4":1.6494498065765972}}
+{"op_code":7,"worker_id":"d64ac376-c272-44ef-ab90-cb1ddf00ff5b-140635926728704","trial_id":25,"step":5,"intermediate_value":75.60368965234765}
+{"op_code":8,"worker_id":"d64ac376-c272-44ef-ab90-cb1ddf00ff5b-140635926728704","trial_id":25,"user_attr":{"train_loss_epoch_5":1.6300289148591534}}
+{"op_code":6,"worker_id":"d64ac376-c272-44ef-ab90-cb1ddf00ff5b-140635926728704","trial_id":25,"state":1,"values":[75.60368965234765],"datetime_complete":"2026-03-07T15:46:02.671674"}
+{"op_code":0,"worker_id":"e234b16f-9f8e-4c2c-abad-6bf77bd73172-140125346619392","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"e234b16f-9f8e-4c2c-abad-6bf77bd73172-140125346619392","study_id":0,"datetime_start":"2026-03-07T15:46:13.170188"}
+{"op_code":5,"worker_id":"e234b16f-9f8e-4c2c-abad-6bf77bd73172-140125346619392","trial_id":26,"param_name":"learning_rate","param_value_internal":0.0006161365568861357,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"e234b16f-9f8e-4c2c-abad-6bf77bd73172-140125346619392","trial_id":26,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"e234b16f-9f8e-4c2c-abad-6bf77bd73172-140125346619392","trial_id":26,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"e234b16f-9f8e-4c2c-abad-6bf77bd73172-140125346619392","trial_id":26,"step":1,"intermediate_value":68.73071235624741}
+{"op_code":8,"worker_id":"e234b16f-9f8e-4c2c-abad-6bf77bd73172-140125346619392","trial_id":26,"user_attr":{"train_loss_epoch_1":2.7792576860929246}}
+{"op_code":7,"worker_id":"e234b16f-9f8e-4c2c-abad-6bf77bd73172-140125346619392","trial_id":26,"step":2,"intermediate_value":73.48434139768099}
+{"op_code":8,"worker_id":"e234b16f-9f8e-4c2c-abad-6bf77bd73172-140125346619392","trial_id":26,"user_attr":{"train_loss_epoch_2":1.8124158105229944}}
+{"op_code":7,"worker_id":"e234b16f-9f8e-4c2c-abad-6bf77bd73172-140125346619392","trial_id":26,"step":3,"intermediate_value":74.75901067104618}
+{"op_code":8,"worker_id":"e234b16f-9f8e-4c2c-abad-6bf77bd73172-140125346619392","trial_id":26,"user_attr":{"train_loss_epoch_3":1.7028484450446235}}
+{"op_code":7,"worker_id":"e234b16f-9f8e-4c2c-abad-6bf77bd73172-140125346619392","trial_id":26,"step":4,"intermediate_value":75.45812108790504}
+{"op_code":8,"worker_id":"e234b16f-9f8e-4c2c-abad-6bf77bd73172-140125346619392","trial_id":26,"user_attr":{"train_loss_epoch_4":1.6549958935274987}}
+{"op_code":7,"worker_id":"e234b16f-9f8e-4c2c-abad-6bf77bd73172-140125346619392","trial_id":26,"step":5,"intermediate_value":75.6517208914315}
+{"op_code":8,"worker_id":"e234b16f-9f8e-4c2c-abad-6bf77bd73172-140125346619392","trial_id":26,"user_attr":{"train_loss_epoch_5":1.6329334743623811}}
+{"op_code":6,"worker_id":"e234b16f-9f8e-4c2c-abad-6bf77bd73172-140125346619392","trial_id":26,"state":1,"values":[75.6517208914315],"datetime_complete":"2026-03-07T21:18:44.451549"}
+{"op_code":4,"worker_id":"e234b16f-9f8e-4c2c-abad-6bf77bd73172-140125346619392","study_id":0,"datetime_start":"2026-03-07T21:18:44.453483"}
+{"op_code":5,"worker_id":"e234b16f-9f8e-4c2c-abad-6bf77bd73172-140125346619392","trial_id":27,"param_name":"learning_rate","param_value_internal":0.0006124256458193604,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"e234b16f-9f8e-4c2c-abad-6bf77bd73172-140125346619392","trial_id":27,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"e234b16f-9f8e-4c2c-abad-6bf77bd73172-140125346619392","trial_id":27,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":8,"worker_id":"e234b16f-9f8e-4c2c-abad-6bf77bd73172-140125346619392","trial_id":27,"user_attr":{"error":"NVML_SUCCESS == r INTERNAL ASSERT FAILED at \"../c10/cuda/CUDACachingAllocator.cpp\":844, please report a bug to PyTorch. "}}
+{"op_code":6,"worker_id":"e234b16f-9f8e-4c2c-abad-6bf77bd73172-140125346619392","trial_id":27,"state":3,"values":null,"datetime_complete":"2026-03-07T21:20:23.469248"}
+{"op_code":0,"worker_id":"643a710b-6f31-4349-a717-84e1ee6387c6-140410898841600","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"643a710b-6f31-4349-a717-84e1ee6387c6-140410898841600","study_id":0,"datetime_start":null,"state":4,"value":null,"values":null,"distributions":{},"params":{},"user_attrs":{},"system_attrs":{"fixed_params":{"learning_rate":0.0006124256458193604,"ab_weight_scaling_omega":0.0,"min_lr_rate":0.0}},"intermediate_values":{}}
+{"op_code":6,"worker_id":"643a710b-6f31-4349-a717-84e1ee6387c6-140410898841600","trial_id":28,"state":0,"values":null,"datetime_start":"2026-03-07T21:20:34.209722"}
+{"op_code":5,"worker_id":"643a710b-6f31-4349-a717-84e1ee6387c6-140410898841600","trial_id":28,"param_name":"learning_rate","param_value_internal":0.0006124256458193604,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"643a710b-6f31-4349-a717-84e1ee6387c6-140410898841600","trial_id":28,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"643a710b-6f31-4349-a717-84e1ee6387c6-140410898841600","trial_id":28,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"643a710b-6f31-4349-a717-84e1ee6387c6-140410898841600","trial_id":28,"step":1,"intermediate_value":68.30293111565075}
+{"op_code":8,"worker_id":"643a710b-6f31-4349-a717-84e1ee6387c6-140410898841600","trial_id":28,"user_attr":{"train_loss_epoch_1":2.7790659161627405}}
+{"op_code":7,"worker_id":"643a710b-6f31-4349-a717-84e1ee6387c6-140410898841600","trial_id":28,"step":2,"intermediate_value":72.768701093465}
+{"op_code":8,"worker_id":"643a710b-6f31-4349-a717-84e1ee6387c6-140410898841600","trial_id":28,"user_attr":{"train_loss_epoch_2":1.815440114838995}}
+{"op_code":7,"worker_id":"643a710b-6f31-4349-a717-84e1ee6387c6-140410898841600","trial_id":28,"step":3,"intermediate_value":74.51235050930825}
+{"op_code":8,"worker_id":"643a710b-6f31-4349-a717-84e1ee6387c6-140410898841600","trial_id":28,"user_attr":{"train_loss_epoch_3":1.7028659058315188}}
+{"op_code":7,"worker_id":"643a710b-6f31-4349-a717-84e1ee6387c6-140410898841600","trial_id":28,"step":4,"intermediate_value":75.21429508328796}
+{"op_code":8,"worker_id":"643a710b-6f31-4349-a717-84e1ee6387c6-140410898841600","trial_id":28,"user_attr":{"train_loss_epoch_4":1.6542865111434255}}
+{"op_code":7,"worker_id":"643a710b-6f31-4349-a717-84e1ee6387c6-140410898841600","trial_id":28,"step":5,"intermediate_value":75.6169210271775}
+{"op_code":8,"worker_id":"643a710b-6f31-4349-a717-84e1ee6387c6-140410898841600","trial_id":28,"user_attr":{"train_loss_epoch_5":1.6343792981169483}}
+{"op_code":6,"worker_id":"643a710b-6f31-4349-a717-84e1ee6387c6-140410898841600","trial_id":28,"state":1,"values":[75.6169210271775],"datetime_complete":"2026-03-08T01:34:20.040926"}
+{"op_code":0,"worker_id":"f18edc40-4dfd-4109-9ced-91c2af11842f-139834198732800","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"f18edc40-4dfd-4109-9ced-91c2af11842f-139834198732800","study_id":0,"datetime_start":"2026-03-08T01:34:30.852193"}
+{"op_code":5,"worker_id":"f18edc40-4dfd-4109-9ced-91c2af11842f-139834198732800","trial_id":29,"param_name":"learning_rate","param_value_internal":0.0005752466695065593,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"f18edc40-4dfd-4109-9ced-91c2af11842f-139834198732800","trial_id":29,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"f18edc40-4dfd-4109-9ced-91c2af11842f-139834198732800","trial_id":29,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"f18edc40-4dfd-4109-9ced-91c2af11842f-139834198732800","trial_id":29,"step":1,"intermediate_value":67.86538479549247}
+{"op_code":8,"worker_id":"f18edc40-4dfd-4109-9ced-91c2af11842f-139834198732800","trial_id":29,"user_attr":{"train_loss_epoch_1":2.814542896185464}}
+{"op_code":7,"worker_id":"f18edc40-4dfd-4109-9ced-91c2af11842f-139834198732800","trial_id":29,"step":2,"intermediate_value":73.13768868923569}
+{"op_code":8,"worker_id":"f18edc40-4dfd-4109-9ced-91c2af11842f-139834198732800","trial_id":29,"user_attr":{"train_loss_epoch_2":1.8302653257116717}}
+{"op_code":7,"worker_id":"f18edc40-4dfd-4109-9ced-91c2af11842f-139834198732800","trial_id":29,"step":3,"intermediate_value":74.47564368048594}
+{"op_code":8,"worker_id":"f18edc40-4dfd-4109-9ced-91c2af11842f-139834198732800","trial_id":29,"user_attr":{"train_loss_epoch_3":1.715273103675222}}
+{"op_code":7,"worker_id":"f18edc40-4dfd-4109-9ced-91c2af11842f-139834198732800","trial_id":29,"step":4,"intermediate_value":75.08366476112813}
+{"op_code":8,"worker_id":"f18edc40-4dfd-4109-9ced-91c2af11842f-139834198732800","trial_id":29,"user_attr":{"train_loss_epoch_4":1.6660858163342567}}
+{"op_code":7,"worker_id":"f18edc40-4dfd-4109-9ced-91c2af11842f-139834198732800","trial_id":29,"step":5,"intermediate_value":75.34739151814446}
+{"op_code":8,"worker_id":"f18edc40-4dfd-4109-9ced-91c2af11842f-139834198732800","trial_id":29,"user_attr":{"train_loss_epoch_5":1.6436453288809716}}
+{"op_code":6,"worker_id":"f18edc40-4dfd-4109-9ced-91c2af11842f-139834198732800","trial_id":29,"state":1,"values":[75.34739151814446],"datetime_complete":"2026-03-08T07:08:39.179485"}
+{"op_code":4,"worker_id":"f18edc40-4dfd-4109-9ced-91c2af11842f-139834198732800","study_id":0,"datetime_start":"2026-03-08T07:08:39.181210"}
+{"op_code":5,"worker_id":"f18edc40-4dfd-4109-9ced-91c2af11842f-139834198732800","trial_id":30,"param_name":"learning_rate","param_value_internal":0.0005983521113110324,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"f18edc40-4dfd-4109-9ced-91c2af11842f-139834198732800","trial_id":30,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"f18edc40-4dfd-4109-9ced-91c2af11842f-139834198732800","trial_id":30,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":8,"worker_id":"f18edc40-4dfd-4109-9ced-91c2af11842f-139834198732800","trial_id":30,"user_attr":{"error":"NVML_SUCCESS == r INTERNAL ASSERT FAILED at \"../c10/cuda/CUDACachingAllocator.cpp\":844, please report a bug to PyTorch. "}}
+{"op_code":6,"worker_id":"f18edc40-4dfd-4109-9ced-91c2af11842f-139834198732800","trial_id":30,"state":3,"values":null,"datetime_complete":"2026-03-08T07:11:21.961439"}
+{"op_code":0,"worker_id":"62b298a6-9585-4ed7-adad-d1725bc2b221-140338426163200","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"62b298a6-9585-4ed7-adad-d1725bc2b221-140338426163200","study_id":0,"datetime_start":null,"state":4,"value":null,"values":null,"distributions":{},"params":{},"user_attrs":{},"system_attrs":{"fixed_params":{"learning_rate":0.0005983521113110324,"ab_weight_scaling_omega":0.0,"min_lr_rate":0.0}},"intermediate_values":{}}
+{"op_code":6,"worker_id":"62b298a6-9585-4ed7-adad-d1725bc2b221-140338426163200","trial_id":31,"state":0,"values":null,"datetime_start":"2026-03-08T07:11:32.613310"}
+{"op_code":5,"worker_id":"62b298a6-9585-4ed7-adad-d1725bc2b221-140338426163200","trial_id":31,"param_name":"learning_rate","param_value_internal":0.0005983521113110324,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"62b298a6-9585-4ed7-adad-d1725bc2b221-140338426163200","trial_id":31,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"62b298a6-9585-4ed7-adad-d1725bc2b221-140338426163200","trial_id":31,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"62b298a6-9585-4ed7-adad-d1725bc2b221-140338426163200","trial_id":31,"step":1,"intermediate_value":68.03578152248754}
+{"op_code":8,"worker_id":"62b298a6-9585-4ed7-adad-d1725bc2b221-140338426163200","trial_id":31,"user_attr":{"train_loss_epoch_1":2.791186953728423}}
+{"op_code":7,"worker_id":"62b298a6-9585-4ed7-adad-d1725bc2b221-140338426163200","trial_id":31,"step":2,"intermediate_value":72.70127563256345}
+{"op_code":8,"worker_id":"62b298a6-9585-4ed7-adad-d1725bc2b221-140338426163200","trial_id":31,"user_attr":{"train_loss_epoch_2":1.820570692585619}}
+{"op_code":7,"worker_id":"62b298a6-9585-4ed7-adad-d1725bc2b221-140338426163200","trial_id":31,"step":3,"intermediate_value":74.51027123315106}
+{"op_code":8,"worker_id":"62b298a6-9585-4ed7-adad-d1725bc2b221-140338426163200","trial_id":31,"user_attr":{"train_loss_epoch_3":1.7081905527630612}}
+{"op_code":7,"worker_id":"62b298a6-9585-4ed7-adad-d1725bc2b221-140338426163200","trial_id":31,"step":4,"intermediate_value":75.10366105083368}
+{"op_code":8,"worker_id":"62b298a6-9585-4ed7-adad-d1725bc2b221-140338426163200","trial_id":31,"user_attr":{"train_loss_epoch_4":1.6597310290584786}}
+{"op_code":7,"worker_id":"62b298a6-9585-4ed7-adad-d1725bc2b221-140338426163200","trial_id":31,"step":5,"intermediate_value":75.51488884183514}
+{"op_code":8,"worker_id":"62b298a6-9585-4ed7-adad-d1725bc2b221-140338426163200","trial_id":31,"user_attr":{"train_loss_epoch_5":1.6398124535996987}}
+{"op_code":6,"worker_id":"62b298a6-9585-4ed7-adad-d1725bc2b221-140338426163200","trial_id":31,"state":1,"values":[75.51488884183514],"datetime_complete":"2026-03-08T11:27:08.749475"}
+{"op_code":0,"worker_id":"4b7a300a-67ba-4a1d-9d63-1ed1f6cf5ee5-140662302920704","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"4b7a300a-67ba-4a1d-9d63-1ed1f6cf5ee5-140662302920704","study_id":0,"datetime_start":"2026-03-08T11:27:19.326927"}
+{"op_code":5,"worker_id":"4b7a300a-67ba-4a1d-9d63-1ed1f6cf5ee5-140662302920704","trial_id":32,"param_name":"learning_rate","param_value_internal":0.0005725035490356246,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"4b7a300a-67ba-4a1d-9d63-1ed1f6cf5ee5-140662302920704","trial_id":32,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"4b7a300a-67ba-4a1d-9d63-1ed1f6cf5ee5-140662302920704","trial_id":32,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"4b7a300a-67ba-4a1d-9d63-1ed1f6cf5ee5-140662302920704","trial_id":32,"step":1,"intermediate_value":67.8487068667184}
+{"op_code":8,"worker_id":"4b7a300a-67ba-4a1d-9d63-1ed1f6cf5ee5-140662302920704","trial_id":32,"user_attr":{"train_loss_epoch_1":2.815385202146804}}
+{"op_code":7,"worker_id":"4b7a300a-67ba-4a1d-9d63-1ed1f6cf5ee5-140662302920704","trial_id":32,"step":2,"intermediate_value":73.27867179809735}
+{"op_code":8,"worker_id":"4b7a300a-67ba-4a1d-9d63-1ed1f6cf5ee5-140662302920704","trial_id":32,"user_attr":{"train_loss_epoch_2":1.832105429644184}}
+{"op_code":7,"worker_id":"4b7a300a-67ba-4a1d-9d63-1ed1f6cf5ee5-140662302920704","trial_id":32,"step":3,"intermediate_value":74.41990231556403}
+{"op_code":8,"worker_id":"4b7a300a-67ba-4a1d-9d63-1ed1f6cf5ee5-140662302920704","trial_id":32,"user_attr":{"train_loss_epoch_3":1.7175007024754676}}
+{"op_code":7,"worker_id":"4b7a300a-67ba-4a1d-9d63-1ed1f6cf5ee5-140662302920704","trial_id":32,"step":4,"intermediate_value":75.09477300781938}
+{"op_code":8,"worker_id":"4b7a300a-67ba-4a1d-9d63-1ed1f6cf5ee5-140662302920704","trial_id":32,"user_attr":{"train_loss_epoch_4":1.6678468730714586}}
+{"op_code":7,"worker_id":"4b7a300a-67ba-4a1d-9d63-1ed1f6cf5ee5-140662302920704","trial_id":32,"step":5,"intermediate_value":75.44132765818375}
+{"op_code":8,"worker_id":"4b7a300a-67ba-4a1d-9d63-1ed1f6cf5ee5-140662302920704","trial_id":32,"user_attr":{"train_loss_epoch_5":1.6454331780513773}}
+{"op_code":6,"worker_id":"4b7a300a-67ba-4a1d-9d63-1ed1f6cf5ee5-140662302920704","trial_id":32,"state":1,"values":[75.44132765818375],"datetime_complete":"2026-03-08T17:02:58.464063"}
+{"op_code":4,"worker_id":"4b7a300a-67ba-4a1d-9d63-1ed1f6cf5ee5-140662302920704","study_id":0,"datetime_start":"2026-03-08T17:02:58.466206"}
+{"op_code":5,"worker_id":"4b7a300a-67ba-4a1d-9d63-1ed1f6cf5ee5-140662302920704","trial_id":33,"param_name":"learning_rate","param_value_internal":0.0005841133548284049,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"4b7a300a-67ba-4a1d-9d63-1ed1f6cf5ee5-140662302920704","trial_id":33,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"4b7a300a-67ba-4a1d-9d63-1ed1f6cf5ee5-140662302920704","trial_id":33,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":8,"worker_id":"4b7a300a-67ba-4a1d-9d63-1ed1f6cf5ee5-140662302920704","trial_id":33,"user_attr":{"error":"NVML_SUCCESS == r INTERNAL ASSERT FAILED at \"../c10/cuda/CUDACachingAllocator.cpp\":844, please report a bug to PyTorch. "}}
+{"op_code":6,"worker_id":"4b7a300a-67ba-4a1d-9d63-1ed1f6cf5ee5-140662302920704","trial_id":33,"state":3,"values":null,"datetime_complete":"2026-03-08T17:04:21.789510"}
+{"op_code":0,"worker_id":"c5997a04-160e-4ea1-b960-e56af713f1b4-139628193198080","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"c5997a04-160e-4ea1-b960-e56af713f1b4-139628193198080","study_id":0,"datetime_start":null,"state":4,"value":null,"values":null,"distributions":{},"params":{},"user_attrs":{},"system_attrs":{"fixed_params":{"learning_rate":0.0005841133548284049,"ab_weight_scaling_omega":0.0,"min_lr_rate":0.0}},"intermediate_values":{}}
+{"op_code":6,"worker_id":"c5997a04-160e-4ea1-b960-e56af713f1b4-139628193198080","trial_id":34,"state":0,"values":null,"datetime_start":"2026-03-08T17:04:32.194591"}
+{"op_code":5,"worker_id":"c5997a04-160e-4ea1-b960-e56af713f1b4-139628193198080","trial_id":34,"param_name":"learning_rate","param_value_internal":0.0005841133548284049,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"c5997a04-160e-4ea1-b960-e56af713f1b4-139628193198080","trial_id":34,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"c5997a04-160e-4ea1-b960-e56af713f1b4-139628193198080","trial_id":34,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"c5997a04-160e-4ea1-b960-e56af713f1b4-139628193198080","trial_id":34,"step":1,"intermediate_value":67.83408435186162}
+{"op_code":8,"worker_id":"c5997a04-160e-4ea1-b960-e56af713f1b4-139628193198080","trial_id":34,"user_attr":{"train_loss_epoch_1":2.805213021049334}}
+{"op_code":7,"worker_id":"c5997a04-160e-4ea1-b960-e56af713f1b4-139628193198080","trial_id":34,"step":2,"intermediate_value":72.80493424672918}
+{"op_code":8,"worker_id":"c5997a04-160e-4ea1-b960-e56af713f1b4-139628193198080","trial_id":34,"user_attr":{"train_loss_epoch_2":1.826633921061211}}
+{"op_code":7,"worker_id":"c5997a04-160e-4ea1-b960-e56af713f1b4-139628193198080","trial_id":34,"step":3,"intermediate_value":74.42753831760942}
+{"op_code":8,"worker_id":"c5997a04-160e-4ea1-b960-e56af713f1b4-139628193198080","trial_id":34,"user_attr":{"train_loss_epoch_3":1.7117723762003443}}
+{"op_code":7,"worker_id":"c5997a04-160e-4ea1-b960-e56af713f1b4-139628193198080","trial_id":34,"step":4,"intermediate_value":75.04035693314583}
+{"op_code":8,"worker_id":"c5997a04-160e-4ea1-b960-e56af713f1b4-139628193198080","trial_id":34,"user_attr":{"train_loss_epoch_4":1.6628917076943786}}
+{"op_code":7,"worker_id":"c5997a04-160e-4ea1-b960-e56af713f1b4-139628193198080","trial_id":34,"step":5,"intermediate_value":75.39608773138777}
+{"op_code":8,"worker_id":"c5997a04-160e-4ea1-b960-e56af713f1b4-139628193198080","trial_id":34,"user_attr":{"train_loss_epoch_5":1.6425451936842013}}
+{"op_code":6,"worker_id":"c5997a04-160e-4ea1-b960-e56af713f1b4-139628193198080","trial_id":34,"state":1,"values":[75.39608773138777],"datetime_complete":"2026-03-08T21:18:01.508274"}
+{"op_code":0,"worker_id":"b2ef4940-1cde-44d9-9114-a46c4ceb1097-140135565500416","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"b2ef4940-1cde-44d9-9114-a46c4ceb1097-140135565500416","study_id":0,"datetime_start":"2026-03-08T21:18:11.947850"}
+{"op_code":5,"worker_id":"b2ef4940-1cde-44d9-9114-a46c4ceb1097-140135565500416","trial_id":35,"param_name":"learning_rate","param_value_internal":0.001114590102106119,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"b2ef4940-1cde-44d9-9114-a46c4ceb1097-140135565500416","trial_id":35,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"b2ef4940-1cde-44d9-9114-a46c4ceb1097-140135565500416","trial_id":35,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"b2ef4940-1cde-44d9-9114-a46c4ceb1097-140135565500416","trial_id":35,"step":1,"intermediate_value":72.68824631512062}
+{"op_code":8,"worker_id":"b2ef4940-1cde-44d9-9114-a46c4ceb1097-140135565500416","trial_id":35,"user_attr":{"train_loss_epoch_1":2.505814073079324}}
+{"op_code":7,"worker_id":"b2ef4940-1cde-44d9-9114-a46c4ceb1097-140135565500416","trial_id":35,"step":2,"intermediate_value":75.71729205740806}
+{"op_code":8,"worker_id":"b2ef4940-1cde-44d9-9114-a46c4ceb1097-140135565500416","trial_id":35,"user_attr":{"train_loss_epoch_2":1.700220835499647}}
+{"op_code":7,"worker_id":"b2ef4940-1cde-44d9-9114-a46c4ceb1097-140135565500416","trial_id":35,"step":3,"intermediate_value":76.65604478252042}
+{"op_code":8,"worker_id":"b2ef4940-1cde-44d9-9114-a46c4ceb1097-140135565500416","trial_id":35,"user_attr":{"train_loss_epoch_3":1.614393208149649}}
+{"op_code":7,"worker_id":"b2ef4940-1cde-44d9-9114-a46c4ceb1097-140135565500416","trial_id":35,"step":4,"intermediate_value":77.23757262359578}
+{"op_code":8,"worker_id":"b2ef4940-1cde-44d9-9114-a46c4ceb1097-140135565500416","trial_id":35,"user_attr":{"train_loss_epoch_4":1.570008076691046}}
+{"op_code":7,"worker_id":"b2ef4940-1cde-44d9-9114-a46c4ceb1097-140135565500416","trial_id":35,"step":5,"intermediate_value":77.48151288918466}
+{"op_code":8,"worker_id":"b2ef4940-1cde-44d9-9114-a46c4ceb1097-140135565500416","trial_id":35,"user_attr":{"train_loss_epoch_5":1.546385307815986}}
+{"op_code":6,"worker_id":"b2ef4940-1cde-44d9-9114-a46c4ceb1097-140135565500416","trial_id":35,"state":1,"values":[77.48151288918466],"datetime_complete":"2026-03-09T02:49:26.095486"}
+{"op_code":4,"worker_id":"b2ef4940-1cde-44d9-9114-a46c4ceb1097-140135565500416","study_id":0,"datetime_start":"2026-03-09T02:49:26.097186"}
+{"op_code":5,"worker_id":"b2ef4940-1cde-44d9-9114-a46c4ceb1097-140135565500416","trial_id":36,"param_name":"learning_rate","param_value_internal":0.0014406702070196712,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"b2ef4940-1cde-44d9-9114-a46c4ceb1097-140135565500416","trial_id":36,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"b2ef4940-1cde-44d9-9114-a46c4ceb1097-140135565500416","trial_id":36,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":8,"worker_id":"b2ef4940-1cde-44d9-9114-a46c4ceb1097-140135565500416","trial_id":36,"user_attr":{"error":"NVML_SUCCESS == r INTERNAL ASSERT FAILED at \"../c10/cuda/CUDACachingAllocator.cpp\":844, please report a bug to PyTorch. "}}
+{"op_code":6,"worker_id":"b2ef4940-1cde-44d9-9114-a46c4ceb1097-140135565500416","trial_id":36,"state":3,"values":null,"datetime_complete":"2026-03-09T02:52:51.422048"}
+{"op_code":0,"worker_id":"6a23b858-9eee-4895-89a5-21dccad8ef0a-140313478643712","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"6a23b858-9eee-4895-89a5-21dccad8ef0a-140313478643712","study_id":0,"datetime_start":null,"state":4,"value":null,"values":null,"distributions":{},"params":{},"user_attrs":{},"system_attrs":{"fixed_params":{"learning_rate":0.0014406702070196712,"ab_weight_scaling_omega":0.0,"min_lr_rate":0.0}},"intermediate_values":{}}
+{"op_code":6,"worker_id":"6a23b858-9eee-4895-89a5-21dccad8ef0a-140313478643712","trial_id":37,"state":0,"values":null,"datetime_start":"2026-03-09T02:53:02.266326"}
+{"op_code":5,"worker_id":"6a23b858-9eee-4895-89a5-21dccad8ef0a-140313478643712","trial_id":37,"param_name":"learning_rate","param_value_internal":0.0014406702070196712,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"6a23b858-9eee-4895-89a5-21dccad8ef0a-140313478643712","trial_id":37,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"6a23b858-9eee-4895-89a5-21dccad8ef0a-140313478643712","trial_id":37,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"6a23b858-9eee-4895-89a5-21dccad8ef0a-140313478643712","trial_id":37,"step":1,"intermediate_value":73.37015388378445}
+{"op_code":8,"worker_id":"6a23b858-9eee-4895-89a5-21dccad8ef0a-140313478643712","trial_id":37,"user_attr":{"train_loss_epoch_1":2.405618384427965}}
+{"op_code":7,"worker_id":"6a23b858-9eee-4895-89a5-21dccad8ef0a-140313478643712","trial_id":37,"step":2,"intermediate_value":76.09120817110602}
+{"op_code":8,"worker_id":"6a23b858-9eee-4895-89a5-21dccad8ef0a-140313478643712","trial_id":37,"user_attr":{"train_loss_epoch_2":1.6649652847141132}}
+{"op_code":7,"worker_id":"6a23b858-9eee-4895-89a5-21dccad8ef0a-140313478643712","trial_id":37,"step":3,"intermediate_value":77.24718569918802}
+{"op_code":8,"worker_id":"6a23b858-9eee-4895-89a5-21dccad8ef0a-140313478643712","trial_id":37,"user_attr":{"train_loss_epoch_3":1.5828209786791245}}
+{"op_code":7,"worker_id":"6a23b858-9eee-4895-89a5-21dccad8ef0a-140313478643712","trial_id":37,"step":4,"intermediate_value":77.88660003935274}
+{"op_code":8,"worker_id":"6a23b858-9eee-4895-89a5-21dccad8ef0a-140313478643712","trial_id":37,"user_attr":{"train_loss_epoch_4":1.5386827947906634}}
+{"op_code":7,"worker_id":"6a23b858-9eee-4895-89a5-21dccad8ef0a-140313478643712","trial_id":37,"step":5,"intermediate_value":78.35589156429816}
+{"op_code":8,"worker_id":"6a23b858-9eee-4895-89a5-21dccad8ef0a-140313478643712","trial_id":37,"user_attr":{"train_loss_epoch_5":1.5157084379231067}}
+{"op_code":6,"worker_id":"6a23b858-9eee-4895-89a5-21dccad8ef0a-140313478643712","trial_id":37,"state":1,"values":[78.35589156429816],"datetime_complete":"2026-03-09T07:07:58.911580"}
+{"op_code":0,"worker_id":"d774d346-d0fe-4eb5-8b8f-9960ae96b812-139919016849408","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"d774d346-d0fe-4eb5-8b8f-9960ae96b812-139919016849408","study_id":0,"datetime_start":"2026-03-09T07:08:09.373319"}
+{"op_code":5,"worker_id":"d774d346-d0fe-4eb5-8b8f-9960ae96b812-139919016849408","trial_id":38,"param_name":"learning_rate","param_value_internal":0.001415405432716991,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"d774d346-d0fe-4eb5-8b8f-9960ae96b812-139919016849408","trial_id":38,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"d774d346-d0fe-4eb5-8b8f-9960ae96b812-139919016849408","trial_id":38,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"d774d346-d0fe-4eb5-8b8f-9960ae96b812-139919016849408","trial_id":38,"step":1,"intermediate_value":73.84755757842167}
+{"op_code":8,"worker_id":"d774d346-d0fe-4eb5-8b8f-9960ae96b812-139919016849408","trial_id":38,"user_attr":{"train_loss_epoch_1":2.41596762397425}}
+{"op_code":7,"worker_id":"d774d346-d0fe-4eb5-8b8f-9960ae96b812-139919016849408","trial_id":38,"step":2,"intermediate_value":76.57110609188204}
+{"op_code":8,"worker_id":"d774d346-d0fe-4eb5-8b8f-9960ae96b812-139919016849408","trial_id":38,"user_attr":{"train_loss_epoch_2":1.6689473935259067}}
+{"op_code":7,"worker_id":"d774d346-d0fe-4eb5-8b8f-9960ae96b812-139919016849408","trial_id":38,"step":3,"intermediate_value":77.26691734560245}
+{"op_code":8,"worker_id":"d774d346-d0fe-4eb5-8b8f-9960ae96b812-139919016849408","trial_id":38,"user_attr":{"train_loss_epoch_3":1.5852908354787645}}
+{"op_code":7,"worker_id":"d774d346-d0fe-4eb5-8b8f-9960ae96b812-139919016849408","trial_id":38,"step":4,"intermediate_value":77.90067009668039}
+{"op_code":8,"worker_id":"d774d346-d0fe-4eb5-8b8f-9960ae96b812-139919016849408","trial_id":38,"user_attr":{"train_loss_epoch_4":1.5385981295490005}}
+{"op_code":7,"worker_id":"d774d346-d0fe-4eb5-8b8f-9960ae96b812-139919016849408","trial_id":38,"step":5,"intermediate_value":78.10219521144327}
+{"op_code":8,"worker_id":"d774d346-d0fe-4eb5-8b8f-9960ae96b812-139919016849408","trial_id":38,"user_attr":{"train_loss_epoch_5":1.513380368841373}}
+{"op_code":6,"worker_id":"d774d346-d0fe-4eb5-8b8f-9960ae96b812-139919016849408","trial_id":38,"state":1,"values":[78.10219521144327],"datetime_complete":"2026-03-09T12:40:25.411353"}
+{"op_code":4,"worker_id":"d774d346-d0fe-4eb5-8b8f-9960ae96b812-139919016849408","study_id":0,"datetime_start":"2026-03-09T12:40:25.413204"}
+{"op_code":5,"worker_id":"d774d346-d0fe-4eb5-8b8f-9960ae96b812-139919016849408","trial_id":39,"param_name":"learning_rate","param_value_internal":0.0014759347060265802,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"d774d346-d0fe-4eb5-8b8f-9960ae96b812-139919016849408","trial_id":39,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"d774d346-d0fe-4eb5-8b8f-9960ae96b812-139919016849408","trial_id":39,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":8,"worker_id":"d774d346-d0fe-4eb5-8b8f-9960ae96b812-139919016849408","trial_id":39,"user_attr":{"error":"NVML_SUCCESS == r INTERNAL ASSERT FAILED at \"../c10/cuda/CUDACachingAllocator.cpp\":844, please report a bug to PyTorch. "}}
+{"op_code":6,"worker_id":"d774d346-d0fe-4eb5-8b8f-9960ae96b812-139919016849408","trial_id":39,"state":3,"values":null,"datetime_complete":"2026-03-09T12:44:03.016265"}
+{"op_code":0,"worker_id":"7b57c432-106f-4366-81c5-79b519270e70-139823719694336","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"7b57c432-106f-4366-81c5-79b519270e70-139823719694336","study_id":0,"datetime_start":null,"state":4,"value":null,"values":null,"distributions":{},"params":{},"user_attrs":{},"system_attrs":{"fixed_params":{"learning_rate":0.0014759347060265802,"ab_weight_scaling_omega":0.0,"min_lr_rate":0.0}},"intermediate_values":{}}
+{"op_code":6,"worker_id":"7b57c432-106f-4366-81c5-79b519270e70-139823719694336","trial_id":40,"state":0,"values":null,"datetime_start":"2026-03-09T12:44:14.276768"}
+{"op_code":5,"worker_id":"7b57c432-106f-4366-81c5-79b519270e70-139823719694336","trial_id":40,"param_name":"learning_rate","param_value_internal":0.0014759347060265802,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"7b57c432-106f-4366-81c5-79b519270e70-139823719694336","trial_id":40,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"7b57c432-106f-4366-81c5-79b519270e70-139823719694336","trial_id":40,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"7b57c432-106f-4366-81c5-79b519270e70-139823719694336","trial_id":40,"step":1,"intermediate_value":73.4087344164828}
+{"op_code":8,"worker_id":"7b57c432-106f-4366-81c5-79b519270e70-139823719694336","trial_id":40,"user_attr":{"train_loss_epoch_1":2.3943883389048732}}
+{"op_code":7,"worker_id":"7b57c432-106f-4366-81c5-79b519270e70-139823719694336","trial_id":40,"step":2,"intermediate_value":76.06560605768162}
+{"op_code":8,"worker_id":"7b57c432-106f-4366-81c5-79b519270e70-139823719694336","trial_id":40,"user_attr":{"train_loss_epoch_2":1.6622258833864252}}
+{"op_code":7,"worker_id":"7b57c432-106f-4366-81c5-79b519270e70-139823719694336","trial_id":40,"step":3,"intermediate_value":77.22458441153294}
+{"op_code":8,"worker_id":"7b57c432-106f-4366-81c5-79b519270e70-139823719694336","trial_id":40,"user_attr":{"train_loss_epoch_3":1.5807012924982558}}
+{"op_code":7,"worker_id":"7b57c432-106f-4366-81c5-79b519270e70-139823719694336","trial_id":40,"step":4,"intermediate_value":77.95444828734936}
+{"op_code":8,"worker_id":"7b57c432-106f-4366-81c5-79b519270e70-139823719694336","trial_id":40,"user_attr":{"train_loss_epoch_4":1.5372961654867316}}
+{"op_code":7,"worker_id":"7b57c432-106f-4366-81c5-79b519270e70-139823719694336","trial_id":40,"step":5,"intermediate_value":78.53144286822271}
+{"op_code":8,"worker_id":"7b57c432-106f-4366-81c5-79b519270e70-139823719694336","trial_id":40,"user_attr":{"train_loss_epoch_5":1.5134777084021234}}
+{"op_code":6,"worker_id":"7b57c432-106f-4366-81c5-79b519270e70-139823719694336","trial_id":40,"state":1,"values":[78.53144286822271],"datetime_complete":"2026-03-09T17:00:16.654619"}
+{"op_code":0,"worker_id":"3b85bb44-f3ba-4fb9-abb4-ad293c1e47dc-140538936373248","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"3b85bb44-f3ba-4fb9-abb4-ad293c1e47dc-140538936373248","study_id":0,"datetime_start":"2026-03-09T17:00:27.061122"}
+{"op_code":5,"worker_id":"3b85bb44-f3ba-4fb9-abb4-ad293c1e47dc-140538936373248","trial_id":41,"param_name":"learning_rate","param_value_internal":0.0013749621888327322,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"3b85bb44-f3ba-4fb9-abb4-ad293c1e47dc-140538936373248","trial_id":41,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"3b85bb44-f3ba-4fb9-abb4-ad293c1e47dc-140538936373248","trial_id":41,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"3b85bb44-f3ba-4fb9-abb4-ad293c1e47dc-140538936373248","trial_id":41,"step":1,"intermediate_value":73.73384762914803}
+{"op_code":8,"worker_id":"3b85bb44-f3ba-4fb9-abb4-ad293c1e47dc-140538936373248","trial_id":41,"user_attr":{"train_loss_epoch_1":2.4325061909228483}}
+{"op_code":7,"worker_id":"3b85bb44-f3ba-4fb9-abb4-ad293c1e47dc-140538936373248","trial_id":41,"step":2,"intermediate_value":76.20038144626326}
+{"op_code":8,"worker_id":"3b85bb44-f3ba-4fb9-abb4-ad293c1e47dc-140538936373248","trial_id":41,"user_attr":{"train_loss_epoch_2":1.6715960279712831}}
+{"op_code":7,"worker_id":"3b85bb44-f3ba-4fb9-abb4-ad293c1e47dc-140538936373248","trial_id":41,"step":3,"intermediate_value":76.96900248732167}
+{"op_code":8,"worker_id":"3b85bb44-f3ba-4fb9-abb4-ad293c1e47dc-140538936373248","trial_id":41,"user_attr":{"train_loss_epoch_3":1.5846567113871173}}
+{"op_code":7,"worker_id":"3b85bb44-f3ba-4fb9-abb4-ad293c1e47dc-140538936373248","trial_id":41,"step":4,"intermediate_value":77.74886361713142}
+{"op_code":8,"worker_id":"3b85bb44-f3ba-4fb9-abb4-ad293c1e47dc-140538936373248","trial_id":41,"user_attr":{"train_loss_epoch_4":1.5395485473519095}}
+{"op_code":7,"worker_id":"3b85bb44-f3ba-4fb9-abb4-ad293c1e47dc-140538936373248","trial_id":41,"step":5,"intermediate_value":78.03918645573278}
+{"op_code":8,"worker_id":"3b85bb44-f3ba-4fb9-abb4-ad293c1e47dc-140538936373248","trial_id":41,"user_attr":{"train_loss_epoch_5":1.5150386936296292}}
+{"op_code":6,"worker_id":"3b85bb44-f3ba-4fb9-abb4-ad293c1e47dc-140538936373248","trial_id":41,"state":1,"values":[78.03918645573278],"datetime_complete":"2026-03-09T22:30:31.544326"}
+{"op_code":4,"worker_id":"3b85bb44-f3ba-4fb9-abb4-ad293c1e47dc-140538936373248","study_id":0,"datetime_start":"2026-03-09T22:30:31.546126"}
+{"op_code":5,"worker_id":"3b85bb44-f3ba-4fb9-abb4-ad293c1e47dc-140538936373248","trial_id":42,"param_name":"learning_rate","param_value_internal":0.0014880806767432135,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"3b85bb44-f3ba-4fb9-abb4-ad293c1e47dc-140538936373248","trial_id":42,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"3b85bb44-f3ba-4fb9-abb4-ad293c1e47dc-140538936373248","trial_id":42,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":8,"worker_id":"3b85bb44-f3ba-4fb9-abb4-ad293c1e47dc-140538936373248","trial_id":42,"user_attr":{"error":"NVML_SUCCESS == r INTERNAL ASSERT FAILED at \"../c10/cuda/CUDACachingAllocator.cpp\":844, please report a bug to PyTorch. "}}
+{"op_code":6,"worker_id":"3b85bb44-f3ba-4fb9-abb4-ad293c1e47dc-140538936373248","trial_id":42,"state":3,"values":null,"datetime_complete":"2026-03-09T22:32:41.278741"}
+{"op_code":0,"worker_id":"269a59a0-41ea-4674-be91-93b6dc52af69-140378024194048","study_name":"bert_squad_lrtt_bs48_adam_hybrid_nowd_nomom_nonest_set_ideal_cideal_noio_noquant_notrans_noos_qkvo_5ep","directions":[2]}
+{"op_code":4,"worker_id":"269a59a0-41ea-4674-be91-93b6dc52af69-140378024194048","study_id":0,"datetime_start":null,"state":4,"value":null,"values":null,"distributions":{},"params":{},"user_attrs":{},"system_attrs":{"fixed_params":{"learning_rate":0.0014880806767432135,"ab_weight_scaling_omega":0.0,"min_lr_rate":0.0}},"intermediate_values":{}}
+{"op_code":6,"worker_id":"269a59a0-41ea-4674-be91-93b6dc52af69-140378024194048","trial_id":43,"state":0,"values":null,"datetime_start":"2026-03-09T22:32:51.895762"}
+{"op_code":5,"worker_id":"269a59a0-41ea-4674-be91-93b6dc52af69-140378024194048","trial_id":43,"param_name":"learning_rate","param_value_internal":0.0014880806767432135,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 1e-05, \"high\": 1.0, \"log\": true}}"}
+{"op_code":5,"worker_id":"269a59a0-41ea-4674-be91-93b6dc52af69-140378024194048","trial_id":43,"param_name":"ab_weight_scaling_omega","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":5,"worker_id":"269a59a0-41ea-4674-be91-93b6dc52af69-140378024194048","trial_id":43,"param_name":"min_lr_rate","param_value_internal":0.0,"distribution":"{\"name\": \"FloatDistribution\", \"attributes\": {\"step\": null, \"low\": 0.0, \"high\": 0.0, \"log\": false}}"}
+{"op_code":7,"worker_id":"269a59a0-41ea-4674-be91-93b6dc52af69-140378024194048","trial_id":43,"step":1,"intermediate_value":73.62628770638294}
+{"op_code":8,"worker_id":"269a59a0-41ea-4674-be91-93b6dc52af69-140378024194048","trial_id":43,"user_attr":{"train_loss_epoch_1":2.3921554872549526}}
+{"op_code":7,"worker_id":"269a59a0-41ea-4674-be91-93b6dc52af69-140378024194048","trial_id":43,"step":2,"intermediate_value":76.23040424677572}
+{"op_code":8,"worker_id":"269a59a0-41ea-4674-be91-93b6dc52af69-140378024194048","trial_id":43,"user_attr":{"train_loss_epoch_2":1.6620568536943006}}
+{"op_code":6,"worker_id":"269a59a0-41ea-4674-be91-93b6dc52af69-140378024194048","trial_id":43,"state":3,"values":null,"datetime_complete":"2026-03-10T00:57:30.480748"}
