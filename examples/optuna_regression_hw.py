@@ -98,7 +98,7 @@ DEFAULT_SEARCH_SPACE = {
 }
 
 # Number of runs per trial (average over multiple seeds for noisy environments)
-N_RUNS_PER_TRIAL = 25
+N_RUNS_PER_TRIAL = 20
 
 
 @contextmanager

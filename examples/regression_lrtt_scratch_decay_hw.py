@@ -170,7 +170,7 @@ class ScratchExperimentConfig:
     a_dw_min_std = 0.3
     a_write_noise_std = 0.0182
     a_lifetime_dtod = 0.1
-    a_lifetime = 11.72  # Batch 단위 lifetime (0 = no decay)
+    a_lifetime = 60.0  # Batch 단위 lifetime (0 = no decay)
 
     # B device parameters (None = same as A)
     b_dw_min = None
@@ -186,7 +186,7 @@ class ScratchExperimentConfig:
     b_gamma_up_dtod = None
     b_gamma_down_dtod = None
     b_dw_min_std = None
-    b_write_noise_std = 0.182
+    b_write_noise_std = 0.0182
     b_lifetime_dtod = None
     b_lifetime = 10000000  # None = same as A lifetime
 
@@ -198,7 +198,7 @@ class ScratchExperimentConfig:
     include_retention = True  # Enable/disable retention effects
 
     # Pulse/Update configuration (Hardware-realistic settings)
-    desired_bl = 2  # Bit length for A/B updates (from sweep top1)
+    desired_bl = 5  # Bit length for A/B updates (from sweep top1)
     pulse_type = PulseType.STOCHASTIC_COMPRESSED  # Pulse generation type
 
     # Manual scaling factors (used when use_manual_scaling=True)
@@ -210,10 +210,10 @@ class ScratchExperimentConfig:
     # Separate A/B tile scaling factors (override global if set)
     # A tile update: x=XB (B projection of input), d=original gradient
     # B tile update: x=original input, d=DA (A^T projection of gradient)
-    a_x_scaling = 0.889   # A tile (up-proj) x scaling - from sweep top1
-    a_d_scaling = 0.115   # A tile (up-proj) d scaling - from sweep top1
+    a_x_scaling = 1.0     # A tile (up-proj) x scaling - from hybrid_all_m best
+    a_d_scaling = 1.0     # A tile (up-proj) d scaling - from hybrid_all_m best
     b_x_scaling = 1.0     # B tile (down-proj) x scaling
-    b_d_scaling = 0.732   # B tile (down-proj) d scaling - from sweep top1
+    b_d_scaling = 0.317   # B tile (down-proj) d scaling - from hybrid_all_m best
 
     # Debug logging for A/B scaling
     log_ab_scaling = True  # Enable x,d max value logging
