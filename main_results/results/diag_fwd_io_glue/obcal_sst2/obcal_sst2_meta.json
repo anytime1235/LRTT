@@ -1,6 +1,6 @@
 {
   "tag": "obcal_sst2",
-  "git_hash": "N/A",
+  "git_hash": "ccd9b9b",
   "torch_version": "2.3.1+cu121",
   "transformers_version": "4.47.1",
   "aihwkit_version": "1.0.0",

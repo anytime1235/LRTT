@@ -205,3 +205,4 @@ experiments/hybrid_results_*/
 *.safetensors
 *_steps.csv
 
+*.zip

@@ -31,17 +31,62 @@ pip install torch==2.3.1+cu121 torchvision==0.18.1+cu121 \
 
 ## Step 3: Install aihwkit-gpu (CUDA 12.1)
 
-Option A: From wheel file (if available)
+**중요: aihwkit은 CPU 버전과 GPU 버전이 별도로 존재합니다.**
+- PyPI (`pip install aihwkit`)로 설치하면 **CPU 전용** 버전이 설치됩니다.
+- GPU 지원을 위해서는 반드시 IBM S3에서 제공하는 **GPU wheel**을 직접 다운로드하여 설치해야 합니다.
+- 소스 빌드는 불필요합니다.
+
+### 3-1. GPU wheel 다운로드
+
+IBM 공식 S3 버킷에서 Python 버전에 맞는 GPU wheel을 다운로드합니다.
+
+**aihwkit 1.0.0 + CUDA 12.1 (torch 2.3.1 호환):**
 ```bash
-pip install /path/to/aihwkit-1.0.0+cuda121-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+# Python 3.10
+wget https://aihwkit-gpu-demo.s3.us-east.cloud-object-storage.appdomain.cloud/aihwkit-1.0.0+cuda121-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
 ```
 
-Option B: Build from source
+> 참고: 최신 버전 wheel은 아래 URL에서 확인할 수 있습니다.
+> https://aihwkit.readthedocs.io/en/latest/advanced_install.html
+>
+> 단, aihwkit 1.1.0은 torch==2.10.0+cu126을 요구하므로 본 환경(torch 2.3.1+cu121)과 호환되지 않습니다.
+> 반드시 **1.0.0+cuda121** 버전을 사용하세요.
+
+### 3-2. GPU wheel 설치
+
 ```bash
-git clone https://github.com/IBM/aihwkit.git
-cd aihwkit
-pip install cmake
-pip install . --install-option="--with-cuda"
+pip install aihwkit-1.0.0+cuda121-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+```
+
+### 3-3. GPU 동작 검증
+
+설치 후 반드시 아래 스크립트로 GPU 지원 여부를 확인하세요.
+
+```bash
+python -c "
+from aihwkit.simulator.configs import InferenceRPUConfig
+from aihwkit.nn import AnalogLinear
+import torch
+
+model = AnalogLinear(10, 5, rpu_config=InferenceRPUConfig())
+model = model.cuda()
+x = torch.randn(2, 10).cuda()
+y = model(x)
+print('aihwkit GPU: OK')
+print(f'Output: {y.shape}, Device: {y.device}')
+"
+```
+
+정상 출력 예시:
+```
+aihwkit GPU: OK
+Output: torch.Size([2, 5]), Device: cuda:0
+```
+
+만약 `aihwkit has not been compiled with CUDA support` 에러가 발생하면 CPU 전용 버전이 설치된 것입니다. 아래 순서로 재설치하세요:
+```bash
+pip uninstall aihwkit -y
+pip install aihwkit-1.0.0+cuda121-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
 ```
 
 ---
@@ -198,10 +243,14 @@ wandb==0.24.1
 
 ## Notes
 
-1. **aihwkit wheel**: The pre-built wheel file `aihwkit-1.0.0+cuda121-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl` is required for GPU support.
+1. **aihwkit GPU vs CPU**: `pip install aihwkit`은 CPU 전용입니다. GPU 지원이 필요하면 반드시 IBM S3 버킷에서 GPU wheel을 다운로드하여 설치해야 합니다. (Step 3 참조)
 
-2. **LRTT path**: Scripts use `sys.path.insert(0, '/path/to/LRTT/src')` to import LRTT modules. Update this path according to your installation.
+2. **aihwkit 버전 호환성**: aihwkit 버전마다 요구하는 torch/CUDA 버전이 다릅니다.
+   - `aihwkit 1.0.0+cuda121` → `torch 2.3.1+cu121` (본 환경)
+   - `aihwkit 1.1.0` → `torch 2.10.0+cu126` (호환 안됨)
 
-3. **WandB**: Configure wandb login or set `WANDB_MODE=offline` for offline logging.
+3. **LRTT path**: Scripts use `sys.path.insert(0, '/path/to/LRTT/src')` to import LRTT modules. Update this path according to your installation.
 
-4. **GPU Memory**: MobileBERT + LRTT requires ~2-4GB GPU memory per process.
+4. **WandB**: Configure wandb login or set `WANDB_MODE=offline` for offline logging.
+
+5. **GPU Memory**: MobileBERT + LRTT requires ~2-4GB GPU memory per process.
