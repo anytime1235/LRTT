@@ -1,0 +1,36 @@
+============================================================
+A-tile & B-tile dw_min Sweep
+  Phase 1: eval_loss only (--no-trace), 15 runs
+  Phase 2: best combo re-run with trace_every=1
+Start: 2026-03-06 08:27:37
+Output: /root/LRTT/main_results/results/weight_update/squad/tiki/sweep_dwmin_ablation
+============================================================
+
+>>> Phase 1: Running 15 conditions (--no-trace) <<<
+[1/15] A-tile dw_min=0.000198 (B=0.0005) → Atile_dwmin_0.000198
+    OK  final_eval_loss=N/A
+[2/15] A-tile dw_min=0.0000198 (B=0.0005) → Atile_dwmin_0.0000198
+    OK  final_eval_loss=N/A
+[3/15] A-tile dw_min=0.00000198 (B=0.0005) → Atile_dwmin_0.00000198
+    OK  final_eval_loss=N/A
+[4/15] B-tile dw_min=0.00005 (A=default) → Btile_dwmin_0.00005
+    OK  final_eval_loss=N/A
+[5/15] B-tile dw_min=0.000005 (A=default) → Btile_dwmin_0.000005
+    OK  final_eval_loss=N/A
+[6/15] A-tile dw_min=0.001981 noise-free, B-tile dw_min=0.0005 → Anoisefree_A_0.001981_B_0.0005
+    OK  final_eval_loss=N/A
+[7/15] A-tile dw_min=0.000198 noise-free, B-tile dw_min=0.0005 → Anoisefree_A_0.000198_B_0.0005
+    OK  final_eval_loss=N/A
+[8/15] A-tile dw_min=0.0000198 noise-free, B-tile dw_min=0.0005 → Anoisefree_A_0.0000198_B_0.0005
+    OK  final_eval_loss=N/A
+[9/15] A-tile dw_min=0.00000198 noise-free, B-tile dw_min=0.0005 → Anoisefree_A_0.00000198_B_0.0005
+    OK  final_eval_loss=N/A
+[10/15] A-tile dw_min=0.001981 noise-free, B-tile dw_min=0.00005 → Anoisefree_A_0.001981_B_0.00005
+    OK  final_eval_loss=N/A
+[11/15] A-tile dw_min=0.001981 noise-free, B-tile dw_min=0.000005 → Anoisefree_A_0.001981_B_0.000005
+    OK  final_eval_loss=N/A
+[12/15] A-tile dw_min=0.000198 noise-free, B-tile dw_min=0.00005 → Anoisefree_A_0.000198_B_0.00005
+    OK  final_eval_loss=N/A
+[13/15] A-tile dw_min=0.0000198 noise-free, B-tile dw_min=0.000005 → Anoisefree_A_0.0000198_B_0.000005
+    OK  final_eval_loss=N/A
+[14/15] A-tile dw_min=0.000198, B-tile dw_min=0.00005 → Both_A_0.000198_B_0.00005

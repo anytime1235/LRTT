@@ -60,6 +60,7 @@ from transformers import (
     default_data_collator,
 )
 from torch.utils.data import DataLoader
+from torch.optim import AdamW as TorchAdamW
 from datasets import load_dataset
 
 from aihwkit.nn import AnalogLinear
@@ -101,7 +102,13 @@ parser.add_argument("--no-v2", dest="use_v2", action="store_false")
 parser.add_argument("--dw-min", type=float, default=0.001)
 parser.add_argument("--dw-min-sweep", type=str, default=None, metavar="DW_CSV",
                     help="e.g. '0.0005,0.001,0.002'")
+parser.add_argument("--dw-min-a", type=float, default=None,
+                    help="A-tile dw_min override (default: DW_MIN_A_TILE=0.001981)")
+parser.add_argument("--a-noise-free", action="store_true", default=False,
+                    help="Zero out all A-tile device noise (dtod, dw_min_std, mult_noise)")
 parser.add_argument("--desired-bl", type=int, default=31)
+parser.add_argument("--transfer-desired-bl", type=int, default=None,
+                    help="desired_bl for transfer_update (default: same as --desired-bl)")
 parser.add_argument("--update-bl-management", type=str, default=None,
                     choices=["true", "false"])
 parser.add_argument("--update-management", type=str, default=None,
@@ -146,7 +153,8 @@ parser.add_argument("--sweep-transfer-diagnosis", action="store_true", default=F
 parser.add_argument("--steps", type=int, default=100)
 parser.add_argument("--batch-size", type=int, default=8)
 parser.add_argument("--seq-len", type=int, default=384)
-parser.add_argument("--lr", type=float, default=2e-3)
+parser.add_argument("--lr", type=float, default=2e-3,
+                    help="Analog learning rate (AnalogSGD)")
 parser.add_argument("--seed", type=int, default=42)
 
 # Multi-seed
@@ -162,6 +170,8 @@ parser.add_argument("--forward-perfect", action="store_true", default=False)
 parser.add_argument("--backward-perfect", action="store_true", default=False)
 
 # Tracing
+parser.add_argument("--no-trace", action="store_true", default=False,
+                    help="Skip all weight tracing (no hooks, no tracker, no metrics_steps.csv)")
 parser.add_argument("--trace-every", type=int, default=1,
                     help="Record weight deltas every N steps (delta covers N steps)")
 parser.add_argument("--trace-layers", type=str, default=None,
@@ -181,6 +191,40 @@ parser.add_argument("--overwrite", action="store_true", default=False,
 parser.add_argument("--exclude-ffn", action="store_true", default=False,
                     help="Exclude FFN1/FFN2 from analog conversion (keep digital)")
 
+# Trainability control (Task 1)
+parser.add_argument("--train-layernorm", action="store_true", default=True,
+                    dest="train_layernorm")
+parser.add_argument("--no-train-layernorm", action="store_false",
+                    dest="train_layernorm")
+parser.add_argument("--freeze-analog", action="store_true", default=False)
+parser.add_argument("--train-bias", action="store_true", default=False,
+                    help="BitFit mode: unfreeze all bias parameters")
+
+# Digital optimizer (Task 2)
+parser.add_argument("--digital-optimizer", type=str, default="sgd",
+                    choices=["sgd", "adamw"])
+parser.add_argument("--digital-lr", type=float, default=None,
+                    help="Digital learning rate (default: same as --lr)")
+parser.add_argument("--digital-weight-decay", type=float, default=0.0)
+
+# Screen mode (Task 5)
+parser.add_argument("--screen", action="store_true", default=False,
+                    help="Run TikiTaka screening: warmup + short evaluation")
+parser.add_argument("--warmup-steps", type=int, default=20,
+                    help="Number of warmup steps (digital-only) in screen mode")
+
+# Comparison mode (Task 6)
+parser.add_argument("--compare", action="store_true", default=False,
+                    help="Run baseline vs tikitaka comparison")
+
+# Eval loss (Metric A: ΔL_eval)
+parser.add_argument("--eval-loss", action="store_true", default=False,
+                    help="Compute per-step eval loss (Metric A: ΔL_eval)")
+parser.add_argument("--eval-batch-size", type=int, default=None,
+                    help="Eval batch size (default: same as --batch-size)")
+parser.add_argument("--eval-every", type=int, default=1,
+                    help="Compute eval loss every N steps (default: 1)")
+
 args = parser.parse_args()
 
 # =============================================================================
@@ -188,6 +232,7 @@ args = parser.parse_args()
 # =============================================================================
 
 DOC_STRIDE = 128
+DW_MIN_A_TILE = 0.001981  # Fixed A-tile dw_min from LinearStepDevice (6T1C)
 SEED = args.seed
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 EPS = 1e-8
@@ -197,9 +242,13 @@ print(f"[Config] Device={DEVICE}, mode={args.mode}, steps={args.steps}, "
 print(f"[Config] dw_min={args.dw_min}, desired_bl={args.desired_bl}, "
       f"lr={args.lr}, seed={SEED}")
 if args.mode == "tiki":
+    _tbl = args.transfer_desired_bl if args.transfer_desired_bl is not None else args.desired_bl
+    _eff_lr = args.lr * args.fast_lr
     print(f"[Config] TikiTaka: use_v2={args.use_v2}, "
           f"transfer_every={args.transfer_every}, "
-          f"transfer_lr={args.transfer_lr}, fast_lr={args.fast_lr}")
+          f"transfer_lr={args.transfer_lr}, fast_lr={args.fast_lr}, "
+          f"transfer_desired_bl={_tbl}, "
+          f"effective_lr(lr*fast_lr)={_eff_lr}, auto_scale={args.auto_scale}")
 
 # =============================================================================
 # Section 5: Layer Name Utilities (from diag_forward_io_single_rpu.py)
@@ -330,23 +379,25 @@ def create_single_config(args):
     return rpu
 
 
-def _create_a_device():
+def _create_a_device(args=None):
     """Create A tile: 6T1C LinearStepDevice (fast, noisy)."""
+    dw_min_a = (args.dw_min_a if args and getattr(args, 'dw_min_a', None) else DW_MIN_A_TILE)
+    noise_free = (args.a_noise_free if args and getattr(args, 'a_noise_free', False) else False)
     return LinearStepDevice(
-        dw_min=0.001981,
+        dw_min=dw_min_a,
         up_down=0.0,
         w_max=1.0,
         w_min=-1.0,
         gamma_up=-0.1678,
         gamma_down=0.1410,
-        mult_noise=True,
-        dw_min_dtod=0.1,
-        up_down_dtod=0.01,
-        w_max_dtod=0.05,
-        w_min_dtod=0.05,
-        gamma_up_dtod=0.05,
-        gamma_down_dtod=0.05,
-        dw_min_std=0.3,
+        mult_noise=(False if noise_free else True),
+        dw_min_dtod=(0.0 if noise_free else 0.1),
+        up_down_dtod=(0.0 if noise_free else 0.01),
+        w_max_dtod=(0.0 if noise_free else 0.05),
+        w_min_dtod=(0.0 if noise_free else 0.05),
+        gamma_up_dtod=(0.0 if noise_free else 0.05),
+        gamma_down_dtod=(0.0 if noise_free else 0.05),
+        dw_min_std=(0.0 if noise_free else 0.3),
         write_noise_std=0.0,
         mean_bound_reference=True,
         lifetime=0.0,
@@ -358,7 +409,7 @@ def _create_a_device():
 
 def create_tiki_config(args):
     """UnitCellRPUConfig with ChoppedTransferCompound for TikiTaka."""
-    a_device = _create_a_device()
+    a_device = _create_a_device(args)
     b_device = SoftBoundsDevice(
         dw_min=args.dw_min,
         w_max=1.0,
@@ -403,7 +454,7 @@ def create_tiki_config(args):
                 bound_management=BoundManagementType.NONE,
             ),
             transfer_update=UpdateParameters(
-                desired_bl=args.desired_bl,
+                desired_bl=args.transfer_desired_bl if args.transfer_desired_bl is not None else args.desired_bl,
                 update_bl_management=_resolve_bool_arg(
                     args.update_bl_management, not use_v2),
                 update_management=_resolve_bool_arg(
@@ -446,7 +497,52 @@ def create_tiki_config(args):
     rpu_config.mapping.weight_scaling_omega = 1.0
     rpu_config.mapping.weight_scaling_columnwise = True
 
+    verify_tiki_config(args, rpu_config)
+
     return rpu_config
+
+
+def verify_tiki_config(args, rpu_config):
+    """Verify TikiTaka configuration constraints and print diagnostic info."""
+    dev = rpu_config.device
+
+    # Check 1: ChoppedTransferCompound structure
+    n_devices = len(dev.unit_cell_devices)
+    n_reads = dev.n_reads_per_transfer
+    print(f"[Verify] ChoppedTransferCompound: {n_devices} devices, "
+          f"n_reads_per_transfer={n_reads}, sequential")
+    assert n_devices == 2, f"Expected 2 devices, got {n_devices}"
+    assert n_reads == 1, f"Expected n_reads_per_transfer=1, got {n_reads}"
+
+    # Check 2: Transfer cadence
+    te = dev.transfer_every
+    uim = dev.units_in_mbatch
+    bs = args.batch_size
+    if not uim:
+        cadence = te
+    else:
+        cadence = math.ceil(te / bs)
+    print(f"[Verify] Transfer cadence: every {cadence} optimizer steps "
+          f"(te={te}, uim={uim}, bs={bs})")
+
+    # Check 3: transfer_columns parameter type annotation
+    sig = inspect.signature(ChoppedTransferCompound)
+    tc_param = sig.parameters.get("transfer_columns")
+    if tc_param is not None:
+        print(f"[Verify] transfer_columns: type={tc_param.annotation}, "
+              f"default={tc_param.default}")
+    else:
+        print("[Verify] transfer_columns: parameter not found in signature")
+
+    # Check 4: Effective LR and auto_scale warning
+    effective_lr = args.lr * args.fast_lr
+    print(f"[Verify] A-tile effective_lr = lr*fast_lr = {args.lr}*{args.fast_lr} "
+          f"= {effective_lr}")
+    if dev.auto_scale:
+        print(f"[Verify] WARNING: auto_scale=True — aihwkit adjusts A-tile LR "
+              f"dynamically using running statistics (m_x, m_d). "
+              f"BL estimates in grad_proxy are pre-auto-scale approximations. "
+              f"Actual BL ≈ desired_bl={args.desired_bl} when auto_scale converges.")
 
 
 # =============================================================================
@@ -512,18 +608,68 @@ def create_model(args, model_seed=None):
     # Single-pass conversion
     model = convert_to_analog(model, rpu_config, exclude_modules=exclude)
 
-    # Gradient control
+    # --- Gradient control: 5-step freeze/unfreeze ---
+
+    # Step 1: Freeze ALL
     for p in model.parameters():
         p.requires_grad_(False)
-    for p in model.parameters():
-        if isinstance(p, AnalogContext):
-            p.requires_grad_(True)
+    n_total = sum(p.numel() for p in model.parameters())
+    print(f"  [Trainability] Step 1 — Freeze ALL: {n_total:,} params frozen")
+
+    # Step 2: Unfreeze AnalogContext (unless --freeze-analog)
+    freeze_analog = getattr(args, 'freeze_analog', False)
+    if not freeze_analog:
+        for p in model.parameters():
+            if isinstance(p, AnalogContext):
+                p.requires_grad_(True)
+        n_ctx = sum(1 for p in model.parameters()
+                    if isinstance(p, AnalogContext) and p.requires_grad)
+        print(f"  [Trainability] Step 2 — AnalogContext unfrozen: {n_ctx}")
+    else:
+        print(f"  [Trainability] Step 2 — AnalogContext FROZEN (--freeze-analog)")
+
+    # Step 3: Unfreeze qa_outputs (always)
+    n_qa = 0
     for n, p in model.named_parameters():
         if "qa_outputs" in n:
             p.requires_grad_(True)
+            n_qa += 1
+    print(f"  [Trainability] Step 3 — qa_outputs unfrozen: {n_qa} tensors")
 
+    # Step 4: Unfreeze LayerNorm (if --train-layernorm, default True)
+    train_layernorm = getattr(args, 'train_layernorm', True)
+    if train_layernorm:
+        n_ln = 0
+        for n, p in model.named_parameters():
+            if "LayerNorm" in n:
+                p.requires_grad_(True)
+                n_ln += 1
+        print(f"  [Trainability] Step 4 — LayerNorm params unfrozen: {n_ln}")
+    else:
+        print(f"  [Trainability] Step 4 — LayerNorm frozen (--no-train-layernorm)")
+
+    # Step 5: Unfreeze bias (if --train-bias, BitFit mode)
+    train_bias = getattr(args, 'train_bias', False)
+    if train_bias:
+        n_bias = 0
+        for n, p in model.named_parameters():
+            if n.endswith(".bias") and not p.requires_grad:
+                p.requires_grad_(True)
+                n_bias += 1
+        print(f"  [Trainability] Step 5 — Bias params unfrozen (BitFit): {n_bias}")
+
+    n_trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
     n_analog = sum(1 for m in model.modules() if isinstance(m, AnalogLinear))
     print(f"  Analog tiles: {n_analog}, mode={args.mode}")
+    print(f"  Total trainable params: {n_trainable:,}")
+
+    # FFN freeze verification
+    if getattr(args, 'exclude_ffn', False):
+        ffn_trainable = sum(p.numel() for n, p in model.named_parameters()
+                            if ("intermediate.dense" in n or
+                                ("output.dense" in n and "attention" not in n))
+                            and p.requires_grad)
+        print(f"  [Verify] FFN trainable params: {ffn_trainable} (should be 0 if frozen)")
 
     return model.to(DEVICE)
 
@@ -589,6 +735,79 @@ def load_data(tokenizer, n_step, batch_size, seq_len, data_seed=None):
                         collate_fn=default_data_collator)
     print(f"  Dataset: {n} samples -> {len(loader)} batches")
     return loader
+
+
+def load_eval_data(tokenizer, batch_size, seq_len):
+    """Load a FIXED eval batch from SQuAD validation set.
+
+    Always uses seed=999 for reproducibility across runs.
+    Returns a single batch dict on DEVICE.
+    """
+    max_seq_length = seq_len
+
+    def preprocess_val(examples):
+        questions = [q.strip() for q in examples["question"]]
+        inputs = tokenizer(
+            questions, examples["context"],
+            max_length=max_seq_length, truncation="only_second",
+            stride=DOC_STRIDE, return_overflowing_tokens=True,
+            return_offsets_mapping=True, padding="max_length",
+        )
+        offset_mapping = inputs.pop("offset_mapping")
+        sample_map = inputs.pop("overflow_to_sample_mapping")
+        answers = examples["answers"]
+        sp, ep = [], []
+        for i, offset in enumerate(offset_mapping):
+            ans = answers[sample_map[i]]
+            if not ans["answer_start"]:
+                sp.append(0); ep.append(0); continue
+            sc = ans["answer_start"][0]
+            ec = sc + len(ans["text"][0])
+            seq = inputs.sequence_ids(i)
+            idx = 0
+            while seq[idx] != 1:
+                idx += 1
+            cs = idx
+            while idx < len(seq) and seq[idx] == 1:
+                idx += 1
+            ce = idx - 1
+            if offset[cs][0] > ec or offset[ce][1] < sc:
+                sp.append(0); ep.append(0)
+            else:
+                idx = cs
+                while idx <= ce and offset[idx][0] <= sc:
+                    idx += 1
+                sp.append(idx - 1)
+                idx = ce
+                while idx >= cs and offset[idx][1] >= ec:
+                    idx -= 1
+                ep.append(idx + 1)
+        inputs["start_positions"] = sp
+        inputs["end_positions"] = ep
+        return inputs
+
+    raw = load_dataset("squad")
+    tok = raw["validation"].map(
+        preprocess_val, batched=True,
+        remove_columns=raw["validation"].column_names,
+    )
+    subset = tok.shuffle(seed=999).select(range(batch_size))
+    loader = DataLoader(subset, batch_size=batch_size, shuffle=False,
+                        collate_fn=default_data_collator)
+    batch = next(iter(loader))
+    return {k: v.to(DEVICE) for k, v in batch.items()}
+
+
+@torch.no_grad()
+def _compute_eval_loss(model, eval_batch):
+    """Compute loss on fixed eval batch without gradient computation."""
+    was_training = model.training
+    model.eval()
+    outputs = model(**eval_batch)
+    loss_val = outputs.loss.item()
+    if was_training:
+        model.train()
+    return loss_val
 
 
 # =============================================================================
@@ -760,11 +979,17 @@ def register_xd_hooks(model, sample_k, hook_active, trace_args=None,
 # Section 10: Gradient Proxy Computation
 # =============================================================================
 
-def compute_grad_proxy(layer_info, lr, dw_min, desired_bl):
+def compute_grad_proxy(layer_info, effective_lr, dw_min, desired_bl):
     """Compute gradient proxy metrics from hooked x/d activations.
 
     Must be called AFTER loss.backward() but BEFORE optimizer.step().
     Returns dict of metrics + dw_fp numpy array for cosine/slope comparison.
+
+    Args:
+        effective_lr: For TikiTaka, this should be lr * fast_lr (the A-tile
+            effective learning rate). For single mode, this is just lr.
+            Note: with auto_scale=True, aihwkit further adjusts lr internally
+            using running statistics, so BL estimates are pre-auto-scale.
     """
     sampler = layer_info["sampler"]
     x_s = layer_info["x_sampled"]   # (N, |unique_j|)
@@ -795,7 +1020,7 @@ def compute_grad_proxy(layer_info, lr, dw_min, desired_bl):
     x_gathered = x_s[:, sampler.uj_positions_t.to(device)]
     g_ij = (d_gathered * x_gathered).sum(dim=0)  # (k,)
 
-    dw_fp = -lr * g_ij  # float-point expected weight update
+    dw_fp = -effective_lr * g_ij  # float-point expected weight update
 
     grad_absmean = g_ij.abs().mean().item()
     grad_deadzone_ratio = (dw_fp.abs() < dw_min).float().mean().item()
@@ -810,14 +1035,14 @@ def compute_grad_proxy(layer_info, lr, dw_min, desired_bl):
     d_i_gathered = d_i_max[sampler.ui_positions_t.to(device)]  # (k,)
 
     bl_pred = torch.ceil(
-        lr * x_j_gathered * d_i_gathered / (dw_min + EPS)
+        effective_lr * x_j_gathered * d_i_gathered / (dw_min + EPS)
     )
     BL_mean = bl_pred.mean().item()
     BL_p99 = bl_pred.float().quantile(0.99).item() if bl_pred.numel() > 0 else 0.0
     BL_hit_ratio = (bl_pred >= desired_bl).float().mean().item()
 
     # 3-zone pulse classification (reuse gathered signals)
-    p_est = lr * x_j_gathered * d_i_gathered / (dw_min + EPS)
+    p_est = effective_lr * x_j_gathered * d_i_gathered / (dw_min + EPS)
     pulse_under_frac = (p_est < 1.0).float().mean().item()
     pulse_ok_frac = ((p_est >= 1.0) & (p_est <= desired_bl)).float().mean().item()
     pulse_over_frac = (p_est > desired_bl).float().mean().item()
@@ -1100,10 +1325,17 @@ class WeightUpdateTracker:
         self.args = args
         self.is_tiki = (args.mode == "tiki")
         self.dw_min = args.dw_min
-        self.dw_min_A = 0.001981  # Fixed A-tile dw_min from LinearStepDevice
+        self.dw_min_A = getattr(args, 'dw_min_a', None) or DW_MIN_A_TILE
         self.desired_bl = args.desired_bl
         self.w_max = 1.0
+        # Effective LR for FP reference: TikiTaka A-tile uses lr*fast_lr
+        self.effective_lr = (args.lr * args.fast_lr
+                             if self.is_tiki else args.lr)
         self.trace_every = getattr(args, 'trace_every', 1)
+
+        # FP reference tracking (Task 4)
+        self._w_fp_ref = {}       # name → sampled FP reference tensor (GPU)
+        self._fp_ref_initialized = False
 
         self._layers = []
         for name, info in layer_infos.items():
@@ -1127,6 +1359,10 @@ class WeightUpdateTracker:
 
         self._step_rows = []
         self._dw_fp_accum = {}  # name -> accumulated dw_fp over trace interval
+        self._dw_fp_since_transfer = {}    # name → Σ dw_fp since last scheduled transfer (GPU)
+        self._dw_fast_since_transfer = {}  # name → Σ dw_fast since last scheduled transfer (GPU)
+        self._dw_slow_since_transfer = {}  # name → Σ dw_slow since last scheduled transfer (GPU)
+        self._last_scheduled_transfer_step = {}  # name → step number of last scheduled transfer
 
         # Initial snapshot (read weights once at construction time)
         self._read_current_weights()
@@ -1168,7 +1404,15 @@ class WeightUpdateTracker:
         alignment metrics (cosine, slope, sign_mismatch) compare N-step
         dw_eff against N-step accumulated dw_fp.
         """
-        # Always accumulate dw_fp for trace-interval alignment (GPU tensors)
+        # Initialize FP reference on first call (Task 4)
+        # Use w_eff_prev (pre-step initial weight) to avoid off-by-one bias
+        if not self._fp_ref_initialized:
+            for layer in self._layers:
+                _name = layer["name"]
+                self._w_fp_ref[_name] = layer["w_eff_prev"].clone()
+            self._fp_ref_initialized = True
+
+        # Always accumulate dw_fp AND update FP reference (GPU tensors)
         for _name, _gp in grad_proxy_results.items():
             _dw_fp_step = _gp.get("dw_fp")
             if _dw_fp_step is not None:
@@ -1176,6 +1420,15 @@ class WeightUpdateTracker:
                     self._dw_fp_accum[_name] += _dw_fp_step
                 else:
                     self._dw_fp_accum[_name] = _dw_fp_step.clone()
+                # Update FP reference (Task 4C)
+                if _name in self._w_fp_ref:
+                    self._w_fp_ref[_name] = self._w_fp_ref[_name] + _dw_fp_step
+
+                # Accumulate for transfer-interval metric (Q2)
+                if _name in self._dw_fp_since_transfer:
+                    self._dw_fp_since_transfer[_name] += _dw_fp_step
+                else:
+                    self._dw_fp_since_transfer[_name] = _dw_fp_step.clone()
 
         if step % self.trace_every != 0:
             return  # skip recording; prev stays, dw_fp accumulates
@@ -1198,6 +1451,14 @@ class WeightUpdateTracker:
             pulse_sat_ratio = float((abs_dw_eff >= pulse_sat_threshold).float().mean().item())
             bound_sat_ratio = float(
                 (w_eff_now.abs() >= 0.98 * self.w_max).float().mean().item())
+
+            # --- A3. Weight state: effective weight (Task 3) ---
+            w_eff_mean = float(w_eff_now.mean().item())
+            w_eff_std = float(w_eff_now.std().item())
+            w_eff_absmean = float(w_eff_now.abs().mean().item())
+            w_eff_absmax = float(w_eff_now.abs().max().item())
+            w_eff_near_bound_ratio = float(
+                (w_eff_now.abs() > 0.98 * self.w_max).float().mean().item())
 
             # --- B. Gradient proxy comparison (GPU) ---
             gp = grad_proxy_results.get(name, {})
@@ -1254,7 +1515,20 @@ class WeightUpdateTracker:
                 # Fast (A tile) delta
                 if fast_w is not None and layer["w_fast_prev"] is not None:
                     _f_flat = fast_w.reshape(-1)
-                    dw_fast = _f_flat[idx_t.to(_f_flat.device)].to(idx_t.device) - layer["w_fast_prev"]
+                    fast_sampled = _f_flat[idx_t.to(_f_flat.device)].to(idx_t.device)
+                    dw_fast = fast_sampled - layer["w_fast_prev"]
+                    # Accumulate A-tile deltas between transfers (Q1b)
+                    if name in self._dw_fast_since_transfer:
+                        self._dw_fast_since_transfer[name] += dw_fast
+                    else:
+                        self._dw_fast_since_transfer[name] = dw_fast.clone()
+                    # A tile state metrics (Task 3)
+                    tiki_row["w_fast_mean"] = float(fast_sampled.mean().item())
+                    tiki_row["w_fast_std"] = float(fast_sampled.std().item())
+                    tiki_row["w_fast_absmean"] = float(fast_sampled.abs().mean().item())
+                    tiki_row["w_fast_absmax"] = float(fast_sampled.abs().max().item())
+                    tiki_row["w_fast_near_bound_ratio"] = float(
+                        (fast_sampled.abs() > 0.98 * self.w_max).float().mean().item())
                     fm = _compute_delta_metrics_torch(dw_fast, self.dw_min_A)
                     tiki_row["dw_fast_zero_ratio"] = fm["zero_ratio"]
                     tiki_row["dw_fast_1lsb_ratio"] = fm["1lsb_ratio"]
@@ -1268,7 +1542,9 @@ class WeightUpdateTracker:
                         tiki_row["dw_fast_vs_grad_cosine"] = float("nan")
                         tiki_row["dw_fast_eff_lr_slope"] = float("nan")
                 else:
-                    for k in ["dw_fast_zero_ratio", "dw_fast_1lsb_ratio",
+                    for k in ["w_fast_mean", "w_fast_std", "w_fast_absmean",
+                              "w_fast_absmax", "w_fast_near_bound_ratio",
+                              "dw_fast_zero_ratio", "dw_fast_1lsb_ratio",
                               "dw_fast_absmean", "dw_fast_vs_grad_cosine",
                               "dw_fast_eff_lr_slope"]:
                         tiki_row[k] = float("nan")
@@ -1276,7 +1552,15 @@ class WeightUpdateTracker:
                 # Slow (B tile) delta
                 if slow_w is not None and layer["w_slow_prev"] is not None:
                     _s_flat = slow_w.reshape(-1)
-                    dw_slow = _s_flat[idx_t.to(_s_flat.device)].to(idx_t.device) - layer["w_slow_prev"]
+                    slow_sampled = _s_flat[idx_t.to(_s_flat.device)].to(idx_t.device)
+                    dw_slow = slow_sampled - layer["w_slow_prev"]
+                    # B tile state metrics (Task 3)
+                    tiki_row["w_slow_mean"] = float(slow_sampled.mean().item())
+                    tiki_row["w_slow_std"] = float(slow_sampled.std().item())
+                    tiki_row["w_slow_absmean"] = float(slow_sampled.abs().mean().item())
+                    tiki_row["w_slow_absmax"] = float(slow_sampled.abs().max().item())
+                    tiki_row["w_slow_near_bound_ratio"] = float(
+                        (slow_sampled.abs() > 0.98 * self.w_max).float().mean().item())
                     sm = _compute_delta_metrics_torch(dw_slow, self.dw_min)
                     tiki_row["dw_slow_zero_ratio"] = sm["zero_ratio"]
                     tiki_row["dw_slow_1lsb_ratio"] = sm["1lsb_ratio"]
@@ -1285,6 +1569,12 @@ class WeightUpdateTracker:
                     # Observation-based transfer detection: did slow tile actually change?
                     is_transfer = bool(torch.any(dw_slow != 0).item())
                     tiki_row["is_transfer_scheduled"] = int(is_transfer_scheduled)
+
+                    # Accumulate dw_slow across steps for scheduled-boundary metrics
+                    if name in self._dw_slow_since_transfer:
+                        self._dw_slow_since_transfer[name] += dw_slow
+                    else:
+                        self._dw_slow_since_transfer[name] = dw_slow.clone()
 
                     if is_transfer:
                         abs_dw_slow = dw_slow.abs()
@@ -1296,6 +1586,49 @@ class WeightUpdateTracker:
                     else:
                         tiki_row["transfer_duty"] = float("nan")
                         tiki_row["transfer_spike"] = float("nan")
+
+                    # ── Transfer-aligned interval metrics ──
+                    # Computed only at scheduled transfer boundaries so that
+                    # accumulators span the full transfer_every interval.
+                    if is_transfer_scheduled:
+                        _fp_xfer = self._dw_fp_since_transfer.get(name)
+                        _fast_xfer = self._dw_fast_since_transfer.get(name)
+                        _slow_xfer = self._dw_slow_since_transfer.get(name)
+
+                        # Q2: cosine(Σ dw_slow over interval, Σ grad over interval)
+                        if (_slow_xfer is not None and _fp_xfer is not None
+                                and _slow_xfer.numel() == _fp_xfer.numel()):
+                            tiki_row["cosine_slow_grad_transfer"] = _cosine_sim_torch(
+                                _slow_xfer, _fp_xfer)
+                            _nz_t = (_slow_xfer != 0)
+                            tiki_row["cosine_slow_grad_transfer_nz"] = (
+                                _cosine_sim_torch(_slow_xfer[_nz_t], _fp_xfer[_nz_t])
+                                if _nz_t.any() else float("nan"))
+                            tiki_row["steps_since_last_transfer"] = (
+                                step - self._last_scheduled_transfer_step.get(name, -1))
+                        else:
+                            tiki_row["cosine_slow_grad_transfer"] = float("nan")
+                            tiki_row["cosine_slow_grad_transfer_nz"] = float("nan")
+                            tiki_row["steps_since_last_transfer"] = float("nan")
+
+                        # Q1b: cosine(Σ dw_fast over interval, Σ grad over interval)
+                        if (_fast_xfer is not None and _fp_xfer is not None
+                                and _fast_xfer.numel() == _fp_xfer.numel()):
+                            tiki_row["cosine_fast_accum_grad"] = _cosine_sim_torch(
+                                _fast_xfer, _fp_xfer)
+                        else:
+                            tiki_row["cosine_fast_accum_grad"] = float("nan")
+
+                        # Reset all interval accumulators at scheduled boundary
+                        self._dw_fp_since_transfer[name] = torch.zeros_like(dw_slow)
+                        self._dw_fast_since_transfer[name] = torch.zeros_like(dw_slow)
+                        self._dw_slow_since_transfer[name] = torch.zeros_like(dw_slow)
+                        self._last_scheduled_transfer_step[name] = step
+                    else:
+                        tiki_row["cosine_slow_grad_transfer"] = float("nan")
+                        tiki_row["cosine_slow_grad_transfer_nz"] = float("nan")
+                        tiki_row["steps_since_last_transfer"] = float("nan")
+                        tiki_row["cosine_fast_accum_grad"] = float("nan")
 
                     # Column/row coverage metrics (Step 4)
                     nz_mask = (dw_slow != 0)
@@ -1310,11 +1643,17 @@ class WeightUpdateTracker:
                         len(np.unique(nz_i)) / sampler.out_features) if len(nz_i) > 0 else 0.0
                 else:
                     tiki_row["is_transfer_scheduled"] = int(is_transfer_scheduled)
-                    for k in ["dw_slow_zero_ratio", "dw_slow_1lsb_ratio",
+                    for k in ["w_slow_mean", "w_slow_std", "w_slow_absmean",
+                              "w_slow_absmax", "w_slow_near_bound_ratio",
+                              "dw_slow_zero_ratio", "dw_slow_1lsb_ratio",
                               "dw_slow_absmean"]:
                         tiki_row[k] = float("nan")
                     tiki_row["transfer_duty"] = float("nan")
                     tiki_row["transfer_spike"] = float("nan")
+                    tiki_row["cosine_slow_grad_transfer"] = float("nan")
+                    tiki_row["cosine_slow_grad_transfer_nz"] = float("nan")
+                    tiki_row["steps_since_last_transfer"] = float("nan")
+                    tiki_row["cosine_fast_accum_grad"] = float("nan")
                     tiki_row["cols_updated_count"] = 0
                     tiki_row["cols_updated_ratio"] = 0.0
                     tiki_row["rows_updated_count"] = 0
@@ -1338,12 +1677,21 @@ class WeightUpdateTracker:
                         tiki_row["hidden_trunc_meanabs"] = 0.0
                     tiki_row["buffer_above_thresh_ratio"] = float(
                         (h_flat.abs() >= self.dw_min).float().mean().item())
+                    # Buffer quantiles (Task 3)
+                    tiki_row["buffer_quantile_p50"] = float(
+                        h_flat.abs().float().quantile(0.50).item())
+                    tiki_row["buffer_quantile_p90"] = float(
+                        h_flat.abs().float().quantile(0.90).item())
+                    tiki_row["buffer_quantile_p99"] = float(
+                        h_flat.abs().float().quantile(0.99).item())
                 else:
                     for k in ["hidden_absmean", "hidden_absmax",
                               "hidden_below1_ratio",
                               "hidden_trunc_nonzero_ratio",
                               "hidden_trunc_meanabs",
-                              "buffer_above_thresh_ratio"]:
+                              "buffer_above_thresh_ratio",
+                              "buffer_quantile_p50", "buffer_quantile_p90",
+                              "buffer_quantile_p99"]:
                         tiki_row[k] = float("nan")
 
                 # Pre vs post buffer comparison
@@ -1364,10 +1712,16 @@ class WeightUpdateTracker:
                     gran = getattr(self.args, 'buffer_granularity', None) or self.dw_min
                     tiki_row["buffer_pre_above_gran_ratio"] = float(
                         (pre_flat.abs() >= gran).float().mean().item())
+                    # Buffer post-transfer decrease ratio (Task 3)
+                    pre_mag = pre_flat.abs()
+                    post_mag = post_flat.abs()
+                    tiki_row["buffer_post_transfer_decrease_ratio"] = float(
+                        (post_mag < pre_mag).float().mean().item())
                 else:
                     for k in ["buffer_pre_nonzero_ratio", "buffer_pre_absmean",
                               "buffer_post_nonzero_ratio", "buffer_post_absmean",
-                              "buffer_cleared_ratio", "buffer_pre_above_gran_ratio"]:
+                              "buffer_cleared_ratio", "buffer_pre_above_gran_ratio",
+                              "buffer_post_transfer_decrease_ratio"]:
                         tiki_row[k] = float("nan")
 
                 # transfer_efficiency
@@ -1405,7 +1759,18 @@ class WeightUpdateTracker:
                           "rows_updated_count", "rows_updated_ratio",
                           "buffer_pre_nonzero_ratio", "buffer_pre_absmean",
                           "buffer_post_nonzero_ratio", "buffer_post_absmean",
-                          "buffer_cleared_ratio", "buffer_pre_above_gran_ratio"]:
+                          "buffer_cleared_ratio", "buffer_pre_above_gran_ratio",
+                          # Task 3: weight state
+                          "w_fast_mean", "w_fast_std", "w_fast_absmean",
+                          "w_fast_absmax", "w_fast_near_bound_ratio",
+                          "w_slow_mean", "w_slow_std", "w_slow_absmean",
+                          "w_slow_absmax", "w_slow_near_bound_ratio",
+                          "buffer_quantile_p50", "buffer_quantile_p90",
+                          "buffer_quantile_p99",
+                          "buffer_post_transfer_decrease_ratio",
+                          # Transfer-aligned pipeline metrics
+                          "cosine_slow_grad_transfer", "cosine_slow_grad_transfer_nz",
+                          "steps_since_last_transfer", "cosine_fast_accum_grad"]:
                     tiki_row[k] = float("nan")
 
             # Update prev for next step (GPU tensor)
@@ -1471,6 +1836,70 @@ class WeightUpdateTracker:
             row["dw_p50"] = dw_p50
             row["trace_every"] = self.trace_every
 
+            # Weight state metrics (Task 3)
+            row["w_eff_mean"] = w_eff_mean
+            row["w_eff_std"] = w_eff_std
+            row["w_eff_absmean"] = w_eff_absmean
+            row["w_eff_absmax"] = w_eff_absmax
+            row["w_eff_near_bound_ratio"] = w_eff_near_bound_ratio
+
+            # FP drift metrics (Task 4)
+            if name in self._w_fp_ref:
+                _diff = w_eff_now - self._w_fp_ref[name]
+                _ref_norm = torch.linalg.norm(self._w_fp_ref[name]).item()
+                row["drift_l2"] = float(
+                    torch.linalg.norm(_diff).item() / (_ref_norm + EPS))
+                row["drift_mae"] = float(_diff.abs().mean().item())
+            else:
+                row["drift_l2"] = float("nan")
+                row["drift_mae"] = float("nan")
+
+            # Metric B: ΔL_pred = -(1/effective_lr) × ⟨dw_fp, dw_eff⟩
+            if dw_fp is not None and dw_fp.numel() == dw_eff.numel():
+                dot_product = torch.dot(dw_fp, dw_eff).item()
+                delta_L_pred = -(1.0 / self.effective_lr) * dot_product
+                row["delta_L_pred"] = delta_L_pred
+                row["dw_fp_dot_dw_eff"] = dot_product
+            else:
+                row["delta_L_pred"] = float("nan")
+                row["dw_fp_dot_dw_eff"] = float("nan")
+
+            # Pipeline alignment: cosine(dw_slow, grad), cosine(dw_slow, dw_fast)
+            # NOTE: cosine_slow_grad uses trace-interval dw_fp (temporal mismatch
+            # when trace_every != transfer_every). Prefer cosine_slow_grad_transfer
+            # for transfer fidelity analysis (Q2).
+            # NOTE: dw_fast_vs_grad_cosine is contaminated by drain on transfer
+            # steps — filter by is_transfer_step=0 for pure pulse quality.
+            if self.is_tiki and dw_slow is not None:
+                if dw_fp is not None and dw_fp.numel() == dw_slow.numel():
+                    row["cosine_slow_grad"] = _cosine_sim_torch(dw_slow, dw_fp)
+                    nz = (dw_slow != 0)
+                    if nz.any():
+                        row["cosine_slow_grad_nz"] = _cosine_sim_torch(
+                            dw_slow[nz], dw_fp[nz])
+                    else:
+                        row["cosine_slow_grad_nz"] = float("nan")
+                else:
+                    row["cosine_slow_grad"] = float("nan")
+                    row["cosine_slow_grad_nz"] = float("nan")
+
+                if dw_fast is not None and dw_fast.numel() == dw_slow.numel():
+                    row["cosine_slow_fast"] = _cosine_sim_torch(dw_slow, dw_fast)
+                    nz = (dw_slow != 0)
+                    if nz.any():
+                        row["cosine_slow_fast_nz"] = _cosine_sim_torch(
+                            dw_slow[nz], dw_fast[nz])
+                    else:
+                        row["cosine_slow_fast_nz"] = float("nan")
+                else:
+                    row["cosine_slow_fast"] = float("nan")
+                    row["cosine_slow_fast_nz"] = float("nan")
+            else:
+                row["cosine_slow_grad"] = float("nan")
+                row["cosine_slow_grad_nz"] = float("nan")
+                row["cosine_slow_fast"] = float("nan")
+                row["cosine_slow_fast_nz"] = float("nan")
+
             self._step_rows.append(row)
 
         # Reset accumulator for next trace interval
@@ -1517,6 +1946,25 @@ class WeightUpdateTracker:
             "sign_mismatch_ratio", "rel_update_error",
             "BL_fp_mean", "BL_fp_p99", "BL_fp_hit_ratio",
             "dw_p50",
+            # Weight state metrics (Task 3)
+            "w_eff_mean", "w_eff_std", "w_eff_absmean", "w_eff_absmax",
+            "w_eff_near_bound_ratio",
+            "w_fast_mean", "w_fast_std", "w_fast_absmean",
+            "w_fast_absmax", "w_fast_near_bound_ratio",
+            "w_slow_mean", "w_slow_std", "w_slow_absmean",
+            "w_slow_absmax", "w_slow_near_bound_ratio",
+            "buffer_quantile_p50", "buffer_quantile_p90",
+            "buffer_quantile_p99", "buffer_post_transfer_decrease_ratio",
+            # FP drift metrics (Task 4)
+            "drift_l2", "drift_mae",
+            # Loss-based metrics
+            "delta_L_pred", "dw_fp_dot_dw_eff",
+            # Pipeline alignment metrics
+            "cosine_slow_grad", "cosine_slow_grad_nz",
+            "cosine_slow_fast", "cosine_slow_fast_nz",
+            # Transfer-aligned pipeline metrics (Q2)
+            "cosine_slow_grad_transfer", "cosine_slow_grad_transfer_nz",
+            "cosine_fast_accum_grad", "steps_since_last_transfer",
             # Config
             "trace_every",
         ]
@@ -1529,11 +1977,11 @@ class WeightUpdateTracker:
             if k not in columns:
                 columns.append(k)
         df = pd.DataFrame(self._step_rows, columns=columns)
-        step_path = os.path.join(out_dir, f"{tag}_step_metrics.csv")
+        step_path = os.path.join(out_dir, "metrics_steps.csv")
         df.to_csv(step_path, index=False)
         print(f"  Saved {step_path} ({len(df)} rows)")
 
-        # Summary CSV: groupby (layer_idx, sublayer) -> mean of numeric cols
+        # Summary JSON: groupby (layer_idx, sublayer) -> mean of numeric cols
         exclude_from_mean = {"step", "mode", "layer_idx", "sublayer",
                              "module_name", "dw_min", "desired_bl",
                              "sto_round_update", "update_bl_management",
@@ -1542,8 +1990,8 @@ class WeightUpdateTracker:
         summary = df.groupby(["layer_idx", "sublayer"])[numeric_cols].mean(
             numeric_only=True)
         summary = summary.reset_index()
-        sum_path = os.path.join(out_dir, f"{tag}_summary.csv")
-        summary.to_csv(sum_path, index=False)
+        sum_path = os.path.join(out_dir, "summary.json")
+        summary.to_json(sum_path, orient="records", indent=2)
         print(f"  Saved {sum_path} ({len(summary)} rows)")
 
         # Print concise table
@@ -1628,6 +2076,12 @@ def _compute_run_id(run_args):
         "backward_perfect": run_args.backward_perfect,
         "sample_k": run_args.sample_k,
         "exclude_ffn": getattr(run_args, 'exclude_ffn', False),
+        "train_layernorm": getattr(run_args, 'train_layernorm', True),
+        "freeze_analog": getattr(run_args, 'freeze_analog', False),
+        "train_bias": getattr(run_args, 'train_bias', False),
+        "digital_optimizer": getattr(run_args, 'digital_optimizer', 'sgd'),
+        "digital_lr": getattr(run_args, 'digital_lr', None),
+        "digital_weight_decay": getattr(run_args, 'digital_weight_decay', 0.0),
     }
     if run_args.mode == "tiki":
         cfg.update({
@@ -1643,8 +2097,37 @@ def _compute_run_id(run_args):
             "auto_granularity": getattr(run_args, 'auto_granularity', None),
             "momentum": getattr(run_args, 'momentum', 0.0),
             "sample_mode": getattr(run_args, 'sample_mode', 'random'),
+            "transfer_desired_bl": getattr(run_args, 'transfer_desired_bl', None),
+            "dw_min_a": getattr(run_args, 'dw_min_a', None),
+            "a_noise_free": getattr(run_args, 'a_noise_free', False),
         })
     return hashlib.sha1(json.dumps(cfg, sort_keys=True).encode()).hexdigest()[:12]
+
+
+def _fmt_val(v):
+    """Format float/int for directory name: '.' → 'p', '-' → 'm'."""
+    if isinstance(v, float):
+        s = f"{v:g}"
+        return s.replace(".", "p").replace("-", "m")
+    return str(v)
+
+
+def _build_run_dir(run_args, seed, prefix="run"):
+    """Human-readable directory name with config hash suffix."""
+    uim = "T" if getattr(run_args, 'units_in_mbatch', True) else "F"
+    te = run_args.transfer_every if run_args.mode == "tiki" else 0
+    tbl = getattr(run_args, 'transfer_desired_bl', None) or run_args.desired_bl
+    tc = "T" if getattr(run_args, 'transfer_columns', True) else "F"
+    dw_b = _fmt_val(run_args.dw_min)
+    lr_a = _fmt_val(run_args.lr)
+    flr = _fmt_val(run_args.fast_lr) if run_args.mode == "tiki" else ""
+    digital_lr = getattr(run_args, 'digital_lr', None) or run_args.lr
+    lr_d = _fmt_val(digital_lr)
+    hash8 = _compute_run_id(run_args)[:8]
+    flr_part = f"_flr{flr}" if flr else ""
+    dirname = (f"{prefix}_squad_seed{seed}_uim{uim}_te{te}_tbl{tbl}_tc{tc}"
+               f"_dwB{dw_b}_lrA{lr_a}{flr_part}_lrD{lr_d}_{hash8}")
+    return os.path.join(run_args.output_dir, dirname)
 
 
 def run_one(args, dw_min_override=None, label=None, seed_override=None):
@@ -1660,29 +2143,31 @@ def run_one(args, dw_min_override=None, label=None, seed_override=None):
     data_seed = run_args.seed_data if run_args.seed_data is not None else run_seed
     model_seed = run_args.seed_model if run_args.seed_model is not None else run_seed
 
-    # Collision-free directory: {output_dir}/{mode}/run_{hash}/{label_or_tag}/
+    # Human-readable directory (Task 7)
     run_id = _compute_run_id(run_args)
-    sub_label = label or run_args.tag or "default"
-    out_dir = os.path.join(run_args.output_dir, run_args.mode,
-                           f"run_{run_id}", sub_label)
-    file_tag = os.path.basename(sub_label)
+    run_dir = _build_run_dir(run_args, run_seed)
+    if label:
+        out_dir = os.path.join(run_dir, label)
+    else:
+        out_dir = run_dir
 
     # No-overwrite protection
     if os.path.exists(out_dir) and not getattr(run_args, 'overwrite', False):
-        existing_csvs = [f for f in os.listdir(out_dir) if f.endswith('.csv')]
-        if existing_csvs:
+        existing = [f for f in os.listdir(out_dir)
+                    if f.endswith('.csv') or f.endswith('.json')]
+        if existing:
             raise FileExistsError(
                 f"Output directory {out_dir} already has results. "
                 f"Use --overwrite to replace.")
 
     print(f"\n{'=' * 60}")
-    print(f"[run_one] run_id={run_id}, label={sub_label}, mode={run_args.mode}, "
+    print(f"[run_one] run_id={run_id}, label={label}, mode={run_args.mode}, "
           f"dw_min={run_args.dw_min}, steps={run_args.steps}")
     print(f"[run_one] seeds: run={run_seed}, data={data_seed}, model={model_seed}")
     print(f"[run_one] out_dir: {out_dir}")
     print(f"{'=' * 60}")
 
-    # JSON config dump
+    # JSON config dump (Task 1C, 7C)
     config_dump = {
         "mode": run_args.mode,
         "dw_min": run_args.dw_min,
@@ -1704,7 +2189,16 @@ def run_one(args, dw_min_override=None, label=None, seed_override=None):
         "backward_perfect": run_args.backward_perfect,
         "sample_k": run_args.sample_k,
         "exclude_ffn": getattr(run_args, 'exclude_ffn', False),
+        "train_layernorm": getattr(run_args, 'train_layernorm', True),
+        "freeze_analog": getattr(run_args, 'freeze_analog', False),
+        "train_bias": getattr(run_args, 'train_bias', False),
+        "digital_optimizer": getattr(run_args, 'digital_optimizer', 'sgd'),
+        "digital_lr": getattr(run_args, 'digital_lr', None),
+        "digital_weight_decay": getattr(run_args, 'digital_weight_decay', 0.0),
         "run_id": run_id,
+        "eval_loss": getattr(run_args, 'eval_loss', False),
+        "eval_batch_size": getattr(run_args, 'eval_batch_size', None),
+        "eval_every": getattr(run_args, 'eval_every', 1),
     }
     if run_args.mode == "tiki":
         config_dump.update({
@@ -1721,18 +2215,13 @@ def run_one(args, dw_min_override=None, label=None, seed_override=None):
             "momentum": run_args.momentum,
             "correct_gradient_magnitudes": run_args.correct_gradient_magnitudes,
             "sample_mode": run_args.sample_mode,
+            "transfer_desired_bl": getattr(run_args, 'transfer_desired_bl', None),
+            "dw_min_a": getattr(run_args, 'dw_min_a', None),
+            "a_noise_free": getattr(run_args, 'a_noise_free', False),
         })
     os.makedirs(out_dir, exist_ok=True)
-    with open(os.path.join(out_dir, "config.json"), "w") as f:
+    with open(os.path.join(out_dir, "config_dump.json"), "w") as f:
         json.dump(config_dump, f, indent=2)
-
-    # Manifest at run level (one level up from sub_label)
-    run_dir = os.path.dirname(out_dir)
-    manifest_path = os.path.join(run_dir, "manifest.json")
-    manifest = {"run_id": run_id, "mode": run_args.mode}
-    manifest.update(config_dump)
-    with open(manifest_path, "w") as f:
-        json.dump(manifest, f, indent=2)
 
     _set_all_seeds(data_seed)
 
@@ -1745,27 +2234,35 @@ def run_one(args, dw_min_override=None, label=None, seed_override=None):
     model = create_model(run_args, model_seed=model_seed)
     model.train()
 
-    # Register hooks
-    hook_active = [True]
-    layer_infos, handles = register_xd_hooks(model, run_args.sample_k,
-                                             hook_active,
-                                             trace_args=run_args,
-                                             sample_mode=getattr(run_args, 'sample_mode', 'random'))
+    # Register hooks (skip if --no-trace)
+    no_trace = getattr(run_args, 'no_trace', False)
+    layer_infos = {}
+    handles = []
+    tracker = None
 
-    # Print traced layer count
-    n_traced = len(layer_infos)
-    n_total_analog = sum(1 for m in model.modules() if isinstance(m, AnalogLinear))
-    print(f"  Tracing {n_traced}/{n_total_analog} analog layers")
+    if not no_trace:
+        hook_active = [True]
+        layer_infos, handles = register_xd_hooks(model, run_args.sample_k,
+                                                 hook_active,
+                                                 trace_args=run_args,
+                                                 sample_mode=getattr(run_args, 'sample_mode', 'random'))
 
-    # Debug tiling sanity check
-    if getattr(run_args, 'debug_tiling', False):
-        print("  [DEBUG-TILING] Checking tile assembly order...")
-        all_ok = True
-        for lname, linfo in layer_infos.items():
-            if not _debug_check_tile_order(linfo["module"], lname):
-                all_ok = False
-        if all_ok:
-            print("  [DEBUG-TILING] All layers passed.")
+        # Print traced layer count
+        n_traced = len(layer_infos)
+        n_total_analog = sum(1 for m in model.modules() if isinstance(m, AnalogLinear))
+        print(f"  Tracing {n_traced}/{n_total_analog} analog layers")
+
+        # Debug tiling sanity check
+        if getattr(run_args, 'debug_tiling', False):
+            print("  [DEBUG-TILING] Checking tile assembly order...")
+            all_ok = True
+            for lname, linfo in layer_infos.items():
+                if not _debug_check_tile_order(linfo["module"], lname):
+                    all_ok = False
+            if all_ok:
+                print("  [DEBUG-TILING] All layers passed.")
+    else:
+        print("  [no-trace] Skipping hooks, tracker, and weight diagnostics")
 
     # Print trainable param count
     n_trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -1773,51 +2270,135 @@ def run_one(args, dw_min_override=None, label=None, seed_override=None):
                        if isinstance(p, AnalogContext) and p.requires_grad)
     print(f"  Trainable params: {n_trainable:,} ({n_analog_ctx} analog contexts)")
 
-    # Create tracker
-    tracker = WeightUpdateTracker(model, layer_infos, run_args)
+    # Create tracker (skip if --no-trace)
+    if not no_trace:
+        tracker = WeightUpdateTracker(model, layer_infos, run_args)
 
-    # Create optimizer
-    optimizer = AnalogSGD(model.parameters(), lr=run_args.lr)
-    optimizer.regroup_param_groups(model)
+    # Split optimizer (Task 2)
+    analog_params = [p for p in model.parameters()
+                     if isinstance(p, AnalogContext) and p.requires_grad]
+    digital_params = [p for p in model.parameters()
+                      if not isinstance(p, AnalogContext) and p.requires_grad]
 
-    # Training loop
+    analog_optimizer = None
+    if analog_params:
+        analog_optimizer = AnalogSGD(analog_params, lr=run_args.lr)
+        analog_optimizer.regroup_param_groups(model)
+    print(f"  Analog optimizer: {'AnalogSGD' if analog_optimizer else 'None'} "
+          f"({len(analog_params)} param groups)")
+
+    digital_lr = getattr(run_args, 'digital_lr', None) or run_args.lr
+    digital_wd = getattr(run_args, 'digital_weight_decay', 0.0)
+    dig_opt_name = getattr(run_args, 'digital_optimizer', 'sgd')
+    if digital_params:
+        if dig_opt_name == "adamw":
+            digital_optimizer = TorchAdamW(digital_params, lr=digital_lr,
+                                           weight_decay=digital_wd)
+        else:
+            digital_optimizer = torch.optim.SGD(digital_params, lr=digital_lr,
+                                                weight_decay=digital_wd)
+    else:
+        digital_optimizer = torch.optim.SGD([torch.zeros(1)], lr=digital_lr)
+    print(f"  Digital optimizer: {dig_opt_name}(lr={digital_lr}, wd={digital_wd}) "
+          f"({len(digital_params)} param groups)")
+
+    # Load eval batch (conditional)
+    eval_batch = None
+    if getattr(run_args, 'eval_loss', False):
+        eval_bs = run_args.eval_batch_size or run_args.batch_size
+        eval_batch = load_eval_data(tokenizer, eval_bs, run_args.seq_len)
+        print(f"  Eval loss enabled: batch_size={eval_bs}, "
+              f"every={run_args.eval_every} steps")
+
+    eval_loss_rows = []  # step-level eval loss
+    eval_every = getattr(run_args, 'eval_every', 1)
+    warmup_steps = getattr(run_args, '_warmup_steps', 0)  # for screen mode
+
+    # Determine dw_min and effective_lr for grad proxy (Task 4D + LR fix)
+    gp_dw_min = (getattr(run_args, 'dw_min_a', None) or DW_MIN_A_TILE) if run_args.mode == "tiki" else run_args.dw_min
+    # TikiTaka A-tile effective LR = lr * fast_lr (pre-auto-scale)
+    # With auto_scale=True, aihwkit adjusts further using running statistics
+    gp_effective_lr = (run_args.lr * run_args.fast_lr
+                       if run_args.mode == "tiki" else run_args.lr)
+
+    # Training loop (3-point eval, Task 2C)
     pbar = tqdm(enumerate(loader), total=min(run_args.steps, len(loader)),
-                desc=f"[{file_tag}]")
+                desc=f"[{label or 'run'}]")
     for step, batch in pbar:
         if step >= run_args.steps:
             break
 
         batch = {k: v.to(DEVICE) for k, v in batch.items()}
 
+        do_eval = (eval_batch is not None and step % eval_every == 0)
+
+        # L0 (before any update)
+        L0 = None
+        if do_eval:
+            L0 = _compute_eval_loss(model, eval_batch)
+
         # Forward + backward
-        optimizer.zero_grad()
+        if analog_optimizer:
+            analog_optimizer.zero_grad()
+        digital_optimizer.zero_grad()
         outputs = model(**batch)
         loss = outputs.loss
         loss.backward()
 
-        # Compute gradient proxy (AFTER backward, BEFORE optimizer.step)
+        # Compute gradient proxy (AFTER backward, BEFORE step) — Task 4D
+        # effective_lr: TikiTaka A-tile uses lr*fast_lr; single mode uses lr
+        # Note: with auto_scale=True, aihwkit further adjusts lr internally
         grad_proxy_results = {}
-        for name, info in layer_infos.items():
-            grad_proxy_results[name] = compute_grad_proxy(
-                info, run_args.lr, run_args.dw_min, run_args.desired_bl)
+        if not no_trace:
+            for name, info in layer_infos.items():
+                grad_proxy_results[name] = compute_grad_proxy(
+                    info, gp_effective_lr, gp_dw_min, run_args.desired_bl)
 
-        # BEFORE optimizer.step — snapshot buffer
-        tracker.record_buffer_pre_step(step)
+            # BEFORE step — snapshot buffer
+            tracker.record_buffer_pre_step(step)
 
-        # Optimizer step (analog update + ctx.reset())
-        optimizer.step()
+        # Analog step (skip during warmup in screen mode)
+        if step >= warmup_steps and analog_optimizer:
+            analog_optimizer.step()
 
-        # AFTER optimizer.step — record metrics (includes post buffer)
-        tracker.record_after(step, grad_proxy_results)
+        # L1 (after analog, before digital)
+        L1 = None
+        if do_eval:
+            L1 = _compute_eval_loss(model, eval_batch)
 
-        # Early warning after first few steps
-        if step == min(2, run_args.steps - 1):
-            recent = [r for r in tracker._step_rows if r["step"] == step]
-            if recent:
-                avg_wzr = np.mean([r["dw_zero_ratio"] for r in recent])
-                if avg_wzr > 0.99:
-                    print(f"  [WARNING] avg dw_zero_ratio={avg_wzr:.4f} at step {step}"
-                          f" — updates may not be happening!")
+        # Digital step
+        digital_optimizer.step()
+
+        # L2 (after both)
+        L2 = None
+        if do_eval:
+            L2 = _compute_eval_loss(model, eval_batch)
+
+        # Record 3-point eval loss (Task 2D)
+        if do_eval and L0 is not None:
+            eval_loss_rows.append({
+                "step": step,
+                "L0": L0,
+                "L1_post_analog": L1,
+                "L2_post_digital": L2,
+                "delta_L_analog": L1 - L0,
+                "delta_L_digital": L2 - L1,
+                "delta_L_total": L2 - L0,
+                "train_loss": loss.item(),
+            })
+
+        # AFTER both steps — record metrics
+        if not no_trace:
+            tracker.record_after(step, grad_proxy_results)
+
+            # Early warning after first few steps
+            if step == min(2, run_args.steps - 1):
+                recent = [r for r in tracker._step_rows if r["step"] == step]
+                if recent:
+                    avg_wzr = np.mean([r["dw_zero_ratio"] for r in recent])
+                    if avg_wzr > 0.99:
+                        print(f"  [WARNING] avg dw_zero_ratio={avg_wzr:.4f} at step {step}"
+                              f" — updates may not be happening!")
 
         pbar.set_postfix(loss=f"{loss.item():.4f}")
 
@@ -1825,12 +2406,24 @@ def run_one(args, dw_min_override=None, label=None, seed_override=None):
     for h in handles:
         h.remove()
 
-    # Save results
-    tracker.save_csvs(out_dir, file_tag)
-    summary = tracker.get_summary()
+    # Save eval loss CSV (Task 7C: standardized name)
+    if eval_loss_rows:
+        eval_df = pd.DataFrame(eval_loss_rows)
+        eval_path = os.path.join(out_dir, "eval_loss.csv")
+        eval_df.to_csv(eval_path, index=False)
+        print(f"  Saved eval loss: {eval_path}")
+
+    # Save results (Task 7C: standardized names)
+    summary = {}
+    if tracker is not None:
+        tracker.save_csvs(out_dir, "metrics")
+        summary = tracker.get_summary()
 
     # Cleanup
-    del model, optimizer
+    del model
+    if analog_optimizer:
+        del analog_optimizer
+    del digital_optimizer
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
@@ -2084,10 +2677,169 @@ def run_transfer_diagnosis_sweep(args):
 
 
 # =============================================================================
-# Section 15: main()
+# Section 15: Screen Mode (Task 5)
+# =============================================================================
+
+def run_screen(args):
+    """Run TikiTaka screening: warmup + short evaluation.
+
+    Steps 0..warmup-1: digital-only (analog step skipped).
+    Steps warmup..steps-1: both analog + digital.
+    Score computed from delta_L_analog over steps 32..steps-1.
+    """
+    run_args = copy.deepcopy(args)
+    run_args.steps = run_args.steps or 100
+    run_args.eval_loss = True
+    run_args.eval_every = 1
+    warmup_steps = getattr(run_args, 'warmup_steps', 20)
+    run_args._warmup_steps = warmup_steps  # pass to run_one via internal attr
+
+    run_seed = run_args.seed
+    data_seed = run_args.seed_data if run_args.seed_data is not None else run_seed
+    model_seed = run_args.seed_model if run_args.seed_model is not None else run_seed
+
+    print(f"\n{'=' * 60}")
+    print(f"[Screen] warmup={warmup_steps}, steps={run_args.steps}, mode={run_args.mode}")
+    print(f"{'=' * 60}")
+
+    # Run with warmup (run_one handles _warmup_steps)
+    summary = run_one(run_args, label="screen")
+
+    # Load eval_loss.csv to compute scores
+    run_dir = _build_run_dir(run_args, run_seed)
+    screen_dir = os.path.join(run_dir, "screen")
+    eval_path = os.path.join(screen_dir, "eval_loss.csv")
+
+    if not os.path.exists(eval_path):
+        print("[Screen] ERROR: eval_loss.csv not found — cannot compute score")
+        return
+
+    eval_df = pd.read_csv(eval_path)
+    # Score from steps 32+ (post-warmup settling period)
+    score_start = 32
+    score_end = run_args.steps
+    mask = (eval_df["step"] >= score_start) & (eval_df["step"] < score_end)
+    scored = eval_df.loc[mask, "delta_L_analog"]
+
+    if len(scored) == 0:
+        print("[Screen] WARNING: no eval data in scoring window")
+        return
+
+    score = float(scored.mean())
+    stability = float(scored.std())
+    negative_fraction = float((scored < 0).mean())
+
+    # Penalties from weight state metrics
+    metrics_path = os.path.join(screen_dir, "metrics_steps.csv")
+    has_bound_penalty = False
+    has_hidden_penalty = False
+    if os.path.exists(metrics_path):
+        mdf = pd.read_csv(metrics_path)
+        if "w_eff_near_bound_ratio" in mdf.columns:
+            if (mdf["w_eff_near_bound_ratio"] > 0.005).any():
+                has_bound_penalty = True
+        if "hidden_absmax" in mdf.columns:
+            if (mdf["hidden_absmax"] > 10.0).any():
+                has_hidden_penalty = True
+
+    # Screen summary
+    screen_summary = {
+        "score": score,
+        "stability": stability,
+        "negative_fraction": negative_fraction,
+        "has_bound_penalty": int(has_bound_penalty),
+        "has_hidden_penalty": int(has_hidden_penalty),
+        "warmup_steps": warmup_steps,
+        "score_start": score_start,
+        "score_end": score_end,
+        "n_scored_steps": int(len(scored)),
+        "mode": run_args.mode,
+        "dw_min": run_args.dw_min,
+        "lr": run_args.lr,
+        "transfer_every": getattr(run_args, 'transfer_every', 0),
+    }
+
+    # Save summary.csv (1 row)
+    sum_df = pd.DataFrame([screen_summary])
+    sum_path = os.path.join(screen_dir, "summary.csv")
+    sum_df.to_csv(sum_path, index=False)
+
+    # Rename eval_loss to screen_eval_loss
+    screen_eval_path = os.path.join(screen_dir, "screen_eval_loss.csv")
+    if os.path.exists(eval_path) and eval_path != screen_eval_path:
+        os.rename(eval_path, screen_eval_path)
+
+    print(f"\n[Screen] Results:")
+    print(f"  score (mean delta_L_analog [{score_start}:{score_end}]) = {score:.6f}")
+    print(f"  stability (std) = {stability:.6f}")
+    print(f"  negative_fraction = {negative_fraction:.4f}")
+    print(f"  bound_penalty = {has_bound_penalty}, hidden_penalty = {has_hidden_penalty}")
+    print(f"  Saved: {sum_path}")
+
+
+# =============================================================================
+# Section 16: Comparison Mode (Task 6)
+# =============================================================================
+
+def run_comparison(args):
+    """Run baseline vs tikitaka comparison across seeds.
+
+    Baseline: analog forward preserved, weight update OFF (--freeze-analog).
+    TikiTaka: analog update ON.
+    Same seed ensures identical data order and model initialization.
+    """
+    seeds = [int(s.strip()) for s in args.seeds.split(",")] if args.seeds else [args.seed]
+    all_rows = []
+
+    print(f"\n{'=' * 60}")
+    print(f"[Compare] seeds={seeds}, steps={args.steps}")
+    print(f"{'=' * 60}")
+
+    for seed in seeds:
+        # A: baseline (analog forward, weight update OFF)
+        baseline_args = copy.deepcopy(args)
+        baseline_args.freeze_analog = True
+        baseline_args.train_layernorm = True
+        print(f"\n[Compare] Running BASELINE seed={seed}")
+        baseline_summary = run_one(baseline_args,
+                                   label=f"baseline_seed{seed}",
+                                   seed_override=seed)
+        baseline_summary["condition"] = "baseline"
+        baseline_summary["seed"] = seed
+        all_rows.append(baseline_summary)
+
+        # B: tikitaka (analog update ON)
+        tiki_args = copy.deepcopy(args)
+        tiki_args.freeze_analog = False
+        tiki_args.train_layernorm = True
+        print(f"\n[Compare] Running TIKITAKA seed={seed}")
+        tiki_summary = run_one(tiki_args,
+                               label=f"tikitaka_seed{seed}",
+                               seed_override=seed)
+        tiki_summary["condition"] = "tikitaka"
+        tiki_summary["seed"] = seed
+        all_rows.append(tiki_summary)
+
+    # Save comparison summary
+    comp_dir = args.output_dir
+    os.makedirs(comp_dir, exist_ok=True)
+    comp_df = pd.DataFrame(all_rows)
+    comp_path = os.path.join(comp_dir, "comparison_summary.csv")
+    comp_df.to_csv(comp_path, index=False)
+    print(f"\n[Compare] Saved {comp_path} ({len(comp_df)} rows)")
+
+
+# =============================================================================
+# Section 17: main()
 # =============================================================================
 
 def main():
+    if getattr(args, 'screen', False):
+        run_screen(args)
+        return
+    if getattr(args, 'compare', False):
+        run_comparison(args)
+        return
     if args.sweep_transfer_diagnosis:
         run_transfer_diagnosis_sweep(args)
     elif args.dw_min_sweep and args.seeds:
