@@ -1098,11 +1098,11 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         fast_lr = 1.0            # fixed (no effect)
         tau_sec = 0.0            # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 5e-4, 1e4, log=True)
-        transfer_every = trial.suggest_int('transfer_every', 1, 500, log=True)
-        rank_exp = trial.suggest_int('rank_exp', 0, 7)
+        transfer_lr = trial.suggest_float('transfer_lr', 5e-4, 1e3, log=True)
+        transfer_every = trial.suggest_int('transfer_every', 1, 600, log=True)
+        rank_exp = trial.suggest_int('rank_exp', 0, 6)
         rank = 2 ** rank_exp
-        fast_lr = trial.suggest_float('fast_lr', 1e-1, 1e0, log=True)
+        fast_lr = trial.suggest_float('fast_lr', 1e-2, 1e0, log=True)
         tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
 
     # C tile pulsed transfer params (only meaningful for onehot/direct)
