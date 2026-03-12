@@ -75,6 +75,7 @@ from aihwkit.simulator.configs import (
 )
 from aihwkit.simulator.configs.devices import (
     SoftBoundsDevice,
+    ConstantStepDevice,
     LinearStepDevice,
 )
 from aihwkit.simulator.configs.compounds import ChoppedTransferCompound
@@ -102,6 +103,9 @@ parser.add_argument("--no-v2", dest="use_v2", action="store_false")
 parser.add_argument("--dw-min", type=float, default=0.001)
 parser.add_argument("--dw-min-sweep", type=str, default=None, metavar="DW_CSV",
                     help="e.g. '0.0005,0.001,0.002'")
+parser.add_argument("--dw-min-bits", type=str, default=None, metavar="BITS_CSV",
+                    help="Bit-sweep: e.g. '4,5,6,7,8,9,10,11,12'. "
+                         "Converts to dw_min = 2.0 / 2^bits. Overrides --dw-min-sweep.")
 parser.add_argument("--dw-min-a", type=float, default=None,
                     help="A-tile dw_min override (default: DW_MIN_A_TILE=0.001981)")
 parser.add_argument("--a-noise-free", action="store_true", default=False,
@@ -337,8 +341,13 @@ def _print_resolved_update_config(rpu_config, mode):
 
 
 def create_single_config(args):
-    """SingleRPUConfig with SoftBoundsDevice for diagnostics."""
-    device = SoftBoundsDevice(
+    """SingleRPUConfig with ConstantStepDevice for diagnostics.
+
+    ConstantStepDevice provides weight-independent constant update steps,
+    isolating the effect of weight bit precision (dw_min) without the
+    weight-dependent nonlinearity of SoftBoundsDevice.
+    """
+    device = ConstantStepDevice(
         dw_min=args.dw_min,
         w_max=1.0,
         w_min=-1.0,
@@ -348,8 +357,6 @@ def create_single_config(args):
         up_down_dtod=0.0,
         w_max_dtod=0.0,
         w_min_dtod=0.0,
-        write_noise_std=0.0,
-        mult_noise=False,
     )
 
     rpu = SingleRPUConfig(device=device)
@@ -2834,6 +2841,13 @@ def run_comparison(args):
 # =============================================================================
 
 def main():
+    # Convert --dw-min-bits to --dw-min-sweep
+    if args.dw_min_bits is not None:
+        bits_list = [int(b.strip()) for b in args.dw_min_bits.split(",")]
+        dw_list = [2.0 / (2 ** b) for b in bits_list]
+        args.dw_min_sweep = ",".join(f"{dw:.10f}" for dw in dw_list)
+        print(f"[Bits→dw_min] {dict(zip(bits_list, dw_list))}")
+
     if getattr(args, 'screen', False):
         run_screen(args)
         return
