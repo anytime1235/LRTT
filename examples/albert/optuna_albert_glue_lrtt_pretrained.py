@@ -444,7 +444,7 @@ os.environ["WANDB_MODE"] = "offline"
 # LRTT Device Functions
 # =============================================================================
 
-def _create_ab_device(tau_sec=0.0):
+def _create_ab_device(tau_sec=0.0, dw_min=0.001981):
     """Create A/B tile device based on AB_DEVICE setting.
 
     Options:
@@ -453,6 +453,7 @@ def _create_ab_device(tau_sec=0.0):
 
     Args:
         tau_sec: Retention time constant. If 0, lifetime=0 (no decay).
+        dw_min: Minimum weight update step size for the device.
     """
     if AB_DEVICE == "fp":
         return FloatingPointDevice()
@@ -469,7 +470,7 @@ def _create_ab_device(tau_sec=0.0):
 
     # Default: 6t1c (full noise)
     return LinearStepDevice(
-        dw_min=0.001981,
+        dw_min=dw_min,
         up_down=0.0,
         w_max=1.0,
         w_min=-1.0,
@@ -552,9 +553,10 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, 
                        auto_scale_mode='none', correct_gradient_magnitudes=False,
                        transfer_rank_schedule='all', transfer_ranks_per_step=1,
                        scale_transfer_lr=True,
-                       fi_continuous_alpha=False):
+                       fi_continuous_alpha=False,
+                       ab_dw_min=0.001981, ab_desired_bl=31):
     """Create LRTT RPU configuration for analog layers."""
-    ab_device = _create_ab_device(tau_sec=tau_sec)
+    ab_device = _create_ab_device(tau_sec=tau_sec, dw_min=ab_dw_min)
     c_device = _create_c_device(dw_min=c_dw_min)
 
     te = transfer_every
@@ -602,6 +604,8 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, 
     device_config.te_warmup_steps = TE_WARMUP_STEPS
 
     rpu_config = PythonLRTTRPUConfig(device=device_config)
+
+    rpu_config.update.desired_bl = ab_desired_bl
 
     rpu_config.forward.out_noise = out_noise
     rpu_config.backward.out_noise = out_noise
@@ -731,6 +735,8 @@ def create_model(params):
             fast_lr=params["fast_lr"],
             reinit_mode=params["reinit_mode"],
             tau_sec=params["tau_sec"],
+            ab_dw_min=params["ab_dw_min"],
+            ab_desired_bl=params["ab_desired_bl"],
             c_dw_min=params["c_dw_min"],
             c_desired_bl=params["c_desired_bl"],
             out_noise=params["out_noise"],
@@ -1103,6 +1109,10 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         fast_lr = trial.suggest_float('fast_lr', 1e-5, 1e1, log=True)
         tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
 
+    # A/B device params
+    ab_dw_min = trial.suggest_float('ab_dw_min', 0.001981, 0.001981)  # default: 6t1c value
+    ab_desired_bl = trial.suggest_int('ab_desired_bl', 31, 31)        # default: 31
+
     # C tile pulsed transfer params (only meaningful for onehot/direct)
     if TRANSFER_METHOD in ("onehot", "direct") and not OPT_CONFIG['no_transfer']:
         c_dw_min = trial.suggest_float('c_dw_min', 0.001, 0.001)
@@ -1154,6 +1164,8 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         "fast_lr": fast_lr,
         "reinit_mode": reinit_mode,
         "tau_sec": tau_sec,
+        "ab_dw_min": ab_dw_min,
+        "ab_desired_bl": ab_desired_bl,
         "c_dw_min": c_dw_min,
         "c_desired_bl": c_desired_bl,
         "out_noise": out_noise,
