@@ -63,7 +63,7 @@ import evaluate
 # aihwkit imports
 from aihwkit.nn.conversion import convert_to_analog
 from aihwkit.optim import AnalogSGD, AnalogAdam
-from aihwkit.simulator.configs.devices import LinearStepDevice, SoftBoundsDevice, IdealDevice
+from aihwkit.simulator.configs.devices import LinearStepDevice, SoftBoundsDevice, IdealDevice, ConstantStepDevice
 from aihwkit.simulator.configs import SingleRPUConfig, UnitCellRPUConfig, IOParameters, UpdateParameters
 from aihwkit.simulator.configs.compounds import TransferCompound, ChoppedTransferCompound
 from aihwkit.simulator.configs.utils import BoundManagementType, NoiseManagementType
@@ -295,11 +295,32 @@ def create_tikitaka_config(transfer_every, transfer_lr, fast_lr, auto_scale=Fals
     return rpu_config
 
 
-def create_single_rpu_config():
-    """Create Single RPU configuration for non-target frozen analog layers."""
-    b_device = _create_b_device()
+def create_single_rpu_config(dw_min=None, device_type="softbounds"):
+    """Create Single RPU configuration for analog layers.
 
-    rpu_config = SingleRPUConfig(device=b_device)
+    Args:
+        dw_min: Override dw_min (default: use device default).
+        device_type: "softbounds" (default) or "constant_step" (ConstantStepDevice).
+    """
+    if device_type == "constant_step":
+        _dw = dw_min if dw_min is not None else 0.001
+        device = ConstantStepDevice(
+            dw_min=_dw,
+            w_max=1.0,
+            w_min=-1.0,
+            dw_min_dtod=0.0,
+            dw_min_std=0.0,
+            up_down=0.0,
+            up_down_dtod=0.0,
+            w_max_dtod=0.0,
+            w_min_dtod=0.0,
+        )
+    else:
+        device = _create_b_device()
+        if dw_min is not None:
+            device.dw_min = dw_min
+
+    rpu_config = SingleRPUConfig(device=device)
 
     rpu_config.forward.out_noise = 0.0
     rpu_config.backward.out_noise = 0.0
@@ -307,6 +328,9 @@ def create_single_rpu_config():
         rpu_config.backward.is_perfect = True
     if OPT_CONFIG.get('forward_perfect', False):
         rpu_config.forward.is_perfect = True
+
+    # Update params (desired_bl matters for pulsed update resolution)
+    rpu_config.update.desired_bl = OPT_CONFIG.get('desired_bl', 31)
 
     rpu_config.mapping.digital_bias = True
     rpu_config.mapping.weight_scaling_omega = 1.0
@@ -444,7 +468,10 @@ def create_model(params):
         ideal_count = sum(1 for m in model.modules() if isinstance(m, AnalogLinear))
     elif tikitaka_layers and LORA_TARGET != "none" and TARGET_ANALOG:
         # SingleRPU: pulsed update trainable analog (no TikiTaka transfer)
-        single_config = create_single_rpu_config()
+        single_config = create_single_rpu_config(
+            dw_min=OPT_CONFIG.get('dw_min', None),
+            device_type=OPT_CONFIG.get('device_type', 'softbounds'),
+        )
         single_exclude = [n for n in all_linear_names if n not in tikitaka_layers]
         model = convert_to_analog(model, single_config, exclude_modules=single_exclude)
         target_analog_count = sum(1 for m in model.modules() if isinstance(m, AnalogLinear))
@@ -1296,6 +1323,11 @@ def main():
                         help='Disable IdealDevice, use TikiTaka instead')
     parser.add_argument('--target-analog', action='store_true', default=False,
                         help='Convert target layers to SingleRPU (SoftBounds, trainable) instead of IdealDevice/TikiTaka')
+    parser.add_argument('--device-type', type=str, default='softbounds',
+                        choices=['softbounds', 'constant_step'],
+                        help='Device type for --target-analog (default: softbounds)')
+    parser.add_argument('--dw-min', type=float, default=None,
+                        help='Override dw_min for target analog device (e.g. 0.125 for 4-bit)')
     parser.add_argument('--target-layers', type=int, nargs='+', default=None,
                         help='Target encoder layer indices, 1-indexed (e.g. --target-layers 1 12). Default: all layers')
     parser.add_argument('--lr', type=float, default=None,
@@ -1370,9 +1402,13 @@ def main():
                         help='Enable weight-update diagnostics')
     parser.add_argument('--diag-steps', type=int, default=200,
                         help='Record diagnostics for first N steps (default: 200)')
+    parser.add_argument('--train-subset', type=int, default=0,
+                        help='Limit training data size (0 = full dataset)')
     args = parser.parse_args()
 
     # Update global config
+    global TRAIN_SUBSET_SIZE
+    TRAIN_SUBSET_SIZE = args.train_subset
     BATCH_SIZE = args.batch_size
     N_EPOCHS = args.epochs
     WARMUP_RATIO = args.warmup_ratio
@@ -1382,6 +1418,9 @@ def main():
     TARGET_ANALOG = args.target_analog
     if TARGET_ANALOG:
         TARGET_IDEAL = False  # target-analog overrides target-ideal
+    OPT_CONFIG['device_type'] = args.device_type
+    if args.dw_min is not None:
+        OPT_CONFIG['dw_min'] = args.dw_min
     OPT_CONFIG['optimizer'] = args.optimizer
     OPT_CONFIG['tune_wd'] = not args.no_wd
     OPT_CONFIG['tune_momentum'] = not args.no_momentum
@@ -1478,7 +1517,8 @@ def main():
     print(f"  Warmup target : {'analog tile ONLY (classifier/LayerNorm -> no warmup, full LR from step 0)' if _analog_only_warmup else 'all param groups'}")
     print(f"  min_lr_rate   : 0.5 (decay to 50% of peak LR)")
     print(f"  LORA target   : {LORA_TARGET} -> {get_target_module_names(LORA_TARGET)}")
-    print(f"  Target config : {'IdealDevice' if TARGET_IDEAL else 'SingleRPU' if TARGET_ANALOG else 'TikiTaka'}")
+    _target_cfg_str = 'IdealDevice' if TARGET_IDEAL else f"SingleRPU({OPT_CONFIG.get('device_type', 'softbounds')}, dw_min={OPT_CONFIG.get('dw_min', 'default')})" if TARGET_ANALOG else 'TikiTaka'
+    print(f"  Target config : {_target_cfg_str}")
     print(f"  Head layer    : {HEAD_LAYER}")
     print(f"  Target layers : {'all' if TARGET_LAYERS is None else [i+1 for i in TARGET_LAYERS]}")
     print(f"  Nontarget     : {'digital(frozen)' if OPT_CONFIG.get('nontarget_digital') else 'ideal(frozen)' if OPT_CONFIG.get('nontarget_ideal') else 'singleRPU(frozen)'}")
