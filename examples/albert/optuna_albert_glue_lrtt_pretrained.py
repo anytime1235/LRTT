@@ -554,7 +554,8 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, 
                        transfer_rank_schedule='all', transfer_ranks_per_step=1,
                        scale_transfer_lr=True,
                        fi_continuous_alpha=False,
-                       ab_dw_min=0.001981, ab_desired_bl=31):
+                       ab_dw_min=0.001981, ab_desired_bl=31,
+                       lora_alpha=1.0):
     """Create LRTT RPU configuration for analog layers."""
     ab_device = _create_ab_device(tau_sec=tau_sec, dw_min=ab_dw_min)
     c_device = _create_c_device(dw_min=c_dw_min)
@@ -563,7 +564,7 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, 
     device_config = PythonLRTTDevice(
         rank=rank,
         transfer_every=te,
-        lora_alpha=1.0,
+        lora_alpha=lora_alpha,
         fast_lr=fast_lr,
         reinit_gain=REINIT_GAIN,
         reinit_mode=reinit_mode,
@@ -747,6 +748,7 @@ def create_model(params):
             transfer_ranks_per_step=OPT_CONFIG['transfer_ranks_per_step'],
             scale_transfer_lr=OPT_CONFIG['scale_transfer_lr'],
             fi_continuous_alpha=OPT_CONFIG['fi_continuous_alpha'],
+            lora_alpha=params["lora_alpha"],
         )
 
         # Convert to analog with exclusions (only LRTT targets get converted)
@@ -1128,6 +1130,12 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         out_noise = 0.0
     ab_weight_scaling_omega = trial.suggest_float('ab_weight_scaling_omega', 0.0, 0.0)
 
+    # lora_alpha: only sweep when forward_inject is ON and fi_continuous_alpha is OFF
+    if FORWARD_INJECT and not OPT_CONFIG.get('fi_continuous_alpha', False):
+        lora_alpha = trial.suggest_float('lora_alpha', 0.1, 10.0, log=True)
+    else:
+        lora_alpha = 1.0
+
     min_lr_rate = trial.suggest_float('min_lr_rate', 0.0, 0.0)
 
     # weight_decay: tune or fix to 0
@@ -1170,6 +1178,7 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         "c_desired_bl": c_desired_bl,
         "out_noise": out_noise,
         "ab_weight_scaling_omega": ab_weight_scaling_omega,
+        "lora_alpha": lora_alpha,
     }
 
     print(f"\n{'='*70}")
