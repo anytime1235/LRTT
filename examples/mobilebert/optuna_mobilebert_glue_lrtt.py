@@ -58,7 +58,7 @@ All flags:
         --epochs <int>              # Number of epochs (default: 15)
         --warmup-steps <int>        # LR warmup steps (default: 189)
         --transfer-method <str>     # Transfer method: onehot | direct | set (default: onehot)
-        --ab-device <str>           # A/B tile device: 6t1c | fp (default: 6t1c)
+        --ab-device <str>           # A/B tile device: 6t1c | linearstep | fp | ideal (default: 6t1c)
         --c-device <str>            # C tile device: softbounds | ideal (default: softbounds)
         --no-io-noise               # Disable IO out_noise (resolution kept)
         --forward-inject            # Enable forward noise injection
@@ -80,6 +80,7 @@ All flags:
         --transfer-ranks-per-step <int> # Ranks per transfer step in round_robin mode (default: 1)
         --no-scale-transfer-lr          # Disable scaling transfer LR by SGD LR
         --fi-continuous-alpha           # Use transfer LR as forward-injection α (continuity)
+        --ab-pulse-type <str>           # A/B pulse type: default | none | none_with_device | stochastic_compressed | mean_count | deterministic_implicit
 
 
 Inline flags (edit directly in script):
@@ -301,7 +302,7 @@ TE_WARMUP_SCHEDULE = []
 # Fixed LRTT parameters
 REINIT_GAIN = 1.0
 TRANSFER_METHOD = "onehot"  # "onehot", "direct", or "set"
-AB_DEVICE = "6t1c"  # "6t1c", "fp", or "ideal"
+AB_DEVICE = "6t1c"  # "6t1c", "linearstep", "fp", or "ideal"
 C_DEVICE = "softbounds"  # "softbounds" or "ideal"
 IO_NOISE = True  # If False, disable out_noise (resolution kept)
 FORWARD_INJECT = False  # If True, enable forward noise injection
@@ -353,6 +354,7 @@ OPT_CONFIG = {
     'transfer_ranks_per_step': 1,
     'scale_transfer_lr': True,
     'fi_continuous_alpha': False,
+    'ab_pulse_type': 'default',
 }
 
 
@@ -427,6 +429,8 @@ def get_study_name_suffix():
         suffix += "_no-stlr"
     if OPT_CONFIG.get('fi_continuous_alpha', False):
         suffix += "_fica"
+    if OPT_CONFIG.get('ab_pulse_type', 'default') != 'default':
+        suffix += f"_abpt-{OPT_CONFIG['ab_pulse_type']}"
 
     # Add lora target (always include for clarity)
     suffix += f"_{LORA_TARGET}"
@@ -451,8 +455,9 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981):
     """Create A/B tile device based on AB_DEVICE setting.
 
     Options:
-        6t1c - Full 6T1C with all noise/variation (realistic)
-        fp   - FloatingPointDevice (perfect, no quantization/bounds)
+        6t1c       - Full 6T1C with all noise/variation (realistic)
+        linearstep - LinearStepDevice with default params (no nonlinearity, default noise)
+        fp         - FloatingPointDevice (perfect, no quantization/bounds)
 
     Args:
         tau_sec: Retention time constant. If 0, lifetime=0 (no decay).
@@ -462,6 +467,8 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981):
         return FloatingPointDevice()
     if AB_DEVICE == "ideal":
         return IdealDevice()
+    if AB_DEVICE == "linearstep":
+        return LinearStepDevice(dw_min=dw_min)
 
     # Compute retention lifetime from tau_sec
     if tau_sec > 0:
@@ -557,6 +564,7 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, 
                        transfer_rank_schedule='all', transfer_ranks_per_step=1,
                        scale_transfer_lr=True,
                        fi_continuous_alpha=False,
+                       ab_pulse_type='default',
                        ab_dw_min=0.001981, ab_desired_bl=31,
                        lora_alpha=1.0):
     """Create LRTT RPU configuration for analog layers."""
@@ -597,6 +605,7 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, 
     device_config.transfer_ranks_per_step = transfer_ranks_per_step
     device_config.scale_transfer_lr = scale_transfer_lr
     device_config.fi_continuous_alpha = fi_continuous_alpha
+    device_config.ab_pulse_type = ab_pulse_type
     if c_desired_bl is not None:
         device_config.c_desired_bl = c_desired_bl
 
@@ -755,6 +764,7 @@ def create_model(params):
             scale_transfer_lr=OPT_CONFIG['scale_transfer_lr'],
             fi_continuous_alpha=OPT_CONFIG['fi_continuous_alpha'],
             lora_alpha=params["lora_alpha"],
+            ab_pulse_type=OPT_CONFIG['ab_pulse_type'],
         )
 
         # Convert to analog with exclusions (only LRTT targets get converted)
@@ -1435,7 +1445,7 @@ def main():
                         choices=['onehot', 'direct', 'set'],
                         help=f'Transfer method (default: {TRANSFER_METHOD})')
     parser.add_argument('--ab-device', type=str, default=AB_DEVICE,
-                        choices=['6t1c', 'fp', 'ideal'],
+                        choices=['6t1c', 'linearstep', 'fp', 'ideal'],
                         help=f'A/B tile device type (default: {AB_DEVICE})')
     parser.add_argument('--c-device', type=str, default=C_DEVICE,
                         choices=['softbounds', 'ideal'],
@@ -1482,6 +1492,9 @@ def main():
                         help='Number of ranks per transfer step in round_robin mode (default: 1)')
     parser.add_argument('--no-scale-transfer-lr', action='store_true',
                         help='Disable scaling transfer LR by SGD LR (default: scale enabled)')
+    parser.add_argument('--ab-pulse-type', type=str, default='default',
+                        choices=['default', 'none', 'none_with_device', 'stochastic_compressed', 'mean_count', 'deterministic_implicit'],
+                        help='Pulse type for A/B tile updates (default: use RPUConfig default)')
     parser.add_argument('--fi-continuous-alpha', action='store_true',
                         help='Use transfer LR as forward-injection α (continuity condition)')
     args = parser.parse_args()
@@ -1517,6 +1530,7 @@ def main():
     OPT_CONFIG['transfer_ranks_per_step'] = args.transfer_ranks_per_step
     OPT_CONFIG['scale_transfer_lr'] = not args.no_scale_transfer_lr
     OPT_CONFIG['fi_continuous_alpha'] = args.fi_continuous_alpha
+    OPT_CONFIG['ab_pulse_type'] = args.ab_pulse_type
     ENCODER_ANALOG = args.encoder_analog
     EMBEDDING_ANALOG = args.embedding_analog
     HEAD_ANALOG = args.head_analog

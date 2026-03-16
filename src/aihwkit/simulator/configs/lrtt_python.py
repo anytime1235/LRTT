@@ -254,6 +254,16 @@ class PythonLRTTDevice(_PrintableMixin):
     forward_inject: bool = False
     """Enable forward injection optimization: W_eff composition."""
 
+    ab_pulse_type: str = "default"
+    """Pulse type for A/B tile weight updates:
+    - 'default': Use RPUConfig's default pulse type (typically StochasticCompressed)
+    - 'none': Pure floating point update (no pulses, no device effects)
+    - 'none_with_device': Floating point update with device effects (weight clipping)
+    - 'stochastic_compressed': Stochastic bit lines, +/- in same pass
+    - 'mean_count': Coincidence based in prob (p_a * p_b)
+    - 'deterministic_implicit': Deterministic coincidences with quantized input/error
+    """
+
     # === C Tile Parameter Training ===
     train_c_bias: bool = False
     """Allow C tile bias to be trainable. Default False (frozen).

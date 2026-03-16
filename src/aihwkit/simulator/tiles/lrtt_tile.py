@@ -137,6 +137,8 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             from copy import deepcopy
             from aihwkit.simulator.configs import UpdateParameters
 
+            from aihwkit.simulator.parameters.enums import PulseType
+
             # Get tile-specific scaling overrides from lrtt_config
             a_x = getattr(self.lrtt_config, "a_x_scaling", None)
             a_d = getattr(self.lrtt_config, "a_d_scaling", None)
@@ -144,12 +146,26 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             b_d = getattr(self.lrtt_config, "b_d_scaling", None)
             c_bl = getattr(self.lrtt_config, "c_desired_bl", None)
 
+            # AB pulse type override
+            ab_pulse_type_str = getattr(self.lrtt_config, 'ab_pulse_type', 'default')
+            _AB_PULSE_MAP = {
+                'none': PulseType.NONE,
+                'none_with_device': PulseType.NONE_WITH_DEVICE,
+                'stochastic_compressed': PulseType.STOCHASTIC_COMPRESSED,
+                'stochastic': PulseType.STOCHASTIC,
+                'mean_count': PulseType.MEAN_COUNT,
+                'deterministic_implicit': PulseType.DETERMINISTIC_IMPLICIT,
+            }
+            ab_needs_pulse_override = (
+                tile_type in ("a", "b") and ab_pulse_type_str != "default"
+            )
+
             # Check if any tile-specific config is set
             transfer_method = getattr(self.lrtt_config, 'transfer_method', 'direct')
             c_needs_nwd = (tile_type == "c" and transfer_method == "set")
             has_tile_specific = any(x is not None for x in [a_x, a_d, b_x, b_d, c_bl])
 
-            if not has_tile_specific and not c_needs_nwd:
+            if not has_tile_specific and not c_needs_nwd and not ab_needs_pulse_override:
                 # No tile-specific config, use base update params
                 return base_update
 
@@ -171,11 +187,15 @@ class LRTTSimulatorTile(SimulatorTile, Module):
                     update_copy.manual_x_scaling = a_x
                 if a_d is not None:
                     update_copy.manual_d_scaling = a_d
+                if ab_needs_pulse_override:
+                    update_copy.pulse_type = _AB_PULSE_MAP[ab_pulse_type_str]
             elif tile_type == "b":
                 if b_x is not None:
                     update_copy.manual_x_scaling = b_x
                 if b_d is not None:
                     update_copy.manual_d_scaling = b_d
+                if ab_needs_pulse_override:
+                    update_copy.pulse_type = _AB_PULSE_MAP[ab_pulse_type_str]
             elif tile_type == "c":
                 # C tile: apply separate BL for transfer
                 if c_bl is not None:
