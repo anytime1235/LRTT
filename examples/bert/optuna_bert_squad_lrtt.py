@@ -1106,15 +1106,15 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         fast_lr = 1.0            # fixed (no effect)
         tau_sec = 0.0            # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 5e-4, 1e3, log=True)
+        transfer_lr = trial.suggest_float('transfer_lr', 5e-4, 1e5, log=True)
         transfer_every = trial.suggest_int('transfer_every', 1, 600, log=True)
         rank_exp = trial.suggest_int('rank_exp', 0, 6)
         rank = 2 ** rank_exp
-        fast_lr = trial.suggest_float('fast_lr', 1e-2, 1e1, log=True)
+        fast_lr = trial.suggest_float('fast_lr', 1e-2, 1e0, log=True)
         tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
 
     # A/B device params
-    ab_dw_min = trial.suggest_float('ab_dw_min', 0.001981, 0.001981)  # default: 6t1c value
+    ab_dw_min = trial.suggest_float('ab_dw_min',2e-5, 2e-1)  # default: 6t1c value
     ab_desired_bl = trial.suggest_int('ab_desired_bl', 31, 31)        # default: 31
 
     # C tile pulsed transfer params (only meaningful for onehot/direct)
@@ -1190,6 +1190,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
     print(f"  fast_lr={fast_lr:.2e}, lr={learning_rate:.2e}, wd={weight_decay:.2e}")
     print(f"  momentum={momentum:.2f}, nesterov={nesterov}, reinit_mode={reinit_mode}")
     print(f"  tau_sec={tau_sec:.1f}, optimizer={optimizer_name}, min_lr_rate={min_lr_rate:.4f}")
+    print(f"  ab_dw_min={ab_dw_min:.4e}, ab_desired_bl={ab_desired_bl}")
     print(f"{'='*70}")
 
     model = None

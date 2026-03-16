@@ -1205,6 +1205,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
     print(f"  fast_lr={fast_lr:.2e}, lr={learning_rate:.2e}, wd={weight_decay:.2e}")
     print(f"  momentum={momentum:.2f}, nesterov={nesterov}, reinit_mode={reinit_mode}")
     print(f"  tau_sec={tau_sec:.1f}, optimizer={optimizer_name}, min_lr_rate={min_lr_rate:.4f}")
+    print(f"  ab_dw_min={ab_dw_min:.4e}, ab_desired_bl={ab_desired_bl}")
     print(f"{'='*70}")
 
     model = None
