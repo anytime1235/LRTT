@@ -522,6 +522,7 @@ def _build_method_kwargs(args):
 
     # IO bit precision (0 = perfect)
     kwargs["io_bits"] = args.io_bits
+    kwargs["noise_management"] = args.noise_management
 
     if args.method == "single_rpu":
         pt = PULSE_TYPE_MAP.get(args.pulse_type, PULSE_TYPE_MAP["stochastic"])
@@ -1135,6 +1136,8 @@ def _save_config(args, rpu_config, effective_dw_min, num_training_steps):
         "io_bits": args.io_bits,
         "io_perfect": (args.io_bits == 0),
         "io_res": io_res_from_bits(args.io_bits) if args.io_bits > 0 else None,
+        "noise_management": args.noise_management,
+        "bound_management": "iterative" if args.io_bits > 0 else "n/a",
         "learn_out_scaling": False,
     }
 
@@ -1219,6 +1222,9 @@ def parse_args():
                              "0 = perfect (no quantization). "
                              "Typical values: 4, 6, 8, 10, 12. "
                              "ADC=DAC, forward=backward (symmetric).")
+    parser.add_argument("--noise-management", type=str, default="abs_max",
+                        choices=["abs_max", "none"],
+                        help="IO noise management: abs_max (scale input by max abs) or none.")
 
     # TTv1
     parser.add_argument("--gamma", type=float, default=None)

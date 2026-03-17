@@ -102,7 +102,13 @@ def io_res_from_bits(n_bits: int) -> float:
     return 1.0 / (2 ** n_bits - 2)
 
 
-def _apply_io_config(config, io_bits=None):
+NOISE_MGMT_MAP = {
+    "none": NoiseManagementType.NONE,
+    "abs_max": NoiseManagementType.ABS_MAX,
+}
+
+
+def _apply_io_config(config, io_bits=None, noise_management="abs_max"):
     """Configure forward/backward IO paths.
 
     Args:
@@ -111,11 +117,12 @@ def _apply_io_config(config, io_bits=None):
                  Positive integer sets finite resolution (same for
                  inp_res/out_res, forward/backward).
                  Uses aihwkit convention: res = 1/(2^N - 2).
+        noise_management: "abs_max" or "none".
 
     When io_bits > 0:
       - inp_noise = out_noise = 0  (pure quantization, no stochastic noise)
-      - bound_management = ITERATIVE  (aihwkit default)
-      - noise_management = ABS_MAX    (aihwkit default)
+      - bound_management = ITERATIVE
+      - noise_management = as specified
 
     Transfer_forward is always kept perfect (internal tile-to-tile mechanism).
     """
@@ -124,6 +131,7 @@ def _apply_io_config(config, io_bits=None):
         config.backward.is_perfect = True
     else:
         res = io_res_from_bits(io_bits)
+        nm = NOISE_MGMT_MAP.get(noise_management, NoiseManagementType.ABS_MAX)
 
         # Forward
         config.forward.is_perfect = False
@@ -132,7 +140,7 @@ def _apply_io_config(config, io_bits=None):
         config.forward.inp_noise = 0.0
         config.forward.out_noise = 0.0
         config.forward.bound_management = BoundManagementType.ITERATIVE
-        config.forward.noise_management = NoiseManagementType.ABS_MAX
+        config.forward.noise_management = nm
 
         # Backward (symmetric)
         config.backward.is_perfect = False
@@ -141,7 +149,7 @@ def _apply_io_config(config, io_bits=None):
         config.backward.inp_noise = 0.0
         config.backward.out_noise = 0.0
         config.backward.bound_management = BoundManagementType.ITERATIVE
-        config.backward.noise_management = NoiseManagementType.ABS_MAX
+        config.backward.noise_management = nm
 
     # Transfer forward always perfect (internal mechanism)
     if hasattr(config, "device") and hasattr(config.device, "transfer_forward"):
@@ -166,7 +174,7 @@ def _apply_common_mapping(config):
 
 def build_single_rpu_config(pulse_type=PulseType.STOCHASTIC_COMPRESSED,
                             desired_bl=31, dw_min=None, count_pulses=False,
-                            io_bits=None):
+                            io_bits=None, noise_management="abs_max"):
     """SingleRPU — analog pulsed update.
 
     Args:
@@ -183,7 +191,7 @@ def build_single_rpu_config(pulse_type=PulseType.STOCHASTIC_COMPRESSED,
         fixed_bl=True,
     )
     config = build_config("sgd", device, up_parameters=up)
-    _apply_io_config(config, io_bits=io_bits)
+    _apply_io_config(config, io_bits=io_bits, noise_management=noise_management)
     return _apply_common_mapping(config)
 
 
@@ -194,7 +202,7 @@ def build_ttv1_config(gamma=0.0, dw_min=None, dw_min_slow=None,
                       with_reset_prob=None, desired_bl=31, transfer_bl=31,
                       count_pulses=False,
                       fast_pulse_type=None, transfer_pulse_type=None,
-                      io_bits=None):
+                      io_bits=None, noise_management="abs_max"):
     """TTv1 — TransferCompound (Gokmen & Haensch 2020).
 
     W_eff = gamma * W_fast + 1.0 * W_slow
@@ -254,13 +262,13 @@ def build_ttv1_config(gamma=0.0, dw_min=None, dw_min_slow=None,
     if transfer_pulse_type is not None:
         config.device.transfer_update.pulse_type = transfer_pulse_type
 
-    _apply_io_config(config, io_bits=io_bits)
+    _apply_io_config(config, io_bits=io_bits, noise_management=noise_management)
     return _apply_common_mapping(config)
 
 
 def build_cttv2_config(dw_min=None, fast_lr=0.1, auto_scale=True,
                        in_chop_prob=0.5, transfer_every=1, count_pulses=False,
-                       io_bits=None):
+                       io_bits=None, noise_management="abs_max"):
     """c-TTv2 — ChoppedTransferCompound (Rasch et al. 2023).
 
     Args:
@@ -281,11 +289,11 @@ def build_cttv2_config(dw_min=None, fast_lr=0.1, auto_scale=True,
     if transfer_every is not None:
         config.device.transfer_every = transfer_every
 
-    _apply_io_config(config, io_bits=io_bits)
+    _apply_io_config(config, io_bits=io_bits, noise_management=noise_management)
     return _apply_common_mapping(config)
 
 
-def build_mixed_precision_config(dw_min=None, count_pulses=False, io_bits=None):
+def build_mixed_precision_config(dw_min=None, count_pulses=False, io_bits=None, noise_management="abs_max"):
     """MixedPrecision — FP32 chi matrix accumulation + pulse transfer.
 
     Args:
@@ -295,18 +303,18 @@ def build_mixed_precision_config(dw_min=None, count_pulses=False, io_bits=None):
     """
     device = make_constant_step_device(dw_min=dw_min, count_pulses=count_pulses)
     config = build_config("mp", device)
-    _apply_io_config(config, io_bits=io_bits)
+    _apply_io_config(config, io_bits=io_bits, noise_management=noise_management)
     return _apply_common_mapping(config)
 
 
-def build_ideal_config(io_bits=None):
+def build_ideal_config(io_bits=None, noise_management="abs_max"):
     """IdealDevice — FP32 update. Upper bound baseline.
 
     Args:
         io_bits: DAC/ADC bit precision (None or 0 = perfect).
     """
     config = SingleRPUConfig(device=IdealDevice())
-    _apply_io_config(config, io_bits=io_bits)
+    _apply_io_config(config, io_bits=io_bits, noise_management=noise_management)
     return _apply_common_mapping(config)
 
 
