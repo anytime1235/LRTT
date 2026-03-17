@@ -48,6 +48,7 @@ from aihwkit.nn import AnalogLinear
 from aihwkit.nn.conversion import convert_to_analog
 from aihwkit.optim import AnalogAdam
 from aihwkit.optim.context import AnalogContext
+from aihwkit.optim.analog_optimizer import AnalogOptimizerMixin
 
 from rpu_configs import get_config, dw_min_for_bits, PULSE_TYPE_MAP, DW_MIN_14BIT
 from update_diagnostics import UpdateDiagnostics
@@ -761,6 +762,34 @@ def train_fixed(args):
             loss = outputs.loss / args.grad_accum_steps
             loss.backward()
 
+            # Grad accum > 1: flush analog tile updates immediately after
+            # each micro-batch to avoid accumulating (x, d) tensors in
+            # analog_ctx, which causes OOM.  tile.update() is called per
+            # micro-batch and analog_ctx is reset so memory is freed.
+            if args.grad_accum_steps > 1:
+                with torch.no_grad():
+                    for p in model.parameters():
+                        if not isinstance(p, AnalogContext):
+                            continue
+                        if p.use_torch_update or not p.has_gradient():
+                            continue
+                        analog_tile = p.analog_tile
+                        runtime = analog_tile.get_runtime()
+                        if p.use_indexed:
+                            for x_i, d_i in zip(p.analog_input, p.analog_grad_output):
+                                analog_tile.update_indexed(
+                                    x_i.to(analog_tile.device) if runtime.offload_input else x_i,
+                                    d_i.to(analog_tile.device) if runtime.offload_gradient else d_i,
+                                )
+                        else:
+                            x_input = torch.cat(p.analog_input, axis=-1 if analog_tile.in_trans else 0)
+                            d_input = torch.cat(p.analog_grad_output, axis=-1 if analog_tile.out_trans else 0)
+                            analog_tile.update(
+                                x_input.to(analog_tile.device) if runtime.offload_input else x_input,
+                                d_input.to(analog_tile.device) if runtime.offload_gradient else d_input,
+                            )
+                        p.reset()
+
             # Only step on accumulation boundary
             if (batch_idx + 1) % args.grad_accum_steps != 0:
                 continue
@@ -794,8 +823,16 @@ def train_fixed(args):
                         if isinstance(p, AnalogContext):
                             p.analog_tile.set_learning_rate(pg['lr'])
 
-            # Optimizer step
-            optimizer.step()
+            # Optimizer step: when grad_accum > 1, analog updates already
+            # done above; only run digital Adam + post_update_step.
+            if args.grad_accum_steps > 1:
+                super(AnalogOptimizerMixin, optimizer).step()
+                for pg in optimizer.param_groups:
+                    for p in pg['params']:
+                        if isinstance(p, AnalogContext):
+                            p.analog_tile.post_update_step()
+            else:
+                optimizer.step()
 
             # ECO: snapshot after Adam but before quantization (for diagnostics)
             if is_eco and do_cp:
