@@ -1722,7 +1722,7 @@ def main():
                                       dac_bits=bits, adc_bits=bits)
             mask_buf_b.register(model_b)
             stats_b, handles_b = register_hooks(model_b, mask_buf_b, inp_res=inp_res_b,
-                                                 store_sweep=False)
+                                                 store_sweep=True)
             run_diagnostic(model_b, loader, n_step=N_STEP_SWEEP, desc=f"B-{bits}b")
             for h in handles_b:
                 h.remove()
