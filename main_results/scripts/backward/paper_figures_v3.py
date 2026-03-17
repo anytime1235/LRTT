@@ -1,19 +1,28 @@
-"""paper_figures.py — 논문용 Figure A/B/C 생성 (v3: AIHWKit-consistent metrics)
+"""paper_figures.py — 논문용 Figure A/B/C 생성 (v4: per-layer precision + nm_thres/p_clip 통합)
 
 Three publication-quality figures based on diag_kv_rootcause.py patterns,
 extended with FFN1/FFN2 layers and parameterized adc_bits.
 
 - Figure A: QKVO+FFN Root Cause (2×3, 6 sublayers)
 - Figure B: IO Resolution Sweep (bits=[4,6,8,10,12], 2×2)
-- Figure C: Solutions Comparison (4 variants: baseline, sto_round,
-            nm_thres_cal, p99_clip), 2×2
+- Figure C: Solutions Comparison (8 variants, 4 categories), 4×2 + CDF
+    baseline           — uniform 8-bit, ABS_MAX
+    Cat1 lp_q20/q10/q05 — per-layer bits (QZR target sweep, cost-neutral)
+    Cat2 nm_thres_p50  — per-layer nm_thres (clip=50%, absmax p50, aggressive)
+    Cat2 nm_thres_p80  — per-layer nm_thres (clip=20%, absmax p80)
+    Cat2 nm_thres_p90  — per-layer nm_thres (clip=10%, absmax p90)
+    Cat2 nm_thres_p95  — per-layer nm_thres (clip=5%,  absmax p95, conservative)
+    Cat3 nmthres_mixed — nm_thres_p95 + layer_prec combined
+    Cat4 avg_absmax    — AVERAGE_ABS_MAX backward noise management
+    Cat4 constant_nm   — CONSTANT backward noise mgmt (calibrated theta)
+    Cat5 all_combined  — nm_thres(p95) + AVERAGE_ABS_MAX + mixed precision
 
-Key differences from diag_kv_rootcause.py:
-  - FFN1/FFN2 sublayers added (6 total instead of 4)
-  - adc_bits fully parameterized
-  - zero_thresh = inp_res = 1/(2^b-2)  (not 1/(2^b-1))
-  - nm_thres_cal: actual live run with calibrated theta
-  - P99ClipHook: per-vector p99 gradient clip via output tensor hook
+Key differences from v3:
+  - v4: DAC_BITS = 8 baseline (8-bit 기준 문제 분석)
+  - v4: sto_round variant 제거
+  - v4: nm_thres + p_clip 통합 — per-layer absmax percentile 기반 nm_thres
+  - v4: per-layer precision allocation (severity 기반 bit 분배)
+  - v4: calibrate_layer_severity(), allocate_precision(), set_per_layer_config()
   - v3: step_size = 2 * inp_bound * res_ratio (AIHWKit UniformQuantize consistent)
   - v3: l2_retention, rel_l2_error, clip_rate_scaled metrics
   - v3: ratio reservoir sampling (200k cap) to prevent OOM
@@ -57,7 +66,7 @@ parser.add_argument("--n-step-sweep", type=int, default=100,
 parser.add_argument("--out-dir",      type=str, default="./results/tikitakav1")
 parser.add_argument("--figures",      type=str, default="ABC",
                     help="Which figures to generate: A, B, C or any combo (default: ABC)")
-parser.add_argument("--run-tag",      type=str, default="v3")
+parser.add_argument("--run-tag",      type=str, default="v4")
 args = parser.parse_args()
 
 # =============================================================================
@@ -80,8 +89,8 @@ MAX_SEQ_LENGTH = 384
 DOC_STRIDE     = 128
 SEED           = 42
 INP_BOUND      = 1.0
-DAC_BITS       = 7
-ADC_BITS       = 9
+DAC_BITS       = 8
+ADC_BITS       = 8
 N_LAYERS       = 12
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -153,14 +162,25 @@ def _layer_names(model):
 # RPU Config (adc_bits parameterized)
 # =============================================================================
 
-def create_rpu_config(nm_thres=0.0, sto_round=False, dac_bits=DAC_BITS, adc_bits=ADC_BITS):
+def create_rpu_config(nm_thres=0.0, dac_bits=DAC_BITS, adc_bits=ADC_BITS,
+                      bwd_noise_mgmt="ABS_MAX", bwd_nm_decay=0.001):
     """SingleRPU with noise-free SoftBoundsDevice. inp_res = 1/(2^dac_bits - 2).
 
-    Matches optuna_bert_squad_tiki.py create_single_rpu_config() device config.
+    bwd_noise_mgmt: backward noise management type.
+        "ABS_MAX" | "AVERAGE_ABS_MAX" | "CONSTANT" | "NONE"
+    bwd_nm_decay: decay for AVERAGE_ABS_MAX (default 0.001).
     """
     from aihwkit.simulator.configs import SingleRPUConfig
     from aihwkit.simulator.configs.devices import SoftBoundsDevice
     from aihwkit.simulator.configs.utils import NoiseManagementType
+
+    _NM_MAP = {
+        "ABS_MAX":         NoiseManagementType.ABS_MAX,
+        "AVERAGE_ABS_MAX": NoiseManagementType.AVERAGE_ABS_MAX,
+        "CONSTANT":        NoiseManagementType.CONSTANT,
+        "NONE":            NoiseManagementType.NONE,
+        "MAX":             NoiseManagementType.MAX,
+    }
 
     device = SoftBoundsDevice(
         dw_min=0.001,
@@ -183,8 +203,13 @@ def create_rpu_config(nm_thres=0.0, sto_round=False, dac_bits=DAC_BITS, adc_bits
         io.out_res          = 1.0 / (2**adc_bits - 2)
         io.noise_management = NoiseManagementType.ABS_MAX
         io.out_noise        = 0.0
-        io.inp_sto_round    = sto_round
+        io.inp_sto_round    = False
+    # backward-only overrides
+    bwd_nm = _NM_MAP.get(bwd_noise_mgmt, NoiseManagementType.ABS_MAX)
+    rpu.backward.noise_management       = bwd_nm
     rpu.backward.nm_thres               = nm_thres
+    if bwd_nm == NoiseManagementType.AVERAGE_ABS_MAX:
+        rpu.backward.nm_decay           = bwd_nm_decay
     rpu.mapping.digital_bias            = True
     rpu.mapping.weight_scaling_omega    = 1.0
     rpu.mapping.weight_scaling_columnwise = True
@@ -195,7 +220,8 @@ def create_rpu_config(nm_thres=0.0, sto_round=False, dac_bits=DAC_BITS, adc_bits
 # Model Creation
 # =============================================================================
 
-def create_model(nm_thres=0.0, sto_round=False, dac_bits=DAC_BITS, adc_bits=ADC_BITS):
+def create_model(nm_thres=0.0, dac_bits=DAC_BITS, adc_bits=ADC_BITS,
+                 bwd_noise_mgmt="ABS_MAX"):
     """BERT-base 2-pass analog conversion.
 
     Pass 1: Q/K/V/O (target) — analog, weight updates enabled (lr=0 so noop)
@@ -212,16 +238,18 @@ def create_model(nm_thres=0.0, sto_round=False, dac_bits=DAC_BITS, adc_bits=ADC_
     target, nontarget, all_linear = _layer_names(model)
 
     # Pass 1: target (QKVO)
-    rpu = create_rpu_config(nm_thres=nm_thres, sto_round=sto_round,
-                            dac_bits=dac_bits, adc_bits=adc_bits)
+    rpu = create_rpu_config(nm_thres=nm_thres,
+                            dac_bits=dac_bits, adc_bits=adc_bits,
+                            bwd_noise_mgmt=bwd_noise_mgmt)
     model = convert_to_analog(
         model, rpu,
         exclude_modules=[n for n in all_linear if n not in target]
     )
 
     # Pass 2: nontarget (FFN) — same config, update will be nooped
-    nt_rpu = create_rpu_config(nm_thres=nm_thres, sto_round=sto_round,
-                               dac_bits=dac_bits, adc_bits=adc_bits)
+    nt_rpu = create_rpu_config(nm_thres=nm_thres,
+                               dac_bits=dac_bits, adc_bits=adc_bits,
+                               bwd_noise_mgmt=bwd_noise_mgmt)
     model = convert_to_analog(
         model, nt_rpu,
         exclude_modules=[n for n in all_linear if n not in nontarget]
@@ -250,7 +278,7 @@ def create_model(nm_thres=0.0, sto_round=False, dac_bits=DAC_BITS, adc_bits=ADC_
                 if isinstance(m, AnalogLinear) and n in target)
     n_all = sum(1 for m in model.modules() if isinstance(m, AnalogLinear))
     print(f"  Analog tiles — target(QKVO):{n_t}, frozen(FFN):{n_all - n_t}, "
-          f"nm_thres={nm_thres:.4g}, sto_round={sto_round}, "
+          f"nm_thres={nm_thres:.4g}, "
           f"dac={dac_bits}b, adc={adc_bits}b")
     return model.to(DEVICE)
 
@@ -547,7 +575,7 @@ class LayerStats:
 
     def summary(self, label: str = "baseline", dac_bits: int = DAC_BITS,
                 adc_bits: int = ADC_BITS, figure_id: str = "",
-                run_tag: str = "", sto_round: bool = False) -> dict:
+                run_tag: str = "") -> dict:
         def _m(lst): return float(np.mean(lst)) if lst else float("nan")
         return {
             "figure_id":        figure_id,
@@ -563,7 +591,6 @@ class LayerStats:
             "res_ratio":        self.res_ratio,
             "step_size":        self.step_size,
             "nm_thres":         self.nm_thres,
-            "sto_round":        sto_round,
             "EZR":              _m(self.ezr_steps),
             "QZR_all":          _m(self.qzr_all_steps),
             "QZR_nonzero":      _m(self.qzr_nz_steps),
@@ -586,7 +613,7 @@ class LayerStats:
 
     def step_records(self, label: str = "baseline", dac_bits: int = DAC_BITS,
                      adc_bits: int = ADC_BITS, figure_id: str = "",
-                     run_tag: str = "", sto_round: bool = False) -> list:
+                     run_tag: str = "") -> list:
         """Per-step records for steps CSV."""
         n = len(self.cosine_steps)
         records = []
@@ -607,7 +634,6 @@ class LayerStats:
                 "res_ratio":        self.res_ratio,
                 "step_size":        self.step_size,
                 "nm_thres":         self.nm_thres,
-                "sto_round":        sto_round,
                 "step_idx":         i,
                 "n_vec":            _g(self.n_vec_steps, i, 0),
                 "EZR":              _g(self.ezr_steps, i),
@@ -639,10 +665,14 @@ class LayerStats:
 
 def register_hooks(model, mask_buf: MaskBuffer, inp_res: float,
                    nm_thres: float = 0.0,
+                   inp_res_map: dict = None,
+                   nm_thres_map: dict = None,
                    store_sweep: bool = True) -> tuple:
     """Register full backward hooks on all AnalogLinear matching the regex.
 
-    Includes both QKVO (target) and FFN1/FFN2 (nontarget frozen) layers.
+    Per-layer overrides via inp_res_map / nm_thres_map:
+        {(layer_idx, sublayer): value}
+    These override the global inp_res / nm_thres for matching layers.
     """
     from aihwkit.nn import AnalogLinear
 
@@ -654,8 +684,14 @@ def register_hooks(model, mask_buf: MaskBuffer, inp_res: float,
         if parsed is None:
             continue
         layer_idx, sublayer = parsed
+        key = (layer_idx, sublayer)
+
+        # per-layer overrides
+        lr_inp_res  = inp_res_map[key]  if (inp_res_map  and key in inp_res_map)  else inp_res
+        lr_nm_thres = nm_thres_map[key] if (nm_thres_map and key in nm_thres_map) else nm_thres
+
         stats = LayerStats(name=name, layer_idx=layer_idx, sublayer=sublayer,
-                           inp_res=inp_res, nm_thres=nm_thres,
+                           inp_res=lr_inp_res, nm_thres=lr_nm_thres,
                            store_sweep=store_sweep)
         stats_dict[name] = stats
 
@@ -668,9 +704,266 @@ def register_hooks(model, mask_buf: MaskBuffer, inp_res: float,
         handles.append(module.register_full_backward_hook(make_hook(stats, mask_buf)))
 
     sublayers_found = sorted(set(s.sublayer for s in stats_dict.values()))
+    n_custom = sum(1 for s in stats_dict.values()
+                   if (inp_res_map and (s.layer_idx, s.sublayer) in inp_res_map)
+                   or (nm_thres_map and (s.layer_idx, s.sublayer) in nm_thres_map))
     print(f"[Hook] {len(stats_dict)} hooks, sublayers={sublayers_found}, "
-          f"inp_res={inp_res:.6f}, nm_thres={nm_thres:.4g}")
+          f"inp_res={inp_res:.6f}, nm_thres={nm_thres:.4g}, "
+          f"per-layer overrides={n_custom}")
     return stats_dict, handles
+
+
+# =============================================================================
+# Per-Layer Calibration & Precision Allocation
+# =============================================================================
+
+def calibrate_layer_severity(stats_dict: dict) -> dict:
+    """Compute per-layer severity score from baseline run.
+
+    Severity = QZR_nonzero (직접 측정: 현재 bit에서 비zero gradient 중
+    양자화로 0이 되는 비율).
+
+    이 값만이 "bit를 올리면 개선되는 정도"를 직접 나타냄.
+    p_clip은 nm_thres가 해결하는 문제이므로 bit 할당에 사용하지 않음.
+    cosine_sim은 QZR_nz의 종속 변수이므로 중복.
+
+    Returns: {(layer_idx, sublayer): {
+        'qzr_nz', 'p_clip', 'cosine', 'absmax_q99', 'severity'
+    }}
+    """
+    severity = {}
+    for name, s in stats_dict.items():
+        key = (s.layer_idx, s.sublayer)
+        qzr_nz     = float(np.mean(s.qzr_nz_steps))    if s.qzr_nz_steps    else 0.0
+        p_clip     = float(np.mean(s.p_clip_steps))     if s.p_clip_steps     else 0.0
+        cosine     = float(np.mean(s.cosine_steps))      if s.cosine_steps     else 1.0
+        absmax_q99 = float(np.mean(s.absmax_q99_steps)) if s.absmax_q99_steps else 0.0
+        # Severity = QZR_nonzero only
+        # "비zero gradient 중 양자화로 0이 되는 비율"
+        # 이것이 bit를 올려서 직접 개선 가능한 유일한 지표
+        score = qzr_nz
+        severity[key] = {
+            'qzr_nz':     qzr_nz,
+            'p_clip':     p_clip,
+            'cosine':     cosine,
+            'absmax_q99': absmax_q99,
+            'severity':   score,
+        }
+    return severity
+
+
+def allocate_precision(stats_dict: dict, base_bits: int = 8,
+                       min_bits: int = 4, max_bits: int = 12,
+                       qzr_target: float = 0.10,
+                       candidate_bits: tuple = (4, 6, 8, 10, 12)) -> dict:
+    """Cost-neutral per-layer bit allocation from ratio distribution.
+
+    For each layer, compute QZR_nz at every candidate bit level using the
+    stored ratio distribution (no additional model run needed):
+        QZR_nz(b) = P(ratio < 1/(2^b - 2))  among non-zero ratios
+
+    Then find the minimum bits where QZR_nz < qzr_target.
+    Finally, enforce cost-neutrality (total = N_layers × base_bits).
+
+    Returns: {(layer_idx, sublayer): allocated_bits}
+    """
+    # Phase 1: per-layer minimum bits from ratio distribution
+    bits_map = {}
+    layer_qzr_table = {}   # for logging
+
+    for name, s in stats_dict.items():
+        key = (s.layer_idx, s.sublayer)
+        ratio_arr = s.ratio_reservoir_array()
+
+        if len(ratio_arr) == 0:
+            bits_map[key] = base_bits
+            continue
+
+        # Remove exact zeros from ratio (EZR is structural, not resolution issue)
+        nz_ratios = ratio_arr[ratio_arr > 0]
+        if len(nz_ratios) == 0:
+            bits_map[key] = min_bits
+            continue
+
+        # Compute QZR_nz at each candidate bit level
+        qzr_at_bits = {}
+        for b in candidate_bits:
+            thresh = 1.0 / (2**b - 2)
+            qzr_at_bits[b] = float(np.mean(nz_ratios < thresh))
+
+        layer_qzr_table[key] = qzr_at_bits
+
+        # Find minimum bits where QZR_nz < target
+        assigned = max_bits  # fallback
+        for b in candidate_bits:
+            if qzr_at_bits[b] < qzr_target:
+                assigned = b
+                break
+        bits_map[key] = assigned
+
+    # Phase 2: enforce cost neutrality (total = N × base_bits)
+    n_layers = len(bits_map)
+    total_budget = n_layers * base_bits
+    current_total = sum(bits_map.values())
+
+    if current_total != total_budget:
+        delta = total_budget - current_total
+        # Over budget → reduce layers with most headroom (lowest QZR_nz at lower bits)
+        # Under budget → boost layers with worst QZR_nz
+        severity = {k: v.get(bits_map[k], 0.0)
+                    for k, v in layer_qzr_table.items()}
+        sorted_keys = sorted(bits_map.keys(),
+                             key=lambda k: severity.get(k, 0.0),
+                             reverse=(delta < 0))
+        for key in sorted_keys:
+            if delta == 0:
+                break
+            step = 2 if abs(delta) >= 2 else abs(delta)
+            if delta > 0 and bits_map[key] < max_bits:
+                add = min(step, max_bits - bits_map[key], delta)
+                bits_map[key] += add
+                delta -= add
+            elif delta < 0 and bits_map[key] > min_bits:
+                sub = min(step, bits_map[key] - min_bits, -delta)
+                bits_map[key] -= sub
+                delta += sub
+
+    # Print per-layer virtual bit sweep
+    print(f"\n  [Bit allocation] target QZR_nz < {qzr_target}, "
+          f"budget={total_budget} ({n_layers}×{base_bits})")
+    print(f"  {'Layer':<10} " +
+          " ".join(f"{b:>6}b" for b in candidate_bits) + "  → alloc")
+    for key in sorted(layer_qzr_table.keys()):
+        li, sl = key
+        qzr = layer_qzr_table[key]
+        vals = " ".join(f"{qzr[b]:6.3f}" for b in candidate_bits)
+        print(f"  L{li:<2} {sl:<5}  {vals}  → {bits_map[key]:>3}b")
+    print(f"  Total: {sum(bits_map.values())} bits "
+          f"(avg {sum(bits_map.values())/n_layers:.1f}b)")
+
+    return bits_map
+
+
+def calibrate_per_layer_thetas(stats_dict: dict,
+                               clip_targets: tuple = (0.10, 0.05)) -> dict:
+    """p_clip-driven nm_thres calibration.
+
+    For each layer, find the nm_thres (theta) that would result in a target
+    fraction of vectors being clipped (= having absmax > theta).
+
+    clip_target = 0.05 means "accept 5% of vectors being clipped"
+      → theta = absmax_p95 (95th percentile of per-vector absmax)
+      → nm_thres = theta → α = min(absmax, theta)
+      → top 5% outlier vectors get capped, bottom 95% preserved
+
+    The mapping:
+      clip_target  →  absmax percentile  →  nm_thres
+      0.10 (10%)   →  p90                →  aggressive cap
+      0.05 (5%)    →  p95                →  moderate cap
+
+    Returns: {clip_target: {(layer_idx, sublayer): theta_value}}
+    Also prints per-layer p_clip → theta mapping.
+    """
+    thetas = {ct: {} for ct in clip_targets}
+    print(f"\n  [p_clip → nm_thres calibration]")
+    print(f"  clip_targets = {clip_targets}")
+
+    for name, s in stats_dict.items():
+        arr = s.absmax_array()   # all per-vector absmax values from baseline
+        if len(arr) == 0:
+            continue
+        key = (s.layer_idx, s.sublayer)
+        baseline_pclip = float(np.mean(s.p_clip_steps)) if s.p_clip_steps else 0.0
+
+        for ct in clip_targets:
+            # clip_target=0.05 → we want 5% of vectors clipped
+            # → theta = absmax at (1 - clip_target) = 95th percentile
+            pct = 1.0 - ct
+            theta = float(np.quantile(arr, pct))
+            thetas[ct][key] = theta
+
+        # Log for key layers
+        if s.sublayer in ["K", "V"]:
+            theta_strs = ", ".join(
+                f"clip={ct:.0%}→θ={thetas[ct][key]:.6f}" for ct in clip_targets)
+            print(f"    L{s.layer_idx} {s.sublayer}: "
+                  f"baseline p_clip={baseline_pclip:.4f}, {theta_strs}")
+
+    return thetas
+
+
+def set_per_layer_config(model, bits_map: dict = None, thres_map: dict = None,
+                         noise_mgmt_str: str = None, nm_decay: float = 0.001):
+    """Set per-layer precision, nm_thres, and/or noise management on tiles.
+
+    bits_map:       {(layer_idx, sublayer): dac_bits}   → tile backward.inp_res
+    thres_map:      {(layer_idx, sublayer): nm_thres}   → tile backward.nm_thres
+    noise_mgmt_str: if set, override backward noise_management on ALL matched tiles
+    nm_decay:       decay for AVERAGE_ABS_MAX
+    """
+    from aihwkit.nn import AnalogLinear
+    from aihwkit.simulator.configs.utils import NoiseManagementType
+
+    _NM_MAP = {
+        "ABS_MAX":         NoiseManagementType.ABS_MAX,
+        "AVERAGE_ABS_MAX": NoiseManagementType.AVERAGE_ABS_MAX,
+        "CONSTANT":        NoiseManagementType.CONSTANT,
+        "NONE":            NoiseManagementType.NONE,
+    }
+
+    count = 0
+    for name, module in model.named_modules():
+        if not isinstance(module, AnalogLinear):
+            continue
+        parsed = parse_layer_name(name)
+        if parsed is None:
+            continue
+        key = parsed   # (layer_idx, sublayer)
+        modified = False
+        for tile in module.analog_tiles():
+            if bits_map and key in bits_map:
+                bits = bits_map[key]
+                tile.rpu_config.backward.inp_res = 1.0 / (2**bits - 2)
+                modified = True
+            if thres_map and key in thres_map:
+                tile.rpu_config.backward.nm_thres = thres_map[key]
+                modified = True
+            if noise_mgmt_str and noise_mgmt_str in _NM_MAP:
+                tile.rpu_config.backward.noise_management = _NM_MAP[noise_mgmt_str]
+                if noise_mgmt_str == "AVERAGE_ABS_MAX":
+                    tile.rpu_config.backward.nm_decay = nm_decay
+                modified = True
+        if modified:
+            count += 1
+    desc_parts = []
+    if bits_map:   desc_parts.append(f"bits={len(bits_map)}")
+    if thres_map:  desc_parts.append(f"thres={len(thres_map)}")
+    if noise_mgmt_str: desc_parts.append(f"nm={noise_mgmt_str}")
+    print(f"  [set_per_layer_config] Updated {count} modules ({', '.join(desc_parts)})")
+
+
+def print_severity_report(severity: dict, bits_map: dict = None):
+    """Print per-layer severity and allocated bits."""
+    print("\n  ┌──────────────────────────────────────────────────────"
+          "────────────────────────────┐")
+    print("  │ Layer  Sub   QZR_nz   p_clip  cosine  absmax_q99"
+          "  severity  bits(alloc) │")
+    print("  ├──────────────────────────────────────────────────────"
+          "────────────────────────────┤")
+    for key in sorted(severity.keys()):
+        v = severity[key]
+        li, sl = key
+        bits_str = f"{bits_map[key]:>4}b" if (bits_map and key in bits_map) else "   —"
+        print(f"  │ L{li:<3}  {sl:<5} {v['qzr_nz']:7.4f}  {v['p_clip']:6.4f}"
+              f"  {v['cosine']:6.4f}  {v['absmax_q99']:10.6f}"
+              f"  {v['severity']:8.4f}  {bits_str:>10} │")
+    print("  └──────────────────────────────────────────────────────"
+          "────────────────────────────┘")
+    if bits_map:
+        from collections import Counter
+        dist = Counter(bits_map.values())
+        avg = np.mean(list(bits_map.values()))
+        print(f"  Bit distribution: {dict(sorted(dist.items()))}, avg={avg:.1f}b")
 
 
 # =============================================================================
@@ -1171,72 +1464,109 @@ def figure_B(df_b: pd.DataFrame):
 
 
 # =============================================================================
-# Figure C — Solutions Comparison (2×2)
+# Figure C — Solutions Comparison (4×2) + CDF
 # =============================================================================
 
-def figure_C(df_c: pd.DataFrame):
-    VARIANTS = ["baseline", "sto_round", "nm_thres_cal", "p99_clip"]
-    COLORS   = ["#4C72B0", "#DD8452", "#55A868", "#C44E52"]
+# 10 variants mapping to 5 solution categories:
+#   Cat 1 — Layer-wise precision:     "layer_prec"
+#   Cat 2 — nm_thres (p_clip 통합):   "nm_thres_p50/p80/p90/p95"
+#           clip_target → absmax percentile → per-layer nm_thres
+#   Cat 3 — nm_thres + mixed prec:    "nmthres_mixed"
+#   Cat 4 — Alt bound method:         "avg_absmax", "constant_nm"
+#   Cat 5 — All combined:             "all_combined"
+#           nm_thres(clip=5%) + AVERAGE_ABS_MAX + mixed precision
+# QZR targets for mixed precision sweep
+QZR_TARGETS = (0.20, 0.10, 0.05)
 
-    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+C_VARIANTS = [
+    "baseline",       # uniform 8-bit, ABS_MAX, no mitigation
+    "lp_q20",         # Cat 1: layer_prec, QZR target < 0.20 (loose)
+    "lp_q10",         # Cat 1: layer_prec, QZR target < 0.10
+    "lp_q05",         # Cat 1: layer_prec, QZR target < 0.05 (strict)
+    "nm_thres_p50",   # Cat 2: clip=50% → absmax p50 (aggressive)
+    "nm_thres_p80",   # Cat 2: clip=20% → absmax p80
+    "nm_thres_p90",   # Cat 2: clip=10% → absmax p90
+    "nm_thres_p95",   # Cat 2: clip=5%  → absmax p95 (conservative)
+    "nmthres_mixed",  # Cat 3: nm_thres(clip=5%) + lp_q10
+    "avg_absmax",     # Cat 4: AVERAGE_ABS_MAX backward noise mgmt
+    "constant_nm",    # Cat 4: CONSTANT backward noise mgmt (calibrated)
+    "all_combined",   # Cat 5: nm_thres + AVERAGE_ABS_MAX + lp_q10
+]
+C_COLORS = [
+    "#4C72B0",  # baseline — blue
+    "#FFBB78",  # lp_q20 — light orange
+    "#DD8452",  # lp_q10 — orange
+    "#D62728",  # lp_q05 — dark red
+    "#FFD700",  # nm_thres_p50 — gold
+    "#17BECF",  # nm_thres_p80 — cyan
+    "#55A868",  # nm_thres_p90 — green
+    "#8172B2",  # nm_thres_p95 — purple
+    "#C44E52",  # nmthres_mixed — red
+    "#937860",  # avg_absmax — brown
+    "#DA8BC3",  # constant_nm — pink
+    "#2CA02C",  # all_combined — dark green
+]
+
+
+def figure_C(df_c: pd.DataFrame, cdf_data: dict = None):
+    """Generate Figure C: 4×2 grid (bars + heatmaps + CDF).
+
+    cdf_data: {variant_name: {layer_key: np.ndarray(absmax)}} for CDF subplot.
+    """
+    VARIANTS = [v for v in C_VARIANTS if v in df_c["variant"].unique()]
+    COLORS   = [C_COLORS[C_VARIANTS.index(v)] for v in VARIANTS]
+
+    fig, axes = plt.subplots(4, 2, figsize=(20, 24))
     fig.suptitle(
-        f"Figure C — Solutions Comparison (4 variants, BERT-base, "
-        f"{N_STEP} steps × batch {BATCH_SIZE})\n"
-        f"baseline(no nm_thres, 7b) | sto_round | "
-        f"nm_thres_cal(p95 K/V absmax) | p99_clip(output hook)",
+        f"Figure C — Solutions ({len(VARIANTS)} variants, BERT-base, "
+        f"{DAC_BITS}-bit baseline, {N_STEP} steps × batch {BATCH_SIZE})\n"
+        f"Cat1: layer_prec | Cat2: nm_thres_pXX | "
+        f"Cat3: nmthres+mixed | Cat4: avg_absmax/constant_nm",
         fontsize=10, y=1.01
     )
 
     kv_df = df_c[df_c["sublayer"].isin(["K", "V"])]
     x     = np.arange(2)
     n_v   = len(VARIANTS)
-    width = 0.18
+    width = max(0.08, 0.72 / n_v)
     offsets = np.linspace(-(n_v - 1) * width / 2, (n_v - 1) * width / 2, n_v)
 
-    # [0,0] Grouped bar: K/V mean QZR_nonzero
-    ax = axes[0, 0]
-    for vi, (variant, color) in enumerate(zip(VARIANTS, COLORS)):
-        var_df = kv_df[kv_df["variant"] == variant]
-        vals = []
-        for sl in ["K", "V"]:
-            sub = var_df[var_df["sublayer"] == sl]["QZR_nonzero"]
-            vals.append(float(sub.mean()) if len(sub) > 0 else float("nan"))
-        bars = ax.bar(x + offsets[vi], vals, width=width, label=variant,
-                      color=color, alpha=0.8, edgecolor="k", linewidth=0.5)
-        for bar, val in zip(bars, vals):
-            if not np.isnan(val):
-                ax.text(bar.get_x() + bar.get_width() / 2,
-                        bar.get_height() + 0.005,
-                        f"{val:.3f}", ha="center", va="bottom",
-                        fontsize=7, rotation=45)
-    ax.set_xticks(x); ax.set_xticklabels(["K", "V"])
-    ax.set_xlabel("Sublayer"); ax.set_ylabel("QZR_nonzero")
-    ax.set_title("(a) K/V Mean QZR_nonzero per variant\n(lower = better)", fontsize=9)
-    ax.legend(fontsize=8); ax.grid(True, alpha=0.3, axis="y")
+    # ---- helper for grouped bar ----
+    def _grouped_bar(ax, metric, ylabel, title, higher_better=True):
+        for vi, (variant, color) in enumerate(zip(VARIANTS, COLORS)):
+            var_df = kv_df[kv_df["variant"] == variant]
+            vals = []
+            for sl in ["K", "V"]:
+                sub = var_df[var_df["sublayer"] == sl][metric]
+                vals.append(float(sub.mean()) if len(sub) > 0 else float("nan"))
+            bars = ax.bar(x + offsets[vi], vals, width=width, label=variant,
+                          color=color, alpha=0.8, edgecolor="k", linewidth=0.5)
+            for bar, val in zip(bars, vals):
+                if not np.isnan(val):
+                    ax.text(bar.get_x() + bar.get_width() / 2,
+                            bar.get_height() + 0.003,
+                            f"{val:.3f}", ha="center", va="bottom",
+                            fontsize=5, rotation=60)
+        ax.set_xticks(x); ax.set_xticklabels(["K", "V"])
+        ax.set_xlabel("Sublayer"); ax.set_ylabel(ylabel)
+        direction = "higher = better" if higher_better else "lower = better"
+        ax.set_title(f"{title}\n({direction})", fontsize=9)
+        ax.legend(fontsize=6, ncol=2); ax.grid(True, alpha=0.3, axis="y")
 
-    # [0,1] Grouped bar: K/V mean cosine_sim
-    ax = axes[0, 1]
-    for vi, (variant, color) in enumerate(zip(VARIANTS, COLORS)):
-        var_df = kv_df[kv_df["variant"] == variant]
-        vals = []
-        for sl in ["K", "V"]:
-            sub = var_df[var_df["sublayer"] == sl]["cosine_sim"]
-            vals.append(float(sub.mean()) if len(sub) > 0 else float("nan"))
-        bars = ax.bar(x + offsets[vi], vals, width=width, label=variant,
-                      color=color, alpha=0.8, edgecolor="k", linewidth=0.5)
-        for bar, val in zip(bars, vals):
-            if not np.isnan(val):
-                ax.text(bar.get_x() + bar.get_width() / 2,
-                        bar.get_height() + 0.002,
-                        f"{val:.3f}", ha="center", va="bottom",
-                        fontsize=7, rotation=45)
-    ax.set_xticks(x); ax.set_xticklabels(["K", "V"])
-    ax.set_xlabel("Sublayer"); ax.set_ylabel("cosine_sim")
-    ax.set_title("(b) K/V Mean cosine_sim per variant\n(higher = better)", fontsize=9)
-    ax.legend(fontsize=8); ax.grid(True, alpha=0.3, axis="y")
+    # Row 0: grouped bars
+    _grouped_bar(axes[0, 0], "QZR_nonzero", "QZR_nonzero",
+                 "(a) K/V Mean QZR_nonzero", higher_better=False)
+    _grouped_bar(axes[0, 1], "cosine_sim", "cosine_sim",
+                 "(b) K/V Mean cosine_sim", higher_better=True)
 
+    # Row 1: more bars
+    _grouped_bar(axes[1, 0], "l2_retention", "l2_retention",
+                 "(c) K/V Mean l2_retention", higher_better=True)
+    _grouped_bar(axes[1, 1], "p_clip", "p_clip",
+                 "(d) K/V Mean p_clip", higher_better=False)
+
+    # Row 2: heatmaps
     def build_variant_layer_mat(sublayer: str):
-        """Returns (n_variants, N_LAYERS) matrix of QZR_nonzero."""
         mat = np.full((len(VARIANTS), N_LAYERS), np.nan)
         for vi, variant in enumerate(VARIANTS):
             sub_df = df_c[(df_c["variant"] == variant) & (df_c["sublayer"] == sublayer)]
@@ -1246,29 +1576,56 @@ def figure_C(df_c: pd.DataFrame):
                     mat[vi, li] = row["QZR_nonzero"]
         return mat
 
-    # [1,0] Heatmap: K QZR_nonzero (variant × layer)
-    ax = axes[1, 0]
-    mat_k = build_variant_layer_mat("K")
-    im = ax.imshow(mat_k, aspect="auto", cmap="plasma", origin="upper", vmin=0.0, vmax=1.0)
-    ax.set_xticks(range(N_LAYERS))
-    ax.set_xticklabels([f"L{i}" for i in range(N_LAYERS)], fontsize=7)
-    ax.set_yticks(range(len(VARIANTS)))
-    ax.set_yticklabels(VARIANTS, fontsize=9)
-    ax.set_xlabel("Encoder Layer"); ax.set_ylabel("Variant")
-    ax.set_title("(c) K QZR_nonzero: variant × layer", fontsize=9)
-    plt.colorbar(im, ax=ax, label="QZR_nonzero", shrink=0.85)
+    for ci, (sl, title) in enumerate([("K", "(e) K QZR_nonzero"),
+                                       ("V", "(f) V QZR_nonzero")]):
+        ax = axes[2, ci]
+        mat = build_variant_layer_mat(sl)
+        im = ax.imshow(mat, aspect="auto", cmap="plasma", origin="upper",
+                       vmin=0.0, vmax=1.0)
+        ax.set_xticks(range(N_LAYERS))
+        ax.set_xticklabels([f"L{i}" for i in range(N_LAYERS)], fontsize=7)
+        ax.set_yticks(range(len(VARIANTS)))
+        ax.set_yticklabels(VARIANTS, fontsize=7)
+        ax.set_xlabel("Encoder Layer"); ax.set_ylabel("Variant")
+        ax.set_title(f"{title}: variant × layer", fontsize=9)
+        plt.colorbar(im, ax=ax, label="QZR_nonzero", shrink=0.85)
 
-    # [1,1] Heatmap: V QZR_nonzero (variant × layer)
-    ax = axes[1, 1]
-    mat_v = build_variant_layer_mat("V")
-    im = ax.imshow(mat_v, aspect="auto", cmap="plasma", origin="upper", vmin=0.0, vmax=1.0)
-    ax.set_xticks(range(N_LAYERS))
-    ax.set_xticklabels([f"L{i}" for i in range(N_LAYERS)], fontsize=7)
-    ax.set_yticks(range(len(VARIANTS)))
-    ax.set_yticklabels(VARIANTS, fontsize=9)
-    ax.set_xlabel("Encoder Layer"); ax.set_ylabel("Variant")
-    ax.set_title("(d) V QZR_nonzero: variant × layer", fontsize=9)
-    plt.colorbar(im, ax=ax, label="QZR_nonzero", shrink=0.85)
+    # Row 3: CDF of per-vector absmax for worst K/V layer (all variants)
+    ax_cdf_k = axes[3, 0]
+    ax_cdf_v = axes[3, 1]
+
+    if cdf_data:
+        base_df = df_c[df_c["variant"] == "baseline"]
+        for ax_cdf, sl, panel in [(ax_cdf_k, "K", "(g)"), (ax_cdf_v, "V", "(h)")]:
+            sl_df = base_df[base_df["sublayer"] == sl].sort_values(
+                "QZR_nonzero", ascending=False)
+            worst_li = int(sl_df.iloc[0]["layer_idx"]) if len(sl_df) > 0 else 0
+            lkey = f"L{worst_li}_{sl}"
+
+            for vi, (variant, color) in enumerate(zip(VARIANTS, COLORS)):
+                vdata = cdf_data.get(variant, {})
+                arr = vdata.get(lkey, np.array([]))
+                if len(arr) == 0:
+                    continue
+                sorted_a = np.sort(arr)
+                cdf_vals = np.arange(1, len(sorted_a) + 1) / len(sorted_a)
+                n_pts = min(2000, len(sorted_a))
+                idx = np.linspace(0, len(sorted_a) - 1, n_pts, dtype=int)
+                ax_cdf.plot(sorted_a[idx], cdf_vals[idx], label=variant,
+                            color=color, linewidth=1.2, alpha=0.8)
+
+            ax_cdf.set_xlabel("per-vector absmax")
+            ax_cdf.set_ylabel("CDF")
+            ax_cdf.set_title(
+                f"{panel} CDF of per-vector absmax — worst {sl} (L{worst_li})",
+                fontsize=9)
+            ax_cdf.legend(fontsize=6, ncol=2)
+            ax_cdf.grid(True, alpha=0.3)
+            ax_cdf.set_xscale("log")
+    else:
+        for ax_cdf in [ax_cdf_k, ax_cdf_v]:
+            ax_cdf.text(0.5, 0.5, "No CDF data", ha="center", va="center",
+                        transform=ax_cdf.transAxes, fontsize=12, color="gray")
 
     plt.tight_layout()
     fig.savefig(FIG_C, dpi=200, bbox_inches="tight")
@@ -1296,14 +1653,14 @@ def main():
     # ------------------------------------------------------------------ #
     # [2] Baseline run — needed for A, B, C                              #
     # ------------------------------------------------------------------ #
-    print(f"\n[2/6] Baseline 7-bit, {N_STEP} steps ...")
-    inp_res_7  = 1.0 / (2**DAC_BITS - 2)   # 1/126
+    print(f"\n[2/6] Baseline {DAC_BITS}-bit (DAC=ADC={DAC_BITS}), {N_STEP} steps ...")
+    inp_res_base = 1.0 / (2**DAC_BITS - 2)   # 1/(2^8-2) = 1/254
     mask_buf_a = MaskBuffer()
-    model_a    = create_model(nm_thres=0.0, sto_round=False,
+    model_a    = create_model(nm_thres=0.0,
                               dac_bits=DAC_BITS, adc_bits=ADC_BITS)
     mask_buf_a.register(model_a)
     stats_baseline, handles_a = register_hooks(model_a, mask_buf_a,
-                                               inp_res=inp_res_7)
+                                               inp_res=inp_res_base)
     run_diagnostic(model_a, loader, n_step=N_STEP, desc="A-baseline")
     for h in handles_a:
         h.remove()
@@ -1313,7 +1670,7 @@ def main():
 
     # Save raw absmax for baseline (used by ECDF, theta calibration)
     save_absmax_npz(stats_baseline,
-                    os.path.join(OUT_DIR, "absmax_raw_A_baseline_7b.npz"))
+                    os.path.join(OUT_DIR, f"absmax_raw_A_baseline_{DAC_BITS}b.npz"))
 
     # ------------------------------------------------------------------ #
     # [3] Figure A — root cause analysis + figure                        #
@@ -1341,14 +1698,14 @@ def main():
         figure_A(df_a, verdict_a, stats_baseline, dac_bits=DAC_BITS, n_step=N_STEP)
 
     # ------------------------------------------------------------------ #
-    # [4] Figure B — bits sweep [4,6,8,10,12] + baseline 7-bit           #
+    # [4] Figure B — bits sweep [4,6,8,10,12] + baseline 8-bit           #
     # ------------------------------------------------------------------ #
     if RUN_B:
         print(f"\n[4/6] Figure B: bits sweep {[4,6,8,10,12]}, {N_STEP_SWEEP} steps each ...")
         all_b_rows = []
         all_b_step_records = []
 
-        # baseline contribution (7-bit, N_STEP runs)
+        # baseline contribution (8-bit, N_STEP runs)
         for s in stats_baseline.values():
             all_b_rows.append(s.summary("baseline", dac_bits=DAC_BITS,
                                         adc_bits=ADC_BITS, figure_id="B",
@@ -1361,7 +1718,7 @@ def main():
             print(f"\n  B-sweep bits={bits} (dac_bits=adc_bits={bits}) ...")
             inp_res_b  = 1.0 / (2**bits - 2)
             mask_buf_b = MaskBuffer()
-            model_b    = create_model(nm_thres=0.0, sto_round=False,
+            model_b    = create_model(nm_thres=0.0,
                                       dac_bits=bits, adc_bits=bits)
             mask_buf_b.register(model_b)
             stats_b, handles_b = register_hooks(model_b, mask_buf_b, inp_res=inp_res_b,
@@ -1395,113 +1752,173 @@ def main():
         figure_B(df_b)
 
     # ------------------------------------------------------------------ #
-    # [5] Figure C — 4 variants (baseline, p99_clip,                     #
-    #                             nm_thres_cal, sto_round)                #
+    # [5] Figure C — 8 variants (4 solution categories)                  #
+    #     Cat1: layer_prec | Cat2: nm_thres_p90/p95                      #
+    #     Cat3: nmthres_mixed | Cat4: avg_absmax, constant_nm            #
+    #     Cat5: all_combined (nm_thres+avg_absmax+mixed)                 #
     # ------------------------------------------------------------------ #
     if RUN_C:
-        print(f"\n[5/6] Figure C: 4 variants, {N_STEP} steps each ...")
+        print(f"\n[5/6] Figure C: {len(C_VARIANTS)} variants, {N_STEP} steps each ...")
         all_c_rows = []
         all_c_step_records = []
+        cdf_data = {}   # {variant: {layer_key: absmax_array}} for CDF plots
 
-        # variant 1: baseline (reuse stats_baseline)
-        for s in stats_baseline.values():
-            all_c_rows.append(s.summary("baseline", dac_bits=DAC_BITS,
-                                        adc_bits=ADC_BITS, figure_id="C",
-                                        run_tag=RUN_TAG))
-            all_c_step_records.extend(s.step_records(
-                "baseline", dac_bits=DAC_BITS, adc_bits=ADC_BITS,
-                figure_id="C", run_tag=RUN_TAG))
-
-        # variant 2: p99_clip — P99ClipHook clips gradient before tile backward
-        print("  C-variant: p99_clip ...")
-        mask_buf_p99 = MaskBuffer()
-        model_p99    = create_model(nm_thres=0.0, sto_round=False,
-                                    dac_bits=DAC_BITS, adc_bits=ADC_BITS)
-        mask_buf_p99.register(model_p99)
-        p99_hook = P99ClipHook(mask_buf_p99)
-        p99_hook.register(model_p99)
-        stats_p99, handles_p99 = register_hooks(model_p99, mask_buf_p99, inp_res=inp_res_7,
-                                                 store_sweep=False)
-        run_diagnostic(model_p99, loader, n_step=N_STEP, desc="C-p99_clip")
-        for h in handles_p99:
-            h.remove()
-        p99_hook.remove()
-        del model_p99
-        torch.cuda.empty_cache()
-        gc.collect()
-        save_absmax_npz(stats_p99,
-                        os.path.join(OUT_DIR, "absmax_raw_C_p99_clip.npz"))
-        for s in stats_p99.values():
-            all_c_rows.append(s.summary("p99_clip", dac_bits=DAC_BITS,
-                                        adc_bits=ADC_BITS, figure_id="C",
-                                        run_tag=RUN_TAG))
-            all_c_step_records.extend(s.step_records(
-                "p99_clip", dac_bits=DAC_BITS, adc_bits=ADC_BITS,
-                figure_id="C", run_tag=RUN_TAG))
-
-        # variant 3: nm_thres_cal — calibrate theta from baseline K/V absmax
-        print("  C-variant: nm_thres_cal (calibrating theta) ...")
-        kv_absmax_arrs = [
-            arr
-            for s in stats_baseline.values()
-            if s.sublayer in ["K", "V"]
-            for arr in s._absmax_buf
-            if len(arr) > 0
-        ]
-        if kv_absmax_arrs:
-            kv_absmax_all = np.concatenate(kv_absmax_arrs)
-            theta = float(np.quantile(kv_absmax_all, 0.95))
-            print(f"  theta = {theta:.6f}  (p95 of K/V per-vector absmax)")
-
-            mask_buf_nt = MaskBuffer()
-            model_nt    = create_model(nm_thres=theta, sto_round=False,
-                                       dac_bits=DAC_BITS, adc_bits=ADC_BITS)
-            mask_buf_nt.register(model_nt)
-            stats_nt, handles_nt = register_hooks(model_nt, mask_buf_nt,
-                                                  inp_res=inp_res_7, nm_thres=theta,
-                                                  store_sweep=False)
-            run_diagnostic(model_nt, loader, n_step=N_STEP, desc="C-nm_thres_cal")
-            for h in handles_nt:
-                h.remove()
-            del model_nt
-            torch.cuda.empty_cache()
-            gc.collect()
-            save_absmax_npz(stats_nt,
-                            os.path.join(OUT_DIR, "absmax_raw_C_nm_thres_cal.npz"))
-            for s in stats_nt.values():
-                all_c_rows.append(s.summary("nm_thres_cal", dac_bits=DAC_BITS,
+        def _collect(variant_name, stats_dict):
+            """Collect summary, steps, and CDF data from a stats_dict."""
+            cdf_data[variant_name] = {}
+            for s in stats_dict.values():
+                all_c_rows.append(s.summary(variant_name, dac_bits=DAC_BITS,
                                             adc_bits=ADC_BITS, figure_id="C",
                                             run_tag=RUN_TAG))
                 all_c_step_records.extend(s.step_records(
-                    "nm_thres_cal", dac_bits=DAC_BITS, adc_bits=ADC_BITS,
+                    variant_name, dac_bits=DAC_BITS, adc_bits=ADC_BITS,
                     figure_id="C", run_tag=RUN_TAG))
+                lkey = f"L{s.layer_idx}_{s.sublayer}"
+                arr = s.absmax_array()
+                if len(arr) > 0:
+                    cdf_data[variant_name][lkey] = arr
+
+        def _run_variant(variant_name, model, mask_buf, inp_res=inp_res_base,
+                         inp_res_map=None, nm_thres_map=None,
+                         p99_hook_obj=None):
+            """Run diagnostic, collect, cleanup. Returns stats_dict."""
+            stats, handles = register_hooks(
+                model, mask_buf, inp_res=inp_res,
+                inp_res_map=inp_res_map, nm_thres_map=nm_thres_map,
+                store_sweep=True)   # store_sweep=True for CDF data
+            run_diagnostic(model, loader, n_step=N_STEP, desc=f"C-{variant_name}")
+            for h in handles:
+                h.remove()
+            if p99_hook_obj:
+                p99_hook_obj.remove()
+            save_absmax_npz(stats,
+                            os.path.join(OUT_DIR, f"absmax_raw_C_{variant_name}.npz"))
+            _collect(variant_name, stats)
+            del model
+            torch.cuda.empty_cache()
+            gc.collect()
+            return stats
+
+        # ---- Calibration from baseline ----
+        print("  Calibrating per-layer severity & thetas from baseline ...")
+        severity  = calibrate_layer_severity(stats_baseline)
+
+        # p_clip → nm_thres: clip_target=0.50 means "cap top 50% outlier vectors"
+        #   clip=50% → absmax_p50, clip=20% → p80, clip=10% → p90, clip=5% → p95
+        CLIP_TARGETS = (0.50, 0.20, 0.10, 0.05)
+        thetas = calibrate_per_layer_thetas(stats_baseline,
+                                            clip_targets=CLIP_TARGETS)
+
+        # Compute bit allocations for each QZR target
+        bits_maps = {}
+        for qt in QZR_TARGETS:
+            print(f"\n  --- Bit allocation for QZR target < {qt} ---")
+            bits_maps[qt] = allocate_precision(
+                stats_baseline, base_bits=DAC_BITS,
+                min_bits=4, max_bits=12, qzr_target=qt)
+        # Default bits_map for Cat3/Cat5 (use q10)
+        bits_map = bits_maps.get(0.10, bits_maps[QZR_TARGETS[0]])
+        print_severity_report(severity, bits_map)
+
+        # Global constant theta for Cat4 CONSTANT: median of per-layer clip=5% thetas
+        tmap_5pct = thetas.get(0.05, {})
+        constant_theta = float(np.median(list(tmap_5pct.values()))) if tmap_5pct else 0.1
+        print(f"  constant_nm theta (median of clip=5% thetas): {constant_theta:.6f}")
+
+        # ================================================================
+        # variant 1: baseline (reuse stats_baseline)
+        # ================================================================
+        _collect("baseline", stats_baseline)
+
+        # ================================================================
+        # Cat 1 — variants 2-4: layer_prec at QZR targets 0.20, 0.10, 0.05
+        # ================================================================
+        qzr_to_name = {0.20: "lp_q20", 0.10: "lp_q10", 0.05: "lp_q05"}
+        for qt in QZR_TARGETS:
+            vname = qzr_to_name[qt]
+            bm = bits_maps[qt]
+            irm = {k: 1.0 / (2**b - 2) for k, b in bm.items()}
+            print(f"  C-variant: {vname} (QZR<{qt}, avg={np.mean(list(bm.values())):.1f}b) ...")
+            mb = MaskBuffer()
+            mdl = create_model(nm_thres=0.0, dac_bits=DAC_BITS, adc_bits=ADC_BITS)
+            mb.register(mdl)
+            set_per_layer_config(mdl, bits_map=bm)
+            _run_variant(vname, mdl, mb, inp_res_map=irm)
+
+        # ================================================================
+        # Cat 2 — variants 3-4: nm_thres_p90, nm_thres_p95
+        #   clip_target=0.10 → nm_thres_p90 (cap top 10% vectors)
+        #   clip_target=0.05 → nm_thres_p95 (cap top 5% vectors)
+        # ================================================================
+        clip_to_name = {0.50: "nm_thres_p50", 0.20: "nm_thres_p80",
+                        0.10: "nm_thres_p90", 0.05: "nm_thres_p95"}
+        for ct in CLIP_TARGETS:
+            vname = clip_to_name[ct]
+            tmap = thetas[ct]
+            if not tmap:
+                print(f"  [WARN] No absmax data for {vname} — skipping")
+                continue
+            print(f"  C-variant: {vname} (clip={ct:.0%}, per-layer, "
+                  f"{len(tmap)} layers) ...")
+            mb = MaskBuffer()
+            mdl = create_model(nm_thres=0.0, dac_bits=DAC_BITS, adc_bits=ADC_BITS)
+            mb.register(mdl)
+            set_per_layer_config(mdl, thres_map=tmap)
+            _run_variant(vname, mdl, mb, nm_thres_map=tmap)
+
+        # ================================================================
+        # Cat 3 — nmthres_mixed (clip=5% + lp_q10)
+        # ================================================================
+        tmap95 = thetas.get(0.05, {})
+        inp_res_map_q10 = {k: 1.0 / (2**b - 2) for k, b in bits_map.items()}
+        if tmap95:
+            print(f"  C-variant: nmthres_mixed (clip=5% thres + lp_q10 bits) ...")
+            mb = MaskBuffer()
+            mdl = create_model(nm_thres=0.0, dac_bits=DAC_BITS, adc_bits=ADC_BITS)
+            mb.register(mdl)
+            set_per_layer_config(mdl, bits_map=bits_map, thres_map=tmap95)
+            _run_variant("nmthres_mixed", mdl, mb,
+                         inp_res_map=inp_res_map_q10, nm_thres_map=tmap95)
         else:
-            print("  [WARN] No K/V absmax data — skipping nm_thres_cal variant")
+            print("  [WARN] No p95 theta data — skipping nmthres_mixed")
 
-        # variant 4: sto_round
-        print("  C-variant: sto_round ...")
-        mask_buf_sr = MaskBuffer()
-        model_sr    = create_model(nm_thres=0.0, sto_round=True,
-                                   dac_bits=DAC_BITS, adc_bits=ADC_BITS)
-        mask_buf_sr.register(model_sr)
-        stats_sr, handles_sr = register_hooks(model_sr, mask_buf_sr, inp_res=inp_res_7,
-                                               store_sweep=False)
-        run_diagnostic(model_sr, loader, n_step=N_STEP, desc="C-sto_round")
-        for h in handles_sr:
-            h.remove()
-        del model_sr
-        torch.cuda.empty_cache()
-        gc.collect()
-        save_absmax_npz(stats_sr,
-                        os.path.join(OUT_DIR, "absmax_raw_C_sto_round.npz"))
-        for s in stats_sr.values():
-            all_c_rows.append(s.summary("sto_round", dac_bits=DAC_BITS,
-                                        adc_bits=ADC_BITS, figure_id="C",
-                                        run_tag=RUN_TAG, sto_round=True))
-            all_c_step_records.extend(s.step_records(
-                "sto_round", dac_bits=DAC_BITS, adc_bits=ADC_BITS,
-                figure_id="C", run_tag=RUN_TAG, sto_round=True))
+        # ================================================================
+        # Cat 4 — variant 6: avg_absmax (AVERAGE_ABS_MAX backward)
+        # ================================================================
+        print("  C-variant: avg_absmax (AVERAGE_ABS_MAX backward) ...")
+        mb = MaskBuffer()
+        mdl = create_model(nm_thres=0.0, dac_bits=DAC_BITS, adc_bits=ADC_BITS,
+                           bwd_noise_mgmt="AVERAGE_ABS_MAX")
+        mb.register(mdl)
+        _run_variant("avg_absmax", mdl, mb)
 
+        # ================================================================
+        # Cat 4 — variant 7: constant_nm (CONSTANT backward, calibrated)
+        # ================================================================
+        print(f"  C-variant: constant_nm (CONSTANT bwd, theta={constant_theta:.6f}) ...")
+        mb = MaskBuffer()
+        mdl = create_model(nm_thres=constant_theta, dac_bits=DAC_BITS,
+                           adc_bits=ADC_BITS, bwd_noise_mgmt="CONSTANT")
+        mb.register(mdl)
+        _run_variant("constant_nm", mdl, mb)
+
+        # ================================================================
+        # Cat 5 — variant 8: all_combined
+        #   nm_thres(p95) + AVERAGE_ABS_MAX + mixed precision
+        # ================================================================
+        if tmap95:
+            print("  C-variant: all_combined (nm_thres_p95 + AVG_ABSMAX + layer bits) ...")
+            mb = MaskBuffer()
+            mdl = create_model(nm_thres=0.0, dac_bits=DAC_BITS, adc_bits=ADC_BITS,
+                               bwd_noise_mgmt="AVERAGE_ABS_MAX")
+            mb.register(mdl)
+            set_per_layer_config(mdl, bits_map=bits_map, thres_map=tmap95)
+            _run_variant("all_combined", mdl, mb,
+                         inp_res_map=inp_res_map_q10, nm_thres_map=tmap95)
+        else:
+            print("  [WARN] No p95 theta data — skipping all_combined")
+
+        # ---- Save CSVs & Figure ----
         df_c = (pd.DataFrame(all_c_rows)
                   .sort_values(["variant", "layer_idx", "sublayer"])
                   .reset_index(drop=True))
@@ -1511,7 +1928,7 @@ def main():
         pd.DataFrame(all_c_step_records).to_csv(CSV_C_STEPS, index=False)
         print(f"  → {CSV_C_STEPS} ({len(all_c_step_records)} rows)")
 
-        figure_C(df_c)
+        figure_C(df_c, cdf_data=cdf_data)
 
     # Free stats_baseline after all figures are done
     del stats_baseline
@@ -1546,7 +1963,8 @@ def main():
         validate_csv(CSV_B_STEPS, COMMON_COLS + STEP_EXTRA + METRIC_COLS,
                      min_rows=72 * N_STEP)
     if RUN_C:
-        validate_csv(CSV_C_SUMMARY, COMMON_COLS + METRIC_COLS, min_rows=288,
+        # 12 variants × 72 layers = 864 min rows
+        validate_csv(CSV_C_SUMMARY, COMMON_COLS + METRIC_COLS, min_rows=864,
                      critical_columns=["QZR_nonzero", "l2_retention"])
         validate_csv(CSV_C_STEPS, COMMON_COLS + STEP_EXTRA + METRIC_COLS,
                      min_rows=72 * N_STEP)
@@ -1569,7 +1987,7 @@ def main():
         kv_c    = df_c[df_c["sublayer"].isin(["K", "V"])]
         base_k  = kv_c[(kv_c["variant"] == "baseline") & (kv_c["sublayer"] == "K")]["QZR_nonzero"].mean()
         base_v  = kv_c[(kv_c["variant"] == "baseline") & (kv_c["sublayer"] == "V")]["QZR_nonzero"].mean()
-        for variant in ["baseline", "p99_clip", "nm_thres_cal", "sto_round"]:
+        for variant in C_VARIANTS:
             sub = kv_c[kv_c["variant"] == variant]
             if len(sub) == 0:
                 continue
