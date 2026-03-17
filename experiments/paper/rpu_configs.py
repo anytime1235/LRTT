@@ -89,6 +89,45 @@ def _apply_perfect_io(config):
     return config
 
 
+def io_res_from_bits(n_bits: int) -> float:
+    """Convert IO bit-width to DAC/ADC resolution parameter.
+
+    For N-bit: resolution = 1 / (2^(N-1) - 1).
+    This gives 2^(N-1) positive levels in [0, bound], symmetric around 0.
+    """
+    return 1.0 / (2 ** (n_bits - 1) - 1)
+
+
+def _apply_io_config(config, io_bits=None):
+    """Configure forward/backward IO paths.
+
+    Args:
+        config: RPU config to modify.
+        io_bits: DAC/ADC bit precision. None or 0 means perfect IO.
+                 Positive integer sets finite resolution (same for
+                 inp_res/out_res, forward/backward).
+
+    Transfer_forward is always kept perfect (internal tile-to-tile mechanism).
+    """
+    if io_bits is None or io_bits == 0:
+        config.forward.is_perfect = True
+        config.backward.is_perfect = True
+    else:
+        res = io_res_from_bits(io_bits)
+        config.forward.is_perfect = False
+        config.forward.inp_res = res
+        config.forward.out_res = res
+        config.backward.is_perfect = False
+        config.backward.inp_res = res
+        config.backward.out_res = res
+
+    # Transfer forward always perfect (internal mechanism)
+    if hasattr(config, "device") and hasattr(config.device, "transfer_forward"):
+        config.device.transfer_forward.is_perfect = True
+
+    return config
+
+
 def _apply_common_mapping(config):
     """Apply common mapping settings to any RPU config."""
     config.mapping.digital_bias = True
@@ -104,7 +143,8 @@ def _apply_common_mapping(config):
 # ============================================================================
 
 def build_single_rpu_config(pulse_type=PulseType.STOCHASTIC_COMPRESSED,
-                            desired_bl=31, dw_min=None, count_pulses=False):
+                            desired_bl=31, dw_min=None, count_pulses=False,
+                            io_bits=None):
     """SingleRPU — analog pulsed update.
 
     Args:
@@ -112,6 +152,7 @@ def build_single_rpu_config(pulse_type=PulseType.STOCHASTIC_COMPRESSED,
         desired_bl: Max pulse train length (default 31).
         dw_min: Override dw_min (default None -> 14-bit).
         count_pulses: Enable hardware pulse counters.
+        io_bits: DAC/ADC bit precision (None or 0 = perfect).
     """
     device = make_constant_step_device(dw_min=dw_min, count_pulses=count_pulses)
     up = UpdateParameters(
@@ -120,7 +161,7 @@ def build_single_rpu_config(pulse_type=PulseType.STOCHASTIC_COMPRESSED,
         fixed_bl=True,
     )
     config = build_config("sgd", device, up_parameters=up)
-    _apply_perfect_io(config)
+    _apply_io_config(config, io_bits=io_bits)
     return _apply_common_mapping(config)
 
 
@@ -130,7 +171,8 @@ def build_ttv1_config(gamma=0.0, dw_min=None, dw_min_slow=None,
                       scale_transfer_lr=None, n_reads_per_transfer=None,
                       with_reset_prob=None, desired_bl=31, transfer_bl=31,
                       count_pulses=False,
-                      fast_pulse_type=None, transfer_pulse_type=None):
+                      fast_pulse_type=None, transfer_pulse_type=None,
+                      io_bits=None):
     """TTv1 — TransferCompound (Gokmen & Haensch 2020).
 
     W_eff = gamma * W_fast + 1.0 * W_slow
@@ -151,6 +193,7 @@ def build_ttv1_config(gamma=0.0, dw_min=None, dw_min_slow=None,
         count_pulses: Enable hardware pulse counters.
         fast_pulse_type: Override PulseType for fast-tile SGD update (config.update.pulse_type).
         transfer_pulse_type: Override PulseType for A->B transfer write (config.device.transfer_update.pulse_type).
+        io_bits: DAC/ADC bit precision (None or 0 = perfect).
     """
     device = make_constant_step_device(dw_min=dw_min, count_pulses=count_pulses)
     up = UpdateParameters(
@@ -189,12 +232,13 @@ def build_ttv1_config(gamma=0.0, dw_min=None, dw_min_slow=None,
     if transfer_pulse_type is not None:
         config.device.transfer_update.pulse_type = transfer_pulse_type
 
-    _apply_perfect_io(config)
+    _apply_io_config(config, io_bits=io_bits)
     return _apply_common_mapping(config)
 
 
 def build_cttv2_config(dw_min=None, fast_lr=0.1, auto_scale=True,
-                       in_chop_prob=0.5, transfer_every=1, count_pulses=False):
+                       in_chop_prob=0.5, transfer_every=1, count_pulses=False,
+                       io_bits=None):
     """c-TTv2 — ChoppedTransferCompound (Rasch et al. 2023).
 
     Args:
@@ -204,6 +248,7 @@ def build_cttv2_config(dw_min=None, fast_lr=0.1, auto_scale=True,
         in_chop_prob: Input chopper probability (default 0.5).
         transfer_every: Transfer frequency in mat-vec units (default 1).
         count_pulses: Enable hardware pulse counters.
+        io_bits: DAC/ADC bit precision (None or 0 = perfect).
     """
     device = make_constant_step_device(dw_min=dw_min, count_pulses=count_pulses)
     config = build_config("c-ttv2", device)
@@ -214,22 +259,32 @@ def build_cttv2_config(dw_min=None, fast_lr=0.1, auto_scale=True,
     if transfer_every is not None:
         config.device.transfer_every = transfer_every
 
-    _apply_perfect_io(config)
+    _apply_io_config(config, io_bits=io_bits)
     return _apply_common_mapping(config)
 
 
-def build_mixed_precision_config(dw_min=None, count_pulses=False):
-    """MixedPrecision — FP32 chi matrix accumulation + pulse transfer."""
+def build_mixed_precision_config(dw_min=None, count_pulses=False, io_bits=None):
+    """MixedPrecision — FP32 chi matrix accumulation + pulse transfer.
+
+    Args:
+        dw_min: Override dw_min (default None -> 14-bit).
+        count_pulses: Enable hardware pulse counters.
+        io_bits: DAC/ADC bit precision (None or 0 = perfect).
+    """
     device = make_constant_step_device(dw_min=dw_min, count_pulses=count_pulses)
     config = build_config("mp", device)
-    _apply_perfect_io(config)
+    _apply_io_config(config, io_bits=io_bits)
     return _apply_common_mapping(config)
 
 
-def build_ideal_config():
-    """IdealDevice — FP32 update. Upper bound baseline."""
+def build_ideal_config(io_bits=None):
+    """IdealDevice — FP32 update. Upper bound baseline.
+
+    Args:
+        io_bits: DAC/ADC bit precision (None or 0 = perfect).
+    """
     config = SingleRPUConfig(device=IdealDevice())
-    _apply_perfect_io(config)
+    _apply_io_config(config, io_bits=io_bits)
     return _apply_common_mapping(config)
 
 

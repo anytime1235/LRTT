@@ -50,7 +50,7 @@ from aihwkit.optim import AnalogAdam
 from aihwkit.optim.context import AnalogContext
 from aihwkit.optim.analog_optimizer import AnalogOptimizerMixin
 
-from rpu_configs import get_config, dw_min_for_bits, PULSE_TYPE_MAP, DW_MIN_14BIT
+from rpu_configs import get_config, dw_min_for_bits, PULSE_TYPE_MAP, DW_MIN_14BIT, io_res_from_bits
 from update_diagnostics import UpdateDiagnostics
 from eco_reference import EcoQuantizer
 from carry_path_diagnostics import CarryPathDiagnostics
@@ -474,6 +474,11 @@ def create_model(args, device_str="cuda"):
     print(f"  Config type: {type(rpu_config).__name__}")
     print(f"  Forward perfect: {rpu_config.forward.is_perfect}")
     print(f"  Backward perfect: {rpu_config.backward.is_perfect}")
+    if args.io_bits > 0:
+        io_res = io_res_from_bits(args.io_bits)
+        print(f"  IO bits: {args.io_bits} (DAC/ADC res={io_res:.6f})")
+    else:
+        print(f"  IO bits: perfect (no quantization)")
     if hasattr(rpu_config, "device") and hasattr(rpu_config.device, "transfer_forward"):
         print(f"  transfer_forward.is_perfect: {rpu_config.device.transfer_forward.is_perfect}")
     if hasattr(rpu_config, "device") and hasattr(rpu_config.device, "gamma"):
@@ -514,6 +519,9 @@ def _build_method_kwargs(args):
     elif args.n_bits is not None:
         kwargs["dw_min"] = dw_min_for_bits(args.n_bits)
     kwargs["count_pulses"] = args.count_pulses
+
+    # IO bit precision (0 = perfect)
+    kwargs["io_bits"] = args.io_bits
 
     if args.method == "single_rpu":
         pt = PULSE_TYPE_MAP.get(args.pulse_type, PULSE_TYPE_MAP["stochastic"])
@@ -1124,7 +1132,9 @@ def _save_config(args, rpu_config, effective_dw_min, num_training_steps):
         "count_pulses": args.count_pulses,
         "num_training_steps": num_training_steps,
         "rpu_config_type": type(rpu_config).__name__ if rpu_config is not None else "None (digital ECO)",
-        "io_perfect": True,
+        "io_bits": args.io_bits,
+        "io_perfect": (args.io_bits == 0),
+        "io_res": io_res_from_bits(args.io_bits) if args.io_bits > 0 else None,
         "learn_out_scaling": False,
     }
 
@@ -1204,6 +1214,11 @@ def parse_args():
     parser.add_argument("--n-bits", type=int, default=None)
     parser.add_argument("--n-bits-slow", type=int, default=None,
                         help="TTv1 slow tile bit-width (default: same as --n-bits)")
+    parser.add_argument("--io-bits", type=int, default=0,
+                        help="DAC/ADC bit precision for forward/backward IO. "
+                             "0 = perfect (no quantization). "
+                             "Typical values: 4, 6, 8, 10, 12. "
+                             "ADC=DAC, forward=backward (symmetric).")
 
     # TTv1
     parser.add_argument("--gamma", type=float, default=None)
