@@ -23,7 +23,9 @@ from aihwkit.simulator.configs.devices import ConstantStepDevice, IdealDevice
 from aihwkit.simulator.configs.configs import SingleRPUConfig
 from aihwkit.simulator.configs.helpers import build_config
 from aihwkit.simulator.parameters.training import UpdateParameters
-from aihwkit.simulator.parameters.enums import PulseType
+from aihwkit.simulator.parameters.enums import (
+    PulseType, BoundManagementType, NoiseManagementType,
+)
 
 
 # ============================================================================
@@ -92,10 +94,12 @@ def _apply_perfect_io(config):
 def io_res_from_bits(n_bits: int) -> float:
     """Convert IO bit-width to DAC/ADC resolution parameter.
 
-    For N-bit: resolution = 1 / (2^(N-1) - 1).
-    This gives 2^(N-1) positive levels in [0, bound], symmetric around 0.
+    Uses aihwkit convention: res = 1 / (2^N - 2).
+    This matches the default values:
+      - 7-bit DAC: inp_res = 1/126  (aihwkit forward default)
+      - 9-bit ADC: out_res = 1/510  (aihwkit forward default)
     """
-    return 1.0 / (2 ** (n_bits - 1) - 1)
+    return 1.0 / (2 ** n_bits - 2)
 
 
 def _apply_io_config(config, io_bits=None):
@@ -106,6 +110,12 @@ def _apply_io_config(config, io_bits=None):
         io_bits: DAC/ADC bit precision. None or 0 means perfect IO.
                  Positive integer sets finite resolution (same for
                  inp_res/out_res, forward/backward).
+                 Uses aihwkit convention: res = 1/(2^N - 2).
+
+    When io_bits > 0:
+      - inp_noise = out_noise = 0  (pure quantization, no stochastic noise)
+      - bound_management = ITERATIVE  (aihwkit default)
+      - noise_management = ABS_MAX    (aihwkit default)
 
     Transfer_forward is always kept perfect (internal tile-to-tile mechanism).
     """
@@ -114,12 +124,24 @@ def _apply_io_config(config, io_bits=None):
         config.backward.is_perfect = True
     else:
         res = io_res_from_bits(io_bits)
+
+        # Forward
         config.forward.is_perfect = False
         config.forward.inp_res = res
         config.forward.out_res = res
+        config.forward.inp_noise = 0.0
+        config.forward.out_noise = 0.0
+        config.forward.bound_management = BoundManagementType.ITERATIVE
+        config.forward.noise_management = NoiseManagementType.ABS_MAX
+
+        # Backward (symmetric)
         config.backward.is_perfect = False
         config.backward.inp_res = res
         config.backward.out_res = res
+        config.backward.inp_noise = 0.0
+        config.backward.out_noise = 0.0
+        config.backward.bound_management = BoundManagementType.ITERATIVE
+        config.backward.noise_management = NoiseManagementType.ABS_MAX
 
     # Transfer forward always perfect (internal mechanism)
     if hasattr(config, "device") and hasattr(config.device, "transfer_forward"):
