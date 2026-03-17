@@ -1,0 +1,9 @@
+{
+    "source": "GPU0 optuna QKV sweep (optuna_bert_squad_tiki.py)",
+    "method": "mixed_precision (MixedPrecisionCompound + ConstantStepDevice)",
+    "best_trial": 2,
+    "best_f1": 87.5338,
+    "analog_lr": 0.0357,
+    "classifier_lr": 0.00076,
+    "note": "14-bit, QKV target, 4 epochs, AnalogAdam optimizer"
+}

@@ -1,0 +1,11 @@
+{
+  "method": "single_rpu",
+  "seed": 42,
+  "results": {
+    "best_f1": 79.16964069457987,
+    "final_f1": 79.16964069457987,
+    "final_em": 69.40397350993378,
+    "total_steps": 3690,
+    "wall_time_s": 3258.295691013336
+  }
+}
