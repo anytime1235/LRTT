@@ -2,6 +2,11 @@ io_bits,method,target_layers,noise_management,bound_management,min_lr_rate,analo
 4,ideal,all,abs_max,iterative,0.5,0.0357,4,42,6.96,5.21,1.57,7376,25781.2,completed,min_lr_rate=0.5 (default)
 4,ideal,all,abs_max,iterative,0.05,0.0357,4,42,6.96,3.61,0.81,7376,25517.9,completed,min_lr_rate=0.05
 4,ideal,all,none,iterative,0.5,0.0357,4,42,12.13,,5.49,,,interrupted_epoch2,stopped at epoch 1 eval only
+5,ideal,all,abs_max,iterative,0.5,0.0357,4,42,7.19,4.97,1.44,7376,25610.1,completed,
 6,ideal,all,abs_max,iterative,0.05,0.0357,4,42,85.61,,77.56,,,interrupted_epoch4_78pct,epoch 3 best; epoch 4 training 78% done
 7,ideal,all,abs_max,iterative,0.05,0.0357,4,42,83.85,,75.73,,,running_epoch2,epoch 1 eval only; currently running
+8,ideal,all,abs_max,iterative,0.5,0.0357,4,42,86.84,,79.26,,,interrupted_epoch4,epoch 3 best; stopped during epoch 4
+8,ideal,all,none,iterative,0.5,0.0357,4,42,13.24,13.24,7.38,7376,28668.9,completed,
 10,ideal,all,abs_max,iterative,0.05,0.0357,4,42,87.31,87.31,80.06,7376,25950.0,completed,
+10,ideal,all,none,iterative,0.5,0.0357,4,42,13.10,,6.40,,,interrupted_epoch1,1 epoch only
+12,ideal,all,abs_max,iterative,0.5,0.0357,4,42,87.36,87.36,80.11,7376,26122.0,completed,
