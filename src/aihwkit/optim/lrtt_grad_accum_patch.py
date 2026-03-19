@@ -311,6 +311,7 @@ def _step_mem_opt(self, closure=None, **kwargs):
                         # _last_m_batch must equal the increment for the
                         # modulo boundary-crossing check in should_transfer().
                         lr = analog_tile.get_learning_rate()
+                        controller._last_lr_sgd = lr  # sync for effective_alpha
                         m_batch = analog_ctx.analog_input[0].shape[0]
                         controller._update_dynamic_te(lr)
                         corrected_increment = m_batch * grad_accum_steps

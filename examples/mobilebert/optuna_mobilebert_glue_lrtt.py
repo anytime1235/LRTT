@@ -1178,6 +1178,7 @@ def objective(trial, train_loader, eval_loader, tokenizer):
                 )
             optimizer.regroup_param_groups()
             optimizer._grad_accum_steps = GRAD_ACCUM_STEPS
+            trial.set_user_attr("grad_accum_steps", GRAD_ACCUM_STEPS)
 
         num_training_steps = len(train_loader) * N_EPOCHS // GRAD_ACCUM_STEPS
         scheduler = get_linear_schedule_with_min_lr(

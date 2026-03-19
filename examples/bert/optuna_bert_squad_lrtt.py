@@ -1105,7 +1105,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         torch.cuda.empty_cache()
 
     # Hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 1e-4, 2e-2, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 2e-4, 2e-2, log=True)
 
     # LRTT parameters: skip sweep if --no-transfer (A/B frozen, no transfer happens)
     if OPT_CONFIG['no_transfer']:
@@ -1116,7 +1116,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         fast_lr = 1.0            # fixed (no effect)
         tau_sec = 0.0            # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 5e-4, 1e5, log=True)
+        transfer_lr = trial.suggest_float('transfer_lr', 3e-1, 6e4, log=True)
         transfer_every = trial.suggest_int('transfer_every', 1, 600, log=True)
         rank_exp = trial.suggest_int('rank_exp', 0, 6)
         rank = 2 ** rank_exp
@@ -1234,6 +1234,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
                 )
             optimizer.regroup_param_groups()
             optimizer._grad_accum_steps = GRAD_ACCUM_STEPS
+            trial.set_user_attr("grad_accum_steps", GRAD_ACCUM_STEPS)
 
         num_training_steps = len(train_loader) * N_EPOCHS // GRAD_ACCUM_STEPS
         scheduler = get_linear_schedule_with_min_lr(
