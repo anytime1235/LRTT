@@ -14,23 +14,35 @@ export PYTHON=/root/.venv310/bin/python
 
 ## 1. Mixed Precision 10-bit 결과
 
-### 전체 결과
+공통: classifier_lr=0.00076, ln_lr=0.00076, epochs=4, seed=42, n_bits=10
 
-| Tag | Target | analog_lr | min_lr_rate | Best F1 | EM | 상태 |
-|-----|--------|-----------|-------------|---------|------|------|
-| mp_10b_qkvo | attention | 0.0357 | 0.5 | **87.61** | 79.87 | 완료 |
-| mp_10b_all_minlr0.05 | all | 0.0357 | 0.05 | **87.35** | 80.17 | 완료 |
-| mp_10b_all | all | 0.0357 | 0.5 | 86.84 | 79.15 | 완료 |
-| mp_10b_ffn | ffn | 0.0357 | 0.5 | 86.09 | 78.14 | 완료 |
-| mp_10b_ffn_alr0.00357 | ffn | 0.00357 | 0.5 | 83.21 | 73.91 | 완료 |
-| mp_10b_all_alr0.00357 | all | 0.00357 | 0.5 | — | — | 중단 (1ep) |
+### QKVO (attention layers)
+
+| Tag | analog_lr | min_lr_rate | Best F1 | EM | 상태 |
+|-----|-----------|-------------|---------|------|------|
+| mp_10b_qkvo | 0.0357 | 0.5 | **87.61** | 79.87 | 완료 |
+
+### FFN layers
+
+| Tag | analog_lr | min_lr_rate | Best F1 | EM | 상태 |
+|-----|-----------|-------------|---------|------|------|
+| mp_10b_ffn | 0.0357 | 0.5 | **86.09** | 78.14 | 완료 |
+| mp_10b_ffn_alr0.00357 | 0.00357 | 0.5 | 83.21 | 73.91 | 완료 |
+
+### All layers (QKVO + FFN)
+
+| Tag | analog_lr | min_lr_rate | Best F1 | EM | 상태 |
+|-----|-----------|-------------|---------|------|------|
+| mp_10b_all_minlr0.05 | 0.0357 | 0.05 | **87.35** | 80.17 | 완료 |
+| mp_10b_all | 0.0357 | 0.5 | 86.84 | 79.15 | 완료 |
+| mp_10b_all_alr0.00357 | 0.00357 | 0.5 | — | — | 중단 (2ep) |
 
 ### 관찰
 
-- **QKVO (attention) layers가 최고 성능** (F1=87.61), 14-bit optuna best 87.53 초과
+- **QKVO (attention) layers가 최고 F1** (87.61), 14-bit optuna best 87.53 초과
+- **All layers + min_lr_rate=0.05가 최고 EM** (80.17)
 - all layers에서는 min_lr_rate=0.05가 0.5보다 우수 (87.35 vs 86.84)
 - analog_lr=0.00357 (1/10)은 성능 하락이 큼
-- 공통: classifier_lr=0.00076, ln_lr=0.00076, epochs=4, seed=42, n_bits=10
 
 ---
 
