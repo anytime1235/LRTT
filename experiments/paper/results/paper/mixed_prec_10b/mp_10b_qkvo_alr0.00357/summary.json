@@ -1,0 +1,11 @@
+{
+  "method": "mixed_precision",
+  "seed": 42,
+  "results": {
+    "best_f1": 83.59378507846507,
+    "final_f1": 83.59378507846507,
+    "final_em": 74.21948912015137,
+    "total_steps": 7380,
+    "wall_time_s": 11912.96173119545
+  }
+}
