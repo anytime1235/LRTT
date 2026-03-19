@@ -67,26 +67,31 @@ These all ran as **uniform 8b** despite per-layer-bits being specified:
 
 ### 3.1 Training-Aware Sensitivity Analysis (Phase 1)
 
-**Goal**: Determine which sublayer type causes collapse when lowered to 4b.
-Base = 8b, one sublayer type → 4b, 1 epoch only.
+**Goal**: Determine which sublayer **group** causes collapse when lowered to 4b.
+Base = 8b, one group → 4b, **4 epochs** full training.
+
+Groups:
+- **QKV** (in-projection): Q=4, K=4, V=4, rest=8
+- **O** (out-projection): O=4, rest=8
+- **FFN1**: FFN1=4, rest=8
+- **FFN2**: FFN2=4, rest=8
 
 ```bash
 cd /root && nohup bash run_training_sensitivity.sh > results/sa_v4_training_sensitivity/nohup.log 2>&1 &
 ```
 
-| Experiment | Setting | Status | Epoch 1 F1 |
-|-----------|---------|--------|------------|
-| sens_Q_4b | Q=4, rest=8 | running (~41%) | — |
-| sens_K_4b | K=4, rest=8 | queued | — |
-| sens_V_4b | V=4, rest=8 | queued | — |
-| sens_O_4b | O=4, rest=8 | queued | — |
-| sens_FFN1_4b | FFN1=4, rest=8 | queued | — |
-| sens_FFN2_4b | FFN2=4, rest=8 | queued | — |
+| Experiment | Setting | Status | best F1 |
+|-----------|---------|--------|---------|
+| sens_QKV_4b | Q=K=V=4, rest=8 | pending | — |
+| sens_O_4b | O=4, rest=8 | pending | — |
+| sens_FFN1_4b | FFN1=4, rest=8 | pending | — |
+| sens_FFN2_4b | FFN2=4, rest=8 | pending | — |
 
-Expected runtime: ~1.8h per run × 6 = ~11h total.
+Expected runtime: ~7h per run × 4 = ~28h total.
 
-Early observation: Q=4b loss is dropping normally (5.9 → 1.1 at 41%),
-suggesting Q at 4b does NOT cause collapse when other sublayers are at 8b.
+Previous observation (aborted 1ep run): Q=4b alone (rest=8b) showed normal
+loss descent (5.9 → 1.1 at 41%), suggesting individual sublayer at 4b may
+not collapse. This 4-group design tests whether grouped low-bit causes collapse.
 
 ### 3.2 SALPA Fixed (Collapsed — Stopped)
 
