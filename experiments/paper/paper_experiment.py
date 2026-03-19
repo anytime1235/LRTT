@@ -106,6 +106,107 @@ def get_layer_subtype(name):
 
 
 # ============================================================================
+# Per-layer mixed precision IO
+# ============================================================================
+
+# Sublayer name mapping: module name pattern → sublayer key
+_SUBLAYER_PATTERNS = {
+    "intermediate.dense": "FFN1",
+    "output.dense": "FFN2",    # catches attention.output.dense AND encoder.layer.X.output.dense
+    "attention.self.query": "Q",
+    "attention.self.key": "K",
+    "attention.self.value": "V",
+    "attention.output.dense": "O",
+}
+
+
+def _get_sublayer_key(module_name):
+    """Map a module name to (layer_idx, sublayer_key) or None."""
+    import re
+    m = re.search(r"encoder\.layer\.(\d+)\.", module_name)
+    if not m:
+        return None
+    layer_idx = int(m.group(1))
+    # Match longest pattern first to avoid "output.dense" matching before "attention.output.dense"
+    for pattern in sorted(_SUBLAYER_PATTERNS, key=len, reverse=True):
+        if pattern in module_name:
+            return (layer_idx, _SUBLAYER_PATTERNS[pattern])
+    return None
+
+
+def _parse_per_layer_bits(spec_str):
+    """Parse per-layer-bits spec string into {(layer_idx, sublayer): bits}.
+
+    Format: "sublayer:bits,sublayer:bits;sublayer:bits,..." where layers are
+    separated by semicolons (layer 0 first) and sublayers by commas.
+
+    Shorthand: "FFN1=12,FFN2=6,K=10,O=6,Q=8,V=8" applies same to all layers.
+    Per-layer: "L0:FFN1=12,K=8;L1:FFN1=10,K=10" for layer-specific.
+
+    Or JSON file path for complex configs.
+    """
+    import json
+    result = {}
+
+    # Try JSON file first
+    if spec_str.endswith(".json"):
+        with open(spec_str) as f:
+            data = json.load(f)
+        # Expected format: {"0": {"FFN1": 12, "K": 10, ...}, "1": {...}, ...}
+        for li_str, sl_dict in data.items():
+            for sl, bits in sl_dict.items():
+                result[(int(li_str), sl)] = int(bits)
+        return result
+
+    # Shorthand: "FFN1=12,FFN2=6,K=10,O=6,Q=8,V=8" → all layers same
+    if "L" not in spec_str and ";" not in spec_str:
+        parts = spec_str.split(",")
+        for part in parts:
+            sl, bits = part.strip().split("=")
+            for li in range(12):
+                result[(li, sl.strip())] = int(bits)
+        return result
+
+    # Per-layer: "L0:FFN1=12,K=8;L1:FFN1=10"
+    for layer_spec in spec_str.split(";"):
+        layer_spec = layer_spec.strip()
+        if not layer_spec:
+            continue
+        layer_part, rest = layer_spec.split(":", 1)
+        li = int(layer_part.strip().replace("L", ""))
+        for part in rest.split(","):
+            sl, bits = part.strip().split("=")
+            result[(li, sl.strip())] = int(bits)
+    return result
+
+
+def _apply_per_layer_io_bits(model, plb_dict):
+    """Override IO resolution on individual analog tiles based on plb_dict.
+
+    Args:
+        model: Analog-converted model.
+        plb_dict: {(layer_idx, sublayer_key): bits} from _parse_per_layer_bits.
+    """
+
+    count = 0
+    for name, module in model.named_modules():
+        if not isinstance(module, AnalogLinear):
+            continue
+        key = _get_sublayer_key(name)
+        if key is None or key not in plb_dict:
+            continue
+        bits = plb_dict[key]
+        res = io_res_from_bits(bits)
+        for tile in module.analog_tiles():
+            tile.rpu_config.forward.inp_res = res
+            tile.rpu_config.forward.out_res = res
+            tile.rpu_config.backward.inp_res = res
+            tile.rpu_config.backward.out_res = res
+        count += 1
+    print(f"  [per-layer-bits] Overrode {count} modules")
+
+
+# ============================================================================
 # SQuAD data loading
 # ============================================================================
 
@@ -491,13 +592,22 @@ def create_model(args, device_str="cuda"):
     analog_count = sum(1 for m in model.modules() if isinstance(m, AnalogLinear))
     print(f"  Analog layers: {analog_count}")
 
+    # Per-layer IO bit override (mixed precision)
+    if args.per_layer_bits:
+        plb = _parse_per_layer_bits(args.per_layer_bits)
+        _apply_per_layer_io_bits(model, plb)
+        avg_bits = sum(plb.values()) / len(plb) if plb else 0
+        print(f"  Per-layer IO bits applied: {len(plb)} tiles, avg={avg_bits:.2f}b")
+
     # Set requires_grad
     # For all_train_attention: all layers are analog but only attention trains
     ffn_freeze = (TARGET_LAYERS == "all_train_attention")
+    frozen_ffn_count = 0
     for name, param in model.named_parameters():
         if isinstance(param, AnalogContext):
-            if ffn_freeze and _classify_encoder_layer(name) == "ffn":
+            if ffn_freeze and _classify_encoder_layer(name) == 'ffn':
                 param.requires_grad = False
+                frozen_ffn_count += 1
             else:
                 param.requires_grad = True
         elif "qa_outputs" in name:
@@ -510,6 +620,8 @@ def create_model(args, device_str="cuda"):
     trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
     total = sum(p.numel() for p in model.parameters())
     print(f"  Trainable: {trainable:,} / Total: {total:,}")
+    if ffn_freeze:
+        print(f"  Frozen FFN tiles: {frozen_ffn_count} (analog but no weight update)")
 
     return model.to(device), rpu_config, eco_quantizer
 
@@ -528,7 +640,6 @@ def _build_method_kwargs(args):
     # IO bit precision (0 = perfect)
     kwargs["io_bits"] = args.io_bits
     kwargs["noise_management"] = args.noise_management
-    kwargs["bound_management"] = args.bound_management
 
     if args.method == "single_rpu":
         pt = PULSE_TYPE_MAP.get(args.pulse_type, PULSE_TYPE_MAP["stochastic"])
@@ -783,7 +894,7 @@ def train_fixed(args):
             # micro-batch and analog_ctx is reset so memory is freed.
             if args.grad_accum_steps > 1:
                 with torch.no_grad():
-                    for p_name, p in model.named_parameters():
+                    for p in model.parameters():
                         if not isinstance(p, AnalogContext):
                             continue
                         if not p.requires_grad:
@@ -847,7 +958,7 @@ def train_fixed(args):
                 super(AnalogOptimizerMixin, optimizer).step()
                 for pg in optimizer.param_groups:
                     for p in pg['params']:
-                        if isinstance(p, AnalogContext):
+                        if isinstance(p, AnalogContext) and p.requires_grad:
                             p.analog_tile.post_update_step()
             else:
                 optimizer.step()
@@ -1146,7 +1257,7 @@ def _save_config(args, rpu_config, effective_dw_min, num_training_steps):
         "io_perfect": (args.io_bits == 0),
         "io_res": io_res_from_bits(args.io_bits) if args.io_bits > 0 else None,
         "noise_management": args.noise_management,
-        "bound_management": args.bound_management if args.io_bits > 0 else "n/a",
+        "bound_management": "none" if args.io_bits > 0 else "n/a",
         "learn_out_scaling": False,
     }
 
@@ -1235,9 +1346,11 @@ def parse_args():
     parser.add_argument("--noise-management", type=str, default="abs_max",
                         choices=["abs_max", "none"],
                         help="IO noise management: abs_max (scale input by max abs) or none.")
-    parser.add_argument("--bound-management", type=str, default="iterative",
-                        choices=["iterative", "none"],
-                        help="IO bound management: iterative or none.")
+    parser.add_argument("--per-layer-bits", type=str, default=None,
+                        help="Per-layer IO bit allocation. "
+                             "Shorthand: 'FFN1=12,FFN2=6,K=10,O=6,Q=8,V=8' (all layers same). "
+                             "Per-layer: 'L0:FFN1=12,K=8;L1:FFN1=10,K=10'. "
+                             "Or JSON file path. Overrides --io-bits for matched tiles.")
 
     # TTv1
     parser.add_argument("--gamma", type=float, default=None)
