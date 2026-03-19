@@ -33,7 +33,7 @@
   "transfer_lr": 1.0,
   "scale_transfer_lr": "false",
   "n_reads_per_transfer": null,
-  "with_reset_prob": 0.0,
+  "with_reset_prob": 1.0,
   "transfer_bl": null,
   "ttv1_mode": null,
   "ttv1_fast_pulse_type": null,
