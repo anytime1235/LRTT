@@ -180,30 +180,35 @@ def _parse_per_layer_bits(spec_str):
     return result
 
 
-def _apply_per_layer_io_bits(model, plb_dict):
-    """Override IO resolution on individual analog tiles based on plb_dict.
+def _make_specific_rpu_config_fun(plb_dict, base_config):
+    """Create a specific_rpu_config_fun for convert_to_analog.
+
+    This applies per-layer IO bit overrides at tile creation time,
+    which is the only way to change IO resolution in aihwkit
+    (modifying tile.rpu_config after creation has no effect).
 
     Args:
-        model: Analog-converted model.
         plb_dict: {(layer_idx, sublayer_key): bits} from _parse_per_layer_bits.
+        base_config: The base RPU config (used for non-overridden modules).
     """
+    from copy import deepcopy
+    count_holder = [0]  # mutable counter
 
-    count = 0
-    for name, module in model.named_modules():
-        if not isinstance(module, AnalogLinear):
-            continue
-        key = _get_sublayer_key(name)
-        if key is None or key not in plb_dict:
-            continue
-        bits = plb_dict[key]
-        res = io_res_from_bits(bits)
-        for tile in module.analog_tiles():
-            tile.rpu_config.forward.inp_res = res
-            tile.rpu_config.forward.out_res = res
-            tile.rpu_config.backward.inp_res = res
-            tile.rpu_config.backward.out_res = res
-        count += 1
-    print(f"  [per-layer-bits] Overrode {count} modules")
+    def specific_fn(module_name, module, rpu_config):
+        key = _get_sublayer_key(module_name)
+        if key is not None and key in plb_dict:
+            bits = plb_dict[key]
+            cfg = deepcopy(rpu_config)
+            res = io_res_from_bits(bits)
+            cfg.forward.inp_res = res
+            cfg.forward.out_res = res
+            cfg.backward.inp_res = res
+            cfg.backward.out_res = res
+            count_holder[0] += 1
+            return cfg
+        return rpu_config
+
+    return specific_fn, count_holder
 
 
 # ============================================================================
@@ -586,18 +591,23 @@ def create_model(args, device_str="cuda"):
         print(f"  gamma: {rpu_config.device.gamma}")
     print(f"  Target layers: {len(target_layers)}, Excluded: {len(exclude)}")
 
-    # Convert to analog
-    model = convert_to_analog(model, rpu_config, exclude_modules=exclude)
+    # Convert to analog (with per-layer IO bit override if specified)
+    specific_fn = None
+    plb = None
+    if args.per_layer_bits:
+        plb = _parse_per_layer_bits(args.per_layer_bits)
+        specific_fn, count_holder = _make_specific_rpu_config_fun(plb, rpu_config)
+
+    model = convert_to_analog(model, rpu_config, exclude_modules=exclude,
+                              specific_rpu_config_fun=specific_fn)
 
     analog_count = sum(1 for m in model.modules() if isinstance(m, AnalogLinear))
     print(f"  Analog layers: {analog_count}")
 
-    # Per-layer IO bit override (mixed precision)
-    if args.per_layer_bits:
-        plb = _parse_per_layer_bits(args.per_layer_bits)
-        _apply_per_layer_io_bits(model, plb)
-        avg_bits = sum(plb.values()) / len(plb) if plb else 0
-        print(f"  Per-layer IO bits applied: {len(plb)} tiles, avg={avg_bits:.2f}b")
+    if plb is not None:
+        print(f"  [per-layer-bits] Applied to {count_holder[0]} modules at creation time")
+        avg_bits = sum(plb.values()) / len(plb)
+        print(f"  Per-layer IO bits: {len(plb)} tiles, avg={avg_bits:.2f}b")
 
     # Set requires_grad
     # For all_train_attention: all layers are analog but only attention trains
