@@ -1,0 +1,39 @@
+{
+  "description": "TTv1 Fast Tile Bit-Width Sweep - BERT-base SQuAD v1.1, 4 epochs, stochastic update",
+  "common_config": {
+    "method": "ttv1",
+    "model": "bert-base-uncased",
+    "task": "squad_v1.1",
+    "epochs": 4,
+    "gamma": 1.0,
+    "reset_prob": 1.0,
+    "n_bits_slow": 10,
+    "fast_lr": 0.1,
+    "transfer_lr": 1.0,
+    "transfer_every": 3,
+    "units_in_mbatch": true,
+    "scale_transfer_lr": false,
+    "batch_size": 16,
+    "grad_accum_steps": 3,
+    "analog_lr": 0.016,
+    "classifier_lr": 0.003,
+    "ln_lr": 0.003,
+    "min_lr_rate": 0.05,
+    "seed": 42,
+    "pulse_type": "stochastic",
+    "io": "perfect"
+  },
+  "results": [
+    {"n_bits_fast":  8, "f1": 53.02, "em": 40.16, "status": "completed", "dir": "phase1c_4ep_b16/g1.0_r1.0_fast8b"},
+    {"n_bits_fast": 10, "f1": 77.93, "em": 68.53, "status": "completed", "dir": "phase1c_4ep_b16/g1.0_r1.0_fast10b"},
+    {"n_bits_fast": 12, "f1": 85.00, "em": 76.81, "status": "completed", "dir": "g1.0_r1.0_fast12b"},
+    {"n_bits_fast": 14, "f1": 86.17, "em": 78.12, "status": "completed", "dir": "g1.0_r1.0_fast14b", "note": "best"},
+    {"n_bits_fast": 16, "f1": 82.72, "em": 73.02, "status": "epoch3 (GPU disconnected)", "dir": "g1.0_r1.0_fast16b"}
+  ],
+  "key_findings": [
+    "14-bit fast tile is optimal (F1=86.17)",
+    "8->10->12->14 bit: large monotonic improvement",
+    "16-bit degrades vs 14-bit — excessively small dw_min slows learning",
+    "12-bit already captures most of the gain (F1=85.00 vs 86.17)"
+  ]
+}

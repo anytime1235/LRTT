@@ -1,0 +1,56 @@
+{
+  "description": "TTv1 Gamma Sweep - BERT-base SQuAD v1.1, 4 epochs, stochastic update",
+  "common_config": {
+    "method": "ttv1",
+    "model": "bert-base-uncased",
+    "task": "squad_v1.1",
+    "epochs": 4,
+    "n_bits_fast": 14,
+    "n_bits_slow": 10,
+    "fast_lr": 0.1,
+    "analog_lr": 0.016,
+    "classifier_lr": 0.003,
+    "ln_lr": 0.003,
+    "seed": 42,
+    "pulse_type": "stochastic",
+    "io": "perfect"
+  },
+  "config_groups": {
+    "setting_A": {
+      "label": "batch=48, te=1, mlr=0.5",
+      "batch_size": 48,
+      "grad_accum_steps": 1,
+      "transfer_every": 1,
+      "min_lr_rate": 0.5,
+      "note": "transfer_lr = gamma"
+    },
+    "setting_B": {
+      "label": "batch=16x3, te=3, mlr=0.05",
+      "batch_size": 16,
+      "grad_accum_steps": 3,
+      "transfer_every": 3,
+      "min_lr_rate": 0.05,
+      "note": "transfer_lr varies (0.3 or 1.0)"
+    }
+  },
+  "results": [
+    {"gamma": 0.01, "reset_prob": 0.0,  "setting": "A", "f1": 82.21, "em": 72.46, "dir": "g0.01_r0"},
+    {"gamma": 0.01, "reset_prob": 1.0,  "setting": "A", "f1": 79.87, "em": 69.49, "dir": "g0.01_r1.0"},
+    {"gamma": 0.05, "reset_prob": 0.0,  "setting": "A", "f1": 84.78, "em": 75.93, "dir": "g0.05_r0"},
+    {"gamma": 0.05, "reset_prob": 1.0,  "setting": "A", "f1": 81.24, "em": 71.19, "dir": "g0.05_r1.0"},
+    {"gamma": 0.1,  "reset_prob": 0.0,  "setting": "B", "f1": 85.30, "em": 76.46, "dir": "phase1c_4ep_b16/g0.1_r0"},
+    {"gamma": 0.1,  "reset_prob": 1.0,  "setting": "B", "f1": 82.65, "em": 73.10, "dir": "phase1c_4ep_b16/g0.1_r1.0"},
+    {"gamma": 0.3,  "reset_prob": 0.0,  "setting": "B", "f1": 83.31, "em": 74.19, "dir": "phase1c_4ep_b16/g0.3_r0"},
+    {"gamma": 0.3,  "reset_prob": 1.0,  "setting": "B", "f1": 84.51, "em": 75.37, "dir": "g0.3_r1.0"},
+    {"gamma": 0.5,  "reset_prob": 0.0,  "setting": "A", "f1": 73.94, "em": 63.45, "dir": "g0.5_r0"},
+    {"gamma": 0.5,  "reset_prob": 1.0,  "setting": "A", "f1": 85.08, "em": 76.03, "dir": "g0.5_r1.0"},
+    {"gamma": 1.0,  "reset_prob": 0.0,  "setting": "B", "f1": 21.22, "em": 10.98, "dir": "g1.0_r0", "note": "diverged after epoch 1"},
+    {"gamma": 1.0,  "reset_prob": 1.0,  "setting": "B", "f1": 86.26, "em": 78.10, "dir": "g1.0_r1.0", "note": "best"}
+  ],
+  "key_findings": [
+    "gamma=1.0 + reset=1.0 achieves best F1=86.26 (setting B)",
+    "gamma=1.0 without reset diverges catastrophically (F1=21.22)",
+    "Small gamma (0.05-0.1) works well without reset; large gamma (0.5-1.0) requires reset",
+    "Reset generally hurts at low gamma but is essential at high gamma"
+  ]
+}
