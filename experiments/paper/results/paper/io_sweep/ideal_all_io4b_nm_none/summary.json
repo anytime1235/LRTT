@@ -1,0 +1,15 @@
+{
+  "method": "ideal",
+  "seed": 42,
+  "results": {
+    "best_f1": 12.13,
+    "final_f1": null,
+    "final_em": null,
+    "total_steps": 7376,
+    "completed_steps": 2980,
+    "completed_epochs": 1,
+    "wall_time_s": 10305.7
+  },
+  "status": "interrupted",
+  "note": "stopped at epoch 2 (step 2980/7376), only epoch 1 eval available. noise_management=none, min_lr_rate=0.5"
+}

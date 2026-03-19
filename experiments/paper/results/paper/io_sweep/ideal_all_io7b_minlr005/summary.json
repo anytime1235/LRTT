@@ -1,0 +1,18 @@
+{
+  "method": "ideal",
+  "seed": 42,
+  "results": {
+    "best_f1": 83.85,
+    "final_f1": null,
+    "final_em": null,
+    "total_steps": 7376,
+    "completed_steps": 2320,
+    "completed_epochs": 1,
+    "wall_time_s": 8097.6,
+    "epoch_results": [
+      {"epoch": 1, "f1": 83.85, "em": 75.73}
+    ]
+  },
+  "status": "running",
+  "note": "currently running, epoch 2 in progress (step 2320/7376)"
+}
