@@ -20,7 +20,7 @@ echo "  LinearStep Device: Noise Ratio Sweep"
 echo "  Base config: TTv1 gamma=1.0, reset=1.0, 4ep, 14b/10b"
 echo "  Device: LinearStepDevice (6T1C gamma fixed r=1.0)"
 echo "  Fixed:  gamma_up=-0.1678, gamma_down=0.1410"
-echo "  Sweep:  ls_noise_ratio = {0.5, 1.0, 2.0, 3.0}"
+echo "  Sweep:  ls_noise_ratio = {0.1, 0.3, 0.5, 1.0}"
 echo "  GPU: $GPU | Results: $RESULTS_DIR"
 echo "  Start: $(date)"
 echo "================================================================="
@@ -79,7 +79,7 @@ CUDA_VISIBLE_DEVICES=$GPU $PYTHON paper_experiment.py \
 echo "    Done: $(date)"
 
 # Sweep noise ratios
-for NOISE_R in 0.5 1.0 2.0 3.0; do
+for NOISE_R in 0.1 0.3 0.5 1.0; do
     run $NOISE_R
 done
 
@@ -95,10 +95,10 @@ import json, os
 base = os.environ.get("RESULTS_DIR", "results/paper/linearstep_noise_sweep")
 tags = [
     ("baseline_noisefree", "6T1C gamma, noise=0 (baseline)"),
+    ("ls_nr0.1",           "6T1C gamma, noise r=0.1"),
+    ("ls_nr0.3",           "6T1C gamma, noise r=0.3"),
     ("ls_nr0.5",           "6T1C gamma, noise r=0.5"),
     ("ls_nr1.0",           "6T1C gamma, noise r=1.0 (measured)"),
-    ("ls_nr2.0",           "6T1C gamma, noise r=2.0"),
-    ("ls_nr3.0",           "6T1C gamma, noise r=3.0"),
 ]
 
 print(f"\n{'Tag':<40} {'Best F1':>8} {'Final F1':>9} {'Final EM':>9}")
@@ -114,7 +114,7 @@ for tag, label in tags:
 print("\nNoise parameters at each ratio:")
 print(f"  {'r':>4} | {'dw_min_std':>10} | {'dw_min_dtod':>11} | {'SNR':>5}")
 print(f"  {'-'*4}-+-{'-'*10}-+-{'-'*11}-+-{'-'*5}")
-for r in [0, 0.5, 1.0, 2.0, 3.0]:
+for r in [0, 0.1, 0.3, 0.5, 1.0]:
     std = 0.3 * r
     dtod = 0.1 * r
     snr = f"{1/std:.1f}" if std > 0 else "inf"
