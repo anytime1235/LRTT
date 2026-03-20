@@ -472,7 +472,11 @@
         "with_reset_prob": 1.0,
         "n_bits_fast": 16,
         "n_bits_slow": 10,
-        "status": "not_completed",
+        "best_f1": 82.72,
+        "final_em": 73.02,
+        "total_steps": 5680,
+        "note": "3ep result (interrupted at step 5680/7376 during ep4)",
+        "status": "partial_3ep",
         "result_dir": "phase1c_4ep/g1.0_r1.0_fast16b"
       }
     ],
