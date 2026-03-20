@@ -19,7 +19,7 @@ W_eff formula for TTv1 (n=2 devices):
   gamma=1.0: W_eff = W_fast + W_slow
 """
 
-from aihwkit.simulator.configs.devices import ConstantStepDevice, IdealDevice
+from aihwkit.simulator.configs.devices import ConstantStepDevice, LinearStepDevice, IdealDevice
 from aihwkit.simulator.configs.configs import SingleRPUConfig
 from aihwkit.simulator.configs.helpers import build_config
 from aihwkit.simulator.parameters.training import UpdateParameters
@@ -72,6 +72,49 @@ def make_constant_step_device(dw_min=None, count_pulses=False):
         up_down_dtod=0.0,
         w_max_dtod=0.0,
         w_min_dtod=0.0,
+        count_pulses=count_pulses,
+    )
+
+
+def make_linear_step_device(dw_min=None, count_pulses=False,
+                            gamma_up=-0.1678, gamma_down=0.1410,
+                            gamma_up_ratio=1.0, gamma_down_ratio=1.0,
+                            noise_ratio=0.0):
+    """Create a LinearStepDevice with 6T1C parameters.
+
+    Gamma and noise are scaled by ratios relative to 6T1C measured values.
+
+    Args:
+        dw_min: Weight update step size. Defaults to 14-bit.
+        count_pulses: Enable hardware pulse counters.
+        gamma_up: 6T1C baseline gamma_up (-0.1678).
+        gamma_down: 6T1C baseline gamma_down (0.1410).
+        gamma_up_ratio: Scale factor for gamma_up (1.0 = 6T1C measured).
+        gamma_down_ratio: Scale factor for gamma_down (1.0 = 6T1C measured).
+        noise_ratio: Scale factor for all noise params (0.0 = noise-free,
+                     1.0 = 6T1C measured).
+    """
+    if dw_min is None:
+        dw_min = DW_MIN_14BIT
+    r_n = noise_ratio
+    return LinearStepDevice(
+        dw_min=dw_min,
+        w_max=1.0,
+        w_min=-1.0,
+        up_down=0.0,
+        mult_noise=False,
+        gamma_up=gamma_up * gamma_up_ratio,
+        gamma_down=gamma_down * gamma_down_ratio,
+        # Noise: scaled by noise_ratio
+        dw_min_std=0.3 * r_n,
+        dw_min_dtod=0.1 * r_n,
+        up_down_dtod=0.01 * r_n,
+        w_max_dtod=0.05 * r_n,
+        w_min_dtod=0.05 * r_n,
+        gamma_up_dtod=0.05 * r_n,
+        gamma_down_dtod=0.05 * r_n,
+        write_noise_std=0.0,
+        mean_bound_reference=True,
         count_pulses=count_pulses,
     )
 
@@ -202,7 +245,10 @@ def build_ttv1_config(gamma=0.0, dw_min=None, dw_min_slow=None,
                       with_reset_prob=None, desired_bl=31, transfer_bl=31,
                       count_pulses=False,
                       fast_pulse_type=None, transfer_pulse_type=None,
-                      io_bits=None, noise_management="abs_max"):
+                      io_bits=None, noise_management="abs_max",
+                      device_type="constant_step",
+                      ls_gamma_up_ratio=1.0, ls_gamma_down_ratio=1.0,
+                      ls_noise_ratio=0.0):
     """TTv1 — TransferCompound (Gokmen & Haensch 2020).
 
     W_eff = gamma * W_fast + 1.0 * W_slow
@@ -225,7 +271,15 @@ def build_ttv1_config(gamma=0.0, dw_min=None, dw_min_slow=None,
         transfer_pulse_type: Override PulseType for A->B transfer write (config.device.transfer_update.pulse_type).
         io_bits: DAC/ADC bit precision (None or 0 = perfect).
     """
-    device = make_constant_step_device(dw_min=dw_min, count_pulses=count_pulses)
+    if device_type == "linear_step":
+        device = make_linear_step_device(
+            dw_min=dw_min, count_pulses=count_pulses,
+            gamma_up_ratio=ls_gamma_up_ratio,
+            gamma_down_ratio=ls_gamma_down_ratio,
+            noise_ratio=ls_noise_ratio,
+        )
+    else:
+        device = make_constant_step_device(dw_min=dw_min, count_pulses=count_pulses)
     up = UpdateParameters(
         pulse_type=PulseType.STOCHASTIC_COMPRESSED,
         desired_bl=desired_bl,

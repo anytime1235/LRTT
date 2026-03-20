@@ -659,6 +659,10 @@ def _build_method_kwargs(args):
     elif args.method == "ttv1":
         kwargs["gamma"] = args.gamma
         kwargs["desired_bl"] = args.desired_bl
+        kwargs["device_type"] = args.device_type
+        kwargs["ls_gamma_up_ratio"] = args.ls_gamma_up_ratio
+        kwargs["ls_gamma_down_ratio"] = args.ls_gamma_down_ratio
+        kwargs["ls_noise_ratio"] = args.ls_noise_ratio
         if args.transfer_every is not None:
             kwargs["transfer_every"] = args.transfer_every
         if args.units_in_mbatch is not None:
@@ -1395,6 +1399,17 @@ def parse_args():
                         choices=list(PULSE_TYPE_MAP.keys()))
     parser.add_argument("--ttv1-transfer-pulse-type", type=str, default=None,
                         choices=list(PULSE_TYPE_MAP.keys()))
+
+    # Device type (LinearStep support)
+    parser.add_argument("--device-type", type=str, default="constant_step",
+                        choices=["constant_step", "linear_step"],
+                        help="Analog device model: constant_step (ideal) or linear_step (6T1C)")
+    parser.add_argument("--ls-gamma-up-ratio", type=float, default=1.0,
+                        help="LinearStep gamma_up scale (1.0 = 6T1C measured -0.1678)")
+    parser.add_argument("--ls-gamma-down-ratio", type=float, default=1.0,
+                        help="LinearStep gamma_down scale (1.0 = 6T1C measured 0.1410)")
+    parser.add_argument("--ls-noise-ratio", type=float, default=0.0,
+                        help="LinearStep noise scale (0=noise-free, 1.0=6T1C measured)")
 
     # Control
     parser.add_argument("--count-pulses", action="store_true")
