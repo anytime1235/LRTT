@@ -435,6 +435,36 @@
         "result_dir": "phase1c_4ep/g1.0_r1.0_fast12b"
       },
       {
+        "tag": "g1.0_r1.0_fast10b",
+        "source": "phase1c_4ep_b16",
+        "target_layers": "attention",
+        "gamma": 1.0,
+        "with_reset_prob": 1.0,
+        "n_bits_fast": 10,
+        "n_bits_slow": 10,
+        "best_f1": 79.03,
+        "final_em": 68.53,
+        "total_steps": 7376,
+        "wall_time_s": 14530,
+        "status": "completed",
+        "result_dir": "phase1c_4ep_b16/g1.0_r1.0_fast10b"
+      },
+      {
+        "tag": "g1.0_r1.0_fast8b",
+        "source": "phase1c_4ep_b16",
+        "target_layers": "attention",
+        "gamma": 1.0,
+        "with_reset_prob": 1.0,
+        "n_bits_fast": 8,
+        "n_bits_slow": 10,
+        "best_f1": 53.02,
+        "final_em": 40.16,
+        "total_steps": 7376,
+        "wall_time_s": 14485,
+        "status": "completed",
+        "result_dir": "phase1c_4ep_b16/g1.0_r1.0_fast8b"
+      },
+      {
         "tag": "g1.0_r1.0_fast16b",
         "source": "phase1c_4ep",
         "target_layers": "attention",
