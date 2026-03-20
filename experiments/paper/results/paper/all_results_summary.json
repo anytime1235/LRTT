@@ -572,80 +572,35 @@
     ]
   },
 
-  "single_rpu": {
+  "ttv1_deterministic": {
     "_common": {
-      "method": "single_rpu",
-      "rpu_config": "SingleRPUConfig",
-      "target_layers": "attention",
+      "method": "ttv1",
+      "rpu_config": "UnitCellRPUConfig (TransferCompound)",
       "epochs": 4,
       "seed": 42,
+      "fast_pulse_type": "deterministic_implicit",
+      "transfer_pulse_type": "deterministic_implicit",
+      "gamma": 1.0,
+      "with_reset_prob": 1.0,
+      "n_bits_slow": 10,
       "analog_lr": 0.016,
-      "classifier_lr": 0.003,
-      "ln_lr": 0.003,
-      "desired_bl": 31,
+      "transfer_every": 3.0,
+      "transfer_lr": 1.0,
+      "fast_lr": 0.1,
       "batch_size": 16,
       "grad_accum_steps": 3
     },
-    "stoch_bit_sweep": [
+    "bit_sweep": [
       {
-        "tag": "single_rpu_10b_stoch",
-        "n_bits": 10,
-        "pulse_type": "stochastic",
-        "best_f1": 82.57,
-        "final_f1": 82.57,
-        "final_em": 73.20,
-        "total_steps": 7376,
-        "wall_time_s": 14769,
-        "status": "completed",
-        "result_dir": "single_rpu_stoch_bit_sweep/single_rpu_10b_stoch"
-      },
-      {
-        "tag": "single_rpu_9b_stoch",
-        "n_bits": 9,
-        "pulse_type": "stochastic",
-        "best_f1": 75.93,
-        "final_f1": 72.16,
-        "final_em": 60.26,
-        "total_steps": 7376,
-        "wall_time_s": 14976,
-        "status": "completed",
-        "result_dir": "single_rpu_stoch_bit_sweep/single_rpu_9b_stoch"
-      },
-      {
-        "tag": "single_rpu_8b_stoch",
-        "n_bits": 8,
-        "pulse_type": "stochastic",
-        "best_f1": 58.18,
-        "final_f1": 31.02,
-        "final_em": 19.08,
-        "total_steps": 7376,
-        "wall_time_s": 14292,
-        "status": "completed",
-        "note": "severe overfitting: best_f1=58.18 at ep1, collapsed to 31.02 by ep4"
-      },
-      {
-        "tag": "single_rpu_7b_stoch",
-        "n_bits": 7,
-        "pulse_type": "stochastic",
-        "best_f1": 17.43,
-        "final_f1": 16.21,
-        "final_em": 7.71,
-        "total_steps": 7376,
-        "wall_time_s": 14112,
-        "status": "completed",
-        "note": "failed to learn"
-      },
-      {
-        "tag": "single_rpu_6b_stoch",
-        "n_bits": 6,
-        "pulse_type": "stochastic",
-        "best_f1": 11.60,
-        "final_f1": 9.35,
-        "final_em": 3.98,
-        "total_steps": 7376,
-        "wall_time_s": 14114,
-        "status": "stopped_no_learning",
-        "note": "failed to learn - F1 never exceeded random baseline"
+        "tag": "g1.0_r1.0_determ_fast16b",
+        "source": "phase3_determ",
+        "target_layers": "attention",
+        "n_bits_fast": 16,
+        "best_f1": 52.28,
+        "best_em": 40.07,
+        "note": "diverging: ep1=52.28→ep2=37.49 F1. Interrupted during ep3.",
+        "status": "interrupted_diverging",
+        "result_dir": "phase3_determ/g1.0_r1.0_determ_fast16b"
       }
     ]
   },
@@ -657,7 +612,6 @@
     "ttv1_qkvo": {"tag": "g1.0_r1.0 (phase1c)", "f1": 86.26, "em": 78.10},
     "ttv1_ffn": {"tag": "g1.0_r1.0_ffn (ttv1_4ep)", "f1": 84.93, "em": 76.95},
     "ttv1_all": {"tag": "g1.0_r1.0_all", "f1": null, "em": null, "note": "OOM failed"},
-    "single_rpu_qkvo": {"tag": "single_rpu_10b_stoch", "f1": 82.57, "em": 73.20, "note": "best at 10-bit; 8-bit and below fail"},
     "overall_best_f1": {"tag": "mp_10b_qkvo", "method": "mixed_precision", "target": "attention", "f1": 87.61},
     "overall_best_em": {"tag": "mp_10b_all_minlr0.05", "method": "mixed_precision", "target": "all", "em": 80.17}
   }
