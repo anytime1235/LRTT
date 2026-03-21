@@ -1740,13 +1740,17 @@ def _oom_restart_callback(study, trial):
     if trial.state == TrialState.FAIL:
         err = trial.user_attrs.get("error", "")
         if any(k in err.lower() for k in ("out of memory", "cublas", "nvml", "internal assert failed")):
-            new_grad_accum = GRAD_ACCUM_STEPS * 2
-            micro_bs = BATCH_SIZE // new_grad_accum
-            if micro_bs < 1:
+            # Pick the next divisor of BATCH_SIZE larger than current GRAD_ACCUM_STEPS
+            # so that micro_bs = BATCH_SIZE // new_grad_accum is always exact.
+            divisors = sorted(d for d in range(1, BATCH_SIZE + 1) if BATCH_SIZE % d == 0)
+            larger = [d for d in divisors if d > GRAD_ACCUM_STEPS]
+            if not larger:
                 print(f"\n[OOM Recovery] Cannot reduce micro-batch below 1 "
-                      f"(BATCH_SIZE={BATCH_SIZE}, GRAD_ACCUM would be {new_grad_accum}). "
+                      f"(BATCH_SIZE={BATCH_SIZE}, already at max GRAD_ACCUM={GRAD_ACCUM_STEPS}). "
                       f"Skipping retry.")
                 return
+            new_grad_accum = larger[0]
+            micro_bs = BATCH_SIZE // new_grad_accum
 
             retry_file = os.path.join(RESULTS, f"_oom_retry_{study.study_name}.json")
             retry_info = {

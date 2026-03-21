@@ -23,8 +23,8 @@ All flags:
         --epochs <int>              # Number of epochs (default: 15)
         --warmup-steps <int>        # LR warmup steps (default: 0)
         --transfer-method <str>     # Transfer method: onehot | direct | set (default: onehot)
-        --ab-device <str>           # A/B tile device: 6t1c | linearstep | linearstepideal | constantstep | constantstepideal | fp | ideal (default: 6t1c)
-        --c-device <str>            # C tile device: softboundsideal | linearstepideal | constantstep | constantstepideal | ideal (default: softboundsideal)
+        --ab-device <str>           # A/B tile device: 6t1c | linearstep | fp | ideal (default: 6t1c)
+        --c-device <str>            # C tile device: softbounds | ideal (default: softbounds)
         --no-io-noise               # Disable IO out_noise (resolution kept)
         --forward-inject            # Enable forward noise injection
         --is-perfect                # Use ideal FP forward/backward (no ADC/DAC/noise)
@@ -118,7 +118,7 @@ from aihwkit.optim import AnalogSGD, AnalogAdam
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import aihwkit.optim.lrtt_grad_accum_patch  # noqa: F401  — per-micro-batch tile.update + LRTT A/B snapshot
 
-from aihwkit.simulator.configs.devices import LinearStepDevice, SoftBoundsDevice, FloatingPointDevice, IdealDevice, ConstantStepDevice
+from aihwkit.simulator.configs.devices import LinearStepDevice, SoftBoundsDevice, FloatingPointDevice, IdealDevice
 from aihwkit.simulator.configs import SingleRPUConfig
 
 # LRTT config imports (direct imports to avoid __init__.py dependency issues)
@@ -221,8 +221,8 @@ N_EPOCHS = 15
 BATCH_SIZE = 64
 GRAD_ACCUM_STEPS = 1
 EVAL_BATCH_SIZE = 256
-EARLY_STOP_PATIENCE = 3
-TRAIN_LOSS_EARLY_STOP_PATIENCE = 2  # Stop if train loss doesn't improve for this many epochs
+EARLY_STOP_PATIENCE = 2
+TRAIN_LOSS_EARLY_STOP_PATIENCE = 1  # Stop if train loss doesn't improve for this many epochs
 TRAIN_LOSS_THRESHOLD = 1.5  # Once train loss drops below this, rely on metric-based early stop only
 
 # Scheduler
@@ -238,7 +238,7 @@ TE_WARMUP_SCHEDULE = []
 REINIT_GAIN = 1.0
 TRANSFER_METHOD = "onehot"  # "onehot", "direct", or "set"
 AB_DEVICE = "6t1c"  # "6t1c", "linearstep", "fp", or "ideal"
-C_DEVICE = "softboundsideal"  # "softboundsideal" or "ideal"
+C_DEVICE = "softbounds"  # "softbounds" or "ideal"
 IO_NOISE = True  # If False, disable out_noise (resolution kept)
 FORWARD_INJECT = False  # If True, enable forward noise injection
 IS_PERFECT = False  # If True, forward/backward use ideal FP matmul (no ADC/DAC/noise)
@@ -314,7 +314,7 @@ def get_study_name_suffix():
     if AB_DEVICE != "6t1c":
         suffix += f"_{AB_DEVICE.replace('-', '')}"
 
-    if C_DEVICE != "softboundsideal":
+    if C_DEVICE != "softbounds":
         suffix += f"_c{C_DEVICE}"
 
     if not IO_NOISE:
@@ -382,13 +382,9 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981):
     """Create A/B tile device based on AB_DEVICE setting.
 
     Options:
-        6t1c              - Full 6T1C with all noise/variation (realistic)
-        linearstep        - LinearStepDevice with default params (no nonlinearity, default noise)
-        linearstepideal   - LinearStepDevice with all noise/dtod=0, w_max=1, w_min=-1
-        constantstep      - ConstantStepDevice with default params (constant step, default noise)
-        constantstepideal - ConstantStepDevice with all noise/dtod=0, w_max=1, w_min=-1
-        fp                - FloatingPointDevice (perfect, no quantization/bounds)
-        ideal             - IdealDevice
+        6t1c       - Full 6T1C with all noise/variation (realistic)
+        linearstep - LinearStepDevice with default params (no nonlinearity, default noise)
+        fp         - FloatingPointDevice (perfect, no quantization/bounds)
 
     Args:
         tau_sec: Retention time constant. If 0, lifetime=0 (no decay).
@@ -400,38 +396,6 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981):
         return IdealDevice()
     if AB_DEVICE == "linearstep":
         return LinearStepDevice(dw_min=dw_min)
-    if AB_DEVICE == "linearstepideal":
-        return LinearStepDevice(
-            dw_min=dw_min,
-            w_max=1.0,
-            w_min=-1.0,
-            dw_min_dtod=0.0,
-            dw_min_std=0.0,
-            up_down_dtod=0.0,
-            w_max_dtod=0.0,
-            w_min_dtod=0.0,
-            gamma_up_dtod=0.0,
-            gamma_down_dtod=0.0,
-            write_noise_std=0.0,
-            reset_std=0.0,
-            up_down=0.0,
-            mult_noise=False,
-        )
-    if AB_DEVICE == "constantstep":
-        return ConstantStepDevice(dw_min=dw_min)
-    if AB_DEVICE == "constantstepideal":
-        return ConstantStepDevice(
-            dw_min=dw_min,
-            w_max=1.0,
-            w_min=-1.0,
-            dw_min_dtod=0.0,
-            dw_min_std=0.0,
-            up_down_dtod=0.0,
-            w_max_dtod=0.0,
-            w_min_dtod=0.0,
-            reset_std=0.0,
-            up_down=0.0,
-        )
 
     # Compute retention lifetime from tau_sec
     if tau_sec > 0:
@@ -470,38 +434,6 @@ def _create_c_device(dw_min=0.001):
     """Create device for C tile."""
     if C_DEVICE == "ideal":
         return IdealDevice()
-    if C_DEVICE == "linearstepideal":
-        return LinearStepDevice(
-            dw_min=dw_min,
-            w_max=1.0,
-            w_min=-1.0,
-            dw_min_dtod=0.0,
-            dw_min_std=0.0,
-            up_down_dtod=0.0,
-            w_max_dtod=0.0,
-            w_min_dtod=0.0,
-            gamma_up_dtod=0.0,
-            gamma_down_dtod=0.0,
-            write_noise_std=0.0,
-            reset_std=0.0,
-            up_down=0.0,
-            mult_noise=False,
-        )
-    if C_DEVICE == "constantstep":
-        return ConstantStepDevice(dw_min=dw_min)
-    if C_DEVICE == "constantstepideal":
-        return ConstantStepDevice(
-            dw_min=dw_min,
-            w_max=1.0,
-            w_min=-1.0,
-            dw_min_dtod=0.0,
-            dw_min_std=0.0,
-            up_down_dtod=0.0,
-            w_max_dtod=0.0,
-            w_min_dtod=0.0,
-            reset_std=0.0,
-            up_down=0.0,
-        )
     return SoftBoundsDevice(
         dw_min=dw_min,
         w_max=1.0,
@@ -514,7 +446,6 @@ def _create_c_device(dw_min=0.001):
         w_min_dtod=0.0,
         write_noise_std=0.0,
         mult_noise=False,  # No multiplicative noise for C tile
-        reset_std=0.0,
     )
 
 
@@ -1174,7 +1105,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         torch.cuda.empty_cache()
 
     # Hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 3e-4, 2e-2, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 1e-5, 5e-3, log=True)
 
     # LRTT parameters: skip sweep if --no-transfer (A/B frozen, no transfer happens)
     if OPT_CONFIG['no_transfer']:
@@ -1185,11 +1116,11 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         fast_lr = 1.0            # fixed (no effect)
         tau_sec = 0.0            # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 3e-1, 1e4, log=True)
-        transfer_every = trial.suggest_int('transfer_every', 1, 600, log=True)
-        rank_exp = trial.suggest_int('rank_exp', 0, 6)
+        transfer_lr = trial.suggest_float('transfer_lr', 9e1, 3e5, log=True)
+        transfer_every = trial.suggest_int('transfer_every', 1, 500, log=True)
+        rank_exp = trial.suggest_int('rank_exp', 5, 5)
         rank = 2 ** rank_exp
-        fast_lr = trial.suggest_float('fast_lr', 1e-3, 1e0, log=True)
+        fast_lr = trial.suggest_float('fast_lr', 2e-2, 9e-1, log=True)
         tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
 
     # A/B device params
@@ -1558,10 +1489,10 @@ def main():
                         choices=['onehot', 'direct', 'set'],
                         help=f'Transfer method (default: {TRANSFER_METHOD})')
     parser.add_argument('--ab-device', type=str, default=AB_DEVICE,
-                        choices=['6t1c', 'linearstep', 'linearstepideal', 'constantstep', 'constantstepideal', 'fp', 'ideal'],
+                        choices=['6t1c', 'linearstep', 'fp', 'ideal'],
                         help=f'A/B tile device type (default: {AB_DEVICE})')
     parser.add_argument('--c-device', type=str, default=C_DEVICE,
-                        choices=['softboundsideal', 'linearstepideal', 'constantstep', 'constantstepideal', 'ideal'],
+                        choices=['softbounds', 'ideal'],
                         help=f'C tile device type (default: {C_DEVICE})')
     parser.add_argument('--no-io-noise', action='store_true',
                         help='Disable IO out_noise (resolution kept)')
@@ -1776,13 +1707,17 @@ def _oom_restart_callback(study, trial):
     if trial.state == TrialState.FAIL:
         err = trial.user_attrs.get("error", "")
         if any(k in err.lower() for k in ("out of memory", "cublas", "nvml", "internal assert failed")):
-            new_grad_accum = GRAD_ACCUM_STEPS * 2
-            micro_bs = BATCH_SIZE // new_grad_accum
-            if micro_bs < 1:
+            # Pick the next divisor of BATCH_SIZE larger than current GRAD_ACCUM_STEPS
+            # so that micro_bs = BATCH_SIZE // new_grad_accum is always exact.
+            divisors = sorted(d for d in range(1, BATCH_SIZE + 1) if BATCH_SIZE % d == 0)
+            larger = [d for d in divisors if d > GRAD_ACCUM_STEPS]
+            if not larger:
                 print(f"\n[OOM Recovery] Cannot reduce micro-batch below 1 "
-                      f"(BATCH_SIZE={BATCH_SIZE}, GRAD_ACCUM would be {new_grad_accum}). "
+                      f"(BATCH_SIZE={BATCH_SIZE}, already at max GRAD_ACCUM={GRAD_ACCUM_STEPS}). "
                       f"Skipping retry.")
                 return
+            new_grad_accum = larger[0]
+            micro_bs = BATCH_SIZE // new_grad_accum
 
             retry_file = os.path.join(RESULTS, f"_oom_retry_{study.study_name}.json")
             retry_info = {
