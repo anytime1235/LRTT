@@ -58,8 +58,8 @@ All flags:
         --epochs <int>              # Number of epochs (default: 15)
         --warmup-steps <int>        # LR warmup steps (default: 189)
         --transfer-method <str>     # Transfer method: onehot | direct | set (default: onehot)
-        --ab-device <str>           # A/B tile device: 6t1c | linearstep | fp | ideal (default: 6t1c)
-        --c-device <str>            # C tile device: softbounds | ideal (default: softbounds)
+        --ab-device <str>           # A/B tile device: 6t1c | linearstep | linearstepideal | constantstep | constantstepideal | fp | ideal (default: 6t1c)
+        --c-device <str>            # C tile device: softboundsideal | linearstepideal | constantstep | constantstepideal | ideal (default: softboundsideal)
         --no-io-noise               # Disable IO out_noise (resolution kept)
         --forward-inject            # Enable forward noise injection
         --is-perfect                # Use ideal FP forward/backward (no ADC/DAC/noise)
@@ -150,7 +150,7 @@ from aihwkit.optim import AnalogSGD, AnalogAdam
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import aihwkit.optim.lrtt_grad_accum_patch  # noqa: F401  — per-micro-batch tile.update + LRTT A/B snapshot
 
-from aihwkit.simulator.configs.devices import LinearStepDevice, SoftBoundsDevice, FloatingPointDevice, IdealDevice
+from aihwkit.simulator.configs.devices import LinearStepDevice, SoftBoundsDevice, FloatingPointDevice, IdealDevice, ConstantStepDevice
 from aihwkit.simulator.configs import SingleRPUConfig
 
 # LRTT config imports (direct imports to avoid __init__.py dependency issues)
@@ -303,7 +303,7 @@ TE_WARMUP_SCHEDULE = []
 REINIT_GAIN = 1.0
 TRANSFER_METHOD = "onehot"  # "onehot", "direct", or "set"
 AB_DEVICE = "6t1c"  # "6t1c", "linearstep", "fp", or "ideal"
-C_DEVICE = "softbounds"  # "softbounds" or "ideal"
+C_DEVICE = "softboundsideal"  # "softboundsideal" or "ideal"
 IO_NOISE = True  # If False, disable out_noise (resolution kept)
 FORWARD_INJECT = False  # If True, enable forward noise injection
 IS_PERFECT = False  # If True, forward/backward use ideal FP matmul (no ADC/DAC/noise)
@@ -381,7 +381,7 @@ def get_study_name_suffix():
     if AB_DEVICE != "6t1c":
         suffix += f"_{AB_DEVICE.replace('-', '')}"
 
-    if C_DEVICE != "softbounds":
+    if C_DEVICE != "softboundsideal":
         suffix += f"_c{C_DEVICE}"
 
     if not IO_NOISE:
@@ -456,8 +456,11 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981):
 
     Options:
         6t1c       - Full 6T1C with all noise/variation (realistic)
-        linearstep - LinearStepDevice with default params (no nonlinearity, default noise)
-        fp         - FloatingPointDevice (perfect, no quantization/bounds)
+        linearstep        - LinearStepDevice with default params (no nonlinearity, default noise)
+        linearstepideal   - LinearStepDevice with all noise/dtod=0, w_max=1, w_min=-1
+        constantstep      - ConstantStepDevice with default params (constant step, default noise)
+        constantstepideal - ConstantStepDevice with all noise/dtod=0, w_max=1, w_min=-1
+        fp                - FloatingPointDevice (perfect, no quantization/bounds)
 
     Args:
         tau_sec: Retention time constant. If 0, lifetime=0 (no decay).
@@ -469,6 +472,38 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981):
         return IdealDevice()
     if AB_DEVICE == "linearstep":
         return LinearStepDevice(dw_min=dw_min)
+    if AB_DEVICE == "linearstepideal":
+        return LinearStepDevice(
+            dw_min=dw_min,
+            w_max=1.0,
+            w_min=-1.0,
+            dw_min_dtod=0.0,
+            dw_min_std=0.0,
+            up_down_dtod=0.0,
+            w_max_dtod=0.0,
+            w_min_dtod=0.0,
+            gamma_up_dtod=0.0,
+            gamma_down_dtod=0.0,
+            write_noise_std=0.0,
+            reset_std=0.0,
+            up_down=0.0,
+            mult_noise=False,
+        )
+    if AB_DEVICE == "constantstep":
+        return ConstantStepDevice(dw_min=dw_min)
+    if AB_DEVICE == "constantstepideal":
+        return ConstantStepDevice(
+            dw_min=dw_min,
+            w_max=1.0,
+            w_min=-1.0,
+            dw_min_dtod=0.0,
+            dw_min_std=0.0,
+            up_down_dtod=0.0,
+            w_max_dtod=0.0,
+            w_min_dtod=0.0,
+            reset_std=0.0,
+            up_down=0.0,
+        )
 
     # Compute retention lifetime from tau_sec
     if tau_sec > 0:
@@ -507,6 +542,38 @@ def _create_c_device(dw_min=0.001):
     """Create device for C tile."""
     if C_DEVICE == "ideal":
         return IdealDevice()
+    if C_DEVICE == "linearstepideal":
+        return LinearStepDevice(
+            dw_min=dw_min,
+            w_max=1.0,
+            w_min=-1.0,
+            dw_min_dtod=0.0,
+            dw_min_std=0.0,
+            up_down_dtod=0.0,
+            w_max_dtod=0.0,
+            w_min_dtod=0.0,
+            gamma_up_dtod=0.0,
+            gamma_down_dtod=0.0,
+            write_noise_std=0.0,
+            reset_std=0.0,
+            up_down=0.0,
+            mult_noise=False,
+        )
+    if C_DEVICE == "constantstep":
+        return ConstantStepDevice(dw_min=dw_min)
+    if C_DEVICE == "constantstepideal":
+        return ConstantStepDevice(
+            dw_min=dw_min,
+            w_max=1.0,
+            w_min=-1.0,
+            dw_min_dtod=0.0,
+            dw_min_std=0.0,
+            up_down_dtod=0.0,
+            w_max_dtod=0.0,
+            w_min_dtod=0.0,
+            reset_std=0.0,
+            up_down=0.0,
+        )
     return SoftBoundsDevice(
         dw_min=dw_min,
         w_max=1.0,
@@ -519,6 +586,7 @@ def _create_c_device(dw_min=0.001):
         w_min_dtod=0.0,
         write_noise_std=0.0,
         mult_noise=False,  # No multiplicative noise for C tile
+        reset_std=0.0,
     )
 
 
@@ -1446,10 +1514,10 @@ def main():
                         choices=['onehot', 'direct', 'set'],
                         help=f'Transfer method (default: {TRANSFER_METHOD})')
     parser.add_argument('--ab-device', type=str, default=AB_DEVICE,
-                        choices=['6t1c', 'linearstep', 'fp', 'ideal'],
+                        choices=['6t1c', 'linearstep', 'linearstepideal', 'constantstep', 'constantstepideal', 'fp', 'ideal'],
                         help=f'A/B tile device type (default: {AB_DEVICE})')
     parser.add_argument('--c-device', type=str, default=C_DEVICE,
-                        choices=['softbounds', 'ideal'],
+                        choices=['softboundsideal', 'linearstepideal', 'constantstep', 'constantstepideal', 'ideal'],
                         help=f'C tile device type (default: {C_DEVICE})')
     parser.add_argument('--no-io-noise', action='store_true',
                         help='Disable IO out_noise (resolution kept)')
