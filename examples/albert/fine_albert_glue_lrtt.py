@@ -1074,6 +1074,78 @@ def make_diagnostic_plots(log_data, output_path, tile_label="",
     print(f"Saved plot: {output_path}")
 
 
+def make_xd_diagnostic_plots(log_data, output_path, tile_label=""):
+    """Create x/d distribution diagnostic plots: percentile bands + histograms."""
+    if not log_data:
+        return
+    steps = [r['step'] for r in log_data]
+
+    xd_keys = [
+        ('xa', 'tile_a input (XB = x·B^T)'),
+        ('da', 'tile_a grad (raw gradient)'),
+        ('xb', 'tile_b input (raw x)'),
+        ('db', 'tile_b grad (DA = A^T·d)'),
+    ]
+
+    fig, axes = plt.subplots(4, 2, figsize=(18, 18))
+    fig.suptitle(f'x/d Distribution — {tile_label}', fontsize=13, y=0.99)
+
+    for row, (prefix, desc) in enumerate(xd_keys):
+        # --- Left: percentile band plot over time ---
+        ax = axes[row, 0]
+        p5 = [r.get(f'{prefix}_p5', 0) for r in log_data]
+        p25 = [r.get(f'{prefix}_p25', 0) for r in log_data]
+        p50 = [r.get(f'{prefix}_p50', 0) for r in log_data]
+        p75 = [r.get(f'{prefix}_p75', 0) for r in log_data]
+        p95 = [r.get(f'{prefix}_p95', 0) for r in log_data]
+        mean_vals = [r.get(f'{prefix}_abs_mean', 0) for r in log_data]
+        max_vals = [r.get(f'{prefix}_abs_max', 0) for r in log_data]
+
+        ax.fill_between(steps, p5, p95, alpha=0.15, color='blue', label='p5-p95')
+        ax.fill_between(steps, p25, p75, alpha=0.3, color='blue', label='p25-p75')
+        ax.plot(steps, p50, 'b-', linewidth=0.8, label='median')
+        ax.plot(steps, mean_vals, 'g--', linewidth=0.6, alpha=0.7, label='mean')
+        ax.plot(steps, max_vals, 'r-', linewidth=0.4, alpha=0.5, label='max')
+        ax.set_title(f'|{prefix}| percentiles — {desc}')
+        ax.set_ylabel(f'|{prefix}|')
+        ax.legend(fontsize=7, loc='upper right')
+        ax.grid(True, alpha=0.3)
+        if row == 3:
+            ax.set_xlabel('Step')
+
+        # --- Right: histograms at sampled time points ---
+        ax = axes[row, 1]
+        hist_steps = [r for r in log_data if 'xd_hist' in r and prefix in r['xd_hist']]
+        if hist_steps:
+            n_hist = len(hist_steps)
+            sample_idx = [0, n_hist // 3, 2 * n_hist // 3, n_hist - 1]
+            sample_idx = sorted(set(min(i, n_hist - 1) for i in sample_idx))
+            colors = plt.cm.viridis(np.linspace(0.2, 0.9, len(sample_idx)))
+            for ci, idx in enumerate(sample_idx):
+                h = hist_steps[idx]['xd_hist'][prefix]
+                counts = h['counts']
+                bin_edges = np.linspace(h['min'], h['max'], len(counts) + 1)
+                bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+                total = sum(counts)
+                if total > 0:
+                    normed = [c / total for c in counts]
+                    ax.plot(bin_centers, normed, color=colors[ci], linewidth=1.0,
+                            label=f'step {hist_steps[idx]["step"]}', alpha=0.8)
+            ax.set_title(f'|{prefix}| distribution')
+            ax.set_ylabel('density')
+            ax.legend(fontsize=7)
+            ax.grid(True, alpha=0.3)
+        else:
+            ax.text(0.5, 0.5, 'No histogram data', transform=ax.transAxes, ha='center')
+        if row == 3:
+            ax.set_xlabel(f'|{prefix}|')
+
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"Saved plot: {output_path}")
+
+
 # =============================================================================
 # Optimizer & Scheduler
 # =============================================================================
@@ -1232,6 +1304,32 @@ def main():
                     gc_dict['da_abs_mean'], gc_dict['da_abs_max'] = _abs_stats(d_a.to(device))
                     gc_dict['xb_abs_mean'], gc_dict['xb_abs_max'] = _abs_stats(x_b.to(device))
                     gc_dict['db_abs_mean'], gc_dict['db_abs_max'] = _abs_stats(d_b.to(device))
+                    # Percentiles (p5, p25, p50, p75, p95)
+                    _pcts = torch.tensor([0.05, 0.25, 0.5, 0.75, 0.95], device=device)
+                    for _prefix, _t in [('xa', x_a), ('da', d_a), ('xb', x_b), ('db', d_b)]:
+                        _flat = _t.to(device).abs().flatten()
+                        _q = torch.quantile(_flat.float(), _pcts).tolist()
+                        gc_dict[f'{_prefix}_p5'] = _q[0]
+                        gc_dict[f'{_prefix}_p25'] = _q[1]
+                        gc_dict[f'{_prefix}_p50'] = _q[2]
+                        gc_dict[f'{_prefix}_p75'] = _q[3]
+                        gc_dict[f'{_prefix}_p95'] = _q[4]
+                    # Histogram (every 100 steps)
+                    gc_dict['_capture_count'] = gc_dict.get('_capture_count', 0) + 1
+                    if gc_dict['_capture_count'] % 100 == 1:
+                        _hists = {}
+                        for _prefix, _t in [('xa', x_a), ('da', d_a), ('xb', x_b), ('db', d_b)]:
+                            _flat = _t.to(device).abs().flatten().float()
+                            _max_val = _flat.max().item()
+                            if _max_val > 0:
+                                _counts = torch.histc(_flat, bins=50, min=0, max=_max_val).tolist()
+                                _hists[_prefix] = {'counts': _counts, 'min': 0.0, 'max': _max_val}
+                            else:
+                                _hists[_prefix] = {'counts': [float(_flat.numel())] + [0.0]*49, 'min': 0.0, 'max': 1.0}
+                        gc_dict['_last_hist'] = _hists
+                        gc_dict['_hist_ready'] = True
+                    else:
+                        gc_dict['_hist_ready'] = False
 
             if ctrl.forward_inject_enabled:
                 original_b_update = diag_tile.tile_b._orig_update
@@ -1382,6 +1480,13 @@ def main():
                     rec["xb_abs_max"] = gcd.get('xb_abs_max', 0.0)
                     rec["db_abs_mean"] = gcd.get('db_abs_mean', 0.0)
                     rec["db_abs_max"] = gcd.get('db_abs_max', 0.0)
+                    # Percentiles
+                    for _pf in ['xa', 'da', 'xb', 'db']:
+                        for _pp in ['p5', 'p25', 'p50', 'p75', 'p95']:
+                            rec[f'{_pf}_{_pp}'] = gcd.get(f'{_pf}_{_pp}', 0.0)
+                    # Histogram (only when captured)
+                    if gcd.get('_hist_ready'):
+                        rec['xd_hist'] = gcd['_last_hist']
                     rec["per_depth_xd"] = gcd.get('per_depth_xd', [])
 
                     with torch.no_grad():
@@ -1525,6 +1630,14 @@ def main():
         make_diagnostic_plots(last_log,
             os.path.join(RESULTS, f"{TASK_NAME}_diag_last_{stamp}.png"),
             tile_label=f"Last tile ({last_name})", A_ci=A_CI, B_ci=B_CI, C_ci=C_CI)
+
+        # x/d distribution plots
+        make_xd_diagnostic_plots(first_log,
+            os.path.join(RESULTS, f"{TASK_NAME}_diag_xd_first_{stamp}.png"),
+            tile_label=f"First tile ({first_name})")
+        make_xd_diagnostic_plots(last_log,
+            os.path.join(RESULTS, f"{TASK_NAME}_diag_xd_last_{stamp}.png"),
+            tile_label=f"Last tile ({last_name})")
 
         steps_per_epoch = len(train_loader)
         diag_ep = DIAG_EPOCHS if DIAG_EPOCHS > 0 else N_EPOCHS
