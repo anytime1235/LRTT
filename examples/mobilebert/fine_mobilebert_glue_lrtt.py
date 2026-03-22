@@ -29,7 +29,6 @@ Inline flags (edit directly in script):
     AUTO_SCALE_MODE = "none"        # Auto-scale: "none" | "shared" | "separate"
     REINIT_MODE = "hybrid"          # Reinit mode: "standard" | "decay" | "hybrid"
     REINIT_GAIN = 1.0               # Reinitialization gain
-    DECAY_FACTOR = 1.0              # Decay factor for reinit
     TAU_SEC = 0.0                   # 6T1C retention (0 = no decay)
     DYNAMIC_TE = False              # Enable dynamic transfer every
     DYNAMIC_TE_POWER = 1.0          # Power for dynamic TE scaling
@@ -73,7 +72,7 @@ from aihwkit.optim import AnalogSGD, AnalogAdam
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import aihwkit.optim.lrtt_grad_accum_patch  # noqa: F401  — per-micro-batch tile.update + LRTT A/B snapshot
 
-from aihwkit.simulator.configs.devices import LinearStepDevice, SoftBoundsDevice
+from aihwkit.simulator.configs.devices import LinearStepDevice, SoftBoundsDevice, FloatingPointDevice, IdealDevice, ConstantStepDevice
 from aihwkit.simulator.configs import SingleRPUConfig
 
 # LRTT config imports (direct imports to avoid __init__.py dependency issues)
@@ -178,10 +177,33 @@ AUTO_SCALE_MODE = "none"  # Auto-scale mode: "none", "shared", or "separate"
 CORRECT_GRADIENT_MAGNITUDES = False  # Correct transfer magnitude by dividing by effective A/B LR
 REINIT_MODE = "hybrid"
 REINIT_GAIN = 1.0
-DECAY_FACTOR = 1.0
 TRANSFER_METHOD = "set"  # "onehot", "direct", or "set"
 C_DW_MIN = 0.001         # C tile dw_min (relevant for onehot/direct transfer)
 C_DESIRED_BL = 31        # C tile desired_bl (relevant for onehot/direct transfer)
+AB_DW_MIN = 0.001981        # A/B tile dw_min
+AB_DESIRED_BL = 31          # A/B tile desired_bl
+
+# Device selection
+AB_DEVICE = "6t1c"          # "6t1c", "linearstep", "linearstepideal", "constantstep", "constantstepideal", "fp", "ideal"
+C_DEVICE = "softboundsideal"  # "softboundsideal", "linearstepideal", "constantstep", "constantstepideal", "ideal"
+
+# IO / noise options
+IO_NOISE = True             # If False, disable out_noise (resolution kept)
+FORWARD_INJECT = False      # If True, enable forward noise injection
+FI_CONTINUOUS_ALPHA = False # If True, use continuous alpha for forward injection
+IS_PERFECT = False          # If True, forward/backward use ideal FP matmul (no ADC/DAC/noise)
+NO_QUANT = False            # If True, disable DAC/ADC quantization (inp_res/out_res → -1)
+OUT_NOISE = 0.0             # Forward out_noise value
+AB_WEIGHT_SCALING_OMEGA = 0.0  # A/B tile weight scaling omega
+
+# Pulse type
+AB_PULSE_TYPE = "default"   # "default", "none", "none_with_device", "stochastic_compressed", "mean_count", "deterministic_implicit"
+
+# Transfer options
+NO_TRANSFER = False         # If True, disable transfer (set transfer_every to infinity)
+NO_SCALE_TRANSFER_LR = False  # If True, disable transfer_lr scaling by rank
+TRANSFER_RANK_SCHEDULE = "all"  # "all" or "round_robin"
+TRANSFER_RANKS_PER_STEP = 1
 
 # 6T1C Retention parameters
 TAU_SEC = 0.0  # 0 = no decay, >0 = retention time constant
@@ -238,56 +260,109 @@ os.environ["WANDB_MODE"] = "offline"
 # LRTT Device Functions
 # =============================================================================
 
-def _create_6t1c_device():
-    """Create 6T1C LinearStepDevice.
+def _create_ab_device(tau_sec=None, dw_min=None):
+    """Create A/B tile device based on AB_DEVICE setting.
 
-    Uses TAU_SEC for retention lifetime. If TAU_SEC=0, lifetime=0 (no decay).
+    Options:
+        6t1c              - Full 6T1C with all noise/variation (realistic)
+        linearstep        - LinearStepDevice with default params (no nonlinearity, default noise)
+        linearstepideal   - LinearStepDevice with all noise/dtod=0, w_max=1, w_min=-1
+        constantstep      - ConstantStepDevice with default params (constant step, default noise)
+        constantstepideal - ConstantStepDevice with all noise/dtod=0, w_max=1, w_min=-1
+        fp                - FloatingPointDevice (perfect, no quantization/bounds)
+        ideal             - IdealDevice
     """
-    if TAU_SEC > 0:
+    if tau_sec is None:
+        tau_sec = TAU_SEC
+    if dw_min is None:
+        dw_min = AB_DW_MIN
+
+    if AB_DEVICE == "fp":
+        return FloatingPointDevice()
+    if AB_DEVICE == "ideal":
+        return IdealDevice()
+    if AB_DEVICE == "linearstep":
+        return LinearStepDevice(dw_min=dw_min)
+    if AB_DEVICE == "linearstepideal":
+        return LinearStepDevice(
+            dw_min=dw_min,
+            w_max=1.0, w_min=-1.0,
+            dw_min_dtod=0.0, dw_min_std=0.0,
+            up_down_dtod=0.0, w_max_dtod=0.0, w_min_dtod=0.0,
+            gamma_up_dtod=0.0, gamma_down_dtod=0.0,
+            write_noise_std=0.0, reset_std=0.0,
+            up_down=0.0, mult_noise=False,
+        )
+    if AB_DEVICE == "constantstep":
+        return ConstantStepDevice(dw_min=dw_min)
+    if AB_DEVICE == "constantstepideal":
+        return ConstantStepDevice(
+            dw_min=dw_min,
+            w_max=1.0, w_min=-1.0,
+            dw_min_dtod=0.0, dw_min_std=0.0,
+            up_down_dtod=0.0, w_max_dtod=0.0, w_min_dtod=0.0,
+            reset_std=0.0, up_down=0.0,
+        )
+
+    # Default: 6t1c (full noise)
+    if tau_sec > 0:
         dt_batch_sec = 1.0
-        delta = 1 - math.exp(-dt_batch_sec / TAU_SEC)
+        delta = 1 - math.exp(-dt_batch_sec / tau_sec)
         lifetime = 1.0 / delta if delta > 0 else 0.0
     else:
         lifetime = 0.0
 
     return LinearStepDevice(
-        dw_min=0.001981,
-        up_down=0.0,
-        w_max=1.0,
-        w_min=-1.0,
-        gamma_up=-0.1678,
-        gamma_down=0.1410,
+        dw_min=dw_min,
+        up_down=0.0, w_max=1.0, w_min=-1.0,
+        gamma_up=-0.1678, gamma_down=0.1410,
         mult_noise=True,
-        dw_min_dtod=0.1,
-        up_down_dtod=0.01,
-        w_max_dtod=0.05,
-        w_min_dtod=0.05,
-        gamma_up_dtod=0.05,
-        gamma_down_dtod=0.05,
-        dw_min_std=0.3,
-        write_noise_std=0.0,
+        dw_min_dtod=0.1, up_down_dtod=0.01,
+        w_max_dtod=0.05, w_min_dtod=0.05,
+        gamma_up_dtod=0.05, gamma_down_dtod=0.05,
+        dw_min_std=0.3, write_noise_std=0.0,
         mean_bound_reference=True,
-        lifetime=lifetime,
-        lifetime_dtod=0.0,
-        reset=0.0,
-        reset_dtod=0.0,
+        lifetime=lifetime, lifetime_dtod=0.0,
+        reset=0.0, reset_dtod=0.0,
     )
 
 
-def _create_c_device(dw_min=C_DW_MIN):
-    """Create noise-free SoftBoundsDevice for C tile."""
+def _create_c_device(dw_min=None):
+    """Create device for C tile based on C_DEVICE setting."""
+    if dw_min is None:
+        dw_min = C_DW_MIN
+
+    if C_DEVICE == "ideal":
+        return IdealDevice()
+    if C_DEVICE == "linearstepideal":
+        return LinearStepDevice(
+            dw_min=dw_min,
+            w_max=1.0, w_min=-1.0,
+            dw_min_dtod=0.0, dw_min_std=0.0,
+            up_down_dtod=0.0, w_max_dtod=0.0, w_min_dtod=0.0,
+            gamma_up_dtod=0.0, gamma_down_dtod=0.0,
+            write_noise_std=0.0, reset_std=0.0,
+            up_down=0.0, mult_noise=False,
+        )
+    if C_DEVICE == "constantstep":
+        return ConstantStepDevice(dw_min=dw_min)
+    if C_DEVICE == "constantstepideal":
+        return ConstantStepDevice(
+            dw_min=dw_min,
+            w_max=1.0, w_min=-1.0,
+            dw_min_dtod=0.0, dw_min_std=0.0,
+            up_down_dtod=0.0, w_max_dtod=0.0, w_min_dtod=0.0,
+            reset_std=0.0, up_down=0.0,
+        )
+    # Default: softboundsideal
     return SoftBoundsDevice(
         dw_min=dw_min,
-        w_max=1.0,
-        w_min=-1.0,
-        dw_min_dtod=0.0,
-        dw_min_std=0.0,
-        up_down=0.0,
-        up_down_dtod=0.0,
-        w_max_dtod=0.0,
-        w_min_dtod=0.0,
-        write_noise_std=0.0,
-        mult_noise=False,  # No multiplicative noise for C tile
+        w_max=1.0, w_min=-1.0,
+        dw_min_dtod=0.0, dw_min_std=0.0,
+        up_down=0.0, up_down_dtod=0.0,
+        w_max_dtod=0.0, w_min_dtod=0.0,
+        write_noise_std=0.0, reset_std=0.0,
+        mult_noise=False,
     )
 
 
@@ -315,6 +390,13 @@ def create_frozen_analog_config(lrtt_config=None, out_noise=0.0):
         )
         rpu_config.forward.out_noise = out_noise
         rpu_config.backward.out_noise = out_noise
+        rpu_config.forward.is_perfect = IS_PERFECT
+        rpu_config.backward.is_perfect = IS_PERFECT
+        if NO_QUANT:
+            rpu_config.forward.inp_res = -1
+            rpu_config.forward.out_res = -1
+            rpu_config.backward.inp_res = -1
+            rpu_config.backward.out_res = -1
         if BACKWARD_OUT_BOUND != 12.0:
             rpu_config.backward.out_bound = BACKWARD_OUT_BOUND
     return rpu_config
@@ -322,10 +404,10 @@ def create_frozen_analog_config(lrtt_config=None, out_noise=0.0):
 
 def create_lrtt_config():
     """Create LRTT RPU configuration for analog layers."""
-    ab_device = _create_6t1c_device()
+    ab_device = _create_ab_device()
     c_device = _create_c_device()
 
-    te = TRANSFER_EVERY
+    te = TRANSFER_EVERY if not NO_TRANSFER else 10 ** 9
     device_config = PythonLRTTDevice(
         rank=LRTT_RANK,
         transfer_every=te,
@@ -333,11 +415,10 @@ def create_lrtt_config():
         fast_lr=FAST_LR,
         reinit_gain=REINIT_GAIN,
         reinit_mode=REINIT_MODE,
-        decay_factor=DECAY_FACTOR,
         unit_cell_devices=[ab_device, ab_device, c_device],
         train_c_bias=False,        # C tile bias frozen
         mapping_ab=MappingParameter(
-            weight_scaling_omega=0.0,
+            weight_scaling_omega=AB_WEIGHT_SCALING_OMEGA,
             learn_out_scaling=False,
         ),
         mapping_c=MappingParameter(
@@ -352,11 +433,16 @@ def create_lrtt_config():
     device_config.transfer_method = TRANSFER_METHOD
     device_config.update_mode = "lora"
     device_config.a_init_mode = "zero"
-    device_config.forward_inject = False
+    device_config.forward_inject = FORWARD_INJECT
+    device_config.fi_continuous_alpha = FI_CONTINUOUS_ALPHA
     device_config.no_adc_ab_projection = NO_ADC_AB_PROJ
     device_config.c_desired_bl = C_DESIRED_BL
     device_config.auto_scale_mode = AUTO_SCALE_MODE
     device_config.correct_gradient_magnitudes = CORRECT_GRADIENT_MAGNITUDES
+    device_config.scale_transfer_lr = not NO_SCALE_TRANSFER_LR
+    device_config.ab_pulse_type = AB_PULSE_TYPE
+    device_config.transfer_rank_schedule = TRANSFER_RANK_SCHEDULE
+    device_config.transfer_ranks_per_step = TRANSFER_RANKS_PER_STEP
 
     # Dynamic TE: increase TE as LR decays
     device_config.dynamic_te = DYNAMIC_TE
@@ -366,10 +452,18 @@ def create_lrtt_config():
     device_config.te_warmup_steps = TE_WARMUP_STEPS
 
     rpu_config = PythonLRTTRPUConfig(device=device_config)
+    rpu_config.update.desired_bl = AB_DESIRED_BL
 
-    # Set IO noise to 0.0 (per spec)
-    rpu_config.forward.out_noise = 0.0
-    rpu_config.backward.out_noise = 0.0
+    out_noise = OUT_NOISE if IO_NOISE else 0.0
+    rpu_config.forward.out_noise = out_noise
+    rpu_config.backward.out_noise = out_noise
+    rpu_config.forward.is_perfect = IS_PERFECT
+    rpu_config.backward.is_perfect = IS_PERFECT
+    if NO_QUANT:
+        rpu_config.forward.inp_res = -1
+        rpu_config.forward.out_res = -1
+        rpu_config.backward.inp_res = -1
+        rpu_config.backward.out_res = -1
 
     if BACKWARD_OUT_BOUND != 12.0:
         rpu_config.backward.out_bound = BACKWARD_OUT_BOUND
@@ -1108,16 +1202,19 @@ def main():
             d_size, x_size = diag_tile.tile_c.get_weights()[0].shape
             gc_dict['G_accum'] = torch.zeros(d_size, x_size, device=device)
             gc_dict['active'] = True
-            original_fn = diag_tile.controller.ab_weight_update
+            ctrl = diag_tile.controller
 
-            def hooked(x, d, lr, **kwargs):
-                if gc_dict.get('active'):
-                    with torch.no_grad():
-                        x_2d = x.reshape(-1, x.shape[-1])
-                        d_2d = d.reshape(-1, d.shape[-1])
-                        gc_dict['G_accum'] = gc_dict['G_accum'] + d_2d.t() @ x_2d
-                result = original_fn(x, d, lr, **kwargs)
-                if gc_dict.get('active'):
+            def _abs_stats(t):
+                """Return (mean, max) of |t| as floats."""
+                a = t.abs()
+                return a.mean().item(), a.max().item()
+
+            def _capture_common(x_b, d_a, x_a, d_b):
+                """Accumulate G and record AB + x/d stats after both tiles update."""
+                with torch.no_grad():
+                    x_2d = x_b.reshape(-1, x_b.shape[-1])
+                    d_2d = d_a.reshape(-1, d_a.shape[-1])
+                    gc_dict['G_accum'] = gc_dict['G_accum'] + d_2d.t() @ x_2d
                     A = diag_tile.tile_a.get_weights()[0].to(device)
                     B = diag_tile.tile_b.get_weights()[0].to(device)
                     AB = A @ B
@@ -1128,9 +1225,52 @@ def main():
                     gc_dict['cos_AB_G'] = (torch.nn.functional.cosine_similarity(
                         AB_flat.unsqueeze(0), G_flat.unsqueeze(0)).item()
                         if gc_dict['norm_AB_pre'] > 1e-10 and gc_dict['norm_G_accum'] > 1e-10 else 0.0)
-                return result
+                    gc_dict['xa_abs_mean'], gc_dict['xa_abs_max'] = _abs_stats(x_a.to(device))
+                    gc_dict['da_abs_mean'], gc_dict['da_abs_max'] = _abs_stats(d_a.to(device))
+                    gc_dict['xb_abs_mean'], gc_dict['xb_abs_max'] = _abs_stats(x_b.to(device))
+                    gc_dict['db_abs_mean'], gc_dict['db_abs_max'] = _abs_stats(d_b.to(device))
 
-            diag_tile.controller.ab_weight_update = hooked
+            if ctrl.forward_inject_enabled:
+                original_b_update = diag_tile.tile_b._orig_update
+
+                def hooked_b(x_input, d_input, *args, **kwargs):
+                    result = original_b_update(x_input, d_input, *args, **kwargs)
+                    if gc_dict.get('active'):
+                        _capture_common(
+                            x_b=x_input, d_a=ctrl._fi_a_d,
+                            x_a=ctrl._fi_a_x, d_b=d_input,
+                        )
+                    return result
+
+                diag_tile.tile_b._orig_update = hooked_b
+            else:
+                original_fn = ctrl.ab_weight_update
+
+                def hooked(x, d, lr, **kwargs):
+                    if gc_dict.get('active'):
+                        with torch.no_grad():
+                            A_w = diag_tile.tile_a.get_weights()[0].to(device)
+                            B_w = diag_tile.tile_b.get_weights()[0].to(device)
+                            x_dev = x.to(device); d_dev = d.to(device)
+                            x_2d = x_dev.reshape(-1, x_dev.shape[-1])
+                            d_2d = d_dev.reshape(-1, d_dev.shape[-1])
+                            XB = x_2d @ B_w.t()
+                            DA = d_2d @ A_w
+                            gc_dict['_nfi_XB'] = XB
+                            gc_dict['_nfi_DA'] = DA
+                            gc_dict['_nfi_x'] = x_2d
+                            gc_dict['_nfi_d'] = d_2d
+                    result = original_fn(x, d, lr, **kwargs)
+                    if gc_dict.get('active'):
+                        with torch.no_grad():
+                            XB = gc_dict.pop('_nfi_XB')
+                            DA = gc_dict.pop('_nfi_DA')
+                            x_2d = gc_dict.pop('_nfi_x')
+                            d_2d = gc_dict.pop('_nfi_d')
+                            _capture_common(x_b=x_2d, d_a=d_2d, x_a=XB, d_b=DA)
+                    return result
+
+                ctrl.ab_weight_update = hooked
 
         _install_hook(first_tile, DEVICE, first_gc)
         _install_hook(last_tile, DEVICE, last_gc)
@@ -1204,6 +1344,14 @@ def main():
                         rec["norm_G_accum"] = gcd.get('norm_G_accum', 0.0)
                         rec["norm_AB_pre"] = gcd.get('norm_AB_pre', 0.0)
                         rec["cos_AB_G"] = gcd.get('cos_AB_G', 0.0)
+                        rec["xa_abs_mean"] = gcd.get('xa_abs_mean', 0.0)
+                        rec["xa_abs_max"] = gcd.get('xa_abs_max', 0.0)
+                        rec["da_abs_mean"] = gcd.get('da_abs_mean', 0.0)
+                        rec["da_abs_max"] = gcd.get('da_abs_max', 0.0)
+                        rec["xb_abs_mean"] = gcd.get('xb_abs_mean', 0.0)
+                        rec["xb_abs_max"] = gcd.get('xb_abs_max', 0.0)
+                        rec["db_abs_mean"] = gcd.get('db_abs_mean', 0.0)
+                        rec["db_abs_max"] = gcd.get('db_abs_max', 0.0)
 
                         with torch.no_grad():
                             C_raw_after = get_raw_C(tile.tile_c).to(DEVICE)
