@@ -153,6 +153,7 @@ NUM_LABELS = TASK_TO_NUM_LABELS[TASK_NAME]
 
 # Training
 N_EPOCHS = 15
+SCHEDULE_EPOCHS = 0  # LR schedule horizon (0 = use N_EPOCHS; set > N_EPOCHS to match longer runs)
 BATCH_SIZE = 64
 EVAL_BATCH_SIZE = 256
 LEARNING_RATE = 0.9348960119904873
@@ -1227,7 +1228,8 @@ def main():
     model = create_model()
     optimizer = create_optimizer(model)
 
-    num_training_steps = len(train_loader) * N_EPOCHS // GRAD_ACCUM_STEPS
+    schedule_ep = SCHEDULE_EPOCHS if SCHEDULE_EPOCHS > 0 else N_EPOCHS
+    num_training_steps = len(train_loader) * schedule_ep // GRAD_ACCUM_STEPS
     scheduler = get_linear_schedule_with_min_lr(
         optimizer,
         num_warmup_steps=WARMUP_STEPS,

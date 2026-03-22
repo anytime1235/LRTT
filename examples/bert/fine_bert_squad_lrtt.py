@@ -102,6 +102,7 @@ MAX_SEQ_LENGTH = 320
 
 # Training
 N_EPOCHS = 1
+SCHEDULE_EPOCHS = 5  # LR schedule horizon (set > N_EPOCHS to match longer runs)
 BATCH_SIZE = 48
 EVAL_BATCH_SIZE = 256
 LEARNING_RATE = 0.009901404659094282
@@ -1307,7 +1308,8 @@ def main():
     model = create_model()
     optimizer = create_optimizer(model)
 
-    num_training_steps = len(train_loader) * N_EPOCHS // GRAD_ACCUM_STEPS
+    schedule_ep = SCHEDULE_EPOCHS if SCHEDULE_EPOCHS > 0 else N_EPOCHS
+    num_training_steps = len(train_loader) * schedule_ep // GRAD_ACCUM_STEPS
     scheduler = get_linear_schedule_with_min_lr(
         optimizer,
         num_warmup_steps=WARMUP_STEPS,
