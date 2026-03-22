@@ -887,7 +887,7 @@ def sample_cells(weight_matrix, cell_indices):
 def get_raw_C(tile_c):
     """Get C tile raw weights WITHOUT out_scaling."""
     W_scaled = tile_c.get_weights()[0]
-    if hasattr(tile_c, 'out_scaling_alpha'):
+    if hasattr(tile_c, 'out_scaling_alpha') and tile_c.out_scaling_alpha is not None:
         alpha = tile_c.out_scaling_alpha.detach().to(W_scaled.device)
         return W_scaled / alpha.unsqueeze(1)
     return W_scaled
