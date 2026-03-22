@@ -856,10 +856,8 @@ def _make_cell_indices(shape, n=10):
 def find_first_lrtt_tile(model):
     """Find the first LRTT tile in the model."""
     for name, mod in model.named_modules():
-        if hasattr(mod, 'analog_module'):
-            am = mod.analog_module
-            if hasattr(am, 'controller'):
-                return name, am
+        if hasattr(mod, 'controller'):
+            return name, mod
     raise RuntimeError("No LRTT tile found in model")
 
 
@@ -867,10 +865,8 @@ def find_last_lrtt_tile(model):
     """Find the last LRTT tile in the model."""
     last_name, last_tile = None, None
     for name, mod in model.named_modules():
-        if hasattr(mod, 'analog_module'):
-            am = mod.analog_module
-            if hasattr(am, 'controller'):
-                last_name, last_tile = name, am
+        if hasattr(mod, 'controller'):
+            last_name, last_tile = name, mod
     if last_tile is None:
         raise RuntimeError("No LRTT tile found in model")
     return last_name, last_tile
