@@ -98,7 +98,7 @@ SEED = 42
 
 # Model
 MODEL_NAME = "bert-base-uncased"
-MAX_SEQ_LENGTH = 320
+MAX_SEQ_LENGTH = 384
 
 # Training
 N_EPOCHS = 1
@@ -107,12 +107,12 @@ BATCH_SIZE = 48
 EVAL_BATCH_SIZE = 256
 LEARNING_RATE = 0.009901404659094282
 WEIGHT_DECAY = 0.0
-EARLY_STOP_PATIENCE = 3
-TRAIN_LOSS_EARLY_STOP_PATIENCE = 2  # Stop if train loss doesn't improve for this many epochs
+EARLY_STOP_PATIENCE = 2
+TRAIN_LOSS_EARLY_STOP_PATIENCE = 1  # Stop if train loss doesn't improve for this many epochs
 TRAIN_LOSS_THRESHOLD = 1.5  # Once train loss drops below this, rely on metric-based early stop only
 
 # Scheduler
-WARMUP_STEPS =500
+WARMUP_STEPS = 365
 MIN_LR_RATE = 0.0  # Fraction of peak LR (0 = decay to zero)
 
 # Optimizer
@@ -138,7 +138,7 @@ AB_DEVICE = "constantstepideal"  # "6t1c", "linearstep", "linearstepideal", "con
 C_DEVICE = "constantstepideal"   # "softboundsideal", "linearstepideal", "constantstep", "constantstepideal", "ideal"
 
 # IO / noise options
-IO_NOISE = False            # If False, disable out_noise (resolution kept)
+IO_NOISE = True             # If False, disable out_noise (resolution kept)
 FORWARD_INJECT = True       # If True, enable forward noise injection
 FI_CONTINUOUS_ALPHA = True  # If True, use continuous alpha for forward injection
 IS_PERFECT = True           # If True, forward/backward use ideal FP matmul (no ADC/DAC/noise)
@@ -170,7 +170,7 @@ TE_WARMUP_SCHEDULE = []
 # - ffn: projection (attention.output) + FFN (intermediate, output, bottleneck)
 # - all: all encoder linear layers
 NO_ADC_AB_PROJ = False  # If True, remove ADC between A/B projections
-LEARN_OUT_SCALING = True  # If True, C tile out_scaling is trainable
+LEARN_OUT_SCALING = False  # If True, C tile out_scaling is trainable
 LORA_TARGET = "qkvo"  # default
 HEAD_LAYER = "train"  # "train" or "freeze" for qa_outputs layer
 ENCODER_ANALOG = False  # If True, non-LRTT encoder layers become frozen analog instead of digital
@@ -618,7 +618,7 @@ def create_model():
     # - Everything else: FROZEN
     for name, param in model.named_parameters():
         if "tile_a" in name or "tile_b" in name:
-            param.requires_grad = True
+            param.requires_grad = not NO_TRANSFER
         elif "tile_c" in name:
             pass  # Respect lrtt_tile.py settings (train_c_bias, mapping_c)
         elif "out_scaling_alpha" in name:

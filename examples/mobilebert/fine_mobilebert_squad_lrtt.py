@@ -98,7 +98,7 @@ SEED = 42
 
 # Model
 MODEL_NAME = "google/mobilebert-uncased"
-MAX_SEQ_LENGTH = 320
+MAX_SEQ_LENGTH = 384
 
 # Training
 N_EPOCHS = 15
@@ -627,7 +627,7 @@ def create_model():
     # - Everything else: FROZEN
     for name, param in model.named_parameters():
         if "tile_a" in name or "tile_b" in name:
-            param.requires_grad = True
+            param.requires_grad = not NO_TRANSFER
         elif "tile_c" in name:
             pass  # Respect lrtt_tile.py settings (train_c_bias, mapping_c)
         elif "out_scaling_alpha" in name:
