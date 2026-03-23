@@ -19,7 +19,10 @@ W_eff formula for TTv1 (n=2 devices):
   gamma=1.0: W_eff = W_fast + W_slow
 """
 
-from aihwkit.simulator.configs.devices import ConstantStepDevice, LinearStepDevice, IdealDevice
+from aihwkit.simulator.configs.devices import (
+    ConstantStepDevice, LinearStepDevice, ExpStepDevice,
+    SoftBoundsReferenceDevice, IdealDevice,
+)
 from aihwkit.simulator.configs.configs import SingleRPUConfig
 from aihwkit.simulator.configs.helpers import build_config
 from aihwkit.simulator.parameters.training import UpdateParameters
@@ -79,10 +82,14 @@ def make_constant_step_device(dw_min=None, count_pulses=False):
 def make_linear_step_device(dw_min=None, count_pulses=False,
                             gamma_up=-0.1678, gamma_down=0.1410,
                             gamma_up_ratio=1.0, gamma_down_ratio=1.0,
-                            noise_ratio=0.0):
-    """Create a LinearStepDevice with 6T1C parameters.
+                            noise_ratio=0.0,
+                            abs_gamma_up=None, abs_gamma_down=None):
+    """Create a LinearStepDevice with configurable gamma parameters.
 
-    Gamma and noise are scaled by ratios relative to 6T1C measured values.
+    Two modes:
+      1. Ratio mode (default): gamma = base * ratio  (6T1C base values)
+      2. Absolute mode: if abs_gamma_up/abs_gamma_down are set, use them directly
+         (overrides ratio-based scaling). For ECRAM/other device presets.
 
     Args:
         dw_min: Weight update step size. Defaults to 14-bit.
@@ -93,18 +100,25 @@ def make_linear_step_device(dw_min=None, count_pulses=False,
         gamma_down_ratio: Scale factor for gamma_down (1.0 = 6T1C measured).
         noise_ratio: Scale factor for all noise params (0.0 = noise-free,
                      1.0 = 6T1C measured).
+        abs_gamma_up: Absolute gamma_up value (overrides ratio mode).
+        abs_gamma_down: Absolute gamma_down value (overrides ratio mode).
     """
     if dw_min is None:
         dw_min = DW_MIN_14BIT
     r_n = noise_ratio
+
+    # Determine final gamma values
+    final_gamma_up = abs_gamma_up if abs_gamma_up is not None else gamma_up * gamma_up_ratio
+    final_gamma_down = abs_gamma_down if abs_gamma_down is not None else gamma_down * gamma_down_ratio
+
     return LinearStepDevice(
         dw_min=dw_min,
         w_max=1.0,
         w_min=-1.0,
         up_down=0.0,
         mult_noise=False,
-        gamma_up=gamma_up * gamma_up_ratio,
-        gamma_down=gamma_down * gamma_down_ratio,
+        gamma_up=final_gamma_up,
+        gamma_down=final_gamma_down,
         # Noise: scaled by noise_ratio
         dw_min_std=0.3 * r_n,
         dw_min_dtod=0.1 * r_n,
@@ -119,6 +133,83 @@ def make_linear_step_device(dw_min=None, count_pulses=False,
     )
 
 
+def make_exp_step_device(dw_min=None, count_pulses=False,
+                         gamma_up=5.0, gamma_down=5.0,
+                         A_up=-1.18445, A_down=-0.081404,
+                         a=-0.5, b=-0.5,
+                         noise_ratio=0.0):
+    """Create an ExpStepDevice with RRAM-like parameters.
+
+    Default values match ReRamESPresetDevice (Gong et al., Nat. Commun., 2018).
+
+    Args:
+        dw_min: Weight update step size. Defaults to 14-bit.
+        count_pulses: Enable hardware pulse counters.
+        gamma_up/gamma_down: Exponential nonlinearity parameters.
+        A_up/A_down: Amplitude parameters for up/down pulses.
+        a/b: Shape parameters.
+        noise_ratio: Scale factor for noise (0=noise-free, 1=RRAM measured).
+    """
+    if dw_min is None:
+        dw_min = DW_MIN_14BIT
+    r_n = noise_ratio
+    return ExpStepDevice(
+        dw_min=dw_min,
+        w_max=1.0,
+        w_min=-1.0,
+        up_down=0.0,
+        a=a,
+        b=b,
+        gamma_up=gamma_up,
+        gamma_down=gamma_down,
+        A_up=A_up,
+        A_down=A_down,
+        # Noise: scaled by noise_ratio
+        dw_min_dtod=0.2 * r_n,
+        up_down_dtod=0.05 * r_n,
+        w_max_dtod=0.3 * r_n,
+        w_min_dtod=0.3 * r_n,
+        dw_min_std=5.0 * r_n,
+        write_noise_std=75.0 * r_n,
+        count_pulses=count_pulses,
+    )
+
+
+def make_soft_bounds_device(dw_min=None, count_pulses=False, noise_ratio=0.0):
+    """Create a SoftBoundsReferenceDevice (noise-free by default).
+
+    Matches ReRamArrayHfO2PresetDevice structure (Gong & Rasch, IEDM 2022).
+    Nonlinearity comes from soft bounds behavior (update size depends on
+    proximity to w_max/w_min), not from gamma parameters.
+
+    Args:
+        dw_min: Weight update step size. Defaults to 14-bit.
+        count_pulses: Enable hardware pulse counters.
+        noise_ratio: Scale factor for noise (0=noise-free, 1=HfO2 measured).
+    """
+    if dw_min is None:
+        dw_min = DW_MIN_14BIT
+    r_n = noise_ratio
+    return SoftBoundsReferenceDevice(
+        dw_min=dw_min,
+        w_max=1.0,
+        w_min=-1.0,
+        up_down=0.0,
+        mult_noise=False,
+        # Noise: scaled by noise_ratio (HfO2 baseline values)
+        dw_min_dtod=0.7125 * r_n,
+        up_down_dtod=0.01 * r_n,
+        w_max_dtod=0.4295 * r_n,
+        w_min_dtod=0.5990 * r_n,
+        dw_min_std=0.2174 * r_n,
+        write_noise_std=0.5841 * r_n,
+        subtract_symmetry_point=True,
+        reference_std=0.05 * r_n,
+        count_pulses=count_pulses,
+    )
+
+
+>>>>>>> a95f2b2 (Add SingleRPU device_type support and gamma sweep launchers)
 def _apply_perfect_io(config):
     """Set ALL IO paths to perfect (no DAC/ADC quantization, no noise).
 
@@ -217,7 +308,11 @@ def _apply_common_mapping(config):
 
 def build_single_rpu_config(pulse_type=PulseType.STOCHASTIC_COMPRESSED,
                             desired_bl=31, dw_min=None, count_pulses=False,
-                            io_bits=None, noise_management="abs_max"):
+                            io_bits=None, noise_management="abs_max",
+                            device_type="constant_step",
+                            ls_gamma_up_ratio=1.0, ls_gamma_down_ratio=1.0,
+                            ls_noise_ratio=0.0,
+                            ls_gamma_up=None, ls_gamma_down=None):
     """SingleRPU — analog pulsed update.
 
     Args:
@@ -226,8 +321,36 @@ def build_single_rpu_config(pulse_type=PulseType.STOCHASTIC_COMPRESSED,
         dw_min: Override dw_min (default None -> 14-bit).
         count_pulses: Enable hardware pulse counters.
         io_bits: DAC/ADC bit precision (None or 0 = perfect).
+        device_type: 'constant_step', 'linear_step', 'exp_step', or 'soft_bounds'.
+        ls_gamma_up_ratio: Scale factor for gamma_up (LinearStep).
+        ls_gamma_down_ratio: Scale factor for gamma_down (LinearStep).
+        ls_noise_ratio: Scale factor for noise (0=noise-free).
+        ls_gamma_up: Absolute gamma_up value (overrides ratio mode).
+        ls_gamma_down: Absolute gamma_down value (overrides ratio mode).
     """
-    device = make_constant_step_device(dw_min=dw_min, count_pulses=count_pulses)
+    if device_type == "linear_step":
+        device = make_linear_step_device(
+            dw_min=dw_min, count_pulses=count_pulses,
+            gamma_up_ratio=ls_gamma_up_ratio,
+            gamma_down_ratio=ls_gamma_down_ratio,
+            noise_ratio=ls_noise_ratio,
+            abs_gamma_up=ls_gamma_up,
+            abs_gamma_down=ls_gamma_down,
+        )
+    elif device_type == "exp_step":
+        device = make_exp_step_device(
+            dw_min=dw_min, count_pulses=count_pulses,
+            gamma_up=ls_gamma_up if ls_gamma_up is not None else 5.0,
+            gamma_down=ls_gamma_down if ls_gamma_down is not None else 5.0,
+            noise_ratio=ls_noise_ratio,
+        )
+    elif device_type == "soft_bounds":
+        device = make_soft_bounds_device(
+            dw_min=dw_min, count_pulses=count_pulses,
+            noise_ratio=ls_noise_ratio,
+        )
+    else:
+        device = make_constant_step_device(dw_min=dw_min, count_pulses=count_pulses)
     up = UpdateParameters(
         pulse_type=pulse_type,
         desired_bl=desired_bl,
@@ -248,7 +371,8 @@ def build_ttv1_config(gamma=0.0, dw_min=None, dw_min_slow=None,
                       io_bits=None, noise_management="abs_max",
                       device_type="constant_step",
                       ls_gamma_up_ratio=1.0, ls_gamma_down_ratio=1.0,
-                      ls_noise_ratio=0.0):
+                      ls_noise_ratio=0.0,
+                      ls_gamma_up=None, ls_gamma_down=None):
     """TTv1 — TransferCompound (Gokmen & Haensch 2020).
 
     W_eff = gamma * W_fast + 1.0 * W_slow
@@ -272,24 +396,54 @@ def build_ttv1_config(gamma=0.0, dw_min=None, dw_min_slow=None,
         io_bits: DAC/ADC bit precision (None or 0 = perfect).
     """
     if device_type == "linear_step":
-        device = make_linear_step_device(
+        fast_device = make_linear_step_device(
             dw_min=dw_min, count_pulses=count_pulses,
             gamma_up_ratio=ls_gamma_up_ratio,
             gamma_down_ratio=ls_gamma_down_ratio,
             noise_ratio=ls_noise_ratio,
+            abs_gamma_up=ls_gamma_up,
+            abs_gamma_down=ls_gamma_down,
+        )
+        # Slow tile: ConstantStep (same as baseline gamma/bit sweeps)
+        slow_device = make_constant_step_device(
+            dw_min=dw_min_slow if dw_min_slow is not None else dw_min,
+            count_pulses=count_pulses,
+        )
+    elif device_type == "exp_step":
+        fast_device = make_exp_step_device(
+            dw_min=dw_min, count_pulses=count_pulses,
+            gamma_up=ls_gamma_up if ls_gamma_up is not None else 5.0,
+            gamma_down=ls_gamma_down if ls_gamma_down is not None else 5.0,
+            noise_ratio=ls_noise_ratio,
+        )
+        slow_device = make_constant_step_device(
+            dw_min=dw_min_slow if dw_min_slow is not None else dw_min,
+            count_pulses=count_pulses,
+        )
+    elif device_type == "soft_bounds":
+        fast_device = make_soft_bounds_device(
+            dw_min=dw_min, count_pulses=count_pulses,
+            noise_ratio=ls_noise_ratio,
+        )
+        slow_device = make_constant_step_device(
+            dw_min=dw_min_slow if dw_min_slow is not None else dw_min,
+            count_pulses=count_pulses,
         )
     else:
-        device = make_constant_step_device(dw_min=dw_min, count_pulses=count_pulses)
+        fast_device = make_constant_step_device(dw_min=dw_min, count_pulses=count_pulses)
+        slow_device = None  # use default (same as fast)
     up = UpdateParameters(
         pulse_type=PulseType.STOCHASTIC_COMPRESSED,
         desired_bl=desired_bl,
         fixed_bl=True,
     )
-    config = build_config("ttv1", device, up_parameters=up)
+    config = build_config("ttv1", fast_device, up_parameters=up)
     config.device.gamma = gamma
 
-    # Set different dw_min for slow tile if specified
-    if dw_min_slow is not None:
+    # Set slow tile device
+    if slow_device is not None:
+        config.device.unit_cell_devices[1] = slow_device
+    elif dw_min_slow is not None:
         config.device.unit_cell_devices[1].dw_min = dw_min_slow
 
     # Transfer update pulse train length (independent from SGD update BL)

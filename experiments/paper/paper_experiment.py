@@ -655,6 +655,12 @@ def _build_method_kwargs(args):
         pt = PULSE_TYPE_MAP.get(args.pulse_type, PULSE_TYPE_MAP["stochastic"])
         kwargs["pulse_type"] = pt
         kwargs["desired_bl"] = args.desired_bl
+        kwargs["device_type"] = args.device_type
+        kwargs["ls_gamma_up_ratio"] = args.ls_gamma_up_ratio
+        kwargs["ls_gamma_down_ratio"] = args.ls_gamma_down_ratio
+        kwargs["ls_noise_ratio"] = args.ls_noise_ratio
+        kwargs["ls_gamma_up"] = args.ls_gamma_up
+        kwargs["ls_gamma_down"] = args.ls_gamma_down
 
     elif args.method == "ttv1":
         kwargs["gamma"] = args.gamma
@@ -663,6 +669,8 @@ def _build_method_kwargs(args):
         kwargs["ls_gamma_up_ratio"] = args.ls_gamma_up_ratio
         kwargs["ls_gamma_down_ratio"] = args.ls_gamma_down_ratio
         kwargs["ls_noise_ratio"] = args.ls_noise_ratio
+        kwargs["ls_gamma_up"] = args.ls_gamma_up
+        kwargs["ls_gamma_down"] = args.ls_gamma_down
         if args.transfer_every is not None:
             kwargs["transfer_every"] = args.transfer_every
         if args.units_in_mbatch is not None:
@@ -1281,6 +1289,13 @@ def _save_config(args, rpu_config, effective_dw_min, num_training_steps):
 
     if args.method == "single_rpu":
         config["pulse_type"] = args.pulse_type
+        config["device_type"] = args.device_type
+        if args.device_type != "constant_step":
+            config["ls_gamma_up_ratio"] = args.ls_gamma_up_ratio
+            config["ls_gamma_down_ratio"] = args.ls_gamma_down_ratio
+            config["ls_noise_ratio"] = args.ls_noise_ratio
+            config["ls_gamma_up"] = args.ls_gamma_up
+            config["ls_gamma_down"] = args.ls_gamma_down
 
     if args.method == "ttv1":
         config["gamma"] = args.gamma
@@ -1402,14 +1417,18 @@ def parse_args():
 
     # Device type (LinearStep support)
     parser.add_argument("--device-type", type=str, default="constant_step",
-                        choices=["constant_step", "linear_step"],
-                        help="Analog device model: constant_step (ideal) or linear_step (6T1C)")
+                        choices=["constant_step", "linear_step", "exp_step", "soft_bounds"],
+                        help="Analog device model: constant_step (ideal), linear_step (ECRAM/6T1C), exp_step (RRAM-ES), or soft_bounds (RRAM-HfO2)")
     parser.add_argument("--ls-gamma-up-ratio", type=float, default=1.0,
                         help="LinearStep gamma_up scale (1.0 = 6T1C measured -0.1678)")
     parser.add_argument("--ls-gamma-down-ratio", type=float, default=1.0,
                         help="LinearStep gamma_down scale (1.0 = 6T1C measured 0.1410)")
     parser.add_argument("--ls-noise-ratio", type=float, default=0.0,
                         help="LinearStep noise scale (0=noise-free, 1.0=6T1C measured)")
+    parser.add_argument("--ls-gamma-up", type=float, default=None,
+                        help="Absolute gamma_up value (overrides ratio mode). E.g. 0.1153 for EcRam")
+    parser.add_argument("--ls-gamma-down", type=float, default=None,
+                        help="Absolute gamma_down value (overrides ratio mode). E.g. 0.5085 for EcRam")
 
     # Control
     parser.add_argument("--count-pulses", action="store_true")

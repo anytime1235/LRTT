@@ -4,9 +4,9 @@
 # Groups: QKV (in-projection), O (out-projection), FFN1, FFN2
 set -e
 source ~/.venv310/bin/activate
-cd /root
+cd /root/LRTT/experiments/paper
 
-OUT_BASE="results/sa_v4_training_sensitivity"
+OUT_BASE="/root/results/sa_v4_training_sensitivity"
 COMMON="--method ideal --target-layers all --noise-management abs_max \
   --analog-lr 0.0357 --classifier-lr 0.00076 --ln-lr 0.00076 \
   --batch-size 24 --grad-accum-steps 2 --epochs 4 --seed 42 --mode fixed \
@@ -16,10 +16,10 @@ mkdir -p "$OUT_BASE"
 
 echo "============================================"
 echo "Training Sensitivity: base=8b, target=4b, 4ep"
-echo "  Groups: QKV, O, FFN1, FFN2"
+echo "  Groups: QKV, O (first 2 of 4)"
 echo "============================================"
 
-for GROUP in QKV O FFN1 FFN2; do
+for GROUP in QKV O; do
   case $GROUP in
     QKV)  BITS="Q=4,K=4,V=4,O=8,FFN1=8,FFN2=8" ;;
     O)    BITS="Q=8,K=8,V=8,O=4,FFN1=8,FFN2=8" ;;
@@ -40,13 +40,13 @@ for GROUP in QKV O FFN1 FFN2; do
 done
 
 echo "============================================"
-echo "[$(date +%H:%M)] All sensitivity runs completed"
+echo "[$(date +%H:%M)] QKV + O sensitivity runs completed"
 echo "============================================"
 
 # Print summary
 echo ""
 echo "=== SUMMARY ==="
-for GROUP in QKV O FFN1 FFN2; do
+for GROUP in QKV O; do
   LOG="${OUT_BASE}/sens_${GROUP}_4b.log"
   RESULT=$(grep "Done:" "$LOG" 2>/dev/null | tail -1)
   echo "  ${GROUP}=4b: $RESULT"
