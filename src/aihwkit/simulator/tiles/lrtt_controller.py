@@ -152,7 +152,7 @@ class LRTTController:
         self.gran_b = 1.0
         self.last_lr_eff_a = 1.0   # Python float (after .item())
         self.last_lr_eff_b = 1.0
-        self._last_lr_sgd = 1.0
+        self._last_lr_sgd = 0.0  # Init to 0: avoids spurious α spike at step 0 (fi_continuous_alpha)
         self.rank_chunk = rank_chunk or rank
         self.forward_inject_enabled = forward_inject
         self.fi_continuous_alpha = fi_continuous_alpha

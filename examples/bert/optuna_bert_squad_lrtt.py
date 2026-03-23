@@ -1174,7 +1174,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         torch.cuda.empty_cache()
 
     # Hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 9e-5, 2e-2, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 8e-5, 3e-2, log=True)
 
     # LRTT parameters: skip sweep if --no-transfer (A/B frozen, no transfer happens)
     if OPT_CONFIG['no_transfer']:
@@ -1185,15 +1185,15 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         fast_lr = 1.0            # fixed (no effect)
         tau_sec = 0.0            # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 3e-1, 6e4, log=True)
-        transfer_every = trial.suggest_int('transfer_every', 1, 600, log=True)
+        transfer_lr = trial.suggest_float('transfer_lr', 2e2, 3e5, log=True)
+        transfer_every = trial.suggest_int('transfer_every', 1, 400, log=True)
         rank_exp = trial.suggest_int('rank_exp', 0, 6)
         rank = 2 ** rank_exp
-        fast_lr = trial.suggest_float('fast_lr', 1e-2, 2e1, log=True)
+        fast_lr = trial.suggest_float('fast_lr', 2e-2, 5e-1, log=True)
         tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
 
     # A/B device params
-    ab_dw_min = trial.suggest_float('ab_dw_min',2e-5, 2e-1, log=True)  # default: 6t1c value
+    ab_dw_min = trial.suggest_float('ab_dw_min', 0.001981, 0.001981, log=True)  # default: 6t1c value
     ab_desired_bl = trial.suggest_int('ab_desired_bl', 31, 31)        # default: 31
 
     # C tile pulsed transfer params (only meaningful for onehot/direct)
@@ -1644,6 +1644,11 @@ def main():
     # Auto-generate study name based on config (includes batch size)
     study_name = args.study_name or f"bert_squad_lrtt_bs{BATCH_SIZE}_{get_study_name_suffix()}"
 
+    print(f"\n{'='*70}")
+    print(f"  Study: {study_name}")
+    print(f"  Log  : {RESULTS}/optuna_{study_name}.log")
+    print(f"{'='*70}\n")
+
     storage = JournalStorage(JournalFileBackend(f"{RESULTS}/optuna_{study_name}.log"))
 
     if args.visualize:
@@ -1676,11 +1681,20 @@ def main():
         load_if_exists=True,
     )
 
+    # Warn if this is a brand-new study (likely means wrong flags were passed)
+    existing_trials = study.trials
+    n_complete = sum(1 for t in existing_trials if t.state == TrialState.COMPLETE)
+    if not existing_trials:
+        print(f"[WARNING] NEW STUDY created (no existing trials). "
+              f"Verify the study name above matches your intent.\n")
+    else:
+        print(f"Loaded existing study: {len(existing_trials)} trials total, {n_complete} complete.\n")
+
     # Enqueue retry trial if OOM retry pending
     if retry_info is not None:
         study.enqueue_trial(retry_info["trial_params"])
 
-    print(f"\nStudy: {study_name}, Device: {DEVICE}, New trials: {args.n_trials}")
+    print(f"Study: {study_name}, Device: {DEVICE}, New trials: {args.n_trials}")
 
     # Run trials with OOM recovery via process restart
     initial_complete = sum(1 for t in study.trials if t.state == TrialState.COMPLETE)

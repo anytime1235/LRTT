@@ -1765,6 +1765,11 @@ def main():
     # Auto-generate study name based on config (includes batch size)
     study_name = args.study_name or f"albert_squad_lrtt_bs{BATCH_SIZE}_{get_study_name_suffix()}"
 
+    print(f"\n{'='*70}")
+    print(f"  Study: {study_name}")
+    print(f"  Log  : {RESULTS}/optuna_{study_name}.log")
+    print(f"{'='*70}\n")
+
     storage = JournalStorage(JournalFileBackend(f"{RESULTS}/optuna_{study_name}.log"))
 
     if args.visualize:
@@ -1797,11 +1802,20 @@ def main():
         load_if_exists=True,
     )
 
+    # Warn if this is a brand-new study (likely means wrong flags were passed)
+    existing_trials = study.trials
+    n_complete = sum(1 for t in existing_trials if t.state == TrialState.COMPLETE)
+    if not existing_trials:
+        print(f"[WARNING] NEW STUDY created (no existing trials). "
+              f"Verify the study name above matches your intent.\n")
+    else:
+        print(f"Loaded existing study: {len(existing_trials)} trials total, {n_complete} complete.\n")
+
     # Enqueue retry trial if OOM retry pending
     if retry_info is not None:
         study.enqueue_trial(retry_info["trial_params"])
 
-    print(f"\nStudy: {study_name}, Device: {DEVICE}, New trials: {args.n_trials}")
+    print(f"Study: {study_name}, Device: {DEVICE}, New trials: {args.n_trials}")
 
     # Run trials with OOM recovery via process restart
     initial_complete = sum(1 for t in study.trials if t.state == TrialState.COMPLETE)
