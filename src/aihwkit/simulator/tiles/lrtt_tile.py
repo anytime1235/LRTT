@@ -459,6 +459,10 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         def hooked_ab(tile, tile_name):
             def update_wrapper(x_input, d_input, *args, **kwargs):
                 alpha = ctrl.effective_alpha
+                if alpha == 0.0:
+                    # AB contributes nothing to forward (y = y_c + 0*y_ab),
+                    # so gradients are zero and no tile update is needed.
+                    return None
                 d_rescaled = d_input / alpha
                 m_batch = x_input.shape[0]
 
