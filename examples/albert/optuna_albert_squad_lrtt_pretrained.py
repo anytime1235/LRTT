@@ -1913,7 +1913,9 @@ def _oom_restart_callback(study, trial):
 
     if trial.state == TrialState.FAIL:
         err = trial.user_attrs.get("error", "")
-        if any(k in err.lower() for k in ("out of memory", "cublas", "nvml", "internal assert failed")):
+        is_oom = any(k in err.lower() for k in ("out of memory", "cublas"))
+        is_cuda_assert = any(k in err.lower() for k in ("nvml", "internal assert failed"))
+        if is_oom:
             # Pick the next divisor of BATCH_SIZE larger than current GRAD_ACCUM_STEPS
             # so that micro_bs = BATCH_SIZE // new_grad_accum is always exact.
             divisors = sorted(d for d in range(1, BATCH_SIZE + 1) if BATCH_SIZE % d == 0)
@@ -1937,6 +1939,15 @@ def _oom_restart_callback(study, trial):
 
             print(f"\n[OOM Recovery] Trial {trial.number} OOM. "
                   f"Will restart with GRAD_ACCUM_STEPS={new_grad_accum}, micro_bs={micro_bs}.")
+            raise _OOMRestart()
+        elif is_cuda_assert:
+            # CUDA context corruption (not OOM): restart to get clean CUDA context,
+            # but do NOT bump ga or save a retry file (ga-bump does not help here).
+            retry_file = os.path.join(RESULTS, f"_oom_retry_{study.study_name}.json")
+            if os.path.exists(retry_file):
+                os.remove(retry_file)
+            print(f"\n[CUDA Recovery] Trial {trial.number} CUDA context error. "
+                  f"Restarting to reset CUDA (no ga change).")
             raise _OOMRestart()
 
     # After retry trial completes, restart to reset GRAD_ACCUM_STEPS to default
