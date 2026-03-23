@@ -1790,13 +1790,18 @@ def _oom_restart_callback(study, trial):
                   f"Will restart with GRAD_ACCUM_STEPS={new_grad_accum}, micro_bs={micro_bs}.")
             raise _OOMRestart()
         elif is_cuda_assert:
-            # CUDA context corruption (not OOM): restart to get clean CUDA context,
-            # but do NOT bump ga or save a retry file (ga-bump does not help here).
+            # CUDA context corruption (not OOM): retry same trial in a fresh process
+            # with the same ga (no bump) so the trial gets a clean CUDA context.
             retry_file = os.path.join(RESULTS, f"_oom_retry_{study.study_name}.json")
-            if os.path.exists(retry_file):
-                os.remove(retry_file)
+            retry_info = {
+                "trial_params": dict(trial.params),
+                "trial_number": trial.number,
+                "grad_accum_steps": GRAD_ACCUM_STEPS,
+            }
+            with open(retry_file, 'w') as f:
+                json.dump(retry_info, f, indent=2)
             print(f"\n[CUDA Recovery] Trial {trial.number} CUDA context error. "
-                  f"Restarting to reset CUDA (no ga change).")
+                  f"Retrying in fresh process with ga={GRAD_ACCUM_STEPS} (no ga change).")
             raise _OOMRestart()
 
     # After retry trial completes, restart to reset GRAD_ACCUM_STEPS to default
