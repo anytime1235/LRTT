@@ -1,0 +1,115 @@
+{
+  "experiment": "Ideal Device Per-Sublayer IO Sensitivity",
+  "description": "IdealDevice (FP32 update), all 72 layers analog, base IO=8b, one sublayer lowered to {4,5,6,7}b",
+  "date": "2026-03-19 ~ 2026-03-20",
+  "config": {
+    "method": "ideal",
+    "device": "IdealDevice",
+    "target_layers": "all (72 linear layers)",
+    "base_io_bits": 8,
+    "noise_management": "abs_max",
+    "epochs": 1,
+    "batch_size": 24,
+    "grad_accum_steps": 2,
+    "effective_batch_size": 48,
+    "analog_lr": 0.0357,
+    "classifier_lr": 0.00076,
+    "ln_lr": 0.00076,
+    "min_lr_rate": 0.05,
+    "seed": 42,
+    "model": "bert-base-uncased",
+    "task": "SQuAD v1.1"
+  },
+  "results": {
+    "K": {
+      "4": {
+        "best_f1": 82.0,
+        "final_f1": 82.0,
+        "final_em": 73.22,
+        "total_steps": 1844,
+        "wall_time_s": 6508.0
+      },
+      "5": {
+        "best_f1": 84.02,
+        "final_f1": 84.02,
+        "final_em": 75.89,
+        "total_steps": 1844,
+        "wall_time_s": 6504.5
+      },
+      "6": {
+        "best_f1": 84.37,
+        "final_f1": 84.37,
+        "final_em": 76.11,
+        "total_steps": 1844,
+        "wall_time_s": 6497.6
+      },
+      "7": {
+        "best_f1": 84.58,
+        "final_f1": 84.58,
+        "final_em": 76.57,
+        "total_steps": 1844,
+        "wall_time_s": 6510.0
+      }
+    },
+    "Q": {
+      "4": {
+        "best_f1": 83.34,
+        "final_f1": 83.34,
+        "final_em": 74.82,
+        "total_steps": 1844,
+        "wall_time_s": 6655.7
+      },
+      "5": {
+        "best_f1": 84.62,
+        "final_f1": 84.62,
+        "final_em": 76.32,
+        "total_steps": 1844,
+        "wall_time_s": 6655.1
+      },
+      "6": {
+        "best_f1": 84.48,
+        "final_f1": 84.48,
+        "final_em": 76.37,
+        "total_steps": 1844,
+        "wall_time_s": 6711.2
+      },
+      "7": {
+        "best_f1": 84.51,
+        "final_f1": 84.51,
+        "final_em": 76.45,
+        "total_steps": 1844,
+        "wall_time_s": 6622.9
+      }
+    },
+    "V": {
+      "4": {
+        "best_f1": 83.39,
+        "final_f1": 83.39,
+        "final_em": 74.97,
+        "total_steps": 1844,
+        "wall_time_s": 6502.3
+      },
+      "5": {
+        "best_f1": 84.38,
+        "final_f1": 84.38,
+        "final_em": 76.15,
+        "total_steps": 1844,
+        "wall_time_s": 6506.9
+      },
+      "6": {
+        "best_f1": 85.2,
+        "final_f1": 85.2,
+        "final_em": 76.9,
+        "total_steps": 1844,
+        "wall_time_s": 6514.7
+      },
+      "7": {
+        "best_f1": 84.42,
+        "final_f1": 84.42,
+        "final_em": 76.22,
+        "total_steps": 1844,
+        "wall_time_s": 6498.1
+      }
+    }
+  }
+}
