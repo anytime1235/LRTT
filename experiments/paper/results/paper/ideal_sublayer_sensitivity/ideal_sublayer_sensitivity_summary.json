@@ -1,7 +1,7 @@
 {
   "experiment": "Ideal Device Per-Sublayer IO Sensitivity",
-  "description": "IdealDevice (FP32 update), all 72 layers analog, base IO=8b, one sublayer lowered to {4,5,6,7}b",
-  "date": "2026-03-19 ~ 2026-03-20",
+  "description": "IdealDevice (FP32 update), all 72 layers analog, base IO=8b, one sublayer group lowered to {4,5,6,7}b. All results at 1 epoch. Individual sublayers (Q,K,V) + grouped (O, FFN1, FFN2, QKVO).",
+  "date": "2026-03-19 ~ 2026-03-21",
   "config": {
     "method": "ideal",
     "device": "IdealDevice",
@@ -21,64 +21,72 @@
     "task": "SQuAD v1.1"
   },
   "results": {
-    "K": {
-      "4": {
-        "best_f1": 82.0,
-        "final_f1": 82.0,
-        "final_em": 73.22,
-        "total_steps": 1844,
-        "wall_time_s": 6508.0
-      },
-      "5": {
-        "best_f1": 84.02,
-        "final_f1": 84.02,
-        "final_em": 75.89,
-        "total_steps": 1844,
-        "wall_time_s": 6504.5
-      },
-      "6": {
-        "best_f1": 84.37,
-        "final_f1": 84.37,
-        "final_em": 76.11,
-        "total_steps": 1844,
-        "wall_time_s": 6497.6
-      },
-      "7": {
-        "best_f1": 84.58,
-        "final_f1": 84.58,
-        "final_em": 76.57,
-        "total_steps": 1844,
-        "wall_time_s": 6510.0
-      }
-    },
     "Q": {
       "4": {
         "best_f1": 83.34,
         "final_f1": 83.34,
         "final_em": 74.82,
         "total_steps": 1844,
-        "wall_time_s": 6655.7
+        "wall_time_s": 6655.7,
+        "epochs": 1
       },
       "5": {
         "best_f1": 84.62,
         "final_f1": 84.62,
         "final_em": 76.32,
         "total_steps": 1844,
-        "wall_time_s": 6655.1
+        "wall_time_s": 6655.1,
+        "epochs": 1
       },
       "6": {
         "best_f1": 84.48,
         "final_f1": 84.48,
         "final_em": 76.37,
         "total_steps": 1844,
-        "wall_time_s": 6711.2
+        "wall_time_s": 6711.2,
+        "epochs": 1
       },
       "7": {
         "best_f1": 84.51,
         "final_f1": 84.51,
         "final_em": 76.45,
         "total_steps": 1844,
-        "wall_time_s": 6622.9
+        "wall_time_s": 6622.9,
+        "epochs": 1
+      }
+    },
+    "K": {
+      "4": {
+        "best_f1": 82.0,
+        "final_f1": 82.0,
+        "final_em": 73.22,
+        "total_steps": 1844,
+        "wall_time_s": 6508.0,
+        "epochs": 1
+      },
+      "5": {
+        "best_f1": 84.02,
+        "final_f1": 84.02,
+        "final_em": 75.89,
+        "total_steps": 1844,
+        "wall_time_s": 6504.5,
+        "epochs": 1
+      },
+      "6": {
+        "best_f1": 84.37,
+        "final_f1": 84.37,
+        "final_em": 76.11,
+        "total_steps": 1844,
+        "wall_time_s": 6497.6,
+        "epochs": 1
+      },
+      "7": {
+        "best_f1": 84.58,
+        "final_f1": 84.58,
+        "final_em": 76.57,
+        "total_steps": 1844,
+        "wall_time_s": 6510.0,
+        "epochs": 1
       }
     },
     "V": {
@@ -87,29 +95,178 @@
         "final_f1": 83.39,
         "final_em": 74.97,
         "total_steps": 1844,
-        "wall_time_s": 6502.3
+        "wall_time_s": 6502.3,
+        "epochs": 1
       },
       "5": {
         "best_f1": 84.38,
         "final_f1": 84.38,
         "final_em": 76.15,
         "total_steps": 1844,
-        "wall_time_s": 6506.9
+        "wall_time_s": 6506.9,
+        "epochs": 1
       },
       "6": {
         "best_f1": 85.2,
         "final_f1": 85.2,
         "final_em": 76.9,
         "total_steps": 1844,
-        "wall_time_s": 6514.7
+        "wall_time_s": 6514.7,
+        "epochs": 1
       },
       "7": {
         "best_f1": 84.42,
         "final_f1": 84.42,
         "final_em": 76.22,
         "total_steps": 1844,
-        "wall_time_s": 6498.1
+        "wall_time_s": 6498.1,
+        "epochs": 1
+      }
+    },
+    "O": {
+      "4": {
+        "best_f1": 83.43,
+        "final_f1": 83.43,
+        "final_em": 74.96,
+        "total_steps": 1844,
+        "wall_time_s": 6562.5,
+        "epochs": 1
+      },
+      "5": {
+        "best_f1": 84.4,
+        "final_f1": 84.4,
+        "final_em": 76.2,
+        "total_steps": 1844,
+        "wall_time_s": 6527.3,
+        "epochs": 1
+      },
+      "6": {
+        "best_f1": 84.72,
+        "final_f1": 84.72,
+        "final_em": 76.65,
+        "total_steps": 1844,
+        "wall_time_s": 6529.5,
+        "epochs": 1
+      },
+      "7": {
+        "best_f1": 84.6,
+        "final_f1": 84.6,
+        "final_em": 76.36,
+        "total_steps": 1844,
+        "wall_time_s": 6549.5,
+        "epochs": 1
+      }
+    },
+    "FFN1": {
+      "4": {
+        "best_f1": 6.74,
+        "final_f1": 6.46,
+        "final_em": 2.67,
+        "total_steps": 1844,
+        "wall_time_s": 6639.5,
+        "epochs": 1
+      },
+      "5": {
+        "best_f1": 78.56,
+        "final_f1": 78.56,
+        "final_em": 69.42,
+        "total_steps": 1844,
+        "wall_time_s": 6628.5,
+        "epochs": 1,
+        "source": "4ep run epoch 1 eval"
+      },
+      "6": {
+        "best_f1": 83.71,
+        "final_f1": 83.71,
+        "final_em": 75.42,
+        "total_steps": 1844,
+        "wall_time_s": 6508.1,
+        "epochs": 1,
+        "source": "4ep run epoch 1 eval"
+      },
+      "7": {
+        "best_f1": 84.68,
+        "final_f1": 84.68,
+        "final_em": 76.59,
+        "total_steps": 1844,
+        "wall_time_s": 6511.2,
+        "epochs": 1
+      }
+    },
+    "FFN2": {
+      "4": {
+        "best_f1": 7.14,
+        "final_f1": 5.33,
+        "final_em": 1.14,
+        "total_steps": 1844,
+        "wall_time_s": 6366.0,
+        "epochs": 1
+      },
+      "5": {
+        "best_f1": 79.0,
+        "final_f1": 79.0,
+        "final_em": 69.16,
+        "total_steps": 1844,
+        "wall_time_s": 6409.6,
+        "epochs": 1
+      },
+      "6": {
+        "best_f1": 83.93,
+        "final_f1": 83.93,
+        "final_em": 75.54,
+        "total_steps": 1844,
+        "wall_time_s": 6490.1,
+        "epochs": 1
+      },
+      "7": {
+        "best_f1": 84.44,
+        "final_f1": 84.44,
+        "final_em": 76.2,
+        "total_steps": 1844,
+        "wall_time_s": 6507.8,
+        "epochs": 1
+      }
+    },
+    "QKVO": {
+      "4": {
+        "best_f1": 74.03,
+        "final_f1": 74.03,
+        "final_em": 64.0,
+        "total_steps": 1844,
+        "wall_time_s": 6533.9,
+        "epochs": 1
+      },
+      "5": {
+        "best_f1": 83.7,
+        "final_f1": 83.7,
+        "final_em": 75.08,
+        "total_steps": 1844,
+        "wall_time_s": 6540.3,
+        "epochs": 1
+      },
+      "6": {
+        "best_f1": 84.84,
+        "final_f1": 84.84,
+        "final_em": 76.39,
+        "total_steps": 1844,
+        "wall_time_s": 6490.8,
+        "epochs": 1
+      },
+      "7": {
+        "best_f1": 84.71,
+        "final_f1": 84.71,
+        "final_em": 76.55,
+        "total_steps": 1844,
+        "wall_time_s": 6503.3,
+        "epochs": 1
       }
     }
+  },
+  "notes": {
+    "individual_sublayers": "Q, K, V: only that one sublayer type lowered across all 12 layers, rest=8b",
+    "grouped_sublayers": "O: output projection only. FFN1: intermediate.dense. FFN2: output.dense (non-attention). QKVO: all 4 attention projections.",
+    "QKVO_note": "QKVO lowers Q+K+V+O simultaneously, so avg IO bits are lower than single-sublayer experiments",
+    "FFN1_5b_6b_source": "FFN1 5b and 6b results extracted from 4-epoch runs' epoch 1 evaluation (no dedicated 1ep run was executed for these)",
+    "collapse_threshold": "FFN1 and FFN2 at 4b consistently collapse (F1 < 7). QKVO at 4b degrades to F1=74 but does not collapse. O at 4b is robust (F1=83.4)."
   }
 }
