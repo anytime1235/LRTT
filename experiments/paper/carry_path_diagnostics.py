@@ -214,18 +214,43 @@ class _TTv1TransferTracker:
             e2e_cos = _cosine_sim(slow_delta_col, g_cum_col)
             e2e_ratio = _ratio(slow_delta_col, g_cum_col)
 
+            # NTE: Normalized Transfer Error
+            g_cum_norm_val = g_cum_col.norm().item()
+            if g_cum_norm_val > 1e-30:
+                nte = (slow_delta_col - g_cum_col).norm().item() / g_cum_norm_val
+            else:
+                nte = 0.0
+
+            # PE: Projection Efficiency
+            g_cum_norm_sq = g_cum_col.dot(g_cum_col).item()
+            if g_cum_norm_sq > 1e-30:
+                pe = slow_delta_col.dot(g_cum_col).item() / g_cum_norm_sq
+            else:
+                pe = 0.0
+
+            # Signed Transfer Bias
+            g_cum_l1 = g_cum_col.abs().sum().item()
+            if g_cum_l1 > 1e-30:
+                residual_col = slow_delta_col - g_cum_col
+                signed_bias = (residual_col * g_cum_col.sign()).sum().item() / g_cum_l1
+            else:
+                signed_bias = 0.0
+
             result = {
                 "col_idx": col_idx,
                 "A_pre_norm": self.prev_fast[:, col_idx].norm().item(),
                 "A_post_norm": fast_w[:, col_idx].norm().item(),
                 "B_delta_norm": slow_delta_col.norm().item(),
-                "G_cum_norm": g_cum_col.norm().item(),
+                "G_cum_norm": g_cum_norm_val,
                 "FastAccumCos": fast_accum_cos,
                 "FastAccumRatio": fast_accum_ratio,
                 "HandoffCos": handoff_cos,
                 "HandoffRatio": handoff_ratio,
                 "EndToEndCos": e2e_cos,
                 "EndToEndRatio": e2e_ratio,
+                "NTE": nte,
+                "PE": pe,
+                "SignedBias": signed_bias,
             }
 
             # Reset cumulative target for transferred column
@@ -263,7 +288,7 @@ class CarryPathDiagnostics:
     """
 
     def __init__(self, model, method, window_sizes=None, eco_quantizer=None,
-                 gamma=0.0):
+                 gamma=0.0, layer_set=None):
         self.method = method
         self.gamma = gamma
         self.eco_quantizer = eco_quantizer
@@ -271,9 +296,9 @@ class CarryPathDiagnostics:
 
         # Build tile/layer registry
         if method == "eco_ref":
-            self.tile_registry = self._build_eco_registry(model, eco_quantizer)
+            self.tile_registry = self._build_eco_registry(model, eco_quantizer, layer_set)
         else:
-            self.tile_registry = self._build_analog_registry(model)
+            self.tile_registry = self._build_analog_registry(model, layer_set)
 
         # Select tiles for windowed metrics
         self._windowed_tile_names = self._select_windowed_tiles()
@@ -300,6 +325,12 @@ class CarryPathDiagnostics:
         self._w_before = {}
         self._w_adam = {}  # eco_ref only: weights after Adam but before quant
 
+        # Persistent w_before for windowed tiles (survives across steps)
+        self._w_before_window = {}
+
+        # Fast lookup: name -> registry entry
+        self._tile_by_name = {e["name"]: e for e in self.tile_registry}
+
         print(f"  CarryPathDiagnostics: {len(self.tile_registry)} tiles, "
               f"method={method}, windows={self.window_sizes}")
         print(f"  Windowed tiles: {len(self._windowed_tile_names)}")
@@ -307,7 +338,7 @@ class CarryPathDiagnostics:
             print(f"  TTv1 transfer trackers: {len(self._transfer_trackers)}")
 
     @staticmethod
-    def _build_analog_registry(model):
+    def _build_analog_registry(model, layer_set=None):
         """Build registry for analog methods (single_rpu, mixed_precision, ttv1, etc.)."""
         registry = []
         for name, module in model.named_modules():
@@ -315,6 +346,8 @@ class CarryPathDiagnostics:
                 continue
             subtype = _get_layer_subtype(name)
             layer_idx = _get_layer_index(name)
+            if layer_set is not None and layer_idx not in layer_set:
+                continue
             for i, tile in enumerate(module.analog_tiles()):
                 tile_key = f"{name}::tile{i}" if i > 0 else name
                 shape = tile.get_weights()[0].shape
@@ -337,13 +370,15 @@ class CarryPathDiagnostics:
         return registry
 
     @staticmethod
-    def _build_eco_registry(model, eco_quantizer):
+    def _build_eco_registry(model, eco_quantizer, layer_set=None):
         """Build registry for eco_ref method (digital nn.Linear layers)."""
         registry = []
         for name in eco_quantizer.get_all_target_names():
             module = eco_quantizer.targets[name]
             subtype = _get_layer_subtype(name)
             layer_idx = _get_layer_index(name)
+            if layer_set is not None and layer_idx not in layer_set:
+                continue
             shape = module.weight.data.shape
             registry.append({
                 "name": name,
@@ -358,18 +393,79 @@ class CarryPathDiagnostics:
         return registry
 
     def _select_windowed_tiles(self):
-        """Select default subset of tiles for windowed metrics."""
+        """Select default subset of tiles for windowed metrics.
+
+        Only selects main tiles (no ::tileN subtiles) because subtiles
+        lack delta_target mapping and produce zero VRC metrics.
+        """
         selected = []
         for entry in self.tile_registry:
             layer_idx = entry["layer_idx"]
             subtype = entry["subtype"]
+            name = entry["name"]
+            # Skip subtiles — they have no delta_target (key mismatch)
+            if "::tile" in name:
+                continue
             if (layer_idx in _DEFAULT_WINDOW_LAYERS and
                     subtype in _DEFAULT_WINDOW_SUBTYPES):
-                selected.append(entry["name"])
+                selected.append(name)
         # Fallback: if no matching tiles, take first 8
         if not selected:
             selected = [e["name"] for e in self.tile_registry[:8]]
         return set(selected)
+
+    # ------------------------------------------------------------------
+    # Snapshot: weights before first microbatch (for grad_accum > 1)
+    # ------------------------------------------------------------------
+
+    @torch.no_grad()
+    def snapshot_weights_before(self):
+        """Capture w_before at the start of a grad_accum group.
+
+        Must be called BEFORE the first microbatch's tile.update().
+        For grad_accum > 1, tile updates happen per microbatch, so
+        w_before must be captured before any of them fire.
+        """
+        self._w_before_early = {}
+        if self.method == "eco_ref":
+            for entry in self.tile_registry:
+                name = entry["name"]
+                module = entry["module"]
+                self._w_before_early[name] = module.weight.data.clone().cpu()
+        elif self.method == "ttv1":
+            for entry in self.tile_registry:
+                name = entry["name"]
+                tile = entry["tile"]
+                try:
+                    hidden = tile.get_hidden_parameters()
+                    fast_w, slow_w = None, None
+                    for hname, htensor in hidden.items():
+                        if "hidden_weights_0" in hname:
+                            fast_w = htensor.clone().cpu()
+                        elif "hidden_weights_1" in hname:
+                            slow_w = htensor.clone().cpu()
+                    if fast_w is not None and slow_w is not None:
+                        if self.gamma > 0:
+                            self._w_before_early[name] = slow_w + self.gamma * fast_w
+                        else:
+                            self._w_before_early[name] = slow_w.clone()
+                        self._w_before_early[f"{name}::fast"] = fast_w
+                        self._w_before_early[f"{name}::slow"] = slow_w
+                    else:
+                        self._w_before_early[name] = tile.get_weights()[0].clone().cpu()
+                except Exception:
+                    try:
+                        self._w_before_early[name] = tile.get_weights()[0].clone().cpu()
+                    except Exception:
+                        pass
+        else:
+            for entry in self.tile_registry:
+                name = entry["name"]
+                tile = entry["tile"]
+                try:
+                    self._w_before_early[name] = tile.get_weights()[0].clone().cpu()
+                except Exception:
+                    continue
 
     # ------------------------------------------------------------------
     # Snapshot: BEFORE optimizer.step()
@@ -378,11 +474,17 @@ class CarryPathDiagnostics:
     def snapshot_before_step(self, model, optimizer):
         """Capture weights before optimizer.step().
 
-        For analog methods: reads tile weights and AnalogContext x/d.
-        For eco_ref: reads nn.Linear weights.
+        For grad_accum > 1: uses pre-captured _w_before_early.
+        For grad_accum == 1: captures weights directly.
         """
+        use_early = bool(getattr(self, '_w_before_early', {}))
         self._w_before = {}
         self._analog_ctx_cache = {}
+
+        if use_early:
+            self._w_before = self._w_before_early
+            self._w_before_early = {}
+            return
 
         if self.method == "eco_ref":
             for entry in self.tile_registry:
@@ -476,6 +578,68 @@ class CarryPathDiagnostics:
             name = entry["name"]
             module = entry["module"]
             self._w_adam[name] = module.weight.data.clone().cpu()
+
+    # ------------------------------------------------------------------
+    # Lightweight per-step update for TTv1 transfer tracker
+    # ------------------------------------------------------------------
+
+    @torch.no_grad()
+    def update_transfer_tracker(self, model, step, delta_target_dict=None):
+        """Lightweight per-step update for TTv1 transfer tracker.
+
+        Called EVERY step (not just diag steps) to:
+        1. Accumulate g_cum with target gradient
+        2. Detect transfers by reading fast/slow tile changes
+        3. Record transfer events
+
+        Args:
+            model: The model.
+            step: Current global step.
+            delta_target_dict: {tile_name: delta_target tensor} from update_diagnostics.
+                               If None, g_cum accumulation is skipped.
+        """
+        if self.method != "ttv1" or not self._transfer_trackers:
+            return
+
+        for entry in self.tile_registry:
+            name = entry["name"]
+            tile = entry["tile"]
+
+            if name not in self._transfer_trackers:
+                continue
+
+            try:
+                hidden = tile.get_hidden_parameters()
+                fast_w, slow_w = None, None
+                for hname, htensor in hidden.items():
+                    if "hidden_weights_0" in hname:
+                        fast_w = htensor.clone().cpu()
+                    elif "hidden_weights_1" in hname:
+                        slow_w = htensor.clone().cpu()
+
+                if fast_w is None or slow_w is None:
+                    continue
+
+                # Get delta_target for this tile
+                dt = torch.zeros_like(fast_w)
+                if delta_target_dict is not None and name in delta_target_dict:
+                    dt = delta_target_dict[name].cpu().float()
+                    # Match shape
+                    min_d = min(dt.shape[0], fast_w.shape[0])
+                    min_x = min(dt.shape[1], fast_w.shape[1])
+                    dt_matched = torch.zeros_like(fast_w)
+                    dt_matched[:min_d, :min_x] = dt[:min_d, :min_x]
+                    dt = dt_matched
+
+                t_result = self._transfer_trackers[name].step(fast_w, slow_w, dt)
+                if t_result is not None:
+                    self.transfer_records.append({
+                        "step": step,
+                        "tile_name": name,
+                        **t_result,
+                    })
+            except Exception:
+                continue
 
     # ------------------------------------------------------------------
     # Snapshot: AFTER optimizer.step() (and eco post_step if applicable)
@@ -599,11 +763,7 @@ class CarryPathDiagnostics:
             # Windowed accumulation (selected tiles only)
             if name in self._windowed_tile_names and dt is not None:
                 completed = self._trackers[name].accumulate(dt, dv)
-                # Also compute VRC_1 = immediate cosine for CPG baseline
                 for K, vrc_k, vrr_k in completed:
-                    # CPG = VRC_K - VRC_1; we approximate VRC_1 as the
-                    # mean cosine over the window (would need tracking).
-                    # Simpler: just store VRC_K and VRR_K; compute CPG in post.
                     self.window_records.append({
                         "step": step,
                         "tile_name": name,
@@ -613,13 +773,232 @@ class CarryPathDiagnostics:
                         "VRR_K": vrr_k,
                     })
 
+            # Sync _w_before_window so accumulate_windows_only stays consistent
+            if name in self._windowed_tile_names:
+                if self.method == "ttv1":
+                    try:
+                        hidden = entry["tile"].get_hidden_parameters()
+                        fast_w, slow_w = None, None
+                        for hname, htensor in hidden.items():
+                            if "hidden_weights_0" in hname:
+                                fast_w = htensor.clone().cpu()
+                            elif "hidden_weights_1" in hname:
+                                slow_w = htensor.clone().cpu()
+                        if fast_w is not None and slow_w is not None:
+                            self._w_before_window[name] = (
+                                slow_w + self.gamma * fast_w if self.gamma > 0
+                                else slow_w.clone())
+                        else:
+                            self._w_before_window[name] = entry["tile"].get_weights()[0].clone().cpu()
+                    except Exception:
+                        pass
+                elif self.method == "eco_ref":
+                    self._w_before_window[name] = entry["module"].weight.data.clone().cpu()
+                else:
+                    try:
+                        self._w_before_window[name] = entry["tile"].get_weights()[0].clone().cpu()
+                    except Exception:
+                        pass
+
         # Clear caches
         self._w_before = {}
         self._w_adam = {}
         self._analog_ctx_cache = {}
 
+    @torch.no_grad()
+    def accumulate_microbatch_for_windows(self, model, use_cpu=False):
+        """Lightweight d^T @ x accumulation for windowed modules ONLY.
+
+        Must be called after loss.backward() and BEFORE p.reset().
+        Only processes modules that contain windowed tiles, skipping
+        mu stats computation.  ~8 modules vs 12+ for full diagnostics.
+
+        Args:
+            use_cpu: If True, move x,d to CPU before matmul (avoids GPU OOM
+                     on memory-constrained devices, slower but safe).
+                     If False, compute on GPU then move result to CPU (faster
+                     but requires ~40MB GPU headroom per module).
+        """
+        if not hasattr(self, '_window_grad_accum'):
+            self._window_grad_accum = {}
+
+        # Build module lookup on first call
+        if not hasattr(self, '_windowed_modules'):
+            self._windowed_modules = {}
+            for name in self._windowed_tile_names:
+                entry = self._tile_by_name.get(name)
+                if entry is None:
+                    continue
+                mod_name = entry["module_name"]
+                if mod_name not in self._windowed_modules:
+                    self._windowed_modules[mod_name] = entry
+
+        for mod_name, entry in self._windowed_modules.items():
+            module = entry["module"]
+            ctx = entry.get("analog_ctx")
+            if ctx is None:
+                for pname, param in module.named_parameters():
+                    if isinstance(param, AnalogContext):
+                        ctx = param
+                        break
+                entry["analog_ctx"] = ctx
+            if ctx is None or not (ctx.analog_input and ctx.analog_grad_output):
+                continue
+
+            tile = entry["tile"]
+            try:
+                in_trans = tile.in_trans if hasattr(tile, 'in_trans') else False
+                out_trans = tile.out_trans if hasattr(tile, 'out_trans') else False
+
+                if use_cpu:
+                    # CPU path: move chunks to CPU before cat (zero GPU overhead)
+                    x_parts = [t.detach().float().cpu() for t in ctx.analog_input]
+                    d_parts = [t.detach().float().cpu() for t in ctx.analog_grad_output]
+                    x = torch.cat(x_parts, dim=-1 if in_trans else 0)
+                    d = torch.cat(d_parts, dim=-1 if out_trans else 0)
+                    del x_parts, d_parts
+                else:
+                    # GPU path: cat + matmul on GPU, then move result to CPU
+                    x = torch.cat(ctx.analog_input, dim=-1 if in_trans else 0).detach().float()
+                    d = torch.cat(ctx.analog_grad_output, dim=-1 if out_trans else 0).detach().float()
+
+                if x.ndim > 2:
+                    x = x.reshape(-1, x.shape[-1])
+                if d.ndim > 2:
+                    d = d.reshape(-1, d.shape[-1])
+
+                if use_cpu:
+                    G_m = d.mT @ x  # CPU matmul
+                else:
+                    G_m = (d.mT @ x).cpu()  # GPU matmul → CPU
+                    del x, d  # Free GPU memory immediately
+
+                # Accumulate across microbatches, keyed by tile name (not module)
+                tile_name = entry["name"]
+                if tile_name in self._window_grad_accum:
+                    self._window_grad_accum[tile_name] += G_m
+                else:
+                    self._window_grad_accum[tile_name] = G_m.clone()
+            except Exception:
+                continue
+
+    def flush_window_grad_accum(self, lr):
+        """Convert accumulated G to delta_target = -lr * G and return, then clear."""
+        if not hasattr(self, '_window_grad_accum'):
+            return {}
+        dt_dict = {k: (-lr * G).float() for k, G in self._window_grad_accum.items()}
+        self._window_grad_accum = {}
+        return dt_dict
+
+    @torch.no_grad()
+    def accumulate_windows_only(self, model, step, delta_target_dict=None):
+        """Lightweight per-step window accumulation (windowed tiles only).
+
+        Must be called at EVERY step (not just diagnostic steps) so that
+        tumbling windows of size K > 1 can complete.  Only reads weights
+        for windowed tiles (~8), keeping overhead low.
+
+        Args:
+            model: The model.
+            step: Current global step.
+            delta_target_dict: {tile_name: delta_target tensor} already
+                               scaled by -lr, on CPU.  When None the
+                               window accumulator is still called with
+                               whatever _accumulated_targets were set.
+        """
+        for name in self._windowed_tile_names:
+            entry = self._tile_by_name.get(name)
+            if entry is None:
+                continue
+
+            # --- read current (post-step) weights -------------------------
+            if self.method == "ttv1":
+                tile = entry["tile"]
+                try:
+                    hidden = tile.get_hidden_parameters()
+                    fast_w, slow_w = None, None
+                    for hname, htensor in hidden.items():
+                        if "hidden_weights_0" in hname:
+                            fast_w = htensor.clone().cpu()
+                        elif "hidden_weights_1" in hname:
+                            slow_w = htensor.clone().cpu()
+                    if fast_w is not None and slow_w is not None:
+                        if self.gamma > 0:
+                            w_after = slow_w + self.gamma * fast_w
+                        else:
+                            w_after = slow_w.clone()
+                    else:
+                        w_after = tile.get_weights()[0].clone().cpu()
+                except Exception:
+                    continue
+            elif self.method == "eco_ref":
+                w_after = entry["module"].weight.data.clone().cpu()
+            else:
+                tile = entry["tile"]
+                try:
+                    w_after = tile.get_weights()[0].clone().cpu()
+                except Exception:
+                    continue
+
+            # --- first call: initialise w_before_window --------------------
+            if name not in self._w_before_window:
+                self._w_before_window[name] = w_after.clone()
+                continue  # no delta on the very first call
+
+            w_before = self._w_before_window[name]
+            delta_visible = (w_after - w_before).float()
+
+            # --- delta_target: prefer explicit dict, fall back to cache ----
+            dt = None
+            if delta_target_dict is not None and name in delta_target_dict:
+                dt = delta_target_dict[name]
+            elif hasattr(self, '_accumulated_targets') and name in self._accumulated_targets:
+                dt = self._accumulated_targets[name]
+
+            if dt is not None:
+                min_d = min(dt.shape[0], delta_visible.shape[0])
+                min_x = min(dt.shape[1], delta_visible.shape[1])
+                dt = dt[:min_d, :min_x]
+                dv = delta_visible[:min_d, :min_x]
+
+                completed = self._trackers[name].accumulate(dt, dv)
+                for K, vrc_k, vrr_k in completed:
+                    self.window_records.append({
+                        "step": step,
+                        "tile_name": name,
+                        "subtype": entry["subtype"],
+                        "window_K": K,
+                        "VRC_K": vrc_k,
+                        "VRR_K": vrr_k,
+                    })
+
+            # --- persist w_after as next step's w_before -------------------
+            self._w_before_window[name] = w_after
+
+    def set_accumulated_targets(self, targets_dict, lr):
+        """Set pre-accumulated G_l targets from update_diagnostics.
+
+        For grad_accum > 1, update_diagnostics accumulates d^T @ x per microbatch.
+        This method receives the accumulated G and stores delta_target = -lr * G
+        so that carry_path can use it for VRC, transfer tracker, etc.
+
+        Args:
+            targets_dict: {tile_key: G_accumulated tensor} from update_diagnostics._grad_accum
+                          or from before_cache after snapshot_before_step.
+            lr: Current learning rate.
+        """
+        self._accumulated_targets = {}
+        for key, G in targets_dict.items():
+            # Map update_diagnostics key to carry_path tile name
+            # They may differ (update_diag uses module name, carry_path may use same)
+            self._accumulated_targets[key] = (-lr * G).cpu().float()
+
     def _compute_analog_target(self, name, lr):
-        """Compute FP32 target update from cached AnalogContext x, d."""
+        """Compute FP32 target update from cached AnalogContext x, d or accumulated targets."""
+        # First check accumulated targets (grad_accum > 1)
+        if hasattr(self, '_accumulated_targets') and name in self._accumulated_targets:
+            return self._accumulated_targets[name]
+
         if name not in self._analog_ctx_cache:
             return None
         cache = self._analog_ctx_cache[name]

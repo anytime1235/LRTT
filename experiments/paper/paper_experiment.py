@@ -51,7 +51,7 @@ from aihwkit.optim.context import AnalogContext
 from aihwkit.optim.analog_optimizer import AnalogOptimizerMixin
 
 from rpu_configs import get_config, dw_min_for_bits, PULSE_TYPE_MAP, DW_MIN_14BIT, io_res_from_bits
-from update_diagnostics import UpdateDiagnostics
+from update_diagnostics import UpdateDiagnostics, _get_current_analog_lr
 from eco_reference import EcoQuantizer
 from carry_path_diagnostics import CarryPathDiagnostics
 
@@ -651,10 +651,15 @@ def _build_method_kwargs(args):
     kwargs["io_bits"] = args.io_bits
     kwargs["noise_management"] = args.noise_management
 
+    # Resolve omega: default 1.0, but auto-set to 0.0 if w_max < 1.0
+    omega = args.omega if args.omega is not None else (0.0 if args.w_max < 1.0 else 1.0)
+
     if args.method == "single_rpu":
         pt = PULSE_TYPE_MAP.get(args.pulse_type, PULSE_TYPE_MAP["stochastic"])
         kwargs["pulse_type"] = pt
         kwargs["desired_bl"] = args.desired_bl
+        kwargs["w_max"] = args.w_max
+        kwargs["omega"] = omega
         kwargs["device_type"] = args.device_type
         kwargs["ls_gamma_up_ratio"] = args.ls_gamma_up_ratio
         kwargs["ls_gamma_down_ratio"] = args.ls_gamma_down_ratio
@@ -689,6 +694,8 @@ def _build_method_kwargs(args):
             kwargs["transfer_bl"] = args.transfer_bl
         if args.n_bits_slow is not None:
             kwargs["dw_min_slow"] = dw_min_for_bits(args.n_bits_slow)
+        if args.w_max_fast is not None:
+            kwargs["w_max_fast"] = args.w_max_fast
 
     elif args.method == "cttv2":
         if args.fast_lr is not None:
@@ -806,11 +813,18 @@ def train_fixed(args):
     if args.dw_min is not None:
         effective_dw_min = args.dw_min
     elif args.n_bits is not None:
-        effective_dw_min = dw_min_for_bits(args.n_bits)
+        effective_dw_min = dw_min_for_bits(args.n_bits, w_max=args.w_max)
     else:
-        effective_dw_min = DW_MIN_14BIT
+        effective_dw_min = DW_MIN_14BIT * args.w_max
 
-    print(f"Effective dw_min: {effective_dw_min:.6e}")
+    # For TTv1 with w_max_fast: diagnostics should track the fast tile's dw_min
+    effective_dw_min_fast = effective_dw_min
+    if args.method == "ttv1" and args.w_max_fast is not None:
+        effective_dw_min_fast = effective_dw_min * args.w_max_fast
+        print(f"Effective dw_min (slow): {effective_dw_min:.6e}")
+        print(f"Effective dw_min (fast): {effective_dw_min_fast:.6e}  (w_max_fast={args.w_max_fast})")
+    else:
+        print(f"Effective dw_min: {effective_dw_min:.6e}")
 
     # Model
     print("\n=== Creating model ===")
@@ -843,8 +857,12 @@ def train_fixed(args):
     # Diagnostics: UpdateDiagnostics (legacy)
     diag = None
     if args.diag_update_exact and not is_eco:
-        diag = UpdateDiagnostics(model, effective_dw_min)
-        print(f"Update diagnostics enabled ({len(diag.tile_registry)} tiles)")
+        diag_w_max = args.w_max
+        if args.method == "ttv1" and args.w_max_fast is not None:
+            diag_w_max = args.w_max_fast  # track fast tile range
+        diag = UpdateDiagnostics(model, effective_dw_min, layer_set=args.diag_layer_set,
+                                 method=args.method, lr=args.analog_lr, device_w_max=diag_w_max)
+        print(f"Update diagnostics enabled ({len(diag.tile_registry)} tiles, device_w_max={diag_w_max})")
 
     # Diagnostics: CarryPathDiagnostics
     cp_diag = None
@@ -854,6 +872,7 @@ def train_fixed(args):
         cp_diag = CarryPathDiagnostics(
             model, args.method, window_sizes=vrc_windows,
             eco_quantizer=eco_quantizer, gamma=gamma,
+            layer_set=args.diag_layer_set,
         )
 
     # Output setup
@@ -910,6 +929,29 @@ def train_fixed(args):
             loss = outputs.loss / args.grad_accum_steps
             loss.backward()
 
+            # DIAG: grad_accum microbatch handling
+            if args.grad_accum_steps > 1 and (diag is not None or cp_diag is not None):
+                target_step = global_step + 1
+                _will_diag = (args.diag_at_steps_set is not None and target_step in args.diag_at_steps_set) or \
+                             (args.diag_at_steps_set is None and (args.diag_steps == 0 or target_step <= args.diag_steps))
+
+                # TTv1 transfer tracker needs G_l EVERY step, not just diag steps
+                _need_accum = _will_diag or (args.method == "ttv1" and cp_diag is not None)
+
+                if _need_accum:
+                    if batch_idx % args.grad_accum_steps == 0:
+                        if diag is not None:
+                            diag.snapshot_weights_before()
+                        if cp_diag is not None:
+                            cp_diag.snapshot_weights_before()
+                    if diag is not None:
+                        diag.accumulate_microbatch(model)
+
+            # CARRY-PATH: lightweight CPU-based gradient capture for windowed tiles
+            # Runs EVERY microbatch, BEFORE p.reset() clears AnalogContext
+            if cp_diag is not None and args.grad_accum_steps > 1:
+                cp_diag.accumulate_microbatch_for_windows(model, use_cpu=args.diag_window_cpu)
+
             # Grad accum > 1: flush analog tile updates immediately after
             # each micro-batch to avoid accumulating (x, d) tensors in
             # analog_ctx, which causes OOM.  tile.update() is called per
@@ -948,17 +990,30 @@ def train_fixed(args):
             global_step += 1
             step_loss = loss.item() * args.grad_accum_steps
 
+            # DIAG: determine if this step should be diagnosed
+            def _should_diag(step):
+                if args.diag_at_steps_set is not None:
+                    return step in args.diag_at_steps_set
+                return args.diag_steps == 0 or step <= args.diag_steps
+
             # DIAG (legacy): capture BEFORE step (while analog_ctx still has x, d)
-            do_diag = (diag is not None and
-                       (args.diag_steps == 0 or global_step <= args.diag_steps))
+            do_diag = (diag is not None and _should_diag(global_step))
             if do_diag:
                 diag.snapshot_before_step(model, optimizer)
 
             # CARRY-PATH DIAG: capture BEFORE step
-            do_cp = (cp_diag is not None and
-                     (args.diag_steps == 0 or global_step <= args.diag_steps))
+            do_cp = (cp_diag is not None and _should_diag(global_step))
             if do_cp:
                 cp_diag.snapshot_before_step(model, optimizer)
+                # Pass accumulated targets from update_diagnostics (grad_accum > 1)
+                if diag is not None and hasattr(diag, '_before_cache') and diag._before_cache:
+                    lr = _get_current_analog_lr(optimizer) if optimizer else 0.016
+                    acc_targets = {}
+                    for k, cache in diag._before_cache.items():
+                        if cache.get("G_accumulated") is not None:
+                            acc_targets[k] = cache["G_accumulated"]
+                    if acc_targets:
+                        cp_diag.set_accumulated_targets(acc_targets, lr)
 
             # Digital grad clip
             if digital_params:
@@ -1001,7 +1056,38 @@ def train_fixed(args):
 
             # CARRY-PATH DIAG: capture AFTER step
             if do_cp:
+                # Flush window grad accum so snapshot_after_step has targets
+                if hasattr(cp_diag, '_window_grad_accum') and cp_diag._window_grad_accum:
+                    _lr = _get_current_analog_lr(optimizer)
+                    wg = cp_diag.flush_window_grad_accum(_lr)
+                    if not hasattr(cp_diag, '_accumulated_targets'):
+                        cp_diag._accumulated_targets = {}
+                    for k, v in wg.items():
+                        if k not in cp_diag._accumulated_targets:
+                            cp_diag._accumulated_targets[k] = v
                 cp_diag.snapshot_after_step(model, global_step, optimizer)
+
+            # CARRY-PATH: window accumulation + TTv1 transfer tracker EVERY step
+            if cp_diag is not None and not do_cp:
+                lr = _get_current_analog_lr(optimizer)
+
+                # Get delta_target from CPU-based window grad accumulation
+                dt_dict = cp_diag.flush_window_grad_accum(lr)
+
+                # Also try diag._grad_accum (available at TTv1 steps)
+                if not dt_dict and diag is not None and diag._grad_accum:
+                    dt_dict = {k: (-lr * G).cpu().float() for k, G in diag._grad_accum.items()}
+
+                # Window accumulation for VRC_K (K > 1)
+                cp_diag.accumulate_windows_only(model, global_step, dt_dict)
+
+                # TTv1 transfer tracker
+                if args.method == "ttv1":
+                    cp_diag.update_transfer_tracker(model, global_step, dt_dict)
+
+                # Clear G accumulators for next step
+                if diag is not None:
+                    diag._grad_accum = {}
 
             total_loss += step_loss
             num_batches += 1
@@ -1281,6 +1367,8 @@ def _save_config(args, rpu_config, effective_dw_min, num_training_steps):
         "noise_management": args.noise_management,
         "bound_management": "none" if args.io_bits > 0 else "n/a",
         "learn_out_scaling": False,
+        "w_max": args.w_max,
+        "omega": args.omega,
     }
 
     if args.method == "eco_ref":
@@ -1310,6 +1398,7 @@ def _save_config(args, rpu_config, effective_dw_min, num_training_steps):
         config["ttv1_mode"] = args.ttv1_mode
         config["ttv1_fast_pulse_type"] = args.ttv1_fast_pulse_type
         config["ttv1_transfer_pulse_type"] = args.ttv1_transfer_pulse_type
+        config["w_max_fast"] = args.w_max_fast
 
     if args.method == "cttv2":
         config["fast_lr"] = args.fast_lr
@@ -1367,6 +1456,12 @@ def parse_args():
     parser.add_argument("--n-bits", type=int, default=None)
     parser.add_argument("--n-bits-slow", type=int, default=None,
                         help="TTv1 slow tile bit-width (default: same as --n-bits)")
+    parser.add_argument("--w-max", type=float, default=1.0,
+                        help="Device weight bound [-w_max, w_max]. Default 1.0. "
+                             "For single_rpu: sets tile w_max directly.")
+    parser.add_argument("--omega", type=float, default=None,
+                        help="weight_scaling_omega. Default: 1.0 for w_max=1.0, "
+                             "0.0 for w_max<1.0 (disable scaling so raw weights go to tile).")
     parser.add_argument("--io-bits", type=int, default=0,
                         help="DAC/ADC bit precision for forward/backward IO. "
                              "0 = perfect (no quantization). "
@@ -1395,6 +1490,9 @@ def parse_args():
     parser.add_argument("--n-reads-per-transfer", type=int, default=None)
     parser.add_argument("--with-reset-prob", type=float, default=None)
     parser.add_argument("--transfer-bl", type=int, default=None)
+    parser.add_argument("--w-max-fast", type=float, default=None,
+                        help="TTv1 fast tile w_max. Reduces dw_min_fast = 2*w_max_fast/2^n, "
+                             "increasing mu. Fast tile starts at 0, so no clipping risk.")
 
     # c-TTv2
     parser.add_argument("--auto-scale", type=str, default=None,
@@ -1437,8 +1535,14 @@ def parse_args():
     parser.add_argument("--diag-update-exact", action="store_true")
     parser.add_argument("--diag-steps", type=int, default=0,
                         help="Record diagnostics for first N steps (0=all logged steps)")
+    parser.add_argument("--diag-at-steps", type=str, default=None,
+                        help="Comma-separated list of specific steps to diagnose (e.g. 1,16,32)")
     parser.add_argument("--diag-carry-path", action="store_true")
+    parser.add_argument("--diag-window-cpu", action="store_true",
+                        help="Use CPU for per-step window d^T@x (avoids GPU OOM, slower)")
     parser.add_argument("--diag-vrc-windows", type=str, default="16,64,256")
+    parser.add_argument("--diag-layer-set", type=str, default=None,
+                        help="Comma-separated encoder layer indices to diagnose (e.g. 0,5,11). Default: all layers.")
 
     # Grid/TPE
     parser.add_argument("--n-trials", type=int, default=0)
@@ -1446,6 +1550,15 @@ def parse_args():
     parser.add_argument("--db-dir", type=str, default=None)
 
     args = parser.parse_args()
+
+    # Parse --diag-at-steps into a set
+    args.diag_at_steps_set = None
+    if args.diag_at_steps:
+        args.diag_at_steps_set = set(int(s.strip()) for s in args.diag_at_steps.split(","))
+
+    # Parse --diag-layer-set into a set
+    if args.diag_layer_set is not None:
+        args.diag_layer_set = set(int(s.strip()) for s in args.diag_layer_set.split(","))
 
     # Handle --no-uim shorthand
     if args.no_uim:

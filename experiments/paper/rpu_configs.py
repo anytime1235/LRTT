@@ -51,24 +51,25 @@ PULSE_TYPE_MAP = {
 # Helpers
 # ============================================================================
 
-def dw_min_for_bits(n_bits: int) -> float:
+def dw_min_for_bits(n_bits: int, w_max: float = 1.0) -> float:
     """Convert bit-resolution to dw_min step size."""
-    return 2.0 / (2 ** n_bits)
+    return 2.0 * w_max / (2 ** n_bits)
 
 
-def make_constant_step_device(dw_min=None, count_pulses=False):
+def make_constant_step_device(dw_min=None, w_max=1.0, count_pulses=False):
     """Create a ConstantStepDevice with zero noise.
 
     Args:
         dw_min: Weight update step size. Defaults to 14-bit.
+        w_max: Symmetric weight bound [-w_max, w_max]. Default 1.0.
         count_pulses: Enable hardware pulse counters (GPU only).
     """
     if dw_min is None:
         dw_min = DW_MIN_14BIT
     return ConstantStepDevice(
         dw_min=dw_min,
-        w_max=1.0,
-        w_min=-1.0,
+        w_max=w_max,
+        w_min=-w_max,
         up_down=0.0,
         dw_min_std=0.0,
         dw_min_dtod=0.0,
@@ -291,11 +292,16 @@ def _apply_io_config(config, io_bits=None, noise_management="abs_max"):
     return config
 
 
-def _apply_common_mapping(config):
-    """Apply common mapping settings to any RPU config."""
+def _apply_common_mapping(config, omega=1.0):
+    """Apply common mapping settings to any RPU config.
+
+    Args:
+        omega: weight_scaling_omega. Set to 0.0 to disable weight scaling
+               (required when using reduced w_max without pretrained weight mapping).
+    """
     config.mapping.digital_bias = True
-    config.mapping.weight_scaling_omega = 1.0
-    config.mapping.weight_scaling_columnwise = True
+    config.mapping.weight_scaling_omega = omega
+    config.mapping.weight_scaling_columnwise = True if omega > 0 else False
     config.mapping.learn_out_scaling = False
     config.mapping.out_scaling_columnwise = False
     return config
@@ -306,7 +312,8 @@ def _apply_common_mapping(config):
 # ============================================================================
 
 def build_single_rpu_config(pulse_type=PulseType.STOCHASTIC_COMPRESSED,
-                            desired_bl=31, dw_min=None, count_pulses=False,
+                            desired_bl=31, dw_min=None, w_max=1.0,
+                            omega=1.0, count_pulses=False,
                             io_bits=None, noise_management="abs_max",
                             device_type="constant_step",
                             ls_gamma_up_ratio=1.0, ls_gamma_down_ratio=1.0,
@@ -318,6 +325,8 @@ def build_single_rpu_config(pulse_type=PulseType.STOCHASTIC_COMPRESSED,
         pulse_type: PulseType enum value.
         desired_bl: Max pulse train length (default 31).
         dw_min: Override dw_min (default None -> 14-bit).
+        w_max: Symmetric weight bound. Default 1.0.
+        omega: weight_scaling_omega. 0 disables scaling.
         count_pulses: Enable hardware pulse counters.
         io_bits: DAC/ADC bit precision (None or 0 = perfect).
         device_type: 'constant_step', 'linear_step', 'exp_step', or 'soft_bounds'.
@@ -349,7 +358,7 @@ def build_single_rpu_config(pulse_type=PulseType.STOCHASTIC_COMPRESSED,
             noise_ratio=ls_noise_ratio,
         )
     else:
-        device = make_constant_step_device(dw_min=dw_min, count_pulses=count_pulses)
+        device = make_constant_step_device(dw_min=dw_min, w_max=w_max, count_pulses=count_pulses)
     up = UpdateParameters(
         pulse_type=pulse_type,
         desired_bl=desired_bl,
@@ -357,10 +366,11 @@ def build_single_rpu_config(pulse_type=PulseType.STOCHASTIC_COMPRESSED,
     )
     config = build_config("sgd", device, up_parameters=up)
     _apply_io_config(config, io_bits=io_bits, noise_management=noise_management)
-    return _apply_common_mapping(config)
+    return _apply_common_mapping(config, omega=omega)
 
 
 def build_ttv1_config(gamma=0.0, dw_min=None, dw_min_slow=None,
+                      w_max_fast=None,
                       transfer_every=None,
                       units_in_mbatch=None, fast_lr=None, transfer_lr=None,
                       scale_transfer_lr=None, n_reads_per_transfer=None,
@@ -444,6 +454,19 @@ def build_ttv1_config(gamma=0.0, dw_min=None, dw_min_slow=None,
         config.device.unit_cell_devices[1] = slow_device
     elif dw_min_slow is not None:
         config.device.unit_cell_devices[1].dw_min = dw_min_slow
+
+    # Set different w_max for fast tile (A tile)
+    # Fast tile starts at 0, no pretrained weights → can use smaller range
+    # This reduces dw_min_fast = 2*w_max_fast/2^n, increasing mu
+    if w_max_fast is not None:
+        fast_dev = config.device.unit_cell_devices[0]
+        fast_dev.w_max = w_max_fast
+        fast_dev.w_min = -w_max_fast
+        # Recalculate dw_min for the fast tile to match the new range
+        if dw_min is not None:
+            fast_dev.dw_min = dw_min * w_max_fast  # scale proportionally
+        else:
+            fast_dev.dw_min = DW_MIN_14BIT * w_max_fast
 
     # Transfer update pulse train length (independent from SGD update BL)
     config.device.transfer_update.desired_bl = transfer_bl

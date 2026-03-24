@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding=utf-8
-"""Digital ECO (Error-Compensated Optimizer) reference implementation.
+"""Digital Error-Feedback Reference implementation.
 
 NOT an AIHWKit analog tile. This is a pure digital gold-standard that performs
 weight-level error-feedback quantization after each optimizer step.
@@ -74,7 +74,7 @@ _QUANTIZERS = {
 
 
 class EcoQuantizer:
-    """Error-Compensated Optimizer quantizer for target nn.Linear layers.
+    """Error-feedback quantizer reference for target nn.Linear layers.
 
     Manages per-layer error buffers (FP32 on CPU) and applies weight-level
     error-feedback quantization after each optimizer step.
@@ -112,7 +112,7 @@ class EcoQuantizer:
         # Quantize initial weights (no error injection for init)
         self._quantize_initial_weights()
 
-        print(f"  EcoQuantizer: {len(self.targets)} layers, "
+        print(f"  ErrorFeedbackRef: {len(self.targets)} layers, "
               f"{n_bits}-bit, w_max={w_max}, rounding={rounding}")
         mem_mb = sum(e.numel() * 4 for e in self.error_buffers.values()) / 1e6
         print(f"  Error buffer memory: {mem_mb:.1f} MB (CPU)")
