@@ -1,0 +1,181 @@
+{
+  "experiment": "LinearStep Noise Sweep",
+  "task": "SQuAD",
+  "model": "transformer",
+  "total_steps": 7376,
+  "date_range": "2026-03-20 ~ 2026-03-24",
+  "ttv1": {
+    "description": "LinearStep Noise Sweep (TTv1)",
+    "date": "2026-03-20 ~ 2026-03-22",
+    "status": "completed",
+    "results": [
+      {
+        "name": "baseline_noisefree",
+        "noise_ratio": null,
+        "device_preset": null,
+        "best_f1": null,
+        "final_f1": null,
+        "final_em": null,
+        "wall_time_s": null,
+        "status": "failed",
+        "note": "stopped at 140 steps"
+      },
+      {
+        "name": "ls_nr0.1",
+        "noise_ratio": 0.1,
+        "device_preset": null,
+        "best_f1": 86.12,
+        "final_f1": 86.12,
+        "final_em": 77.81,
+        "wall_time_s": 16149.16,
+        "status": "completed",
+        "note": "best"
+      },
+      {
+        "name": "ls_nr0.3",
+        "noise_ratio": 0.3,
+        "device_preset": null,
+        "best_f1": 86.11,
+        "final_f1": 86.11,
+        "final_em": 77.79,
+        "wall_time_s": 16193.63,
+        "status": "completed",
+        "note": null
+      },
+      {
+        "name": "ls_nr0.5",
+        "noise_ratio": 0.5,
+        "device_preset": null,
+        "best_f1": 85.15,
+        "final_f1": 85.15,
+        "final_em": 76.39,
+        "wall_time_s": 16224.22,
+        "status": "completed",
+        "note": null
+      },
+      {
+        "name": "ls_nr0.7",
+        "noise_ratio": 0.7,
+        "device_preset": null,
+        "best_f1": 83.92,
+        "final_f1": 83.92,
+        "final_em": 75.13,
+        "wall_time_s": 16336.06,
+        "status": "completed",
+        "note": null
+      },
+      {
+        "name": "ls_nr1.0",
+        "noise_ratio": 1.0,
+        "device_preset": null,
+        "best_f1": 82.34,
+        "final_f1": 78.42,
+        "final_em": 68.12,
+        "wall_time_s": 16528.44,
+        "status": "completed",
+        "note": "final F1 significantly degraded from best"
+      },
+      {
+        "name": "ls_preset_ecram",
+        "noise_ratio": null,
+        "device_preset": "ecram",
+        "best_f1": 82.90,
+        "final_f1": 77.20,
+        "final_em": 66.64,
+        "wall_time_s": 16566.15,
+        "status": "completed",
+        "note": null
+      },
+      {
+        "name": "ls_preset_ecram_mo",
+        "noise_ratio": null,
+        "device_preset": "ecram_mo",
+        "best_f1": 81.62,
+        "final_f1": 78.40,
+        "final_em": 68.12,
+        "wall_time_s": 16544.55,
+        "status": "completed",
+        "note": null
+      },
+      {
+        "name": "ls_preset_reram_array_om",
+        "noise_ratio": null,
+        "device_preset": "reram_array_om",
+        "best_f1": 7.28,
+        "final_f1": 2.09,
+        "final_em": 0.37,
+        "wall_time_s": 16766.07,
+        "status": "completed",
+        "note": "training failed"
+      },
+      {
+        "name": "ls_preset_reram_array_hfo2",
+        "noise_ratio": null,
+        "device_preset": "reram_array_hfo2",
+        "best_f1": 68.01,
+        "final_f1": 4.67,
+        "final_em": 0.25,
+        "wall_time_s": 17351.54,
+        "status": "completed",
+        "note": "training collapsed"
+      }
+    ]
+  },
+  "single_rpu": {
+    "description": "LinearStep Noise Sweep (Single RPU)",
+    "date": "2026-03-23 ~ 2026-03-24",
+    "status": "in_progress",
+    "results": [
+      {
+        "name": "ls_nr0.1",
+        "noise_ratio": 0.1,
+        "best_f1": 69.99,
+        "final_f1": 66.83,
+        "final_em": 54.32,
+        "wall_time_s": 16066.73,
+        "status": "completed",
+        "note": null
+      },
+      {
+        "name": "ls_nr0.3",
+        "noise_ratio": 0.3,
+        "best_f1": 69.99,
+        "final_f1": 66.86,
+        "final_em": 54.19,
+        "wall_time_s": 15993.03,
+        "status": "completed",
+        "note": null
+      },
+      {
+        "name": "ls_nr0.5",
+        "noise_ratio": 0.5,
+        "best_f1": 69.86,
+        "final_f1": 67.39,
+        "final_em": 54.70,
+        "wall_time_s": 15860.27,
+        "status": "completed",
+        "note": null
+      },
+      {
+        "name": "ls_nr0.7",
+        "noise_ratio": 0.7,
+        "best_f1": 70.17,
+        "final_f1": 67.35,
+        "final_em": 54.91,
+        "wall_time_s": 15818.20,
+        "status": "completed",
+        "note": "best among single_rpu"
+      },
+      {
+        "name": "ls_nr1.0",
+        "noise_ratio": 1.0,
+        "best_f1": null,
+        "final_f1": null,
+        "final_em": null,
+        "wall_time_s": null,
+        "status": "in_progress",
+        "note": "running (step 6740 / 7376)"
+      }
+    ]
+  }
+}
