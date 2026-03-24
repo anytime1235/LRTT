@@ -101,8 +101,8 @@ Trials: 3 per cell
 ```bash
 cd experiments
 python generate_reexp_config.py --tlr_rule sqrt_rank
-python sweep_reexp.py --config reexp_sweep_configs_sqrt_rank.json --mode decay
-python sweep_reexp.py --config reexp_sweep_configs_sqrt_rank.json --mode hybrid
+python sweep_reexp.py --config reexp_sweep_configs_sqrt_rank.json --mode decay --output_dir results/reexp_sqrt_decay
+python sweep_reexp.py --config reexp_sweep_configs_sqrt_rank.json --mode hybrid --output_dir results/reexp_sqrt_hybrid
 ```
 
 ---
