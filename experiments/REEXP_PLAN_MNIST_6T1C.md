@@ -22,9 +22,7 @@
 ### 기존 실험의 한계
 
 1. 각 cell이 single best (seed 반복 없음) → 통계적 유의성 주장 불가
-2. TE 해상도 부족 (10→50, 100→500 구간 gap)
-3. Decay Rank=64, TE=100 붕괴 현상 미해명
-4. Rank=2, 128 부재 → Rank 무관성 주장 약함
+2. Decay Rank=64, TE=100 붕괴 현상 미해명
 
 ---
 
@@ -89,64 +87,7 @@ Seeds: [42, 43, 44]
 
 ---
 
-### Priority 2 — TE 해상도 보강 (필수)
-
-**목적**: Crossover point 정밀 특정 + 추세 곡선 완성
-
-```
-Ranks: [1, 4, 8, 16, 32, 64]
-TEs:   [5, 20, 30, 200, 300]    # 기존 gap 보완
-Modes: [Reset, Decay]
-Seeds: [42, 43, 44]
-```
-
-| 추가 TE | 보완 구간 | 목적 |
-|---------|----------|------|
-| **5** | 1↔10 | Decay TE=1이 진짜 최적인지, TE=5도 동등한지 확인 |
-| **20** | 10↔50 | Reset 최적 구간 진입점 특정 |
-| **30** | 10↔50 | Reset 최적 구간 세밀화 |
-| **200** | 100↔500 | **Crossover point** 정밀 특정 (가장 중요) |
-| **300** | 100↔500 | Crossover 확증 |
-
-| 항목 | 값 |
-|------|-----|
-| 총 cell | 6 × 5 × 2 = 60 |
-| Optuna search | 60 × 15 = 900 runs |
-| Seed 반복 | 60 × 3 = 180 runs |
-| **총 runs** | **~1,080 runs** |
-
-**이 실험 완료 시 추가 주장 가능한 것**:
-- "Crossover point는 TE=X ± Y" (정밀 수치)
-- TE에 대한 accuracy curve를 smooth하게 그릴 수 있음
-
----
-
-### Priority 3 — Rank 확장 (권장)
-
-**목적**: "Rank 무관" 주장 강화 + 극단값 확인
-
-```
-Ranks: [2, 128]
-TEs:   [1, 10, 50, 100, 500, 1000]
-Modes: [Reset, Decay]
-Seeds: [42, 43, 44]
-```
-
-| 항목 | 값 |
-|------|-----|
-| 총 cell | 2 × 6 × 2 = 24 |
-| Optuna search | 24 × 15 = 360 runs |
-| Seed 반복 | 24 × 3 = 72 runs |
-| **총 runs** | **~432 runs** |
-
-**이 실험 완료 시 추가 주장 가능한 것**:
-- "Rank=2에서도 97%+ 달성 가능" → 하드웨어 비용 최소화 주장
-- "Rank=128은 Rank=64 대비 이점 없음" → upper bound 확인
-- Rank=1~128 전 구간에서 ANOVA 무유의 → Rank 무관성 확정
-
----
-
-### Priority 4 — Decay Rank=64 붕괴 분석 (권장)
+### Priority 2 — Decay Rank=64 붕괴 분석 (권장)
 
 **목적**: Decay 모드의 instability region 특정 및 논문 내 명시적 설명
 
@@ -179,13 +120,11 @@ Seeds: [42, 43, 44, 45, 46]  # 5-seed (붕괴 확률 추정 위해)
 | Priority | 실험 | Runs | 누적 |
 |----------|------|------|------|
 | **P1** | 핵심 Grid 3-seed | ~1,296 | 1,296 |
-| **P2** | TE 해상도 보강 | ~1,080 | 2,376 |
-| **P3** | Rank 확장 | ~432 | 2,808 |
-| **P4** | 붕괴 분석 | ~280 | 3,088 |
+| **P2** | 붕괴 분석 | ~280 | 1,576 |
 
 - MNIST MLP 30 epoch → ~15~20 sec/run (GPU)
-- **P1+P2 (필수)**: ~2,376 runs ≈ **10~13 GPU-hours**
-- **전체**: ~3,088 runs ≈ **13~17 GPU-hours**
+- **P1 (필수)**: ~1,296 runs ≈ **5~7 GPU-hours**
+- **전체**: ~1,576 runs ≈ **7~9 GPU-hours**
 
 ---
 
@@ -196,15 +135,9 @@ Seeds: [42, 43, 44, 45, 46]  # 5-seed (붕괴 확률 추정 위해)
 - (b) Decay mode accuracy heatmap (mean)
 - (c) Decay − Reset difference (with significance markers)
 
-### Main Figure: TE-Accuracy Curve
-- x축: TE (log scale), y축: Accuracy (%)
-- Reset / Decay 각각 mean ± std band
-- Rank별 curve (or Rank 평균 + shading)
-- Crossover point annotation
-
 ### Supplementary Figure
 - Per-Rank TE sweep (6 panels)
-- Collapse probability heatmap (P4 데이터)
+- Collapse probability heatmap (P2 데이터)
 - Rank별 ANOVA 결과 table
 
 ---
@@ -216,15 +149,7 @@ Seeds: [42, 43, 44, 45, 46]  # 5-seed (붕괴 확률 추정 위해)
 python sweep_mnist_6t1c.py --ranks 1,4,8,16,32,64 --tes 1,10,50,100,500,1000 \
     --modes reset,decay --seeds 42,43,44 --lifetime 0 --n_trials 15
 
-# Step 2: P2 — TE 보강
-python sweep_mnist_6t1c.py --ranks 1,4,8,16,32,64 --tes 5,20,30,200,300 \
-    --modes reset,decay --seeds 42,43,44 --lifetime 0 --n_trials 15
-
-# Step 3: P3 — Rank 확장
-python sweep_mnist_6t1c.py --ranks 2,128 --tes 1,10,50,100,500,1000 \
-    --modes reset,decay --seeds 42,43,44 --lifetime 0 --n_trials 15
-
-# Step 4: P4 — 붕괴 분석
+# Step 2: P2 — 붕괴 분석
 python sweep_mnist_6t1c.py --ranks 32,64 --tes 60,70,80,90,100,120,150 \
     --modes decay --seeds 42,43,44,45,46 --lifetime 0 --n_trials 15
 ```
