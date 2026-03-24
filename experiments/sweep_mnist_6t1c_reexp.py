@@ -52,21 +52,14 @@ PATH_DATASET = os.path.join("data", "DATASET")
 # HP Formula (from trend analysis of prior experiments)
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def get_hp(mode, rank, te):
-    """Deterministic HP assignment from curve fitting.
+def get_hp(mode, rank, te, tlr_override=None):
+    """HP assignment. Fixed lr=0.3, tlr=0.005 for all conditions.
 
-    Reset: lr = 0.3 (constant),  tlr = 0.009 / sqrt(Rank)
-    Decay: lr = 0.25*log10(TE) + 0.11,  tlr = 0.005*log10(TE) + 0.0015
+    Args:
+        tlr_override: If provided, use this tlr instead of default 0.005.
     """
-    if mode == "reset":
-        lr = 0.3
-        tlr = 0.009 / math.sqrt(rank)
-    elif mode == "decay":
-        log_te = math.log10(max(te, 1))
-        lr = min(0.25 * log_te + 0.11, 0.8)
-        tlr = 0.005 * log_te + 0.0015
-    else:
-        raise ValueError(f"Unknown mode: {mode}")
+    lr = 0.3
+    tlr = tlr_override if tlr_override is not None else 0.005
     return lr, tlr
 
 
@@ -186,22 +179,30 @@ def run_single(mode, rank, te, seed, train_loader, val_loader):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--priority", type=int, default=0,
-                        help="1=full grid, 2=collapse analysis")
+    parser.add_argument("--step", type=int, default=0,
+                        help="1=fixed HP grid, 3=tlr sweep")
     parser.add_argument("--modes", type=str, default="reset,decay")
     parser.add_argument("--ranks", type=str, default="1,4,8,16,32,64")
     parser.add_argument("--tes", type=str, default="1,10,50,100,500,1000")
     parser.add_argument("--seeds", type=str, default="42,43,44")
+    parser.add_argument("--tlr_values", type=str, default=None,
+                        help="Comma-separated tlr values for Step 3 sweep")
     parser.add_argument("--output", type=str, default="reexp_results.json")
     args = parser.parse_args()
 
-    # Priority presets
-    if args.priority == 1:
+    # Step presets
+    if args.step == 1:
         modes = ["reset", "decay"]
         ranks = [1, 4, 8, 16, 32, 64]
         tes = [1, 10, 50, 100, 500, 1000]
         seeds = [42, 43, 44]
-        args.output = "reexp_P1_results.json"
+        args.output = "reexp_step1_results.json"
+    elif args.step == 3:
+        modes = args.modes.split(",")
+        ranks = [int(x) for x in args.ranks.split(",")]
+        tes = [int(x) for x in args.tes.split(",")]
+        seeds = [int(x) for x in args.seeds.split(",")]
+        args.output = "reexp_step3_tlr_sweep.json"
     else:
         modes = args.modes.split(",")
         ranks = [int(x) for x in args.ranks.split(",")]
@@ -235,45 +236,53 @@ def main():
     # Load data once
     train_loader, val_loader = load_data()
 
+    # tlr values for sweep (Step 3) or single value (Step 1)
+    if args.step == 3 and args.tlr_values:
+        tlr_list = [float(x) for x in args.tlr_values.split(",")]
+    else:
+        tlr_list = [None]  # None = use default 0.005
+
     # Run
     results = []
     run_idx = 0
+    total = len(modes) * len(ranks) * len(tes) * len(seeds) * len(tlr_list)
     t_start = time()
 
     for mode in modes:
         for rank in ranks:
             for te in tes:
-                seed_accs = []
-                lr, tlr = get_hp(mode, rank, te)
+                for tlr_val in tlr_list:
+                    seed_accs = []
+                    lr, tlr = get_hp(mode, rank, te, tlr_override=tlr_val)
 
-                for seed in seeds:
-                    run_idx += 1
-                    acc, _, _ = run_single(mode, rank, te, seed, train_loader, val_loader)
-                    seed_accs.append(acc)
-                    elapsed = time() - t_start
-                    eta = elapsed / run_idx * (total - run_idx)
-                    print(f"[{run_idx:>4d}/{total}] {mode:<6s} R={rank:>2d} TE={te:>4d} "
-                          f"seed={seed} acc={acc:.2f}% "
-                          f"({elapsed:.0f}s / ETA {eta:.0f}s)")
+                    for seed in seeds:
+                        run_idx += 1
+                        acc, _, _ = run_single(mode, rank, te, seed, train_loader, val_loader)
+                        seed_accs.append(acc)
+                        elapsed = time() - t_start
+                        eta = elapsed / run_idx * (total - run_idx)
+                        print(f"[{run_idx:>4d}/{total}] {mode:<6s} R={rank:>2d} TE={te:>4d} "
+                              f"seed={seed} acc={acc:.2f}% "
+                              f"({elapsed:.0f}s / ETA {eta:.0f}s)")
 
-                import numpy as np
-                mean_acc = np.mean(seed_accs)
-                std_acc = np.std(seed_accs)
+                    import numpy as np
+                    mean_acc = np.mean(seed_accs)
+                    std_acc = np.std(seed_accs)
 
-                result = {
-                    "mode": mode,
-                    "rank": rank,
-                    "te": te,
-                    "lr": lr,
-                    "tlr": tlr,
-                    "seed_accs": seed_accs,
-                    "mean_acc": round(mean_acc, 2),
-                    "std_acc": round(std_acc, 2),
-                    "best_acc": round(max(seed_accs), 2),
-                }
-                results.append(result)
+                    result = {
+                        "mode": mode,
+                        "rank": rank,
+                        "te": te,
+                        "lr": lr,
+                        "tlr": tlr,
+                        "seed_accs": seed_accs,
+                        "mean_acc": round(mean_acc, 2),
+                        "std_acc": round(std_acc, 2),
+                        "best_acc": round(max(seed_accs), 2),
+                    }
+                    results.append(result)
 
-                print(f"  → mean={mean_acc:.2f}% ± {std_acc:.2f}%")
+                    print(f"  -> mean={mean_acc:.2f}% +/- {std_acc:.2f}%")
 
     # Save JSON
     with open(args.output, "w") as f:
