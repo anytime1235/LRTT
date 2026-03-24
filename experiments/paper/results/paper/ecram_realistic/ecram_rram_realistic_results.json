@@ -1,0 +1,56 @@
+{
+  "experiment": "Realistic Device Experiments (EcRam Li / RRAM HfO2)",
+  "description": "TTv1 with realistic device models: EcRam Li (LinearStepDevice, Tang et al. IEDM 2018) and RRAM HfO2 (SoftBoundsReferenceDevice, Gong & Rasch IEDM 2022). Noise-free.",
+  "date": "2026-03-21",
+  "config": {
+    "method": "ttv1",
+    "target_layers": "attention",
+    "seed": 42,
+    "model": "bert-base-uncased",
+    "task": "SQuAD v1.1",
+    "epochs": 4,
+    "batch_size": 12,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 48,
+    "n_bits_fast": 14,
+    "n_bits_slow": 10,
+    "io_bits": "perfect (no quantization)",
+    "noise_management": "abs_max",
+    "gamma": 1.0,
+    "transfer_every": 4,
+    "units_in_mbatch": true,
+    "fast_lr": 0.1,
+    "transfer_lr": 1.0,
+    "scale_transfer_lr": false,
+    "with_reset_prob": 1.0,
+    "analog_lr": 0.016,
+    "classifier_lr": 0.003,
+    "ln_lr": 0.003,
+    "min_lr_rate": 0.05,
+    "ls_noise_ratio": 0
+  },
+  "results": {
+    "ecram_li": {
+      "label": "EcRam Li (LinearStepDevice, gamma_up=0.1153, gamma_down=0.5085)",
+      "device_type": "LinearStepDevice",
+      "reference": "Tang et al. IEDM 2018",
+      "gamma_up": 0.1153,
+      "gamma_down": 0.5085,
+      "best_f1": 86.35,
+      "final_f1": 86.35,
+      "final_em": 77.88,
+      "total_steps": 7376,
+      "wall_time_s": 15814.5
+    },
+    "rram_hfo2": {
+      "label": "RRAM HfO2 (SoftBoundsReferenceDevice, inherent nonlinearity)",
+      "device_type": "SoftBoundsReferenceDevice",
+      "reference": "Gong & Rasch, IEDM 2022",
+      "best_f1": 85.88,
+      "final_f1": 85.88,
+      "final_em": 77.55,
+      "total_steps": 7376,
+      "wall_time_s": 15933.2
+    }
+  }
+}
