@@ -209,7 +209,6 @@ def make_soft_bounds_device(dw_min=None, count_pulses=False, noise_ratio=0.0):
     )
 
 
->>>>>>> a95f2b2 (Add SingleRPU device_type support and gamma sweep launchers)
 def _apply_perfect_io(config):
     """Set ALL IO paths to perfect (no DAC/ADC quantization, no noise).
 
