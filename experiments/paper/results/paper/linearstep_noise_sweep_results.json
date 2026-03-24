@@ -1,7 +1,7 @@
 {
-  "experiment": "LinearStep Noise Sweep",
-  "task": "SQuAD",
-  "model": "transformer",
+  "experiment": "LinearStep Device Experiments",
+  "task": "SQuAD v1.1",
+  "model": "bert-base-uncased",
   "total_steps": 7376,
   "date_range": "2026-03-20 ~ 2026-03-24",
   "ttv1": {
@@ -175,6 +175,133 @@
         "wall_time_s": null,
         "status": "in_progress",
         "note": "running (step 6740 / 7376)"
+      }
+    ]
+  },
+  "asymmetry_ratio_sweep": {
+    "description": "LinearStep Asymmetry Ratio Sweep (TTv1, noise-free). Sweep gamma_up/gamma_down ratio={0.5,1.0,2.0,3.0} (6T1C base gamma scaled by ratio).",
+    "date": "2026-03-20 ~ 2026-03-21",
+    "status": "completed",
+    "config": {
+      "method": "ttv1",
+      "device": "LinearStepDevice (6T1C base: gamma_up=-0.1678, gamma_down=0.1410)",
+      "target_layers": "attention",
+      "epochs": 4,
+      "batch_size": 12,
+      "grad_accum_steps": 4,
+      "effective_batch_size": 48,
+      "n_bits_fast": 14,
+      "n_bits_slow": 10,
+      "io_bits": "perfect (no quantization)",
+      "noise_management": "abs_max",
+      "gamma": 1.0,
+      "transfer_every": 1,
+      "units_in_mbatch": true,
+      "fast_lr": 0.1,
+      "transfer_lr": 1.0,
+      "scale_transfer_lr": false,
+      "with_reset_prob": 1.0,
+      "analog_lr": 0.016,
+      "classifier_lr": 0.003,
+      "ln_lr": 0.003,
+      "min_lr_rate": 0.05,
+      "ls_noise_ratio": 0
+    },
+    "results": [
+      {
+        "name": "ls_gr0.5",
+        "label": "LinearStep r=0.5 (gamma_up=-0.0839, gamma_down=0.0705)",
+        "ls_gamma_ratio": 0.5,
+        "best_f1": 86.46,
+        "final_f1": 86.46,
+        "final_em": 78.39,
+        "wall_time_s": 15780.5,
+        "status": "completed"
+      },
+      {
+        "name": "ls_gr1.0",
+        "label": "LinearStep r=1.0 (6T1C measured: gamma_up=-0.1678, gamma_down=0.1410)",
+        "ls_gamma_ratio": 1.0,
+        "best_f1": 86.44,
+        "final_f1": 86.44,
+        "final_em": 78.0,
+        "wall_time_s": 15818.7,
+        "status": "completed"
+      },
+      {
+        "name": "ls_gr2.0",
+        "label": "LinearStep r=2.0 (gamma_up=-0.3356, gamma_down=0.2820)",
+        "ls_gamma_ratio": 2.0,
+        "best_f1": 86.3,
+        "final_f1": 86.3,
+        "final_em": 78.13,
+        "wall_time_s": 15828.1,
+        "status": "completed"
+      },
+      {
+        "name": "ls_gr3.0",
+        "label": "LinearStep r=3.0 (gamma_up=-0.5034, gamma_down=0.4230)",
+        "ls_gamma_ratio": 3.0,
+        "best_f1": 86.29,
+        "final_f1": 86.29,
+        "final_em": 77.85,
+        "wall_time_s": 15863.3,
+        "status": "completed"
+      }
+    ]
+  },
+  "realistic_device": {
+    "description": "Realistic Device Experiments (TTv1, noise-free). EcRam Li (LinearStepDevice, Tang et al. IEDM 2018) and RRAM HfO2 (SoftBoundsReferenceDevice, Gong & Rasch IEDM 2022).",
+    "date": "2026-03-21",
+    "status": "completed",
+    "config": {
+      "method": "ttv1",
+      "target_layers": "attention",
+      "epochs": 4,
+      "batch_size": 12,
+      "grad_accum_steps": 4,
+      "effective_batch_size": 48,
+      "n_bits_fast": 14,
+      "n_bits_slow": 10,
+      "io_bits": "perfect (no quantization)",
+      "noise_management": "abs_max",
+      "gamma": 1.0,
+      "transfer_every": 4,
+      "units_in_mbatch": true,
+      "fast_lr": 0.1,
+      "transfer_lr": 1.0,
+      "scale_transfer_lr": false,
+      "with_reset_prob": 1.0,
+      "analog_lr": 0.016,
+      "classifier_lr": 0.003,
+      "ln_lr": 0.003,
+      "min_lr_rate": 0.05,
+      "ls_noise_ratio": 0
+    },
+    "results": [
+      {
+        "name": "ecram_li",
+        "label": "EcRam Li (LinearStepDevice, gamma_up=0.1153, gamma_down=0.5085)",
+        "device_type": "LinearStepDevice",
+        "reference": "Tang et al. IEDM 2018",
+        "gamma_up": 0.1153,
+        "gamma_down": 0.5085,
+        "best_f1": 86.35,
+        "final_f1": 86.35,
+        "final_em": 77.88,
+        "wall_time_s": 15814.5,
+        "status": "completed"
+      },
+      {
+        "name": "rram_hfo2",
+        "label": "RRAM HfO2 (SoftBoundsReferenceDevice, inherent nonlinearity)",
+        "device_type": "SoftBoundsReferenceDevice",
+        "reference": "Gong & Rasch, IEDM 2022",
+        "best_f1": 85.88,
+        "final_f1": 85.88,
+        "final_em": 77.55,
+        "wall_time_s": 15933.2,
+        "status": "completed"
       }
     ]
   }
