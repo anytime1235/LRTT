@@ -592,12 +592,16 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, 
         mapping_ab=MappingParameter(
             weight_scaling_omega=ab_weight_scaling_omega,
             learn_out_scaling=False,
+            max_input_size=0 if IS_PERFECT else 512,
+            max_output_size=0 if IS_PERFECT else 512,
         ),
         mapping_c=MappingParameter(
             weight_scaling_omega=1.0,
             weight_scaling_columnwise=True,
             learn_out_scaling=OPT_CONFIG.get('learn_out_scaling', True),
             out_scaling_columnwise=True,
+            max_input_size=0 if IS_PERFECT else 512,
+            max_output_size=0 if IS_PERFECT else 512,
         ),
     )
     device_config.transfer_lr = transfer_lr

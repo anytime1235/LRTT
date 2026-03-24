@@ -369,12 +369,16 @@ def create_lrtt_config():
         mapping_ab=MappingParameter(
             weight_scaling_omega=AB_WEIGHT_SCALING_OMEGA,
             learn_out_scaling=False,
+            max_input_size=0 if IS_PERFECT else 512,
+            max_output_size=0 if IS_PERFECT else 512,
         ),
         mapping_c=MappingParameter(
             weight_scaling_omega=1.0,
             weight_scaling_columnwise=True,
             learn_out_scaling=LEARN_OUT_SCALING,
             out_scaling_columnwise=True,
+            max_input_size=0 if IS_PERFECT else 512,
+            max_output_size=0 if IS_PERFECT else 512,
         ),
     )
     device_config.transfer_lr = TRANSFER_LR
