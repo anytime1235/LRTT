@@ -22,7 +22,20 @@
 ### 기존 실험의 한계
 
 1. 각 cell이 single best (seed 반복 없음) → 통계적 유의성 주장 불가
-2. Decay Rank=64, TE=100 붕괴 현상 미해명
+2. **HP confound**: 각 (Rank, TE) cell이 독립적으로 HP 최적화 → TE 효과인지 HP 차이인지 분리 불가
+3. Decay Rank=64, TE=100 붕괴 현상 미해명
+
+#### HP Confound 구체 사례
+
+```
+Decay Rank=16~64, TE=1  best HP: lr=0.089, tlr=0.001  → 96.88~97.54%
+Decay Rank=4~8,   TE=100 best HP: lr=0.494, tlr=0.011  → 96.92~97.34%
+
+→ lr 5.5배, tlr 8.8배 차이
+→ "TE=1이 좋다"가 아니라 "이 HP가 좋다"일 수 있음
+```
+
+**TE에 따른 경향성을 주장하려면, 같은 Rank 내에서 HP를 통제한 상태로 TE만 변화시켜야 한다.**
 
 ---
 
@@ -44,27 +57,90 @@ activation: Sigmoid
 loss: NLLLoss
 ```
 
-### Hyperparameter Search (per cell)
+---
 
-각 (Rank, TE, Mode) 조합에 대해 Optuna로 best hyperparameter를 먼저 찾은 뒤, 해당 HP로 3-seed 반복.
+## Hyperparameter Search 전략: 2-Stage Per-Rank Search
+
+### 문제
+
+기존 방식 (cell별 독립 HP search)은 TE 간 HP가 달라져서 TE 효과를 오염시킴.
+
+### 해결: Rank별 HP 통제
+
+각 (Rank, Mode) 조합에 대해 **하나의 공통 HP를 찾은 뒤**, 해당 HP로 모든 TE를 sweep.
+
+```
+Stage 1: Per-Rank HP Search
+  - 각 (Rank, Mode) 조합에 대해 reference TE에서 Optuna search
+  - Reference TE = 중간값 (TE=50 또는 100) 사용
+  - 이 HP를 해당 Rank의 "base HP"로 확정
+
+Stage 2: TE Sweep with Fixed HP
+  - 확정된 base HP로 모든 TE에 대해 3-seed 반복
+  - HP가 통제되었으므로 accuracy 차이 = 순수 TE 효과
+```
+
+#### Stage 1: Per-Rank HP Search
 
 ```yaml
 search_space:
-  lr: [0.01, 1.0]         # log-uniform
+  lr: [0.01, 1.0]           # log-uniform
   transfer_lr: [0.0001, 0.1]  # log-uniform
-  lora_alpha: 1.0          # 고정
-  forward_inject: False     # 고정
-  reinit_gain: 0.1          # 고정
-n_trials: 15               # Optuna trials per cell
+  lora_alpha: 1.0            # 고정
+  forward_inject: False       # 고정
+  reinit_gain: 0.1            # 고정
+
+reference_TE: 100             # 중간값에서 HP 탐색
+n_trials: 20                  # Optuna trials per (Rank, Mode)
 ```
+
+| 항목 | 값 |
+|------|-----|
+| 조합 수 | 6 Rank × 2 Mode = 12 |
+| Optuna search | 12 × 20 = **240 runs** |
+
+#### Stage 2: TE Sweep with Fixed HP + 3-Seed
+
+```
+per (Rank, Mode):
+  HP = Stage 1에서 찾은 best HP
+  for TE in [1, 10, 50, 100, 500, 1000]:
+    for seed in [42, 43, 44]:
+      run(Rank, TE, Mode, HP, seed)
+```
+
+| 항목 | 값 |
+|------|-----|
+| 조합 수 | 6 Rank × 6 TE × 2 Mode = 72 |
+| Seed 반복 | 72 × 3 = **216 runs** |
+
+#### Stage 1b (선택): Per-Rank Narrow Re-Search
+
+Stage 2 결과에서 특정 TE가 base HP에서 성능이 크게 떨어지면,
+해당 TE 근처에서 **좁은 범위** re-search를 수행하여 HP sensitivity 확인.
+
+```yaml
+# base HP 기준 ±3x 범위 내에서만 search
+narrow_search_space:
+  lr: [base_lr / 3, base_lr * 3]
+  transfer_lr: [base_tlr / 3, base_tlr * 3]
+n_trials: 10
+```
+
+이 결과는 논문에서 "HP를 조정해도 TE 경향성이 유지됨"을 보이는 supplementary로 활용.
+
+| 항목 | 값 |
+|------|-----|
+| 대상 | 성능 하락 cell만 (예상 ~12개) |
+| Runs | ~12 × 10 trials × 3 seeds = **~360 runs** |
 
 ---
 
 ## 재실험 우선순위
 
-### Priority 1 — 핵심 Grid 3-seed 반복 (필수)
+### Priority 1 — 2-Stage HP 통제 TE Sweep (필수)
 
-**목적**: 기존 6×6 grid의 모든 cell에 대해 mean ± std 확보
+**목적**: HP confound 제거 후 순수 TE 효과 측정, rank별 일관된 TE 경향성 확보
 
 ```
 Ranks: [1, 4, 8, 16, 32, 64]
@@ -73,17 +149,17 @@ Modes: [Reset, Decay]
 Seeds: [42, 43, 44]
 ```
 
-| 항목 | 값 |
-|------|-----|
-| 총 cell | 6 × 6 × 2 = 72 |
-| Optuna search | 72 × 15 trials = 1,080 runs |
-| Seed 반복 | 72 × 3 seeds = 216 runs |
-| **총 runs** | **~1,296 runs** |
+| Stage | 내용 | Runs |
+|-------|------|------|
+| Stage 1 | Per-Rank HP Search (ref TE=100) | 240 |
+| Stage 2 | Fixed HP, all TE, 3-seed | 216 |
+| Stage 1b | Narrow re-search (optional) | ~360 |
+| **총 runs** | | **~816 runs** |
 
 **이 실험 완료 시 주장 가능한 것**:
-- "Decay TE≤10이 Reset 대비 통계적으로 유의하게 우수" (t-test p < 0.05)
-- "Reset TE=50~100이 Reset 모드 내 최적" (mean ± std bar plot)
-- "Rank는 1~64에서 accuracy에 유의한 영향 없음" (ANOVA)
+- "HP를 통제했을 때, Decay는 TE↓에서, Reset은 TE↑에서 일관되게 우수" (rank별 curve로 입증)
+- "이 경향성은 Rank=1~64 전 구간에서 일관됨" (6개 rank 모두 같은 패턴)
+- mean ± std로 통계적 유의성 확보 (t-test, ANOVA)
 
 ---
 
@@ -102,12 +178,13 @@ Seeds: [42, 43, 44, 45, 46]  # 5-seed (붕괴 확률 추정 위해)
 - Rank=64, TE=100: **전 lifetime에서 11.35% 붕괴** (5/5 runs)
 - Rank=4, TE=500: 일부 run에서 47% 붕괴 (3/5 runs)
 
+P1의 Stage 1에서 찾은 base HP를 사용하여 HP 통제 상태에서 붕괴 발생 여부 확인.
+
 | 항목 | 값 |
 |------|-----|
 | 총 cell | 2 × 7 × 1 = 14 |
-| Optuna search | 14 × 15 = 210 runs |
 | Seed 반복 | 14 × 5 = 70 runs |
-| **총 runs** | **~280 runs** |
+| **총 runs** | **~70 runs** (HP는 P1에서 확정) |
 
 **이 실험 완료 시 추가 주장 가능한 것**:
 - "Decay 모드에서 high-rank + mid-TE 조합은 training collapse 위험이 있으며, TE < X 또는 TE > Y 에서 안정적"
@@ -119,24 +196,30 @@ Seeds: [42, 43, 44, 45, 46]  # 5-seed (붕괴 확률 추정 위해)
 
 | Priority | 실험 | Runs | 누적 |
 |----------|------|------|------|
-| **P1** | 핵심 Grid 3-seed | ~1,296 | 1,296 |
-| **P2** | 붕괴 분석 | ~280 | 1,576 |
+| **P1** | 2-Stage HP 통제 TE Sweep | ~816 | 816 |
+| **P2** | 붕괴 분석 | ~70 | 886 |
 
 - MNIST MLP 30 epoch → ~15~20 sec/run (GPU)
-- **P1 (필수)**: ~1,296 runs ≈ **5~7 GPU-hours**
-- **전체**: ~1,576 runs ≈ **7~9 GPU-hours**
+- **P1 (필수)**: ~816 runs ≈ **3~5 GPU-hours**
+- **전체**: ~886 runs ≈ **4~5 GPU-hours**
 
 ---
 
 ## 실험 완료 후 논문 Figure 계획
 
 ### Main Figure: Rank × TE Heatmap (1×3)
-- (a) Reset mode accuracy heatmap (mean)
-- (b) Decay mode accuracy heatmap (mean)
+- (a) Reset mode accuracy heatmap (mean, HP 통제)
+- (b) Decay mode accuracy heatmap (mean, HP 통제)
 - (c) Decay − Reset difference (with significance markers)
 
+### Main Figure: Per-Rank TE Curve
+- x축: TE (log scale), y축: Accuracy (%)
+- 각 Rank별 curve (Reset/Decay 각각)
+- **HP 통제 상태이므로 TE 효과만 반영 → 논문 주장 강화**
+- 6개 Rank가 일관된 패턴 → "Rank-invariant TE effect"
+
 ### Supplementary Figure
-- Per-Rank TE sweep (6 panels)
+- HP sensitivity 분석 (Stage 1b narrow re-search 결과)
 - Collapse probability heatmap (P2 데이터)
 - Rank별 ANOVA 결과 table
 
@@ -145,13 +228,25 @@ Seeds: [42, 43, 44, 45, 46]  # 5-seed (붕괴 확률 추정 위해)
 ## 실행 순서
 
 ```bash
-# Step 1: P1 — 핵심 Grid
-python sweep_mnist_6t1c.py --ranks 1,4,8,16,32,64 --tes 1,10,50,100,500,1000 \
-    --modes reset,decay --seeds 42,43,44 --lifetime 0 --n_trials 15
+# Step 1: Stage 1 — Per-Rank HP Search at reference TE=100
+python sweep_mnist_6t1c.py --ranks 1,4,8,16,32,64 --tes 100 \
+    --modes reset,decay --seeds 42 --lifetime 0 --n_trials 20 \
+    --stage hp_search
 
-# Step 2: P2 — 붕괴 분석
+# Step 2: Stage 2 — Fixed HP, TE Sweep, 3-seed
+python sweep_mnist_6t1c.py --ranks 1,4,8,16,32,64 --tes 1,10,50,100,500,1000 \
+    --modes reset,decay --seeds 42,43,44 --lifetime 0 \
+    --stage te_sweep --hp_from stage1_results.json
+
+# Step 3 (optional): Stage 1b — Narrow Re-Search for underperforming cells
+python sweep_mnist_6t1c.py --ranks 1,4,8,16,32,64 --tes <underperforming_TEs> \
+    --modes reset,decay --seeds 42,43,44 --lifetime 0 --n_trials 10 \
+    --stage narrow_search --hp_from stage1_results.json --hp_range 3x
+
+# Step 4: P2 — 붕괴 분석 (Decay only, 5-seed)
 python sweep_mnist_6t1c.py --ranks 32,64 --tes 60,70,80,90,100,120,150 \
-    --modes decay --seeds 42,43,44,45,46 --lifetime 0 --n_trials 15
+    --modes decay --seeds 42,43,44,45,46 --lifetime 0 \
+    --stage te_sweep --hp_from stage1_results.json
 ```
 
 ---
