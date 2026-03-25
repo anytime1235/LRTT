@@ -65,7 +65,7 @@ val_loader = DataLoader(
 def create_model(dw_min, gamma, tlr):
     ab_device = LinearStepDevice(
         dw_min=0.001981, up_down=0.0, w_max=1.0, w_min=-1.0,
-        gamma_up=-0.1678, gamma_down=0.1410, mult_noise=True,
+        gamma_up=-0.1678, gamma_down=0.1410, mult_noise=False,
         dw_min_dtod=0.1, up_down_dtod=0.01, w_max_dtod=0.05, w_min_dtod=0.05,
         gamma_up_dtod=0.05, gamma_down_dtod=0.05,
         dw_min_std=0.3, write_noise_std=0.0,
@@ -76,7 +76,7 @@ def create_model(dw_min, gamma, tlr):
         dw_min=dw_min, w_max=1.0, w_min=-1.0,
         gamma_up=gamma, gamma_down=gamma,
         up_down=0.0, up_down_dtod=0.0,
-        mult_noise=True, mean_bound_reference=True,
+        mult_noise=False, mean_bound_reference=True,
         dw_min_std=0.0, dw_min_dtod=0.0,
         w_max_dtod=0.0, w_min_dtod=0.0, write_noise_std=0.0,
     )
