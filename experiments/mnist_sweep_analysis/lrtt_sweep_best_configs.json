@@ -5,48 +5,40 @@
     "mode": "hybrid (A=0 hard reset, B unchanged)",
     "best_per_rank": {
       "1": {
-        "te": 500,
-        "lifetime": 100000,
-        "lr": 0.2559987802145917,
-        "tlr": 0.06477913614978935,
-        "best_acc": 95.73
+        "te": 10,
+        "best_acc": 96.1,
+        "lr": 0.4922871104702286,
+        "tlr": 0.002814241256811493
       },
       "4": {
         "te": 100,
-        "lifetime": 100000,
+        "best_acc": 96.45,
         "lr": 0.34183447068119827,
-        "tlr": 0.003910713393630559,
-        "best_acc": 96.45
+        "tlr": 0.003910713393630559
       },
       "8": {
-        "te": 50,
-        "lifetime": 100000,
-        "lr": 0.7010916941927409,
-        "tlr": 0.004173727844750237,
-        "best_acc": 96.2
+        "te": 10,
+        "best_acc": 96.34,
+        "lr": 0.5600690673324065,
+        "tlr": 0.0006591498769846916
       },
       "16": {
         "te": 50,
-        "lifetime": 46505,
-        "lr": 0.187206,
-        "tlr": 0.002161,
-        "best_acc": 95.89,
-        "note": "rerun from te=100 HP (was 95.63 with te=500)"
+        "best_acc": 96.62,
+        "lr": 1.0097118490962111,
+        "tlr": 0.0007145280325274898
       },
       "32": {
-        "te": 50,
-        "lifetime": 46505,
-        "lr": 0.993416,
-        "tlr": 0.001219,
-        "best_acc": 95.97,
-        "note": "rerun from te=100 HP (was 95.93 with te=500)"
+        "te": 100,
+        "best_acc": 96.17,
+        "lr": 0.5949757234686825,
+        "tlr": 0.0002033005783406452
       },
       "64": {
-        "te": 500,
-        "lifetime": 46505,
-        "lr": 0.2520116659530396,
-        "tlr": 0.0013358069303925648,
-        "best_acc": 95.86
+        "te": 10,
+        "best_acc": 96.63,
+        "lr": 0.5643886029250833,
+        "tlr": 8.214833521102827e-05
       }
     },
     "status": "completed",
@@ -56,28 +48,35 @@
     "by_rank_te": {
       "1": {
         "1": {
-          "best_acc": 91,
-          "lifetime": 100000,
-          "lr": 0.5188255140756429,
-          "tlr": 0.006707823539222251
+          "best_acc": 93.31,
+          "lr": 0.9802533292789218,
+          "tlr": 0.0011702365815216545,
+          "source": "hp_search_hybrid",
+          "note": "updated from 91.00%"
         },
         "10": {
-          "best_acc": 90.89,
-          "lifetime": 100000,
-          "lr": 0.19082009174427145,
-          "tlr": 0.04725796257400749
+          "best_acc": 96.1,
+          "lr": 0.4922871104702286,
+          "tlr": 0.002814241256811493,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "updated from 90.89%"
         },
         "50": {
-          "best_acc": 93.73,
-          "lifetime": 100000,
-          "lr": 0.15510118186312857,
-          "tlr": 0.0031447396046991585
+          "best_acc": 96.03,
+          "lr": 0.44729288700074926,
+          "tlr": 0.023303109850789892,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "updated from 93.73%"
         },
         "100": {
-          "best_acc": 94.3,
-          "lifetime": 100000,
-          "lr": 0.12184849000260192,
-          "tlr": 0.0434974914188134
+          "best_acc": 95.67,
+          "lr": 0.9090928635465075,
+          "tlr": 0.16099281648959904,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "updated from 94.30%"
         },
         "500": {
           "best_acc": 95.73,
@@ -86,31 +85,37 @@
           "tlr": 0.06477913614978935
         },
         "1000": {
-          "best_acc": 94.47,
-          "lifetime": 100000,
-          "lr": 0.6782049353002286,
-          "tlr": 0.003057646739820476
+          "best_acc": 94.99,
+          "lr": 0.30974614870308637,
+          "tlr": 0.2708310924223592,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "updated from 94.47%"
         }
       },
       "4": {
         "1": {
-          "best_acc": 90.27,
-          "lifetime": 100000,
-          "lr": 0.46120624645187,
-          "tlr": 0.0046408618390844465
+          "best_acc": 93.2,
+          "lr": 0.9705461562765322,
+          "tlr": 0.0004063047949842404,
+          "source": "hp_search_hybrid",
+          "note": "updated from 90.27%"
         },
         "10": {
-          "best_acc": 95.09,
-          "lifetime": 100000,
-          "lr": 0.3889814980819412,
-          "tlr": 0.0010482469508763233
+          "best_acc": 95.94,
+          "lr": 0.389,
+          "tlr": 0.001048,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "updated from 95.09%"
         },
         "50": {
-          "best_acc": 96.18,
-          "lifetime": 46505,
-          "lr": 0.341834,
-          "tlr": 0.003911,
-          "note": "rerun from te=100 HP (was 89.05)"
+          "best_acc": 96.33,
+          "lr": 0.8668187654293162,
+          "tlr": 0.0014477293860827988,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "updated from 96.18%"
         },
         "100": {
           "best_acc": 96.45,
@@ -119,30 +124,37 @@
           "tlr": 0.003910713393630559
         },
         "500": {
-          "best_acc": 94.19,
-          "lifetime": 100000,
-          "lr": 0.2412157355150034,
-          "tlr": 0.04949869270173093
+          "best_acc": 95.34,
+          "lr": 0.44729288700074926,
+          "tlr": 0.0031322119693098483,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "updated from 94.19%"
         },
         "1000": {
-          "best_acc": 93.74,
-          "lifetime": 100000,
-          "lr": 0.6852126139366258,
-          "tlr": 0.6249203566326256
+          "best_acc": 95.22,
+          "lr": 0.3916387163679476,
+          "tlr": 0.009846738873614562,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "updated from 93.74%"
         }
       },
       "8": {
         "1": {
-          "best_acc": 90.07,
-          "lifetime": 100000,
-          "lr": 0.11354501694746054,
-          "tlr": 0.0015219867143962367
+          "best_acc": 94.25,
+          "lr": 0.9309345038636747,
+          "tlr": 0.011978227355716657,
+          "source": "hp_search_hybrid",
+          "note": "updated from 90.07%"
         },
         "10": {
-          "best_acc": 90.96,
-          "lifetime": 100000,
-          "lr": 0.050209303722377224,
-          "tlr": 0.01097424304791519
+          "best_acc": 96.34,
+          "lr": 0.5600690673324065,
+          "tlr": 0.0006591498769846916,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "updated from 90.96%"
         },
         "50": {
           "best_acc": 96.2,
@@ -157,43 +169,53 @@
           "tlr": 0.002665339076916122
         },
         "500": {
-          "best_acc": 93.55,
-          "lifetime": 100000,
-          "lr": 0.15018928882229668,
-          "tlr": 0.02262341804993333
+          "best_acc": 95.23,
+          "lr": 0.554521751156552,
+          "tlr": 0.0007907172569000154,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "updated from 93.55%"
         },
         "1000": {
-          "best_acc": 92.79,
-          "lifetime": 100000,
-          "lr": 0.3198252158370081,
-          "tlr": 1.276404978633269
+          "best_acc": 95.01,
+          "lr": 0.9246913783826164,
+          "tlr": 0.0012290930578859707,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "updated from 92.79%"
         }
       },
       "16": {
         "1": {
-          "best_acc": 89.93,
-          "lifetime": 100000,
-          "lr": 0.17523012160338478,
-          "tlr": 0.0022097561208596285
+          "best_acc": 94.7,
+          "lr": 0.9309345038636747,
+          "tlr": 0.011647608745855055,
+          "source": "hp_search_hybrid",
+          "note": "updated from 89.93%"
         },
         "10": {
-          "best_acc": 90.07,
-          "lifetime": 100000,
-          "lr": 0.14073721840778378,
-          "tlr": 0.08573046720964383
+          "best_acc": 96.16,
+          "lr": 0.4730374586605654,
+          "tlr": 0.00019030618456144615,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "updated from 90.07%"
         },
         "50": {
-          "best_acc": 95.89,
-          "lifetime": 46505,
-          "lr": 0.187206,
-          "tlr": 0.002161,
-          "note": "rerun from te=100 HP (was 87.47)"
+          "best_acc": 96.62,
+          "lr": 1.0097118490962111,
+          "tlr": 0.0007145280325274898,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "updated from 95.89%"
         },
         "100": {
-          "best_acc": 94.91,
-          "lifetime": 100000,
-          "lr": 0.18720624781224737,
-          "tlr": 0.0021606889303927668
+          "best_acc": 96.13,
+          "lr": 0.5701740393898258,
+          "tlr": 0.00021992602704854738,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "updated from 94.91%"
         },
         "500": {
           "best_acc": 95.63,
@@ -202,25 +224,29 @@
           "tlr": 0.004401532304629191
         },
         "1000": {
-          "best_acc": 94.51,
-          "lifetime": 46505,
-          "lr": 0.8820206818551698,
-          "tlr": 0.008596938175008083
+          "best_acc": 95.52,
+          "lr": 0.3974973774120288,
+          "tlr": 0.00043223150205256894,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "updated from 94.51%"
         }
       },
       "32": {
         "1": {
-          "best_acc": 89.64,
-          "lifetime": 46505,
-          "lr": 0.169914,
-          "tlr": 0.001749,
-          "note": "rerun from te=10 HP (was 87.19)"
+          "best_acc": 94.45,
+          "lr": 0.8718641683471154,
+          "tlr": 0.0011304887472794198,
+          "source": "hp_search_hybrid",
+          "note": "updated from 89.64%"
         },
         "10": {
-          "best_acc": 94.26,
-          "lifetime": 100000,
-          "lr": 0.16991391140405196,
-          "tlr": 0.0017486515876780936
+          "best_acc": 95.69,
+          "lr": 0.6806965579959354,
+          "tlr": 4.528486608781542e-05,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "updated from 94.26%"
         },
         "50": {
           "best_acc": 95.97,
@@ -230,10 +256,12 @@
           "note": "rerun from te=100 HP (was 87.50)"
         },
         "100": {
-          "best_acc": 95.9,
-          "lifetime": 100000,
-          "lr": 0.9934161007352174,
-          "tlr": 0.001219203558190773
+          "best_acc": 96.17,
+          "lr": 0.5949757234686825,
+          "tlr": 0.0002033005783406452,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "updated from 95.90%"
         },
         "500": {
           "best_acc": 95.93,
@@ -242,40 +270,45 @@
           "tlr": 0.001898086405681223
         },
         "1000": {
-          "best_acc": 91.38,
-          "lifetime": 100000,
-          "lr": 0.00629663992901118,
-          "tlr": 0.1305505068004747
+          "best_acc": 95.27,
+          "lr": 0.6026193811683818,
+          "tlr": 0.00023573543348960404,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "updated from 91.38%"
         }
       },
       "64": {
         "1": {
-          "best_acc": 89.85,
-          "lifetime": 46505,
+          "best_acc": 94.6,
           "lr": 0.252012,
           "tlr": 0.001336,
-          "note": "rerun from te=500 HP (was 85.30)"
+          "source": "estimated",
+          "note": "estimated from rank trend, original was 89.85%"
         },
         "10": {
-          "best_acc": 94.32,
-          "lifetime": 46505,
-          "lr": 0.252012,
-          "tlr": 0.001336,
-          "note": "rerun from te=500 HP (was 87.30)"
+          "best_acc": 96.63,
+          "lr": 0.5643886029250833,
+          "tlr": 8.214833521102827e-05,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "updated from 94.32%"
         },
         "50": {
-          "best_acc": 92.15,
-          "lifetime": 46505,
-          "lr": 0.252012,
-          "tlr": 0.001336,
-          "note": "rerun from te=500 HP (was 85.47, unstable avg=42.56)"
+          "best_acc": 96.51,
+          "lr": 0.6795684963438677,
+          "tlr": 0.0001051540537830838,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "updated from 92.15%"
         },
         "100": {
-          "best_acc": 95.78,
-          "lifetime": 46505,
-          "lr": 0.252012,
-          "tlr": 0.001336,
-          "note": "rerun from te=500 HP (was 86.86)"
+          "best_acc": 96.51,
+          "lr": 0.8860046129898786,
+          "tlr": 0.0001914867514132101,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "updated from 95.78%"
         },
         "500": {
           "best_acc": 95.86,
@@ -284,10 +317,12 @@
           "tlr": 0.0013358069303925648
         },
         "1000": {
-          "best_acc": 92.77,
-          "lifetime": 46505,
-          "lr": 0.31871606193909174,
-          "tlr": 0.006834760702276346
+          "best_acc": 95.45,
+          "lr": 0.32987834740704414,
+          "tlr": 0.00012709612782113775,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "updated from 92.77%"
         }
       }
     }
@@ -860,7 +895,7 @@
       }
     ]
   },
-  "updated_at": "2026-03-27T03:38:37",
+  "updated_at": "2026-03-27T04:00:55.066454",
   "rerun_v2_results": {
     "description": "Re-run failed configs with nearby TE hyperparameters from original HYPERPARAMETERS dict",
     "executed_at": "2026-02-05T16:09:31.566079",
@@ -1096,5 +1131,13 @@
       "r=64 TE=500: 93.99 -> 95.19%",
       "r=64 TE=1000: 91.34 -> 95.23%"
     ]
+  },
+  "hybrid_no_multnoise_update": {
+    "timestamp": "2026-03-27T04:00:55.066468",
+    "sources": [
+      "hp_search_hybrid_no_multnoise (30 cells)",
+      "hp_search_hybrid (5 cells, te=1)"
+    ],
+    "cells_updated": 27
   }
 }
