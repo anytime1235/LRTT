@@ -1335,6 +1335,103 @@ def main():
                     else:
                         gc_dict['_hist_ready'] = False
 
+            # ── Transfer diagnostic: capture x/d going into C tile ──
+            # - direct/onehot: hook tile_c._orig_update / tile_c.update
+            # - set mode: tile_c.tile.update is C-ext (read-only), so we
+            #   read A/B weights before transfer (= the x/d that set passes)
+            gc_dict['_transfer_xc_all'] = []
+            gc_dict['_transfer_dc_all'] = []
+            gc_dict['_transfer_lr_c'] = 0.0
+            gc_dict['_in_transfer'] = False
+
+            _orig_transfer = ctrl.ab_weight_transfer
+
+            # Hook outer tile_c update (used by direct/onehot)
+            _orig_outer_update = getattr(diag_tile.tile_c, '_orig_update',
+                                         diag_tile.tile_c.update)
+
+            def _capture_c_update_outer(x_input, d_input, *args, **kwargs):
+                if gc_dict.get('_in_transfer'):
+                    gc_dict['_transfer_xc_all'].append(x_input.detach().clone())
+                    gc_dict['_transfer_dc_all'].append(d_input.detach().clone())
+                    gc_dict['_transfer_lr_c'] = diag_tile.tile_c.get_learning_rate()
+                return _orig_outer_update(x_input, d_input, *args, **kwargs)
+
+            def _compute_transfer_stats(gc_dict):
+                """Compute xc/dc stats from accumulated tensors."""
+                with torch.no_grad():
+                    _pcts = torch.tensor([0.05, 0.25, 0.5, 0.75, 0.95],
+                                         device=device)
+                    xc_list = gc_dict['_transfer_xc_all']
+                    dc_list = gc_dict['_transfer_dc_all']
+                    if xc_list:
+                        xc_cat = torch.cat(xc_list, dim=0).to(device)
+                        dc_cat = torch.cat(dc_list, dim=0).to(device)
+                        gc_dict['xc_abs_mean'], gc_dict['xc_abs_max'] = _abs_stats(xc_cat)
+                        gc_dict['dc_abs_mean'], gc_dict['dc_abs_max'] = _abs_stats(dc_cat)
+                        for _prefix, _t in [('xc', xc_cat), ('dc', dc_cat)]:
+                            _flat = _t.abs().flatten()
+                            _q = torch.quantile(_flat.float(), _pcts).tolist()
+                            gc_dict[f'{_prefix}_p5'] = _q[0]
+                            gc_dict[f'{_prefix}_p25'] = _q[1]
+                            gc_dict[f'{_prefix}_p50'] = _q[2]
+                            gc_dict[f'{_prefix}_p75'] = _q[3]
+                            gc_dict[f'{_prefix}_p95'] = _q[4]
+                        _hists_c = {}
+                        for _prefix, _t in [('xc', xc_cat), ('dc', dc_cat)]:
+                            _flat = _t.abs().flatten().float()
+                            _max_val = _flat.max().item()
+                            if _max_val > 0:
+                                _counts = torch.histc(_flat, bins=50, min=0, max=_max_val).tolist()
+                                _hists_c[_prefix] = {'counts': _counts, 'min': 0.0, 'max': _max_val}
+                            else:
+                                _hists_c[_prefix] = {'counts': [float(_flat.numel())] + [0.0]*49, 'min': 0.0, 'max': 1.0}
+                        gc_dict['_transfer_hist'] = _hists_c
+                        gc_dict['transfer_lr_c'] = gc_dict['_transfer_lr_c']
+                        gc_dict['transfer_n_calls'] = len(xc_list)
+                        del xc_cat, dc_cat
+                    gc_dict['_transfer_xc_all'] = []
+                    gc_dict['_transfer_dc_all'] = []
+
+            def hooked_transfer(method=None):
+                if not gc_dict.get('active'):
+                    _orig_transfer(method=method)
+                    return
+
+                _method = method if method is not None else ctrl.transfer_method
+                gc_dict['_transfer_xc_all'] = []
+                gc_dict['_transfer_dc_all'] = []
+                gc_dict['_in_transfer'] = True
+
+                # For set mode: C-ext tile.update is read-only, so read A/B
+                # weights before transfer to reconstruct the x/d values
+                if _method == "set":
+                    with torch.no_grad():
+                        A_raw = diag_tile.tile_a.tile.get_weights().to(device)
+                        B_raw = diag_tile.tile_b.tile.get_weights().to(device)
+                        alpha_a = diag_tile.tile_a.get_scales()
+                        alpha_b = diag_tile.tile_b.get_scales()
+                        alpha_c = diag_tile.tile_c.get_scales()
+                        A_val = A_raw * alpha_a.view(-1, 1) if alpha_a is not None else A_raw
+                        B_val = B_raw * alpha_b.view(-1, 1) if alpha_b is not None else B_raw
+                        A_adj = A_val / alpha_c.view(-1, 1) if alpha_c is not None else A_val
+                        # set mode passes: x=B_val [rank, x_size], d=(-A_adj).t() [rank, d_size]
+                        gc_dict['_transfer_xc_all'].append(B_val.detach())
+                        gc_dict['_transfer_dc_all'].append((-A_adj).t().detach())
+                        eff_lr = ctrl._compute_effective_transfer_lr()
+                        gc_dict['_transfer_lr_c'] = abs(eff_lr)
+
+                _orig_transfer(method=method)
+                gc_dict['_in_transfer'] = False
+                _compute_transfer_stats(gc_dict)
+
+            # Install hooks
+            if hasattr(diag_tile.tile_c, '_orig_update'):
+                diag_tile.tile_c._orig_update = _capture_c_update_outer
+            else:
+                diag_tile.tile_c.update = _capture_c_update_outer
+            ctrl.ab_weight_transfer = hooked_transfer
+
             if ctrl.forward_inject_enabled:
                 # FI mode: ab_weight_update is never called.
                 # Hook tile_b._orig_update which fires last (after tile_a._orig_update).
@@ -1470,6 +1567,19 @@ def main():
                         # Histogram (only when captured)
                         if gcd.get('_hist_ready'):
                             rec['xd_hist'] = gcd['_last_hist']
+                        # Transfer C tile x/d diagnostics (recorded at transfer steps)
+                        if rec["is_transfer"]:
+                            rec['xc_abs_mean'] = gcd.get('xc_abs_mean', 0.0)
+                            rec['xc_abs_max'] = gcd.get('xc_abs_max', 0.0)
+                            rec['dc_abs_mean'] = gcd.get('dc_abs_mean', 0.0)
+                            rec['dc_abs_max'] = gcd.get('dc_abs_max', 0.0)
+                            rec['transfer_lr_c'] = gcd.get('transfer_lr_c', 0.0)
+                            rec['transfer_n_calls'] = gcd.get('transfer_n_calls', 0)
+                            for _pf in ['xc', 'dc']:
+                                for _pp in ['p5', 'p25', 'p50', 'p75', 'p95']:
+                                    rec[f'{_pf}_{_pp}'] = gcd.get(f'{_pf}_{_pp}', 0.0)
+                            if gcd.get('_transfer_hist'):
+                                rec['xc_dc_hist'] = gcd['_transfer_hist']
 
                         with torch.no_grad():
                             C_raw_after = get_raw_C(tile.tile_c).to(DEVICE)
