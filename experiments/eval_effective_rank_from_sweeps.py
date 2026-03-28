@@ -215,17 +215,19 @@ def compute_erank_via_gram(X: Tensor, eps: float = 1e-12) -> float:
     except RuntimeError:
         return 0.0
 
-    # Filter positive eigenvalues
+    # Filter positive eigenvalues and take sqrt to get singular values
     eigenvalues = eigenvalues[eigenvalues > 1e-20]
     if len(eigenvalues) == 0:
         return 0.0
 
-    # Normalize
-    total = eigenvalues.sum()
-    if total < eps:
+    S = torch.sqrt(eigenvalues)
+
+    # Normalize singular values (same as SVD-based erank)
+    S_sum = S.sum()
+    if S_sum < eps:
         return 0.0
 
-    p = eigenvalues / total
+    p = S / S_sum
 
     # Entropy and effective rank
     H = -torch.sum(p * torch.log(p + eps))
