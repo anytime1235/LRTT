@@ -101,7 +101,7 @@ MODEL_NAME = "bert-base-uncased"
 MAX_SEQ_LENGTH = 384
 
 # Training
-N_EPOCHS = 5  # match Optuna 5ep
+N_EPOCHS = 1  # diagnostic only
 SCHEDULE_EPOCHS = 5  # LR schedule horizon (set > N_EPOCHS to match longer runs)
 BATCH_SIZE = 48
 EVAL_BATCH_SIZE = 256
@@ -197,7 +197,7 @@ DIAG_EPOCHS = 1            # 0 = all epochs, N = first N epochs only
 TRAIN_SUBSET_SIZE = 0
 EVAL_SUBSET_SIZE = 0
 
-GRAD_ACCUM_STEPS = 1
+GRAD_ACCUM_STEPS = 3  # micro_bs=16, effective bs=48
 
 # WandB
 WANDB_PROJECT = "bert-squad-lrtt-fine"
@@ -1166,44 +1166,59 @@ def make_xd_diagnostic_plots(log_data, output_path, tile_label=""):
         ('da', 'tile_a grad (raw gradient)'),
         ('xb', 'tile_b input (raw x)'),
         ('db', 'tile_b grad (DA = A^T·d)'),
+        ('xc', 'tile_c transfer input (B weights)'),
+        ('dc', 'tile_c transfer grad (A weights)'),
     ]
 
-    fig, axes = plt.subplots(4, 2, figsize=(18, 18))
+    fig, axes = plt.subplots(6, 2, figsize=(18, 27))
     fig.suptitle(f'x/d Distribution — {tile_label}', fontsize=13, y=0.99)
 
     for row, (prefix, desc) in enumerate(xd_keys):
+        is_transfer_key = prefix in ('xc', 'dc')
+
+        # For xc/dc, filter to transfer steps only
+        if is_transfer_key:
+            plot_data = [r for r in log_data if r.get('is_transfer') and f'{prefix}_abs_max' in r]
+            plot_steps = [r['step'] for r in plot_data]
+        else:
+            plot_data = log_data
+            plot_steps = steps
+
         # --- Left: percentile band plot over time ---
         ax = axes[row, 0]
-        p5 = [r.get(f'{prefix}_p5', 0) for r in log_data]
-        p25 = [r.get(f'{prefix}_p25', 0) for r in log_data]
-        p50 = [r.get(f'{prefix}_p50', 0) for r in log_data]
-        p75 = [r.get(f'{prefix}_p75', 0) for r in log_data]
-        p95 = [r.get(f'{prefix}_p95', 0) for r in log_data]
-        mean_vals = [r.get(f'{prefix}_abs_mean', 0) for r in log_data]
-        max_vals = [r.get(f'{prefix}_abs_max', 0) for r in log_data]
+        if plot_data:
+            p5 = [r.get(f'{prefix}_p5', 0) for r in plot_data]
+            p25 = [r.get(f'{prefix}_p25', 0) for r in plot_data]
+            p50 = [r.get(f'{prefix}_p50', 0) for r in plot_data]
+            p75 = [r.get(f'{prefix}_p75', 0) for r in plot_data]
+            p95 = [r.get(f'{prefix}_p95', 0) for r in plot_data]
+            mean_vals = [r.get(f'{prefix}_abs_mean', 0) for r in plot_data]
+            max_vals = [r.get(f'{prefix}_abs_max', 0) for r in plot_data]
 
-        ax.fill_between(steps, p5, p95, alpha=0.15, color='blue', label='p5-p95')
-        ax.fill_between(steps, p25, p75, alpha=0.3, color='blue', label='p25-p75')
-        ax.plot(steps, p50, 'b-', linewidth=0.8, label='median')
-        ax.plot(steps, mean_vals, 'g--', linewidth=0.6, alpha=0.7, label='mean')
-        ax.plot(steps, max_vals, 'r-', linewidth=0.4, alpha=0.5, label='max')
+            ax.fill_between(plot_steps, p5, p95, alpha=0.15, color='blue', label='p5-p95')
+            ax.fill_between(plot_steps, p25, p75, alpha=0.3, color='blue', label='p25-p75')
+            ax.plot(plot_steps, p50, 'b-', linewidth=0.8, label='median')
+            ax.plot(plot_steps, mean_vals, 'g--', linewidth=0.6, alpha=0.7, label='mean')
+            ax.plot(plot_steps, max_vals, 'r-', linewidth=0.4, alpha=0.5, label='max')
         ax.set_title(f'|{prefix}| percentiles — {desc}')
         ax.set_ylabel(f'|{prefix}|')
         ax.legend(fontsize=7, loc='upper right')
         ax.grid(True, alpha=0.3)
-        if row == 3:
+        if row == len(xd_keys) - 1:
             ax.set_xlabel('Step')
 
         # --- Right: histograms at sampled time points ---
         ax = axes[row, 1]
-        hist_steps = [r for r in log_data if 'xd_hist' in r and prefix in r['xd_hist']]
+        # xc/dc histograms are in 'xc_dc_hist', xa/da/xb/db in 'xd_hist'
+        hist_key = 'xc_dc_hist' if is_transfer_key else 'xd_hist'
+        hist_steps = [r for r in plot_data if hist_key in r and prefix in r[hist_key]]
         if hist_steps:
             n_hist = len(hist_steps)
             sample_idx = [0, n_hist // 3, 2 * n_hist // 3, n_hist - 1]
             sample_idx = sorted(set(min(i, n_hist - 1) for i in sample_idx))
             colors = plt.cm.viridis(np.linspace(0.2, 0.9, len(sample_idx)))
             for ci, idx in enumerate(sample_idx):
-                h = hist_steps[idx]['xd_hist'][prefix]
+                h = hist_steps[idx][hist_key][prefix]
                 counts = h['counts']
                 bin_edges = np.linspace(h['min'], h['max'], len(counts) + 1)
                 bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
@@ -1218,7 +1233,7 @@ def make_xd_diagnostic_plots(log_data, output_path, tile_label=""):
             ax.grid(True, alpha=0.3)
         else:
             ax.text(0.5, 0.5, 'No histogram data', transform=ax.transAxes, ha='center')
-        if row == 3:
+        if row == len(xd_keys) - 1:
             ax.set_xlabel(f'|{prefix}|')
 
     plt.tight_layout()
@@ -1375,7 +1390,11 @@ def main():
                 with torch.no_grad():
                     x_2d = x_b.reshape(-1, x_b.shape[-1])
                     d_2d = d_a.reshape(-1, d_a.shape[-1])
-                    gc_dict['G_accum'] = gc_dict['G_accum'] + d_2d.t() @ x_2d
+                    # Guard: with grad_accum>1 + FI, tile_a/b process groups
+                    # independently so x_b and d_a may come from different
+                    # micro-batches with different seq lengths (dynamic padding)
+                    if d_2d.shape[0] == x_2d.shape[0]:
+                        gc_dict['G_accum'] = gc_dict['G_accum'] + d_2d.t() @ x_2d
                     A = diag_tile.tile_a.get_weights()[0].to(device)
                     B = diag_tile.tile_b.get_weights()[0].to(device)
                     AB = A @ B
