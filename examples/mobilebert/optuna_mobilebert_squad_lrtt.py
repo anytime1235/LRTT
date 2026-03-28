@@ -310,9 +310,8 @@ def get_study_name_suffix():
     if not OPT_CONFIG['tune_nesterov']:
         suffix += "_nonest"
 
-    # Add transfer method if not default
-    if TRANSFER_METHOD != "onehot":
-        suffix += f"_{TRANSFER_METHOD}"
+    # Always add transfer method
+    suffix += f"_{TRANSFER_METHOD}"
 
     if AB_DEVICE != "6t1c":
         suffix += f"_{AB_DEVICE.replace('-', '')}"

@@ -307,9 +307,8 @@ def get_study_name_suffix():
     if not OPT_CONFIG['tune_nesterov']:
         suffix += "_nonest"
 
-    # Add transfer method if not default
-    if TRANSFER_METHOD != "onehot":
-        suffix += f"_{TRANSFER_METHOD}"
+    # Always add transfer method
+    suffix += f"_{TRANSFER_METHOD}"
 
     if AB_DEVICE != "6t1c":
         suffix += f"_{AB_DEVICE.replace('-', '')}"
@@ -1178,7 +1177,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         torch.cuda.empty_cache()
 
     # Hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 8e-5, 3e-2, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 6e-4, 9e-3, log=True)
 
     # LRTT parameters: skip sweep if --no-transfer (A/B frozen, no transfer happens)
     if OPT_CONFIG['no_transfer']:
@@ -1189,20 +1188,20 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         fast_lr = 1.0            # fixed (no effect)
         tau_sec = 0.0            # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 2e-1, 6e4, log=True)
-        transfer_every = trial.suggest_int('transfer_every', 1, 700, log=True)
-        rank_exp = trial.suggest_int('rank_exp', 0, 6)
+        transfer_lr = trial.suggest_float('transfer_lr', 2e-1, 5e4, log=True)
+        transfer_every = trial.suggest_int('transfer_every', 1, 800, log=True)
+        rank_exp = trial.suggest_int('rank_exp', 0, 4)
         rank = 2 ** rank_exp
-        fast_lr = trial.suggest_float('fast_lr', 1e-3, 2e1, log=True)
+        fast_lr = trial.suggest_float('fast_lr', 8e-3, 7e-1, log=True)
         tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
 
     # A/B device params
-    ab_dw_min = trial.suggest_float('ab_dw_min',7e-7, 1e-3, log=True)  # default: 6t1c value
+    ab_dw_min = trial.suggest_float('ab_dw_min',9e-7, 7e-4, log=True)  # default: 6t1c value
     ab_desired_bl = trial.suggest_int('ab_desired_bl', 31, 31)        # default: 31
 
     # C tile pulsed transfer params (only meaningful for onehot/direct)
     if TRANSFER_METHOD in ("onehot", "direct") and not OPT_CONFIG['no_transfer']:
-        c_dw_min = trial.suggest_float('c_dw_min', 0.001, 0.001, log=True)
+        c_dw_min = trial.suggest_float('c_dw_min', 2e-7, 2e-3, log=True)
         c_desired_bl = trial.suggest_int('c_desired_bl', 31, 31)
     else:
         c_dw_min = 0.001   # default (unused for "set")
