@@ -34,15 +34,24 @@ run() {
 
     CUDA_VISIBLE_DEVICES=$GPU $PYTHON paper_experiment.py \
         --mode fixed --method ttv1 --seed 42 \
+        --target-layers attention \
+        --batch-size 12 \
+        --grad-accum-steps 4 \
         --epochs $EPOCHS --n-bits 14 --n-bits-slow 10 \
         --gamma 1.0 \
         --units-in-mbatch true \
-        --transfer-every 1 \
+        --transfer-every 4 \
         --with-reset-prob 1.0 \
         --fast-lr 0.1 \
         --transfer-lr 1.0 \
         --scale-transfer-lr false \
+        --analog-lr 0.016 \
+        --classifier-lr 0.003 \
         --ln-lr 0.003 \
+        --warmup-ratio 0.05 \
+        --min-lr-rate 0.05 \
+        --io-bits 0 \
+        --noise-management abs_max \
         --device-type linear_step \
         --ls-gamma-up-ratio 1.0 \
         --ls-gamma-down-ratio 1.0 \

@@ -84,7 +84,9 @@ def make_linear_step_device(dw_min=None, count_pulses=False,
                             gamma_up=-0.1678, gamma_down=0.1410,
                             gamma_up_ratio=1.0, gamma_down_ratio=1.0,
                             noise_ratio=0.0,
-                            abs_gamma_up=None, abs_gamma_down=None):
+                            abs_gamma_up=None, abs_gamma_down=None,
+                            dw_min_std_override=None,
+                            dw_min_dtod_override=None):
     """Create a LinearStepDevice with configurable gamma parameters.
 
     Two modes:
@@ -103,6 +105,8 @@ def make_linear_step_device(dw_min=None, count_pulses=False,
                      1.0 = 6T1C measured).
         abs_gamma_up: Absolute gamma_up value (overrides ratio mode).
         abs_gamma_down: Absolute gamma_down value (overrides ratio mode).
+        dw_min_std_override: If not None, override dw_min_std (ignoring noise_ratio scaling).
+        dw_min_dtod_override: If not None, override dw_min_dtod AND zero out all other dtod params.
     """
     if dw_min is None:
         dw_min = DW_MIN_14BIT
@@ -120,14 +124,14 @@ def make_linear_step_device(dw_min=None, count_pulses=False,
         mult_noise=False,
         gamma_up=final_gamma_up,
         gamma_down=final_gamma_down,
-        # Noise: scaled by noise_ratio
-        dw_min_std=0.3 * r_n,
-        dw_min_dtod=0.1 * r_n,
-        up_down_dtod=0.01 * r_n,
-        w_max_dtod=0.05 * r_n,
-        w_min_dtod=0.05 * r_n,
-        gamma_up_dtod=0.05 * r_n,
-        gamma_down_dtod=0.05 * r_n,
+        # Noise: scaled by noise_ratio (dw_min_std/dw_min_dtod can be overridden)
+        dw_min_std=dw_min_std_override if dw_min_std_override is not None else 0.3 * r_n,
+        dw_min_dtod=dw_min_dtod_override if dw_min_dtod_override is not None else 0.1 * r_n,
+        up_down_dtod=0.0 if dw_min_dtod_override is not None else 0.01 * r_n,
+        w_max_dtod=0.0 if dw_min_dtod_override is not None else 0.05 * r_n,
+        w_min_dtod=0.0 if dw_min_dtod_override is not None else 0.05 * r_n,
+        gamma_up_dtod=0.0 if dw_min_dtod_override is not None else 0.05 * r_n,
+        gamma_down_dtod=0.0 if dw_min_dtod_override is not None else 0.05 * r_n,
         write_noise_std=0.0,
         mean_bound_reference=True,
         count_pulses=count_pulses,
@@ -318,7 +322,9 @@ def build_single_rpu_config(pulse_type=PulseType.STOCHASTIC_COMPRESSED,
                             device_type="constant_step",
                             ls_gamma_up_ratio=1.0, ls_gamma_down_ratio=1.0,
                             ls_noise_ratio=0.0,
-                            ls_gamma_up=None, ls_gamma_down=None):
+                            ls_gamma_up=None, ls_gamma_down=None,
+                            ls_dw_min_std=None,
+                            ls_dw_min_dtod=None):
     """SingleRPU — analog pulsed update.
 
     Args:
@@ -344,6 +350,8 @@ def build_single_rpu_config(pulse_type=PulseType.STOCHASTIC_COMPRESSED,
             noise_ratio=ls_noise_ratio,
             abs_gamma_up=ls_gamma_up,
             abs_gamma_down=ls_gamma_down,
+            dw_min_std_override=ls_dw_min_std,
+            dw_min_dtod_override=ls_dw_min_dtod,
         )
     elif device_type == "exp_step":
         device = make_exp_step_device(
@@ -381,7 +389,9 @@ def build_ttv1_config(gamma=0.0, dw_min=None, dw_min_slow=None,
                       device_type="constant_step",
                       ls_gamma_up_ratio=1.0, ls_gamma_down_ratio=1.0,
                       ls_noise_ratio=0.0,
-                      ls_gamma_up=None, ls_gamma_down=None):
+                      ls_gamma_up=None, ls_gamma_down=None,
+                      ls_dw_min_std=None,
+                      ls_dw_min_dtod=None):
     """TTv1 — TransferCompound (Gokmen & Haensch 2020).
 
     W_eff = gamma * W_fast + 1.0 * W_slow
@@ -412,6 +422,8 @@ def build_ttv1_config(gamma=0.0, dw_min=None, dw_min_slow=None,
             noise_ratio=ls_noise_ratio,
             abs_gamma_up=ls_gamma_up,
             abs_gamma_down=ls_gamma_down,
+            dw_min_std_override=ls_dw_min_std,
+            dw_min_dtod_override=ls_dw_min_dtod,
         )
         # Slow tile: ConstantStep (same as baseline gamma/bit sweeps)
         slow_device = make_constant_step_device(

@@ -666,6 +666,8 @@ def _build_method_kwargs(args):
         kwargs["ls_noise_ratio"] = args.ls_noise_ratio
         kwargs["ls_gamma_up"] = args.ls_gamma_up
         kwargs["ls_gamma_down"] = args.ls_gamma_down
+        kwargs["ls_dw_min_std"] = args.ls_dw_min_std
+        kwargs["ls_dw_min_dtod"] = args.ls_dw_min_dtod
 
     elif args.method == "ttv1":
         kwargs["gamma"] = args.gamma
@@ -676,6 +678,8 @@ def _build_method_kwargs(args):
         kwargs["ls_noise_ratio"] = args.ls_noise_ratio
         kwargs["ls_gamma_up"] = args.ls_gamma_up
         kwargs["ls_gamma_down"] = args.ls_gamma_down
+        kwargs["ls_dw_min_std"] = args.ls_dw_min_std
+        kwargs["ls_dw_min_dtod"] = args.ls_dw_min_dtod
         if args.transfer_every is not None:
             kwargs["transfer_every"] = args.transfer_every
         if args.units_in_mbatch is not None:
@@ -1384,6 +1388,10 @@ def _save_config(args, rpu_config, effective_dw_min, num_training_steps):
             config["ls_noise_ratio"] = args.ls_noise_ratio
             config["ls_gamma_up"] = args.ls_gamma_up
             config["ls_gamma_down"] = args.ls_gamma_down
+            if args.ls_dw_min_std is not None:
+                config["ls_dw_min_std"] = args.ls_dw_min_std
+            if args.ls_dw_min_dtod is not None:
+                config["ls_dw_min_dtod"] = args.ls_dw_min_dtod
 
     if args.method == "ttv1":
         config["gamma"] = args.gamma
@@ -1399,6 +1407,10 @@ def _save_config(args, rpu_config, effective_dw_min, num_training_steps):
         config["ttv1_fast_pulse_type"] = args.ttv1_fast_pulse_type
         config["ttv1_transfer_pulse_type"] = args.ttv1_transfer_pulse_type
         config["w_max_fast"] = args.w_max_fast
+        if args.ls_dw_min_std is not None:
+            config["ls_dw_min_std"] = args.ls_dw_min_std
+        if args.ls_dw_min_dtod is not None:
+            config["ls_dw_min_dtod"] = args.ls_dw_min_dtod
 
     if args.method == "cttv2":
         config["fast_lr"] = args.fast_lr
@@ -1527,6 +1539,10 @@ def parse_args():
                         help="Absolute gamma_up value (overrides ratio mode). E.g. 0.1153 for EcRam")
     parser.add_argument("--ls-gamma-down", type=float, default=None,
                         help="Absolute gamma_down value (overrides ratio mode). E.g. 0.5085 for EcRam")
+    parser.add_argument("--ls-dw-min-std", type=float, default=None,
+                        help="Override dw_min_std (cycle-to-cycle noise). Overrides noise_ratio scaling.")
+    parser.add_argument("--ls-dw-min-dtod", type=float, default=None,
+                        help="Override dw_min_dtod (device-to-device). When set, all other dtod params are zeroed.")
 
     # Control
     parser.add_argument("--count-pulses", action="store_true")

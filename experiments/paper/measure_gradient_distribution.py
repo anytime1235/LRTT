@@ -128,6 +128,20 @@ args = argparse.Namespace(
     eco_rounding="stochastic",
     output_dir=OUT_DIR,
     mode="fixed",
+    # Added missing params for updated paper_experiment.py
+    w_max=1.0,
+    omega=None,
+    w_max_fast=None,
+    no_uim=False,
+    auto_scale=None,
+    in_chop_prob=None,
+    log_every=20,
+    diag_at_steps=None,
+    diag_window_cpu=False,
+    diag_layer_set=None,
+    n_trials=0,
+    study_name=None,
+    db_dir=None,
 )
 
 # Temporarily set TARGET_LAYERS to "all"
@@ -149,71 +163,83 @@ print(f"  LR: analog={ANALOG_LR}, classifier={CLASSIFIER_LR}, ln={LN_LR}")
 # ── Register backward hooks with histogram accumulation ──
 print("\n=== Registering gradient hooks ===")
 
-# Per-layer histogram accumulator: name -> counts array (HIST_N_BINS + 2 for under/overflow)
-grad_histograms = {}      # name -> np.array of shape (HIST_N_BINS + 2,)
-grad_summary = {}          # name -> list of per-step summary dicts (logged every LOG_SUMMARY_EVERY)
-grad_raw_samples = {}      # name -> list of subsampled gradient arrays (first RAW_SAMPLE_STEPS steps)
-grad_step_counts = {}      # name -> number of steps accumulated
+# Per-layer histogram accumulator (GPU tensors, no CPU transfer during training)
+grad_histograms = {}      # name -> torch.LongTensor on GPU, shape (HIST_N_BINS + 2,)
+grad_summary = {}          # name -> list of per-step summary dicts
+grad_raw_samples = {}      # name -> list of CPU numpy arrays (first few steps only)
+grad_step_counts = {}      # name -> int
 current_step = [0]
 
+# Pre-compute bin edges on GPU for fast histogram
+_bin_edges_gpu = torch.linspace(HIST_LOG_MIN, HIST_LOG_MAX, HIST_N_BINS + 1, device=device, dtype=torch.float32)
+
 def make_bwd_hook(name):
+    sub = get_sublayer(name)
+    layer = get_layer_idx(name)
+
     def hook(module, grad_input, grad_output):
-        g = grad_output[0].detach()
+        g = grad_output[0].detach().float().flatten()  # stays on GPU
         step = current_step[0]
-        sub = get_sublayer(name)
-        layer = get_layer_idx(name)
 
-        g_flat = g.float().cpu().numpy().flatten()
-        abs_g = np.abs(g_flat)
-        nz = abs_g[abs_g > 0]
+        abs_g = g.abs()
+        nz_mask = abs_g > 0
+        nz = abs_g[nz_mask]
 
-        # ── Accumulate histogram (every step) ──
+        # ── Accumulate histogram on GPU (every step) ──
         if name not in grad_histograms:
-            # bins: [underflow] + [HIST_N_BINS regular bins] + [overflow]
-            grad_histograms[name] = np.zeros(HIST_N_BINS + 2, dtype=np.int64)
+            grad_histograms[name] = torch.zeros(HIST_N_BINS + 2, dtype=torch.long, device=device)
             grad_step_counts[name] = 0
 
-        if len(nz) > 0:
-            log_nz = np.log10(nz)
-            # Regular bins
-            counts, _ = np.histogram(log_nz, bins=HIST_BIN_EDGES)
-            grad_histograms[name][1:-1] += counts.astype(np.int64)
-            # Underflow (< 10^HIST_LOG_MIN)
-            grad_histograms[name][0] += int(np.sum(log_nz < HIST_LOG_MIN))
-            # Overflow (> 10^HIST_LOG_MAX)
-            grad_histograms[name][-1] += int(np.sum(log_nz > HIST_LOG_MAX))
+        if nz.numel() > 0:
+            log_nz = torch.log10(nz)
+            # bucketize with 501 edges returns indices 0..501:
+            #   0 = < HIST_LOG_MIN (underflow)  -> array[0]
+            #   1..500 = regular bins            -> array[1..500]
+            #   501 = >= HIST_LOG_MAX (overflow) -> array[501]
+            # Maps directly to array layout [underflow, bin0..bin499, overflow] (size 502)
+            bin_idx = torch.bucketize(log_nz, _bin_edges_gpu)
+            grad_histograms[name].scatter_add_(0, bin_idx.long(), torch.ones_like(bin_idx, dtype=torch.long))
         grad_step_counts[name] += 1
 
-        # ── Summary stats (every LOG_SUMMARY_EVERY steps) ──
+        # ── Summary stats on GPU (every LOG_SUMMARY_EVERY steps) ──
         if step % LOG_SUMMARY_EVERY == 0:
             if name not in grad_summary:
                 grad_summary[name] = []
+            n_elem = g.numel()
+            n_nz = nz.numel()
+            # Use sort-based percentile on GPU (quantile() fails on large tensors)
+            sorted_abs, _ = abs_g.sort()
+            n = sorted_abs.numel()
+            def _pct(p):
+                idx = min(int(p / 100.0 * n), n - 1)
+                return sorted_abs[idx].item()
             grad_summary[name].append({
                 'step': step, 'sublayer': sub, 'layer': layer,
-                'absmax': float(abs_g.max()),
-                'mean_abs': float(abs_g.mean()),
-                'std': float(g_flat.std()),
-                'norm': float(np.linalg.norm(g_flat)),
-                'n_elements': len(g_flat),
-                'n_nonzero': len(nz),
-                'q001': float(np.percentile(abs_g, 0.1)),
-                'q01': float(np.percentile(abs_g, 1)),
-                'q10': float(np.percentile(abs_g, 10)),
-                'q50': float(np.percentile(abs_g, 50)),
-                'q90': float(np.percentile(abs_g, 90)),
-                'q99': float(np.percentile(abs_g, 99)),
-                'q999': float(np.percentile(abs_g, 99.9)),
+                'absmax': abs_g.max().item(),
+                'mean_abs': abs_g.mean().item(),
+                'std': g.std().item(),
+                'norm': g.norm().item(),
+                'n_elements': n_elem,
+                'n_nonzero': n_nz,
+                'q001': _pct(0.1),
+                'q01': _pct(1),
+                'q10': _pct(10),
+                'q50': _pct(50),
+                'q90': _pct(90),
+                'q99': _pct(99),
+                'q999': _pct(99.9),
             })
 
-        # ── Raw samples (first RAW_SAMPLE_STEPS steps only) ──
+        # ── Raw samples (first RAW_SAMPLE_STEPS steps, only here we go to CPU) ──
         if step < RAW_SAMPLE_STEPS:
             if name not in grad_raw_samples:
                 grad_raw_samples[name] = []
-            if len(g_flat) > 100000:
-                idx = np.random.choice(len(g_flat), 100000, replace=False)
-                grad_raw_samples[name].append(g_flat[idx])
+            g_cpu = g.cpu().numpy()
+            if len(g_cpu) > 100000:
+                idx = np.random.choice(len(g_cpu), 100000, replace=False)
+                grad_raw_samples[name].append(g_cpu[idx])
             else:
-                grad_raw_samples[name].append(g_flat.copy())
+                grad_raw_samples[name].append(g_cpu.copy())
 
     return hook
 
@@ -337,10 +363,15 @@ hist_dict = {'bin_edges': HIST_BIN_EDGES}
 for name, counts in grad_histograms.items():
     sub = get_sublayer(name)
     layer = get_layer_idx(name)
-    hist_dict[f"{sub}_L{layer}"] = counts
+    hist_dict[f"{sub}_L{layer}"] = counts.cpu().numpy()
     hist_dict[f"{sub}_L{layer}_nsteps"] = np.array([grad_step_counts[name]])
 np.savez_compressed(os.path.join(OUT_DIR, "grad_histograms.npz"), **hist_dict)
 print(f"  Saved grad_histograms.npz ({len(grad_histograms)} layers)")
+
+# Convert GPU histograms to numpy for plotting
+for name in grad_histograms:
+    if isinstance(grad_histograms[name], torch.Tensor):
+        grad_histograms[name] = grad_histograms[name].cpu().numpy()
 
 # 3. Raw samples (first few steps)
 raw_dict = {}
