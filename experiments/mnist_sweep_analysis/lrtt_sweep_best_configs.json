@@ -11,10 +11,10 @@
         "tlr": 0.002814241256811493
       },
       "4": {
-        "te": 100,
-        "best_acc": 96.45,
-        "lr": 0.34183447068119827,
-        "tlr": 0.003910713393630559
+        "te": 50,
+        "best_acc": 96.33,
+        "lr": 0.8668187654293162,
+        "tlr": 0.0014477293860827988
       },
       "8": {
         "te": 10,
@@ -79,10 +79,12 @@
           "note": "updated from 94.30%"
         },
         "500": {
-          "best_acc": 95.73,
-          "lifetime": 100000,
-          "lr": 0.2559987802145917,
-          "tlr": 0.06477913614978935
+          "best_acc": 95.37,
+          "lr": 0.3916387163679476,
+          "tlr": 0.009846738873614562,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "forced update from hp_search (mult_noise=False), was 95.73% with mult_noise=True"
         },
         "1000": {
           "best_acc": 94.99,
@@ -118,10 +120,12 @@
           "note": "updated from 96.18%"
         },
         "100": {
-          "best_acc": 96.45,
-          "lifetime": 100000,
-          "lr": 0.34183447068119827,
-          "tlr": 0.003910713393630559
+          "best_acc": 95.82,
+          "lr": 0.7110640559172395,
+          "tlr": 0.0007531521816398736,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "forced update from hp_search (mult_noise=False), was 96.45% with mult_noise=True"
         },
         "500": {
           "best_acc": 95.34,
@@ -157,16 +161,20 @@
           "note": "updated from 90.96%"
         },
         "50": {
-          "best_acc": 96.2,
-          "lifetime": 100000,
-          "lr": 0.7010916941927409,
-          "tlr": 0.004173727844750237
+          "best_acc": 95.76,
+          "lr": 0.2432018017211588,
+          "tlr": 0.001342338095484452,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "forced update from hp_search (mult_noise=False), was 96.2% with mult_noise=True"
         },
         "100": {
-          "best_acc": 96.2,
-          "lifetime": 100000,
-          "lr": 0.17193116397166314,
-          "tlr": 0.002665339076916122
+          "best_acc": 96.03,
+          "lr": 1.0196457041903462,
+          "tlr": 0.0024471446023890927,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "forced update from hp_search (mult_noise=False), was 96.2% with mult_noise=True"
         },
         "500": {
           "best_acc": 95.23,
@@ -218,10 +226,12 @@
           "note": "updated from 94.91%"
         },
         "500": {
-          "best_acc": 95.63,
-          "lifetime": 46505,
-          "lr": 0.2334611631608765,
-          "tlr": 0.004401532304629191
+          "best_acc": 95.28,
+          "lr": 0.8121579265452095,
+          "tlr": 0.00025807741432689777,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "forced update from hp_search (mult_noise=False), was 95.63% with mult_noise=True"
         },
         "1000": {
           "best_acc": 95.52,
@@ -249,11 +259,12 @@
           "note": "updated from 94.26%"
         },
         "50": {
-          "best_acc": 95.97,
-          "lifetime": 46505,
-          "lr": 0.993416,
-          "tlr": 0.001219,
-          "note": "rerun from te=100 HP (was 87.50)"
+          "best_acc": 95.68,
+          "lr": 0.6478450641951019,
+          "tlr": 0.00011526449540315612,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "forced update from hp_search (mult_noise=False), was 95.97% with mult_noise=True"
         },
         "100": {
           "best_acc": 96.17,
@@ -264,10 +275,12 @@
           "note": "updated from 95.90%"
         },
         "500": {
-          "best_acc": 95.93,
-          "lifetime": 100000,
-          "lr": 0.6023546288776297,
-          "tlr": 0.001898086405681223
+          "best_acc": 95.07,
+          "lr": 0.29102060139511265,
+          "tlr": 9.276124589076687e-05,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "forced update from hp_search (mult_noise=False), was 95.93% with mult_noise=True"
         },
         "1000": {
           "best_acc": 95.27,
@@ -311,10 +324,12 @@
           "note": "updated from 95.78%"
         },
         "500": {
-          "best_acc": 95.86,
-          "lifetime": 46505,
-          "lr": 0.2520116659530396,
-          "tlr": 0.0013358069303925648
+          "best_acc": 95.22,
+          "lr": 0.45543761711288155,
+          "tlr": 0.0001591102580055777,
+          "mult_noise": false,
+          "source": "hp_search_hybrid_no_multnoise",
+          "note": "forced update from hp_search (mult_noise=False), was 95.86% with mult_noise=True"
         },
         "1000": {
           "best_acc": 95.45,
@@ -1138,6 +1153,21 @@
       "hp_search_hybrid_no_multnoise (30 cells)",
       "hp_search_hybrid (5 cells, te=1)"
     ],
-    "cells_updated": 27
+    "cells_updated": 27,
+    "forced_update": {
+      "timestamp": "2026-03-28T06:47:50.928865",
+      "description": "Forced 8 remaining mult_noise=True cells to use hp_search_hybrid_no_multnoise results",
+      "cells_updated": 8,
+      "details": [
+        "rank=1, te=500: 95.73% -> 95.37%",
+        "rank=4, te=100: 96.45% -> 95.82%",
+        "rank=8, te=50: 96.2% -> 95.76%",
+        "rank=8, te=100: 96.2% -> 96.03%",
+        "rank=16, te=500: 95.63% -> 95.28%",
+        "rank=32, te=50: 95.97% -> 95.68%",
+        "rank=32, te=500: 95.93% -> 95.07%",
+        "rank=64, te=500: 95.86% -> 95.22%"
+      ]
+    }
   }
 }

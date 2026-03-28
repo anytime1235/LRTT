@@ -248,6 +248,74 @@ def main():
 
     print(f"\nResults: {output_dir}/results_final.json")
 
+    # Update lrtt_sweep_best_configs.json with improved results
+    best_configs_path = os.path.join(
+        os.path.dirname(__file__), "mnist_sweep_analysis", "lrtt_sweep_best_configs.json"
+    )
+    if os.path.exists(best_configs_path) and args.mode == "hybrid":
+        with open(best_configs_path) as f:
+            best_configs = json.load(f)
+
+        by_rank_te = best_configs["hybrid_sweep"]["by_rank_te"]
+        best_per_rank = best_configs["hybrid_sweep"]["best_per_rank"]
+        updated = []
+
+        for r in all_results:
+            rk, te = str(r["rank"]), str(r["te"])
+            old_entry = by_rank_te.get(rk, {}).get(te)
+            old_acc = (
+                old_entry.get("best_acc", 0) if isinstance(old_entry, dict)
+                else (old_entry if isinstance(old_entry, (int, float)) else 0)
+            )
+
+            if r["best_acc"] > old_acc:
+                new_entry = {
+                    "best_acc": r["best_acc"],
+                    "lifetime": LIFETIME,
+                    "lr": r["best_lr"],
+                    "tlr": r["best_tlr"],
+                    "note": f"updated by hp_search_full_grid_no_multnoise (mult_noise=False, was {old_acc:.2f})",
+                }
+                by_rank_te.setdefault(rk, {})[te] = new_entry
+                updated.append(f"rank={rk} TE={te}: {old_acc:.2f}% -> {r['best_acc']:.2f}%")
+
+        # Rebuild best_per_rank from updated by_rank_te
+        for rk in by_rank_te:
+            best_acc = 0
+            best_te = None
+            for te, entry in by_rank_te[rk].items():
+                acc = (
+                    entry.get("best_acc", 0) if isinstance(entry, dict)
+                    else (entry if isinstance(entry, (int, float)) else 0)
+                )
+                if acc > best_acc:
+                    best_acc = acc
+                    best_te = te
+            if best_te is not None:
+                entry = by_rank_te[rk][best_te]
+                if isinstance(entry, dict):
+                    best_per_rank[rk] = {
+                        "te": int(best_te),
+                        "lifetime": entry.get("lifetime", LIFETIME),
+                        "lr": entry.get("lr"),
+                        "tlr": entry.get("tlr"),
+                        "best_acc": best_acc,
+                    }
+
+        best_configs["hybrid_sweep"]["by_rank_te"] = by_rank_te
+        best_configs["hybrid_sweep"]["best_per_rank"] = best_per_rank
+
+        with open(best_configs_path, "w") as f:
+            json.dump(best_configs, f, indent=2)
+
+        if updated:
+            print(f"\n{'='*70}")
+            print(f"Updated lrtt_sweep_best_configs.json ({len(updated)} entries):")
+            for u in updated:
+                print(f"  {u}")
+        else:
+            print("\nNo improvements over existing best configs.")
+
 
 if __name__ == "__main__":
     main()
