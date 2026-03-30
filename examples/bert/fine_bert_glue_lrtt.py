@@ -1062,13 +1062,14 @@ def make_diagnostic_plots(log_data, output_path, tile_label="",
     ax.legend(lm+ll, llm+lll, fontsize=7, loc="upper right")
     ax.set_title("||G_accum|| vs ||tlr*A@B|| + ||delta_C|| at transfers + Loss"); ax.grid(True, alpha=0.3)
 
-    # (4,1) cos(tlr*AB, G) line + cos(dC, *) at transfers (markers) + loss
-    cTG = [r.get("cos_tlrAB_G", 0) for r in log_data]
+    # (4,1) cosines at transfer steps only (G_accum is reset per transfer)
+    t_cTG = [r.get("cos_tlrAB_G", 0) for r in log_data if r["is_transfer"]]
     t_cDG = [r.get("cos_dC_G", 0) for r in log_data if r["is_transfer"]]
     t_cDT = [r.get("cos_dC_tlrAB", 0) for r in log_data if r["is_transfer"]]
     ax = axes[4, 1]
-    ax.plot(steps, cTG, label="cos(tlr*AB, G)", color="green", alpha=0.7, linewidth=0.8)
     if t_steps_dC:
+        ax.scatter(t_steps_dC, t_cTG, label="cos(tlr*AB, G) @T", color="green",
+                   s=25, alpha=0.9, zorder=5, marker="^")
         ax.scatter(t_steps_dC, t_cDG, label="cos(dC, G) @T", color="blue",
                    s=25, alpha=0.9, zorder=5, marker="o")
         ax.scatter(t_steps_dC, t_cDT, label="cos(dC, tlr*AB) @T", color="purple",
