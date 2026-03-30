@@ -457,6 +457,8 @@ def create_lrtt_config():
     device_config.te_warmup_steps = TE_WARMUP_STEPS
 
     rpu_config = PythonLRTTRPUConfig(device=device_config)
+    rpu_config.mapping.max_input_size = 0 if IS_PERFECT else 512
+    rpu_config.mapping.max_output_size = 0 if IS_PERFECT else 512
     rpu_config.update.desired_bl = AB_DESIRED_BL
 
     out_noise = OUT_NOISE if IO_NOISE else 0.0

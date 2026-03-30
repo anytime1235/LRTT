@@ -616,6 +616,8 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, 
     device_config.te_warmup_steps = TE_WARMUP_STEPS
 
     rpu_config = PythonLRTTRPUConfig(device=device_config)
+    rpu_config.mapping.max_input_size = 0 if IS_PERFECT else 512
+    rpu_config.mapping.max_output_size = 0 if IS_PERFECT else 512
 
     rpu_config.update.desired_bl = ab_desired_bl
 
