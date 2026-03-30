@@ -1282,6 +1282,8 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
     print(f"  momentum={momentum:.2f}, nesterov={nesterov}, reinit_mode={reinit_mode}")
     print(f"  tau_sec={tau_sec:.1f}, optimizer={optimizer_name}, min_lr_rate={min_lr_rate:.4f}")
     print(f"  ab_dw_min={ab_dw_min:.4e}, ab_desired_bl={ab_desired_bl}")
+    if TRANSFER_METHOD in ("onehot", "direct"):
+        print(f"  c_dw_min={c_dw_min:.4e}, c_desired_bl={c_desired_bl}")
     print(f"{'='*70}")
 
     model = None

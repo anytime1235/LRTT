@@ -105,7 +105,7 @@ N_EPOCHS = 1  # diagnostic only
 SCHEDULE_EPOCHS = 5  # LR schedule horizon (set > N_EPOCHS to match longer runs)
 BATCH_SIZE = 48
 EVAL_BATCH_SIZE = 256
-LEARNING_RATE = 0.001920  # trial 255
+LEARNING_RATE = 0.0019163419109178765  # onehot trial 3
 WEIGHT_DECAY = 0.0
 EARLY_STOP_PATIENCE = 2
 TRAIN_LOSS_EARLY_STOP_PATIENCE = 1  # Stop if train loss doesn't improve for this many epochs
@@ -120,17 +120,17 @@ OPTIMIZER = "AnalogAdam"  # "AnalogSGD" or "AnalogAdam"
 
 # LRTT parameters
 LRTT_RANK = 32  # rank_exp=5 → 2^5=32
-TRANSFER_EVERY = 1  # trial 255
-TRANSFER_LR = 2947.4  # trial 255
-FAST_LR = 0.1436  # trial 255
+TRANSFER_EVERY = 1  # onehot trial 3
+TRANSFER_LR = 2947.3685355821535  # onehot trial 3
+FAST_LR = 0.14356966676842856  # onehot trial 3
 AUTO_SCALE_MODE = "none"  # Auto-scale mode: "none", "shared", or "separate"
 CORRECT_GRADIENT_MAGNITUDES = False  # Correct transfer magnitude by dividing by effective A/B LR
 REINIT_MODE = "hybrid"
 REINIT_GAIN = 1.0
-TRANSFER_METHOD = "set"  # "onehot", "direct", or "set"
-C_DW_MIN = 0.001            # C tile dw_min (relevant for onehot/direct transfer)
+TRANSFER_METHOD = "onehot"  # "onehot", "direct", or "set"
+C_DW_MIN = 2.00e-04         # C tile dw_min (relevant for onehot/direct transfer)
 C_DESIRED_BL = 31           # C tile desired_bl (relevant for onehot/direct transfer)
-AB_DW_MIN = 1.57e-05        # A/B tile dw_min (trial 255)
+AB_DW_MIN = 1.565923731572462e-05  # A/B tile dw_min (onehot trial 3)
 AB_DESIRED_BL = 31          # A/B tile desired_bl
 
 # Device selection
@@ -1393,8 +1393,9 @@ def main():
                     # Guard: with grad_accum>1 + FI, tile_a/b process groups
                     # independently so x_b and d_a may come from different
                     # micro-batches with different seq lengths (dynamic padding)
-                    if d_2d.shape[0] == x_2d.shape[0]:
-                        gc_dict['G_accum'] = gc_dict['G_accum'] + d_2d.t() @ x_2d
+                    # Truncate to the shorter batch dim so G_accum is always updated
+                    min_batch = min(d_2d.shape[0], x_2d.shape[0])
+                    gc_dict['G_accum'] = gc_dict['G_accum'] + d_2d[:min_batch].t() @ x_2d[:min_batch]
                     A = diag_tile.tile_a.get_weights()[0].to(device)
                     B = diag_tile.tile_b.get_weights()[0].to(device)
                     AB = A @ B

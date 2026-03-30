@@ -1177,7 +1177,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         torch.cuda.empty_cache()
 
     # Hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 6e-4, 9e-3, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 8e-4, 9e-3, log=True)
 
     # LRTT parameters: skip sweep if --no-transfer (A/B frozen, no transfer happens)
     if OPT_CONFIG['no_transfer']:
@@ -1188,20 +1188,20 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         fast_lr = 1.0            # fixed (no effect)
         tau_sec = 0.0            # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 2e-1, 5e4, log=True)
-        transfer_every = trial.suggest_int('transfer_every', 1, 800, log=True)
-        rank_exp = trial.suggest_int('rank_exp', 0, 4)
+        transfer_lr = trial.suggest_float('transfer_lr', 8e1, 5e4, log=True)
+        transfer_every = trial.suggest_int('transfer_every', 1, 700, log=True)
+        rank_exp = trial.suggest_int('rank_exp', 0, 6)
         rank = 2 ** rank_exp
-        fast_lr = trial.suggest_float('fast_lr', 8e-3, 7e-1, log=True)
+        fast_lr = trial.suggest_float('fast_lr', 8e-3, 5e-1, log=True)
         tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
 
     # A/B device params
-    ab_dw_min = trial.suggest_float('ab_dw_min',9e-7, 7e-4, log=True)  # default: 6t1c value
+    ab_dw_min = trial.suggest_float('ab_dw_min',9e-7, 4e-4, log=True)  # default: 6t1c value
     ab_desired_bl = trial.suggest_int('ab_desired_bl', 31, 31)        # default: 31
 
     # C tile pulsed transfer params (only meaningful for onehot/direct)
     if TRANSFER_METHOD in ("onehot", "direct") and not OPT_CONFIG['no_transfer']:
-        c_dw_min = trial.suggest_float('c_dw_min', 2e-7, 2e-3, log=True)
+        c_dw_min = trial.suggest_float('c_dw_min', 9e-7, 4e-3, log=True)
         c_desired_bl = trial.suggest_int('c_desired_bl', 31, 31)
     else:
         c_dw_min = 0.001   # default (unused for "set")
@@ -1273,6 +1273,8 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
     print(f"  momentum={momentum:.2f}, nesterov={nesterov}, reinit_mode={reinit_mode}")
     print(f"  tau_sec={tau_sec:.1f}, optimizer={optimizer_name}, min_lr_rate={min_lr_rate:.4f}")
     print(f"  ab_dw_min={ab_dw_min:.4e}, ab_desired_bl={ab_desired_bl}")
+    if TRANSFER_METHOD in ("onehot", "direct"):
+        print(f"  c_dw_min={c_dw_min:.4e}, c_desired_bl={c_desired_bl}")
     print(f"{'='*70}")
 
     model = None

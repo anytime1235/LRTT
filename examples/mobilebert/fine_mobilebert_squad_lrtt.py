@@ -1394,8 +1394,8 @@ def main():
                 with torch.no_grad():
                     x_2d = x_b.reshape(-1, x_b.shape[-1])
                     d_2d = d_a.reshape(-1, d_a.shape[-1])
-                    if d_2d.shape[0] == x_2d.shape[0]:
-                        gc_dict['G_accum'] = gc_dict['G_accum'] + d_2d.t() @ x_2d
+                    min_batch = min(d_2d.shape[0], x_2d.shape[0])
+                    gc_dict['G_accum'] = gc_dict['G_accum'] + d_2d[:min_batch].t() @ x_2d[:min_batch]
                     A = diag_tile.tile_a.get_weights()[0].to(device)
                     B = diag_tile.tile_b.get_weights()[0].to(device)
                     AB = A @ B

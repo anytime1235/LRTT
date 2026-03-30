@@ -1193,6 +1193,10 @@ class LRTTController:
             A_lr = A_weights[:, rank_indices]  # [d_size, len(rank_indices)]
             B_lr = B_weights[rank_indices, :]  # [len(rank_indices), x_size]
 
+            # Record intended transfer delta for diagnostics
+            if self.enable_diagnostics:
+                self.last_transfer_delta = (self._eff_transfer_lr * (A_lr @ B_lr)).detach()
+
             # Transfer in chunks to manage memory
             lr_eff = abs(self._eff_transfer_lr)
             old_lr = self.tile_c.get_learning_rate()
@@ -1471,6 +1475,12 @@ class LRTTController:
                 # (선택) 중심화/정규화
                 A_cols, B_rows = self._center_and_normalize(A_cols, B_rows)
 
+                # Record intended transfer delta for diagnostics (digital get_weights for fair comparison)
+                if self.enable_diagnostics:
+                    A_dg = self.tile_a.get_weights()[0]
+                    B_dg = self.tile_b.get_weights()[0]
+                    self.last_transfer_delta = (self._eff_transfer_lr * (A_dg[:, rank_indices] @ B_dg[rank_indices, :])).detach()
+
                 # 2) 파일럿 기반 γ 산출 (스칼라 캘리브레이션)
                 Z_norm2 = self._ze_norm2_via_gram(A_cols, B_rows) + 1e-12
                 pilot_frac = max(1e-4, float(self.transfer_pilot_frac))
@@ -1633,6 +1643,12 @@ class LRTTController:
                 lr_step = lr_abs / M_total
                 self.tile_c.set_learning_rate(lr_step if lr_step > 0 else 1e-12)
 
+                # Record intended transfer delta for diagnostics (digital get_weights for fair comparison)
+                if self.enable_diagnostics:
+                    A_dg = self.tile_a.get_weights()[0]
+                    B_dg = self.tile_b.get_weights()[0]
+                    self.last_transfer_delta = (self._eff_transfer_lr * (A_dg[:, rank_indices] @ B_dg[rank_indices, :])).detach()
+
                 # 4) micro-transfer
                 for ki in range(A_cols.shape[1]):
                     a_k = A_cols[:, ki]
@@ -1696,6 +1712,12 @@ class LRTTController:
 
                 # (선택) 중심화/정규화
                 A_cols, B_rows = self._center_and_normalize(A_cols, B_rows)
+
+                # Record intended transfer delta for diagnostics (digital get_weights for fair comparison)
+                if self.enable_diagnostics:
+                    A_dg = self.tile_a.get_weights()[0]
+                    B_dg = self.tile_b.get_weights()[0]
+                    self.last_transfer_delta = (self._eff_transfer_lr * (A_dg[:, rank_indices] @ B_dg[rank_indices, :])).detach()
 
                 # 2) ΣΔ 상태/파라미터 확보
                 self._ensure_sd_state()
