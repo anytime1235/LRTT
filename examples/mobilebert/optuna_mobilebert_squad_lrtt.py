@@ -1813,8 +1813,8 @@ def _oom_restart_callback(study, trial):
 
     if trial.state == TrialState.FAIL:
         err = trial.user_attrs.get("error", "")
-        is_oom = any(k in err.lower() for k in ("out of memory", "cublas"))
-        is_cuda_assert = any(k in err.lower() for k in ("nvml", "internal assert failed"))
+        is_oom = any(k in err.lower() for k in ("out of memory", "cublas", "cudacachingallocator"))
+        is_cuda_assert = any(k in err.lower() for k in ("nvml", "internal assert failed")) and not is_oom
         if is_oom:
             # Pick the next divisor of BATCH_SIZE larger than current GRAD_ACCUM_STEPS
             # so that micro_bs = BATCH_SIZE // new_grad_accum is always exact.

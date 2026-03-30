@@ -1198,7 +1198,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
 
     # A/B device params
-    ab_dw_min = trial.suggest_float('ab_dw_min',9e-7, 4e-4, log=True)  # default: 6t1c value
+    ab_dw_min = trial.suggest_float('ab_dw_min', 0.001981, 0.001981, log=True)
     ab_desired_bl = trial.suggest_int('ab_desired_bl', 31, 31)        # default: 31
 
     # C tile pulsed transfer params (only meaningful for onehot/direct)
@@ -1796,8 +1796,8 @@ def _oom_restart_callback(study, trial):
 
     if trial.state == TrialState.FAIL:
         err = trial.user_attrs.get("error", "")
-        is_oom = any(k in err.lower() for k in ("out of memory", "cublas"))
-        is_cuda_assert = any(k in err.lower() for k in ("nvml", "internal assert failed"))
+        is_oom = any(k in err.lower() for k in ("out of memory", "cublas", "cudacachingallocator"))
+        is_cuda_assert = any(k in err.lower() for k in ("nvml", "internal assert failed")) and not is_oom
         if is_oom:
             # Pick the next divisor of BATCH_SIZE larger than current GRAD_ACCUM_STEPS
             # so that micro_bs = BATCH_SIZE // new_grad_accum is always exact.
