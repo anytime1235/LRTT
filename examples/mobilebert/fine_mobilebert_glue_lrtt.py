@@ -1614,18 +1614,17 @@ def main():
                                 rec['xc_dc_hist'] = gcd['_transfer_hist']
 
                         with torch.no_grad():
-                            C_raw_after = get_raw_C(tile.tile_c).to(DEVICE)
-                            delta_C_mat = C_raw_after - Craw_bef.to(DEVICE)
+                            # Compute dC in effective weight space (same space as G and tlr*AB)
+                            C_eff_after = tile.tile_c.get_weights()[0].to(DEVICE)
+                            C_eff_bef = snap[2].to(DEVICE)  # C_before from snapshot (effective)
+                            delta_C_mat = C_eff_after - C_eff_bef
                             AB_mat = gcd.get('AB_matrix')
                             tlr_AB = TRANSFER_LR * AB_mat if AB_mat is not None else torch.zeros_like(delta_C_mat)
                             # Use controller's exact deltas for cosine comparison at transfer steps
                             if rec["is_transfer"]:
                                 ctrl_delta = tile.controller.last_transfer_delta
-                                actual_delta = tile.controller.last_actual_delta
                                 if ctrl_delta is not None:
                                     tlr_AB = ctrl_delta.to(DEVICE)
-                                if actual_delta is not None:
-                                    delta_C_mat = actual_delta.to(DEVICE)
                             dC_f = delta_C_mat.flatten()
                             G_f = gcd.get('G_accum', torch.zeros_like(delta_C_mat)).flatten()
                             tlr_f = tlr_AB.flatten()
