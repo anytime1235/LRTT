@@ -882,11 +882,10 @@ def sample_cells(weight_matrix, cell_indices):
 
 
 def get_raw_C(tile_c):
-    """Get C tile raw weights WITHOUT out_scaling."""
     W_scaled = tile_c.get_weights()[0]
-    if hasattr(tile_c, 'out_scaling_alpha') and tile_c.out_scaling_alpha is not None:
-        alpha = tile_c.out_scaling_alpha.detach().to(W_scaled.device)
-        return W_scaled / alpha.unsqueeze(1)
+    alpha = tile_c.get_scales()
+    if alpha is not None:
+        return W_scaled / alpha.to(W_scaled.device).unsqueeze(1)
     return W_scaled
 
 
@@ -907,6 +906,7 @@ def collect_tile_diagnostics(tile, C_prev_raw, A_before, B_before, C_before,
     controller = tile.controller
     A = A_pre_transfer if A_pre_transfer is not None else tile.tile_a.get_weights()[0]
     B = tile.tile_b.get_weights()[0]
+    C_eff = tile.tile_c.get_weights()[0]
     C_raw = get_raw_C(tile.tile_c)
 
     norm_A = torch.norm(A).item()
@@ -939,9 +939,10 @@ def collect_tile_diagnostics(tile, C_prev_raw, A_before, B_before, C_before,
         "step": step,
         "norm_A": norm_A, "norm_B": norm_B,
         "norm_C_raw": norm_C_raw, "norm_AB": norm_AB,
-        "A_min": A.min().item(), "A_max": A.max().item(),
-        "B_min": B.min().item(), "B_max": B.max().item(),
-        "C_min": C_raw.min().item(), "C_max": C_raw.max().item(),
+        "A_eff_min": A.min().item(), "A_eff_max": A.max().item(),
+        "B_eff_min": B.min().item(), "B_eff_max": B.max().item(),
+        "C_eff_min": C_eff.min().item(), "C_eff_max": C_eff.max().item(),
+        "C_raw_min": C_raw.min().item(), "C_raw_max": C_raw.max().item(),
         "A_cells": A_cells, "B_cells": B_cells, "C_cells": C_cells,
         "A_grad_cells": A_grad_cells, "B_grad_cells": B_grad_cells,
         "C_grad_cells": C_grad_cells,
@@ -986,12 +987,14 @@ def make_diagnostic_plots(log_data, output_path, tile_label="",
     b_ci = B_ci or [(0, i) for i in range(n_cells)]
     c_ci = C_ci or [(i, i) for i in range(len(log_data[0]["C_cells"]))]
 
-    A_mins = [r.get("A_min", 0) for r in log_data]
-    A_maxs = [r.get("A_max", 0) for r in log_data]
-    B_mins = [r.get("B_min", 0) for r in log_data]
-    B_maxs = [r.get("B_max", 0) for r in log_data]
-    C_mins = [r.get("C_min", 0) for r in log_data]
-    C_maxs = [r.get("C_max", 0) for r in log_data]
+    A_eff_mins = [r.get("A_eff_min", r.get("A_min", 0)) for r in log_data]
+    A_eff_maxs = [r.get("A_eff_max", r.get("A_max", 0)) for r in log_data]
+    B_eff_mins = [r.get("B_eff_min", r.get("B_min", 0)) for r in log_data]
+    B_eff_maxs = [r.get("B_eff_max", r.get("B_max", 0)) for r in log_data]
+    C_eff_mins = [r.get("C_eff_min", 0) for r in log_data]
+    C_eff_maxs = [r.get("C_eff_max", 0) for r in log_data]
+    C_raw_mins = [r.get("C_raw_min", r.get("C_min", 0)) for r in log_data]
+    C_raw_maxs = [r.get("C_raw_max", r.get("C_max", 0)) for r in log_data]
 
     fig, axes = plt.subplots(5, 2, figsize=(18, 28))
     title_str = f"LRTT Diagnostic — {tile_label}" if tile_label else "LRTT Diagnostic"
@@ -1007,27 +1010,29 @@ def make_diagnostic_plots(log_data, output_path, tile_label="",
     ax.plot(steps, norm_B, label="||B||", alpha=0.8)
     ax.plot(steps, norm_AB, label="||A@B||", alpha=0.6, linestyle="--")
     ax_mm = ax.twinx()
-    ax_mm.plot(steps, A_maxs, label="A max", color="red", alpha=0.5, linewidth=0.7, linestyle=":")
-    ax_mm.plot(steps, A_mins, label="A min", color="red", alpha=0.5, linewidth=0.7, linestyle="--")
-    ax_mm.plot(steps, B_maxs, label="B max", color="blue", alpha=0.5, linewidth=0.7, linestyle=":")
-    ax_mm.plot(steps, B_mins, label="B min", color="blue", alpha=0.5, linewidth=0.7, linestyle="--")
-    ax_mm.set_ylabel("min/max", fontsize=8)
+    ax_mm.plot(steps, A_eff_maxs, label="A eff max", color="red", alpha=0.5, linewidth=0.7, linestyle=":")
+    ax_mm.plot(steps, A_eff_mins, label="A eff min", color="red", alpha=0.5, linewidth=0.7, linestyle="--")
+    ax_mm.plot(steps, B_eff_maxs, label="B eff max", color="blue", alpha=0.5, linewidth=0.7, linestyle=":")
+    ax_mm.plot(steps, B_eff_mins, label="B eff min", color="blue", alpha=0.5, linewidth=0.7, linestyle="--")
+    ax_mm.set_ylabel("eff min/max", fontsize=8)
     tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("Norm")
-    ax.set_title("A, B, AB Norms + min/max (red = transfer)")
+    ax.set_title("A, B, AB Norms + eff min/max (red = transfer)")
     l1, la1 = ax.get_legend_handles_labels(); l2, la2 = ax_mm.get_legend_handles_labels()
     ax.legend(l1+l2, la1+la2, fontsize=6, ncol=2); ax.grid(True, alpha=0.3)
 
     # (0,1) C norm + delta
     ax = axes[0, 1]
     ax.plot(steps, norm_C_raw, label="||C_raw||", color="green", alpha=0.8)
-    ax.plot(steps, C_maxs, label="C max", color="purple", alpha=0.6, linewidth=0.7, linestyle=":")
-    ax.plot(steps, C_mins, label="C min", color="purple", alpha=0.6, linewidth=0.7, linestyle="--")
+    ax.plot(steps, C_raw_maxs, label="C raw max", color="red", alpha=0.6, linewidth=0.7, linestyle=":")
+    ax.plot(steps, C_raw_mins, label="C raw min", color="red", alpha=0.6, linewidth=0.7, linestyle="--")
+    ax.plot(steps, C_eff_maxs, label="C eff max", color="purple", alpha=0.6, linewidth=0.7, linestyle=":")
+    ax.plot(steps, C_eff_mins, label="C eff min", color="purple", alpha=0.6, linewidth=0.7, linestyle="--")
     delta_C = [r["delta_C_raw"] for r in log_data]
     ax2 = ax.twinx()
     ax2.plot(steps, delta_C, label="delta_C_raw", color="orange", alpha=0.8)
     tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("||C_raw|| / min/max", color="green")
     ax2.set_ylabel("delta_C_raw", color="orange")
-    ax.set_title("C Norm (raw) + min/max + delta_C_raw")
+    ax.set_title("C Norm + raw/eff min/max + delta_C")
     l1, la1 = ax.get_legend_handles_labels(); l2, la2 = ax2.get_legend_handles_labels()
     ax.legend(l1+l2, la1+la2, loc="upper left", fontsize=6); ax.grid(True, alpha=0.3)
 
