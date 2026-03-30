@@ -909,10 +909,10 @@ def snapshot_weights(tile):
 
 def collect_tile_diagnostics(tile, C_prev_raw, A_before, B_before, C_before,
                              C_raw_before, step, prev_num_transfers,
-                             A_ci, B_ci, C_ci):
+                             A_ci, B_ci, C_ci, A_pre_transfer=None):
     """Collect all diagnostic data for one tile at one step."""
     controller = tile.controller
-    A = tile.tile_a.get_weights()[0]
+    A = A_pre_transfer if A_pre_transfer is not None else tile.tile_a.get_weights()[0]
     B = tile.tile_b.get_weights()[0]
     C_raw = get_raw_C(tile.tile_c)
 
@@ -946,6 +946,9 @@ def collect_tile_diagnostics(tile, C_prev_raw, A_before, B_before, C_before,
         "step": step,
         "norm_A": norm_A, "norm_B": norm_B,
         "norm_C_raw": norm_C_raw, "norm_AB": norm_AB,
+        "A_min": A.min().item(), "A_max": A.max().item(),
+        "B_min": B.min().item(), "B_max": B.max().item(),
+        "C_min": C_raw.min().item(), "C_max": C_raw.max().item(),
         "A_cells": A_cells, "B_cells": B_cells, "C_cells": C_cells,
         "A_grad_cells": A_grad_cells, "B_grad_cells": B_grad_cells,
         "C_grad_cells": C_grad_cells,
@@ -990,9 +993,16 @@ def make_diagnostic_plots(log_data, output_path, tile_label="",
     b_ci = B_ci or [(0, i) for i in range(n_cells)]
     c_ci = C_ci or [(i, i) for i in range(len(log_data[0]["C_cells"]))]
 
+    A_mins = [r.get("A_min", 0) for r in log_data]
+    A_maxs = [r.get("A_max", 0) for r in log_data]
+    B_mins = [r.get("B_min", 0) for r in log_data]
+    B_maxs = [r.get("B_max", 0) for r in log_data]
+    C_mins = [r.get("C_min", 0) for r in log_data]
+    C_maxs = [r.get("C_max", 0) for r in log_data]
+
     fig, axes = plt.subplots(5, 2, figsize=(18, 28))
     title_str = f"LRTT Diagnostic — {tile_label}" if tile_label else "LRTT Diagnostic"
-    fig.suptitle(title_str, fontsize=14)
+    fig.suptitle(title_str, fontsize=14, y=1.01)
 
     def tl(ax):
         for ts in transfer_steps:
@@ -1003,20 +1013,30 @@ def make_diagnostic_plots(log_data, output_path, tile_label="",
     ax.plot(steps, norm_A, label="||A||", alpha=0.8)
     ax.plot(steps, norm_B, label="||B||", alpha=0.8)
     ax.plot(steps, norm_AB, label="||A@B||", alpha=0.6, linestyle="--")
+    ax_mm = ax.twinx()
+    ax_mm.plot(steps, A_maxs, label="A max", color="red", alpha=0.5, linewidth=0.7, linestyle=":")
+    ax_mm.plot(steps, A_mins, label="A min", color="red", alpha=0.5, linewidth=0.7, linestyle="--")
+    ax_mm.plot(steps, B_maxs, label="B max", color="blue", alpha=0.5, linewidth=0.7, linestyle=":")
+    ax_mm.plot(steps, B_mins, label="B min", color="blue", alpha=0.5, linewidth=0.7, linestyle="--")
+    ax_mm.set_ylabel("min/max", fontsize=8)
     tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("Norm")
-    ax.set_title("A, B, AB Norms (red = transfer)"); ax.legend(); ax.grid(True, alpha=0.3)
+    ax.set_title("A, B, AB Norms + min/max (red = transfer)")
+    l1, la1 = ax.get_legend_handles_labels(); l2, la2 = ax_mm.get_legend_handles_labels()
+    ax.legend(l1+l2, la1+la2, fontsize=6, ncol=2); ax.grid(True, alpha=0.3)
 
     # (0,1) C norm + delta
     ax = axes[0, 1]
     ax.plot(steps, norm_C_raw, label="||C_raw||", color="green", alpha=0.8)
+    ax.plot(steps, C_maxs, label="C max", color="purple", alpha=0.6, linewidth=0.7, linestyle=":")
+    ax.plot(steps, C_mins, label="C min", color="purple", alpha=0.6, linewidth=0.7, linestyle="--")
     delta_C = [r["delta_C_raw"] for r in log_data]
     ax2 = ax.twinx()
     ax2.plot(steps, delta_C, label="delta_C_raw", color="orange", alpha=0.8)
-    tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("||C_raw||", color="green")
+    tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("||C_raw|| / min/max", color="green")
     ax2.set_ylabel("delta_C_raw", color="orange")
-    ax.set_title("C Norm (raw) + delta_C_raw")
+    ax.set_title("C Norm (raw) + min/max + delta_C_raw")
     l1, la1 = ax.get_legend_handles_labels(); l2, la2 = ax2.get_legend_handles_labels()
-    ax.legend(l1+l2, la1+la2, loc="upper left"); ax.grid(True, alpha=0.3)
+    ax.legend(l1+l2, la1+la2, loc="upper left", fontsize=6); ax.grid(True, alpha=0.3)
 
     # Rows 1-3: A/B/C cells
     for row, (ws, gs, ci, nm) in enumerate(
@@ -1073,7 +1093,7 @@ def make_diagnostic_plots(log_data, output_path, tile_label="",
     ax.set_xlabel("Step"); ax.set_title("Cosines: dC vs G, tlr*AB vs G, dC vs tlr*AB + Loss")
     ax.grid(True, alpha=0.3)
 
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0, 1, 0.98])
     plt.savefig(output_path, dpi=150, bbox_inches="tight")
     plt.close()
     print(f"Saved plot: {output_path}")
@@ -1416,6 +1436,10 @@ def main():
                     _orig_transfer(method=method)
                     return
 
+                # Capture A weights before transfer (will be reinit'd after)
+                with torch.no_grad():
+                    gc_dict['_A_pre_transfer'] = diag_tile.tile_a.get_weights()[0].clone().detach()
+
                 _method = method if method is not None else ctrl.transfer_method
                 gc_dict['_transfer_xc_all'] = []
                 gc_dict['_transfer_dc_all'] = []
@@ -1579,14 +1603,17 @@ def main():
                     (last_tile, last_snap, last_gc, last_log, "last"),
                 ]:
                     A_bef, B_bef, C_bef, Craw_bef = snap
+                    A_pre = gcd.pop('_A_pre_transfer', None)
                     if prev_state == "first":
                         rec, first_C_prev_raw, first_prev_nt = collect_tile_diagnostics(
                             tile, first_C_prev_raw, A_bef, B_bef, C_bef, Craw_bef,
-                            global_step, first_prev_nt, A_CI, B_CI, C_CI)
+                            global_step, first_prev_nt, A_CI, B_CI, C_CI,
+                            A_pre_transfer=A_pre)
                     else:
                         rec, last_C_prev_raw, last_prev_nt = collect_tile_diagnostics(
                             tile, last_C_prev_raw, A_bef, B_bef, C_bef, Craw_bef,
-                            global_step, last_prev_nt, A_CI, B_CI, C_CI)
+                            global_step, last_prev_nt, A_CI, B_CI, C_CI,
+                            A_pre_transfer=A_pre)
                     rec["loss"] = loss.item() * GRAD_ACCUM_STEPS
                     rec["norm_G_accum"] = gcd.get('norm_G_accum', 0.0)
                     rec["norm_AB_pre"] = gcd.get('norm_AB_pre', 0.0)
@@ -1647,6 +1674,14 @@ def main():
                         gcd['G_accum'] = torch.zeros_like(gcd['G_accum'])
 
                     log_list.append(rec)
+
+                # Override snap A with pre-transfer values for next step's A_before
+                A_pre_first = first_gc.get('_A_pre_transfer')
+                if A_pre_first is not None:
+                    first_snap = (A_pre_first,) + first_snap[1:]
+                A_pre_last = last_gc.get('_A_pre_transfer')
+                if A_pre_last is not None:
+                    last_snap = (A_pre_last,) + last_snap[1:]
 
                 tag = ""
                 if first_log[-1]["is_transfer"]: tag += " [T1]"
