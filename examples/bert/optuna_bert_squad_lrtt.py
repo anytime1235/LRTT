@@ -1179,7 +1179,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         torch.cuda.empty_cache()
 
     # Hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 8e-5, 5e-3, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 3e-4, 2e-2, log=True)
 
     # LRTT parameters: skip sweep if --no-transfer (A/B frozen, no transfer happens)
     if OPT_CONFIG['no_transfer']:
@@ -1190,20 +1190,20 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         fast_lr = 1.0            # fixed (no effect)
         tau_sec = 0.0            # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 1e2, 3e5, log=True)
-        transfer_every = trial.suggest_int('transfer_every', 1, 500, log=True)
+        transfer_lr = trial.suggest_float('transfer_lr', 3e-1, 1e4, log=True)
+        transfer_every = trial.suggest_int('transfer_every', 1, 600, log=True)
         rank_exp = trial.suggest_int('rank_exp', 0, 6)
         rank = 2 ** rank_exp
-        fast_lr = trial.suggest_float('fast_lr', 9e-3, 3e1, log=True)
+        fast_lr = trial.suggest_float('fast_lr', 1e-3, 1e0, log=True)
         tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
 
     # A/B device params
-    ab_dw_min = trial.suggest_float('ab_dw_min', 0.001981, 0.001981, log=True)
+    ab_dw_min = trial.suggest_float('ab_dw_min',0.001981, 0.001981,log=True)  # default: 6t1c value
     ab_desired_bl = trial.suggest_int('ab_desired_bl', 31, 31)        # default: 31
 
     # C tile pulsed transfer params (only meaningful for onehot/direct)
     if TRANSFER_METHOD in ("onehot", "direct") and not OPT_CONFIG['no_transfer']:
-        c_dw_min = trial.suggest_float('c_dw_min', 9e-7, 4e-3, log=True)
+        c_dw_min = trial.suggest_float('c_dw_min', 0.001, 0.001)
         c_desired_bl = trial.suggest_int('c_desired_bl', 31, 31)
     else:
         c_dw_min = 0.001   # default (unused for "set")
