@@ -1149,16 +1149,16 @@ def make_diagnostic_plots(log_data, output_path, tile_label="",
         tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("Delta")
         ax.set_title(f"{nm} cells: delta"); ax.legend(fontsize=6, ncol=2); ax.grid(True, alpha=0.3)
 
-    # (4,0) G_accum / tlr*AB norms (lines) + dC norm at transfers (markers) + loss
+    # (4,0) G_accum norm (line) + tlr*AB and dC norms at transfers (scatter) + loss
     nG = [max(r.get("norm_G_accum", 1e-10), 1e-10) for r in log_data]
-    nT = [max(r.get("norm_tlrAB", 1e-10), 1e-10) for r in log_data]
-    # delta_C only at transfer steps
     t_steps_dC = [r["step"] for r in log_data if r["is_transfer"]]
     t_norms_dC = [max(r.get("norm_dC_step", 1e-10), 1e-10) for r in log_data if r["is_transfer"]]
+    t_norms_tlr = [max(r.get("norm_tlrAB", 1e-10), 1e-10) for r in log_data if r["is_transfer"]]
     ax = axes[4, 0]
     ax.semilogy(steps, nG, label="||G_accum||", color="red", alpha=0.8, linewidth=0.8)
-    ax.semilogy(steps, nT, label="||tlr*A@B||", color="green", alpha=0.8, linewidth=0.8)
     if t_steps_dC:
+        ax.semilogy(t_steps_dC, t_norms_tlr, '^', label="||tlr*A@B|| @T", color="green",
+                     markersize=5, alpha=0.9, zorder=5)
         ax.semilogy(t_steps_dC, t_norms_dC, 'o', label="||delta_C|| @T", color="blue",
                      markersize=5, alpha=0.9, zorder=5)
     tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("Norm (log)")
@@ -1713,25 +1713,21 @@ def main():
                                 rec['xc_dc_hist'] = gcd['_transfer_hist']
 
                         with torch.no_grad():
-                            # Compute dC in effective weight space (same space as G and tlr*AB)
-                            C_eff_after = tile.tile_c.get_weights()[0].to(DEVICE)
-                            C_eff_bef = snap[2].to(DEVICE)  # C_before from snapshot (effective)
-                            delta_C_mat = C_eff_after - C_eff_bef
-                            AB_mat = gcd.get('AB_matrix')
-                            tlr_AB = TRANSFER_LR * AB_mat if AB_mat is not None else torch.zeros_like(delta_C_mat)
-                            # Use controller's exact deltas for cosine comparison at transfer steps
+                            # Cosines and norms only at transfer steps (G_accum resets per transfer)
                             if rec["is_transfer"]:
+                                C_eff_after = tile.tile_c.get_weights()[0].to(DEVICE)
+                                C_eff_bef = snap[2].to(DEVICE)  # C_before from snapshot (effective)
+                                delta_C_mat = C_eff_after - C_eff_bef
                                 ctrl_delta = tile.controller.last_transfer_delta
-                                if ctrl_delta is not None:
-                                    tlr_AB = ctrl_delta.to(DEVICE)
-                            dC_f = delta_C_mat.flatten()
-                            G_f = gcd.get('G_accum', torch.zeros_like(delta_C_mat)).flatten()
-                            tlr_f = tlr_AB.flatten()
-                            rec["cos_dC_G"] = _cos_sim(dC_f, G_f)
-                            rec["cos_tlrAB_G"] = _cos_sim(tlr_f, G_f)
-                            rec["cos_dC_tlrAB"] = _cos_sim(dC_f, tlr_f)
-                            rec["norm_dC_step"] = torch.norm(delta_C_mat).item()
-                            rec["norm_tlrAB"] = torch.norm(tlr_AB).item()
+                                tlr_AB = ctrl_delta.to(DEVICE) if ctrl_delta is not None else torch.zeros_like(delta_C_mat)
+                                dC_f = delta_C_mat.flatten()
+                                G_f = gcd.get('G_accum', torch.zeros_like(delta_C_mat)).flatten()
+                                tlr_f = tlr_AB.flatten()
+                                rec["cos_dC_G"] = _cos_sim(dC_f, G_f)
+                                rec["cos_tlrAB_G"] = _cos_sim(tlr_f, G_f)
+                                rec["cos_dC_tlrAB"] = _cos_sim(dC_f, tlr_f)
+                                rec["norm_dC_step"] = torch.norm(delta_C_mat).item()
+                                rec["norm_tlrAB"] = torch.norm(tlr_AB).item()
 
                         if rec["is_transfer"]:
                             gcd['G_accum'] = torch.zeros_like(gcd['G_accum'])
@@ -1865,7 +1861,7 @@ def main():
             os.path.join(RESULTS, f"squad_diag_xd_last_{stamp}.png"),
             tile_label=f"Last tile ({last_name})")
 
-        steps_per_epoch = len(train_loader)
+        steps_per_epoch = len(train_loader) // GRAD_ACCUM_STEPS
         diag_ep = DIAG_EPOCHS if DIAG_EPOCHS > 0 else N_EPOCHS
         for ep in range(1, diag_ep + 1):
             s0, s1 = (ep-1)*steps_per_epoch, ep*steps_per_epoch

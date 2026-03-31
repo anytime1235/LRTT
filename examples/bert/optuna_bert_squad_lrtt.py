@@ -1190,9 +1190,9 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         fast_lr = 1.0            # fixed (no effect)
         tau_sec = 0.0            # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 3e-1, 1e4, log=True)
-        transfer_every = trial.suggest_int('transfer_every', 1, 600, log=True)
-        rank_exp = trial.suggest_int('rank_exp', 0, 6)
+        transfer_lr = trial.suggest_float('transfer_lr', 8e1, 5e4, log=True)
+        transfer_every = trial.suggest_int('transfer_every', 1, 700, log=True)
+        rank_exp = trial.suggest_int('rank_exp', 5, 5)
         rank = 2 ** rank_exp
         fast_lr = trial.suggest_float('fast_lr', 1e-3, 1e0, log=True)
         tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
@@ -1203,7 +1203,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
 
     # C tile pulsed transfer params (only meaningful for onehot/direct)
     if TRANSFER_METHOD in ("onehot", "direct") and not OPT_CONFIG['no_transfer']:
-        c_dw_min = trial.suggest_float('c_dw_min', 0.001, 0.001)
+        c_dw_min = trial.suggest_float('c_dw_min', 1.953e-3, 1.953e-3, log=True)
         c_desired_bl = trial.suggest_int('c_desired_bl', 31, 31)
     else:
         c_dw_min = 0.001   # default (unused for "set")
