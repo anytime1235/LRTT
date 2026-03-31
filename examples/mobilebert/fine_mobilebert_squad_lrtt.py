@@ -1098,7 +1098,7 @@ def make_diagnostic_plots(log_data, output_path, tile_label="",
     C_raw_mins = [r.get("C_raw_min", r.get("C_min", 0)) for r in log_data]
     C_raw_maxs = [r.get("C_raw_max", r.get("C_max", 0)) for r in log_data]
 
-    fig, axes = plt.subplots(5, 2, figsize=(18, 28))
+    fig, axes = plt.subplots(6, 2, figsize=(18, 34))
     fig.suptitle(f"LRTT Diagnostic — {tile_label}" if tile_label else "LRTT Diagnostic",
                  fontsize=14, y=1.01)
 
@@ -1121,23 +1121,38 @@ def make_diagnostic_plots(log_data, output_path, tile_label="",
     l1, la1 = ax.get_legend_handles_labels(); l2, la2 = ax_mm.get_legend_handles_labels()
     ax.legend(l1+l2, la1+la2, fontsize=6, ncol=2); ax.grid(True, alpha=0.3)
 
+    # (0,1) C norm + delta_C
     ax = axes[0, 1]
     ax.plot(steps, norm_C_raw, label="||C_raw||", color="green", alpha=0.8)
-    ax.plot(steps, C_raw_maxs, label="C raw max", color="red", alpha=0.6, linewidth=0.7, linestyle=":")
-    ax.plot(steps, C_raw_mins, label="C raw min", color="red", alpha=0.6, linewidth=0.7, linestyle="--")
-    ax.plot(steps, C_eff_maxs, label="C eff max", color="purple", alpha=0.6, linewidth=0.7, linestyle=":")
-    ax.plot(steps, C_eff_mins, label="C eff min", color="purple", alpha=0.6, linewidth=0.7, linestyle="--")
     delta_C = [r["delta_C_raw"] for r in log_data]
     ax2 = ax.twinx()
     ax2.plot(steps, delta_C, label="delta_C_raw", color="orange", alpha=0.8)
-    tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("||C_raw|| / min/max", color="green")
+    tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("||C_raw||", color="green")
     ax2.set_ylabel("delta_C_raw", color="orange")
-    ax.set_title("C Norm + raw/eff min/max + delta_C")
+    ax.set_title("C Norm (raw) + delta_C_raw")
     l1, la1 = ax.get_legend_handles_labels(); l2, la2 = ax2.get_legend_handles_labels()
     ax.legend(l1+l2, la1+la2, loc="upper left", fontsize=6); ax.grid(True, alpha=0.3)
 
+    # (1,0) C raw min/max
+    ax = axes[1, 0]
+    ax.plot(steps, C_raw_maxs, label="C raw max", color="red", alpha=0.8, linewidth=1.0)
+    ax.plot(steps, C_raw_mins, label="C raw min", color="blue", alpha=0.8, linewidth=1.0)
+    ax.axhline(y=1.0, color="gray", linestyle="--", alpha=0.4)
+    ax.axhline(y=-1.0, color="gray", linestyle="--", alpha=0.4)
+    tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("Raw conductance")
+    ax.set_title("C raw weight min/max (device range [-1, 1])")
+    ax.legend(fontsize=7); ax.grid(True, alpha=0.3)
+
+    # (1,1) C eff min/max
+    ax = axes[1, 1]
+    ax.plot(steps, C_eff_maxs, label="C eff max", color="red", alpha=0.8, linewidth=1.0)
+    ax.plot(steps, C_eff_mins, label="C eff min", color="blue", alpha=0.8, linewidth=1.0)
+    tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("Effective weight")
+    ax.set_title("C effective weight min/max")
+    ax.legend(fontsize=7); ax.grid(True, alpha=0.3)
+
     for row, (ws, gs, ci, nm) in enumerate(
-            [(A_w, A_g, a_ci, "A"), (B_w, B_g, b_ci, "B"), (C_w, C_g, c_ci, "C")], start=1):
+            [(A_w, A_g, a_ci, "A"), (B_w, B_g, b_ci, "B"), (C_w, C_g, c_ci, "C")], start=2):
         ax = axes[row, 0]
         for i, s in enumerate(ws):
             r, c = ci[i]; ax.plot(steps, s, label=f"{nm}[{r},{c}]", alpha=0.7, linewidth=0.8)
@@ -1149,12 +1164,12 @@ def make_diagnostic_plots(log_data, output_path, tile_label="",
         tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("Delta")
         ax.set_title(f"{nm} cells: delta"); ax.legend(fontsize=6, ncol=2); ax.grid(True, alpha=0.3)
 
-    # (4,0) G_accum norm (line) + tlr*AB and dC norms at transfers (scatter) + loss
+    # (5,0) G_accum norm (line) + tlr*AB and dC norms at transfers (scatter) + loss
     nG = [max(r.get("norm_G_accum", 1e-10), 1e-10) for r in log_data]
     t_steps_dC = [r["step"] for r in log_data if r["is_transfer"]]
     t_norms_dC = [max(r.get("norm_dC_step", 1e-10), 1e-10) for r in log_data if r["is_transfer"]]
     t_norms_tlr = [max(r.get("norm_tlrAB", 1e-10), 1e-10) for r in log_data if r["is_transfer"]]
-    ax = axes[4, 0]
+    ax = axes[5, 0]
     ax.semilogy(steps, nG, label="||G_accum||", color="red", alpha=0.8, linewidth=0.8)
     if t_steps_dC:
         ax.semilogy(t_steps_dC, t_norms_tlr, '^', label="||tlr*A@B|| @T", color="green",
@@ -1168,11 +1183,11 @@ def make_diagnostic_plots(log_data, output_path, tile_label="",
     ax.legend(lm+ll, llm+lll, fontsize=7, loc="upper right")
     ax.set_title("||G_accum|| vs ||tlr*A@B|| + ||delta_C|| at transfers + Loss"); ax.grid(True, alpha=0.3)
 
-    # (4,1) cosines at transfer steps only (G_accum is reset per transfer)
+    # (5,1) cosines at transfer steps only (G_accum is reset per transfer)
     t_cTG = [r.get("cos_tlrAB_G", 0) for r in log_data if r["is_transfer"]]
     t_cDG = [r.get("cos_dC_G", 0) for r in log_data if r["is_transfer"]]
     t_cDT = [r.get("cos_dC_tlrAB", 0) for r in log_data if r["is_transfer"]]
-    ax = axes[4, 1]
+    ax = axes[5, 1]
     if t_steps_dC:
         ax.scatter(t_steps_dC, t_cTG, label="cos(tlr*AB, G) @T", color="green",
                    s=25, alpha=0.9, zorder=5, marker="^")
