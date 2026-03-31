@@ -910,7 +910,8 @@ def snapshot_weights(tile):
 
 def collect_tile_diagnostics(tile, C_prev_raw, A_before, B_before, C_before,
                              C_raw_before, step, prev_num_transfers,
-                             A_ci, B_ci, C_ci, A_pre_transfer=None):
+                             A_ci, B_ci, C_ci, A_pre_transfer=None,
+                             C_initial_eff=None):
     """Collect all diagnostic data for one tile at one step."""
     controller = tile.controller
     A = A_pre_transfer if A_pre_transfer is not None else tile.tile_a.get_weights()[0]
@@ -958,8 +959,21 @@ def collect_tile_diagnostics(tile, C_prev_raw, A_before, B_before, C_before,
         "delta_A": delta_A, "delta_B": delta_B, "delta_C_raw": delta_C_raw_step,
         "transfer_counter": transfer_counter,
         "num_transfers": num_transfers, "is_transfer": is_transfer,
+        "erank_C": _effective_rank(C_eff),
+        "erank_C_delta": _effective_rank(C_eff - C_initial_eff) if C_initial_eff is not None else 0.0,
     }
     return record, C_raw.clone().detach(), num_transfers
+
+
+def _effective_rank(M):
+    """Compute effective rank = exp(entropy of normalized singular values)."""
+    s = torch.linalg.svdvals(M.float())
+    s = s[s > 1e-10]
+    if len(s) == 0:
+        return 0.0
+    p = s / s.sum()
+    entropy = -(p * torch.log(p)).sum()
+    return entropy.exp().item()
 
 
 def _cos_sim(a, b):
@@ -1041,22 +1055,26 @@ def make_diagnostic_plots(log_data, output_path, tile_label="",
     l1, la1 = ax.get_legend_handles_labels(); l2, la2 = ax2.get_legend_handles_labels()
     ax.legend(l1+l2, la1+la2, loc="upper left", fontsize=6); ax.grid(True, alpha=0.3)
 
-    # (1,0) C raw min/max
+    # (1,0) C raw + eff min/max combined
     ax = axes[1, 0]
     ax.plot(steps, C_raw_maxs, label="C raw max", color="red", alpha=0.8, linewidth=1.0)
-    ax.plot(steps, C_raw_mins, label="C raw min", color="blue", alpha=0.8, linewidth=1.0)
-    ax.axhline(y=1.0, color="gray", linestyle="--", alpha=0.4)
-    ax.axhline(y=-1.0, color="gray", linestyle="--", alpha=0.4)
-    tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("Raw conductance")
-    ax.set_title("C raw weight min/max (device range [-1, 1])")
-    ax.legend(fontsize=7); ax.grid(True, alpha=0.3)
+    ax.plot(steps, C_raw_mins, label="C raw min", color="red", alpha=0.8, linewidth=1.0, linestyle="--")
+    ax.plot(steps, C_eff_maxs, label="C eff max", color="purple", alpha=0.8, linewidth=1.0)
+    ax.plot(steps, C_eff_mins, label="C eff min", color="purple", alpha=0.8, linewidth=1.0, linestyle="--")
+    ax.axhline(y=1.0, color="gray", linestyle=":", alpha=0.4)
+    ax.axhline(y=-1.0, color="gray", linestyle=":", alpha=0.4)
+    tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("Weight value")
+    ax.set_title("C weight min/max (raw=red, eff=purple)")
+    ax.legend(fontsize=6, ncol=2); ax.grid(True, alpha=0.3)
 
-    # (1,1) C eff min/max
+    # (1,1) Effective rank
+    erank_C = [r.get("erank_C", 0) for r in log_data]
+    erank_C_delta = [r.get("erank_C_delta", 0) for r in log_data]
     ax = axes[1, 1]
-    ax.plot(steps, C_eff_maxs, label="C eff max", color="red", alpha=0.8, linewidth=1.0)
-    ax.plot(steps, C_eff_mins, label="C eff min", color="blue", alpha=0.8, linewidth=1.0)
-    tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("Effective weight")
-    ax.set_title("C effective weight min/max")
+    ax.plot(steps, erank_C, label="erank(C)", color="green", alpha=0.8, linewidth=1.0)
+    ax.plot(steps, erank_C_delta, label="erank(C - C_init)", color="blue", alpha=0.8, linewidth=1.0)
+    tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("Effective rank")
+    ax.set_title("Effective rank of C and C delta")
     ax.legend(fontsize=7); ax.grid(True, alpha=0.3)
 
     # Rows 2-4: A/B/C cells
@@ -1311,6 +1329,7 @@ def main():
     first_gc, last_gc = {}, {}
     first_log, last_log = [], []
     first_C_prev_raw, last_C_prev_raw = None, None
+    first_C_initial_eff, last_C_initial_eff = None, None
     first_prev_nt, last_prev_nt = 0, 0
     first_name = last_name = ""
     first_tile = last_tile = None
@@ -1331,6 +1350,10 @@ def main():
         A_CI = _make_cell_indices(A_shape)
         B_CI = _make_cell_indices(B_shape)
         C_CI = _make_cell_indices(C_shape)
+
+        # Capture initial C weights for effective rank of delta
+        first_C_initial_eff = first_tile.tile_c.get_weights()[0].clone().detach()
+        last_C_initial_eff = last_tile.tile_c.get_weights()[0].clone().detach()
 
         print(f"\nDiag tile (first): {first_name}  A{A_shape} B{B_shape} C{C_shape}")
         print(f"Diag tile (last):  {last_name}")
@@ -1630,12 +1653,12 @@ def main():
                         rec, first_C_prev_raw, first_prev_nt = collect_tile_diagnostics(
                             tile, first_C_prev_raw, A_bef, B_bef, C_bef, Craw_bef,
                             global_step, first_prev_nt, A_CI, B_CI, C_CI,
-                            A_pre_transfer=A_pre)
+                            A_pre_transfer=A_pre, C_initial_eff=first_C_initial_eff)
                     else:
                         rec, last_C_prev_raw, last_prev_nt = collect_tile_diagnostics(
                             tile, last_C_prev_raw, A_bef, B_bef, C_bef, Craw_bef,
                             global_step, last_prev_nt, A_CI, B_CI, C_CI,
-                            A_pre_transfer=A_pre)
+                            A_pre_transfer=A_pre, C_initial_eff=last_C_initial_eff)
                     rec["loss"] = loss.item() * GRAD_ACCUM_STEPS
                     rec["norm_G_accum"] = gcd.get('norm_G_accum', 0.0)
                     rec["norm_AB_pre"] = gcd.get('norm_AB_pre', 0.0)
