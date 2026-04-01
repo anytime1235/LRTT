@@ -1659,6 +1659,7 @@ def main():
     best_f1 = init_f1
     best_epoch = 0
     epochs_without_improvement = 0
+    epoch_history = []  # per-epoch F1, loss, etc.
     best_train_loss = float('inf')
     train_loss_no_improvement = 0
     global_step = 0
@@ -1834,6 +1835,8 @@ def main():
             "learning_rate": current_lr,
         })
 
+        epoch_history.append({"epoch": epoch, "f1": eval_f1, "em": eval_em, "train_loss": train_loss, "lr": current_lr})
+
         if eval_f1 > best_f1:
             best_f1 = eval_f1
             best_epoch = epoch
@@ -1890,6 +1893,7 @@ def main():
                     "diag_epochs": DIAG_EPOCHS,
                 },
                 "best_f1": best_f1, "best_epoch": best_epoch,
+                "epoch_history": epoch_history,
                 "total_steps": global_step, "diag_steps": diag_steps,
                 "first_tile": {
                     "name": first_name,

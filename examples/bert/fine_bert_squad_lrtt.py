@@ -105,7 +105,7 @@ N_EPOCHS = 5  # diagnostic 5 epochs
 SCHEDULE_EPOCHS = 5  # LR schedule horizon (set > N_EPOCHS to match longer runs)
 BATCH_SIZE = 48
 EVAL_BATCH_SIZE = 256
-LEARNING_RATE = 0.0015296568472596575  # onehot trial 133
+LEARNING_RATE = 0.003955963313199295  # onehot new T10
 WEIGHT_DECAY = 0.0
 EARLY_STOP_PATIENCE = 2
 TRAIN_LOSS_EARLY_STOP_PATIENCE = 1  # Stop if train loss doesn't improve for this many epochs
@@ -120,9 +120,9 @@ OPTIMIZER = "AnalogAdam"  # "AnalogSGD" or "AnalogAdam"
 
 # LRTT parameters
 LRTT_RANK = 32  # rank_exp=5 → 2^5=32
-TRANSFER_EVERY = 119  # onehot trial 133
-TRANSFER_LR = 348.10472910811956  # onehot trial 133
-FAST_LR = 0.2679625795048899  # onehot trial 133
+TRANSFER_EVERY = 412  # onehot new T10
+TRANSFER_LR = 3690.254224629752  # onehot new T10
+FAST_LR = 0.09204971995939443  # onehot new T10
 AUTO_SCALE_MODE = "none"  # Auto-scale mode: "none", "shared", or "separate"
 CORRECT_GRADIENT_MAGNITUDES = False  # Correct transfer magnitude by dividing by effective A/B LR
 REINIT_MODE = "hybrid"
@@ -130,7 +130,7 @@ REINIT_GAIN = 1.0
 TRANSFER_METHOD = "onehot"  # "onehot", "direct", or "set"
 C_DW_MIN = 0.001953         # C tile dw_min (onehot trial 133)
 C_DESIRED_BL = 31           # C tile desired_bl (relevant for onehot/direct transfer)
-AB_DW_MIN = 0.00024631032282242875  # A/B tile dw_min (onehot trial 133)
+AB_DW_MIN = 4.882164004068282e-06  # A/B tile dw_min (new T10)
 AB_DESIRED_BL = 31          # A/B tile desired_bl
 
 # Device selection
@@ -1678,6 +1678,7 @@ def main():
     best_f1 = init_f1
     best_epoch = 0
     epochs_without_improvement = 0
+    epoch_history = []  # per-epoch F1, loss, etc.
     best_train_loss = float('inf')
     train_loss_no_improvement = 0
     global_step = 0
@@ -1828,6 +1829,8 @@ def main():
             "learning_rate": current_lr,
         })
 
+        epoch_history.append({"epoch": epoch, "f1": eval_f1, "em": eval_em, "train_loss": train_loss, "lr": current_lr})
+
         if eval_f1 > best_f1:
             best_f1 = eval_f1
             best_epoch = epoch
@@ -1884,6 +1887,7 @@ def main():
                     "diag_epochs": DIAG_EPOCHS,
                 },
                 "best_f1": best_f1, "best_epoch": best_epoch,
+                "epoch_history": epoch_history,
                 "total_steps": global_step, "diag_steps": diag_steps,
                 "first_tile": {
                     "name": first_name,

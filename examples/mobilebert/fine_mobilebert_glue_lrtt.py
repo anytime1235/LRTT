@@ -1567,6 +1567,7 @@ def main():
     best_acc = init_acc
     best_epoch = 0
     epochs_without_improvement = 0
+    epoch_history = []  # per-epoch accuracy, loss, etc.
     best_val_loss = float('inf')
     val_loss_no_improvement = 0
     val_loss_crossed_threshold = False  # True once val loss drops below threshold
@@ -1718,6 +1719,8 @@ def main():
             "learning_rate": current_lr,
         })
 
+        epoch_history.append({"epoch": epoch, "accuracy": eval_acc, "val_loss": val_loss, "train_loss": train_loss, "lr": current_lr})
+
         if eval_acc > best_acc:
             best_acc = eval_acc
             best_epoch = epoch
@@ -1780,6 +1783,7 @@ def main():
                 },
                 "task": TASK_NAME, "metric": metric_name,
                 "best_metric": best_acc, "best_epoch": best_epoch,
+                "epoch_history": epoch_history,
                 "total_steps": global_step, "diag_steps": diag_steps,
                 "first_tile": {
                     "name": first_name,
