@@ -296,20 +296,13 @@ def _step_mem_opt(self, closure=None, **kwargs):
 
                 elif is_lrtt and controller.forward_inject_enabled:
                     # ── LRTT FI mode ──
-                    # In FI mode, tile_a/tile_b hooks call _orig_update
-                    # with rescaled lr (no _update_handled guard).
-                    # tile_c hook handles transfer counter (C is frozen).
+                    # FI hooks pair tile_a + tile_b updates: tile_a.update()
+                    # caches data, tile_b.update() triggers both _orig_update.
+                    # Must process tile_a and tile_b together per group.
                     entries_per_fwd = n_micro // grad_accum_steps
 
                     if tile_name == 'tile_c':
                         # tile_c: frozen, only handle transfer counter once.
-                        # The hook would call _update_dynamic_te and increment
-                        # transfer_counter per call, inflating them n_micro×.
-                        # Instead, do one logical update.
-                        # Counter = m_batch * grad_accum_steps (matching NFI
-                        # correction which removes depth inflation).
-                        # _last_m_batch must equal the increment for the
-                        # modulo boundary-crossing check in should_transfer().
                         lr = analog_tile.get_learning_rate()
                         controller._last_lr_sgd = lr  # sync for effective_alpha
                         m_batch = analog_ctx.analog_input[0].shape[0]
@@ -319,29 +312,59 @@ def _step_mem_opt(self, closure=None, **kwargs):
                         controller.transfer_counter += corrected_increment
                         if controller.should_transfer():
                             controller.ab_weight_transfer()
-                    else:
-                        # tile_a/tile_b: group by grad_accum step, concat
-                        # weight-sharing entries within each group, then call
-                        # update() per group. The FI hooks handle lr rescaling.
+                    elif tile_name == 'tile_a':
+                        # Defer: save for paired processing with tile_b
+                        controller._fi_ga_a_tile = analog_tile
+                        controller._fi_ga_a_ctx = analog_ctx
+                        controller._fi_ga_a_runtime = runtime
+                        continue  # skip analog_ctx.reset() — tile_b will handle it
+                    elif tile_name == 'tile_b':
+                        # Process tile_a and tile_b together, group by group.
+                        # This ensures the FI hook pairs matching groups.
+                        a_tile = controller._fi_ga_a_tile
+                        a_ctx = controller._fi_ga_a_ctx
+                        a_runtime = controller._fi_ga_a_runtime
+
                         for g in range(grad_accum_steps):
                             start = g * entries_per_fwd
                             end = start + entries_per_fwd
 
-                            x_group = self._pad_and_cat(
+                            # tile_a group
+                            x_a = self._pad_and_cat(
+                                a_ctx.analog_input[start:end],
+                                axis=-1 if a_tile.in_trans else 0,
+                            )
+                            d_a = self._pad_and_cat(
+                                a_ctx.analog_grad_output[start:end],
+                                axis=-1 if a_tile.out_trans else 0,
+                            )
+                            if a_runtime.offload_input:
+                                x_a = x_a.to(a_tile.device)
+                            if a_runtime.offload_gradient:
+                                d_a = d_a.to(a_tile.device)
+
+                            # tile_b group
+                            x_b = self._pad_and_cat(
                                 analog_ctx.analog_input[start:end],
                                 axis=-1 if analog_tile.in_trans else 0,
                             )
-                            d_group = self._pad_and_cat(
+                            d_b = self._pad_and_cat(
                                 analog_ctx.analog_grad_output[start:end],
                                 axis=-1 if analog_tile.out_trans else 0,
                             )
-
                             if runtime.offload_input:
-                                x_group = x_group.to(analog_tile.device)
+                                x_b = x_b.to(analog_tile.device)
                             if runtime.offload_gradient:
-                                d_group = d_group.to(analog_tile.device)
+                                d_b = d_b.to(analog_tile.device)
 
-                            analog_tile.update(x_group, d_group)
+                            # Call in order: tile_a then tile_b
+                            # FI hook caches _fi_a_*, then _fi_b_* triggers _orig_update
+                            a_tile.update(x_a, d_a)
+                            analog_tile.update(x_b, d_b)
+
+                        # Reset deferred tile_a context
+                        a_ctx.reset()
+                        del controller._fi_ga_a_tile, controller._fi_ga_a_ctx, controller._fi_ga_a_runtime
 
                 else:
                     # Non-LRTT tile: per-micro-batch update (no _update_handled issue)
