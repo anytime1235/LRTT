@@ -73,3 +73,9 @@
 {"op_code":8,"worker_id":"c90890e7-b012-4083-9e56-c390e045e69c-140399740686336","trial_id":1,"user_attr":{"grad_accum_steps":3}}
 {"op_code":8,"worker_id":"ef0edccf-df44-4a67-9db3-53f2b7b22c3c-140686133227520","trial_id":2,"user_attr":{"grad_accum_steps":3}}
 {"op_code":8,"worker_id":"4c9daa95-9e1d-4c6e-8d5b-e32c30f5df6d-139770626322432","trial_id":3,"user_attr":{"grad_accum_steps":3}}
+{"op_code":7,"worker_id":"b377fe47-e3fa-4dd1-9413-acae3c09ad30-140517053599744","trial_id":0,"step":1,"intermediate_value":81.58564855935325}
+{"op_code":8,"worker_id":"b377fe47-e3fa-4dd1-9413-acae3c09ad30-140517053599744","trial_id":0,"user_attr":{"train_loss_epoch_1":1.747929218116277}}
+{"op_code":7,"worker_id":"c90890e7-b012-4083-9e56-c390e045e69c-140399740686336","trial_id":1,"step":1,"intermediate_value":81.82802444945338}
+{"op_code":8,"worker_id":"c90890e7-b012-4083-9e56-c390e045e69c-140399740686336","trial_id":1,"user_attr":{"train_loss_epoch_1":1.9173713084098207}}
+{"op_code":7,"worker_id":"ef0edccf-df44-4a67-9db3-53f2b7b22c3c-140686133227520","trial_id":2,"step":1,"intermediate_value":80.68486164188376}
+{"op_code":8,"worker_id":"ef0edccf-df44-4a67-9db3-53f2b7b22c3c-140686133227520","trial_id":2,"user_attr":{"train_loss_epoch_1":1.9887605527550192}}
