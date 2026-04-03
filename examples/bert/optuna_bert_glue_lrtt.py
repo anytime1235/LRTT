@@ -459,12 +459,20 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981):
         tau_sec: Retention time constant. If 0, lifetime=0 (no decay).
         dw_min: Minimum weight update step size for the device.
     """
+    # Compute retention lifetime from tau_sec
+    if tau_sec > 0:
+        dt_batch_sec = 1.0
+        delta = 1 - math.exp(-dt_batch_sec / tau_sec)
+        lifetime = 1.0 / delta if delta > 0 else 0.0
+    else:
+        lifetime = 0.0
+
     if AB_DEVICE == "fp":
         return FloatingPointDevice()
     if AB_DEVICE == "ideal":
         return IdealDevice()
     if AB_DEVICE == "linearstep":
-        return LinearStepDevice(dw_min=dw_min)
+        return LinearStepDevice(dw_min=dw_min, lifetime=lifetime)
     if AB_DEVICE == "linearstepideal":
         return LinearStepDevice(
             dw_min=dw_min,
@@ -481,9 +489,10 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981):
             reset_std=0.0,
             up_down=0.0,
             mult_noise=False,
+            lifetime=lifetime,
         )
     if AB_DEVICE == "constantstep":
-        return ConstantStepDevice(dw_min=dw_min)
+        return ConstantStepDevice(dw_min=dw_min, lifetime=lifetime)
     if AB_DEVICE == "constantstepideal":
         return ConstantStepDevice(
             dw_min=dw_min,
@@ -496,15 +505,8 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981):
             w_min_dtod=0.0,
             reset_std=0.0,
             up_down=0.0,
+            lifetime=lifetime,
         )
-
-    # Compute retention lifetime from tau_sec
-    if tau_sec > 0:
-        dt_batch_sec = 1.0
-        delta = 1 - math.exp(-dt_batch_sec / tau_sec)
-        lifetime = 1.0 / delta if delta > 0 else 0.0
-    else:
-        lifetime = 0.0
 
     # Default: 6t1c (full noise)
     return LinearStepDevice(

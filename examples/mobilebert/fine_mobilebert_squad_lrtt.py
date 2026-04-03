@@ -226,12 +226,20 @@ def _create_ab_device(tau_sec=None, dw_min=None):
     if dw_min is None:
         dw_min = AB_DW_MIN
 
+    # Compute retention lifetime from tau_sec
+    if tau_sec > 0:
+        dt_batch_sec = 1.0
+        delta = 1 - math.exp(-dt_batch_sec / tau_sec)
+        lifetime = 1.0 / delta if delta > 0 else 0.0
+    else:
+        lifetime = 0.0
+
     if AB_DEVICE == "fp":
         return FloatingPointDevice()
     if AB_DEVICE == "ideal":
         return IdealDevice()
     if AB_DEVICE == "linearstep":
-        return LinearStepDevice(dw_min=dw_min)
+        return LinearStepDevice(dw_min=dw_min, lifetime=lifetime)
     if AB_DEVICE == "linearstepideal":
         return LinearStepDevice(
             dw_min=dw_min,
@@ -241,9 +249,10 @@ def _create_ab_device(tau_sec=None, dw_min=None):
             gamma_up_dtod=0.0, gamma_down_dtod=0.0,
             write_noise_std=0.0, reset_std=0.0,
             up_down=0.0, mult_noise=False,
+            lifetime=lifetime,
         )
     if AB_DEVICE == "constantstep":
-        return ConstantStepDevice(dw_min=dw_min)
+        return ConstantStepDevice(dw_min=dw_min, lifetime=lifetime)
     if AB_DEVICE == "constantstepideal":
         return ConstantStepDevice(
             dw_min=dw_min,
@@ -251,15 +260,8 @@ def _create_ab_device(tau_sec=None, dw_min=None):
             dw_min_dtod=0.0, dw_min_std=0.0,
             up_down_dtod=0.0, w_max_dtod=0.0, w_min_dtod=0.0,
             reset_std=0.0, up_down=0.0,
+            lifetime=lifetime,
         )
-
-    # Default: 6t1c (full noise)
-    if tau_sec > 0:
-        dt_batch_sec = 1.0
-        delta = 1 - math.exp(-dt_batch_sec / tau_sec)
-        lifetime = 1.0 / delta if delta > 0 else 0.0
-    else:
-        lifetime = 0.0
 
     return LinearStepDevice(
         dw_min=dw_min,
