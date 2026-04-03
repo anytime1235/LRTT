@@ -872,6 +872,27 @@ def find_last_lrtt_tile(model):
     return last_name, last_tile
 
 
+def find_target_lrtt_tiles(model, layer_indices=(0, 12, 23),
+                            sublayers=("query", "key", "value", "attention.output")):
+    """Find LRTT tiles for specific layers and sublayers.
+
+    Returns:
+        dict mapping short_name → (full_name, module)
+        e.g. "L0_query" → ("mobilebert.encoder.layer.0.attention.self.query.analog_module", tile)
+    """
+    tiles = {}
+    for name, mod in model.named_modules():
+        if not hasattr(mod, 'controller'):
+            continue
+        for li in layer_indices:
+            for sl in sublayers:
+                layer_str = f"layer.{li}."
+                if layer_str in name and sl in name:
+                    short = f"L{li}_{sl.split('.')[-1]}"
+                    tiles[short] = (name, mod)
+    return tiles
+
+
 def sample_cells(weight_matrix, cell_indices):
     """Extract values at fixed cell positions from a weight matrix."""
     values = []
@@ -956,6 +977,26 @@ def collect_tile_diagnostics(tile, C_prev_raw, A_before, B_before, C_before,
         "erank_C_delta": _effective_rank(C_eff - C_initial_eff) if C_initial_eff is not None else 0.0,
     }
     return record, C_raw.clone().detach(), num_transfers
+
+
+def _compute_multi_mean(multi_logs):
+    """Compute per-step mean of numeric metrics across all tracked tiles."""
+    keys_with_data = [k for k, v in multi_logs.items() if v]
+    if not keys_with_data:
+        return []
+    n_steps = len(multi_logs[keys_with_data[0]])
+    fields = ["norm_A", "norm_B", "norm_C_raw", "norm_AB",
+              "A_eff_min", "A_eff_max", "B_eff_min", "B_eff_max",
+              "C_eff_min", "C_eff_max", "C_raw_min", "C_raw_max",
+              "erank_C", "erank_C_delta"]
+    mean_log = []
+    for i in range(n_steps):
+        rec = {"step": multi_logs[keys_with_data[0]][i]["step"]}
+        for f in fields:
+            vals = [multi_logs[k][i].get(f, 0) for k in keys_with_data]
+            rec[f] = sum(vals) / len(vals)
+        mean_log.append(rec)
+    return mean_log
 
 
 def _effective_rank(M):
@@ -1219,6 +1260,53 @@ def make_xd_diagnostic_plots(log_data, output_path, tile_label=""):
     print(f"Saved plot: {output_path}")
 
 
+def make_multi_tile_plots(multi_logs, mean_log, output_path):
+    """Plot key metrics across all tracked tiles + mean."""
+    if not mean_log:
+        return
+
+    metrics = [
+        ("norm_A", "||A|| (pre-transfer)"),
+        ("norm_AB", "||A@B||"),
+        ("erank_C", "Effective Rank of C"),
+        ("erank_C_delta", "Effective Rank of C - C_init"),
+        ("A_eff_max", "A weight max"),
+        ("C_raw_max", "C raw conductance max"),
+    ]
+
+    fig, axes = plt.subplots(3, 2, figsize=(16, 14))
+    fig.suptitle("Multi-Tile Diagnostic Comparison", fontsize=14, y=1.01)
+
+    tile_keys = sorted(multi_logs.keys())
+    colors = plt.cm.tab20(range(len(tile_keys)))
+
+    for idx, (field, title) in enumerate(metrics):
+        ax = axes[idx // 2, idx % 2]
+        for i, k in enumerate(tile_keys):
+            steps_data = multi_logs[k]
+            if not steps_data:
+                continue
+            steps = [s["step"] for s in steps_data]
+            vals = [s.get(field, 0) for s in steps_data]
+            ax.plot(steps, vals, color=colors[i], alpha=0.4, linewidth=0.7, label=k)
+        steps = [s["step"] for s in mean_log]
+        vals = [s.get(field, 0) for s in mean_log]
+        ax.plot(steps, vals, color="black", linewidth=2.0, label="mean")
+        ax.set_xlabel("Step")
+        ax.set_ylabel(title)
+        ax.set_title(title)
+
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", ncol=7, fontsize=7,
+               bbox_to_anchor=(0.5, -0.02))
+
+    plt.tight_layout(rect=[0, 0.04, 1, 0.98])
+    plt.savefig(output_path, dpi=150, bbox_inches="tight")
+    plt.savefig(output_path.replace(".png", ".svg"), bbox_inches="tight")
+    plt.close()
+    print(f"Saved plot: {output_path}")
+
+
 # =============================================================================
 # Optimizer & Scheduler
 # =============================================================================
@@ -1351,6 +1439,42 @@ def main():
         print(f"\nDiag tile (first): {first_name}  A{A_shape} B{B_shape} C{C_shape}")
         print(f"Diag tile (last):  {last_name}")
         print(f"Diag epochs: {'all' if DIAG_EPOCHS == 0 else f'first {DIAG_EPOCHS}'}")
+
+        # Multi-tile tracking: layer 0, 12, 23 × qkvo
+        multi_tiles = find_target_lrtt_tiles(model)
+        multi_logs = {k: [] for k in multi_tiles}
+        multi_C_initial = {}
+        for k, (tname, tmod) in multi_tiles.items():
+            multi_C_initial[k] = tmod.tile_c.get_weights()[0].clone().detach()
+            tmod.controller.enable_diagnostics = True
+            print(f"  Multi-diag: {k} → {tname}")
+
+        def _collect_multi_tile_metrics(step):
+            """Collect lightweight metrics for all tracked tiles."""
+            for k, (tname, tmod) in multi_tiles.items():
+                A = tmod.tile_a.get_weights()[0]
+                B = tmod.tile_b.get_weights()[0]
+                C_eff = tmod.tile_c.get_weights()[0]
+                C_raw = get_raw_C(tmod.tile_c)
+                ctrl = tmod.controller
+                rec = {
+                    "step": step,
+                    "norm_A": torch.norm(A).item(),
+                    "norm_B": torch.norm(B).item(),
+                    "norm_C_raw": torch.norm(C_raw).item(),
+                    "norm_AB": torch.norm(A @ B).item(),
+                    "A_eff_min": A.min().item(), "A_eff_max": A.max().item(),
+                    "B_eff_min": B.min().item(), "B_eff_max": B.max().item(),
+                    "C_eff_min": C_eff.min().item(), "C_eff_max": C_eff.max().item(),
+                    "C_raw_min": C_raw.min().item(), "C_raw_max": C_raw.max().item(),
+                    "erank_C": _effective_rank(C_eff),
+                    "erank_C_delta": _effective_rank(C_eff - multi_C_initial[k]),
+                    "num_transfers": ctrl.num_transfers,
+                    "is_transfer": False,
+                }
+                if multi_logs[k]:
+                    rec["is_transfer"] = ctrl.num_transfers > multi_logs[k][-1]["num_transfers"]
+                multi_logs[k].append(rec)
 
         def _install_hook(diag_tile, device, gc_dict):
             d_size, x_size = diag_tile.tile_c.get_weights()[0].shape
@@ -1689,6 +1813,10 @@ def main():
                     if A_pre_last is not None:
                         last_snap = (A_pre_last,) + last_snap[1:]
 
+                    # Multi-tile metrics
+                    with torch.no_grad():
+                        _collect_multi_tile_metrics(global_step)
+
                     tag = ""
                     if first_log[-1]["is_transfer"]: tag += " [T1]"
                     if last_log[-1]["is_transfer"]: tag += " [T2]"
@@ -1799,6 +1927,10 @@ def main():
                     "total_transfers": len(last_transfers), "transfer_steps": last_transfers,
                     "steps": last_log,
                 },
+                # Multi-tile data
+                "multi_tiles": {k: {"name": multi_tiles[k][0], "steps": multi_logs[k]}
+                                for k in multi_tiles if multi_logs[k]},
+                "multi_mean": _compute_multi_mean(multi_logs) if any(multi_logs.values()) else [],
             }, f, indent=2)
         print(f"Saved: {json_path}")
 
@@ -1816,6 +1948,12 @@ def main():
         make_xd_diagnostic_plots(last_log,
             os.path.join(RESULTS, f"{TASK_NAME}_diag_xd_last_{stamp}.png"),
             tile_label=f"Last tile ({last_name})")
+
+        # Multi-tile comparison plot
+        if any(multi_logs.values()):
+            make_multi_tile_plots(
+                multi_logs, _compute_multi_mean(multi_logs),
+                os.path.join(RESULTS, f"{TASK_NAME}_diag_multi_{stamp}.png"))
 
         steps_per_epoch = len(train_loader) // GRAD_ACCUM_STEPS
         diag_ep = DIAG_EPOCHS if DIAG_EPOCHS > 0 else N_EPOCHS
