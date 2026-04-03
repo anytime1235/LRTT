@@ -372,6 +372,39 @@ def postprocess_squad_predictions(examples, features, all_start_logits, all_end_
     return all_predictions
 
 
+# ============================================================================
+# C-tile-only evaluation helpers (TTv1)
+# ============================================================================
+
+def zero_fast_tiles(model):
+    """Zero out A tile (hidden_weights_0) for C-only eval. Returns saved state."""
+    saved = {}
+    for name, module in model.named_modules():
+        if not isinstance(module, AnalogLinear):
+            continue
+        for i, tile in enumerate(module.analog_tiles()):
+            key = f"{name}.{i}"
+            hidden = tile.get_hidden_parameters()
+            if "hidden_weights_0" in hidden:
+                saved[key] = hidden["hidden_weights_0"].clone()
+                hidden["hidden_weights_0"] = torch.zeros_like(saved[key])
+                tile.set_hidden_parameters(hidden)
+    return saved
+
+
+def restore_fast_tiles(model, saved):
+    """Restore previously saved A tile weights after C-only eval."""
+    for name, module in model.named_modules():
+        if not isinstance(module, AnalogLinear):
+            continue
+        for i, tile in enumerate(module.analog_tiles()):
+            key = f"{name}.{i}"
+            if key in saved:
+                hidden = tile.get_hidden_parameters()
+                hidden["hidden_weights_0"] = saved[key]
+                tile.set_hidden_parameters(hidden)
+
+
 def evaluate_model(model, eval_features, eval_examples, device):
     """Evaluate SQuAD model. Returns (F1, EM)."""
     model.eval()
@@ -680,6 +713,10 @@ def _build_method_kwargs(args):
         kwargs["ls_gamma_down"] = args.ls_gamma_down
         kwargs["ls_dw_min_std"] = args.ls_dw_min_std
         kwargs["ls_dw_min_dtod"] = args.ls_dw_min_dtod
+        kwargs["device_type_slow"] = args.device_type_slow
+        kwargs["ls_gamma_up_slow"] = args.ls_gamma_up_slow
+        kwargs["ls_gamma_down_slow"] = args.ls_gamma_down_slow
+        kwargs["ls_noise_ratio_slow"] = args.ls_noise_ratio_slow
         if args.transfer_every is not None:
             kwargs["transfer_every"] = args.transfer_every
         if args.units_in_mbatch is not None:
@@ -864,9 +901,16 @@ def train_fixed(args):
         diag_w_max = args.w_max
         if args.method == "ttv1" and args.w_max_fast is not None:
             diag_w_max = args.w_max_fast  # track fast tile range
+        # For TTv1/cTTv2, fast_lr is the absolute LR for the fast tile
+        # (not a multiplier on analog_lr — see TransferCompound.fast_lr docs)
+        diag_lr = args.analog_lr
+        if args.method in ("ttv1", "cttv2") and args.fast_lr is not None:
+            diag_lr = args.fast_lr
         diag = UpdateDiagnostics(model, effective_dw_min, layer_set=args.diag_layer_set,
-                                 method=args.method, lr=args.analog_lr, device_w_max=diag_w_max)
-        print(f"Update diagnostics enabled ({len(diag.tile_registry)} tiles, device_w_max={diag_w_max})")
+                                 method=args.method, lr=diag_lr, device_w_max=diag_w_max,
+                                 desired_bl=args.desired_bl, um_grad_scale=1.0)
+        print(f"Update diagnostics enabled ({len(diag.tile_registry)} tiles, "
+              f"device_w_max={diag_w_max}, desired_bl={args.desired_bl})")
 
     # Diagnostics: CarryPathDiagnostics
     cp_diag = None
@@ -883,7 +927,7 @@ def train_fixed(args):
     os.makedirs(args.output_dir, exist_ok=True)
     csv_path = os.path.join(args.output_dir, "training_log.csv")
     fieldnames = ["step", "epoch", "loss", "analog_lr", "classifier_lr", "ln_lr",
-                  "f1", "em", "wall_time_s"]
+                  "f1", "em", "f1_c_only", "em_c_only", "wall_time_s"]
     csv_file = open(csv_path, "w", newline="")
     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
     writer.writeheader()
@@ -891,11 +935,19 @@ def train_fixed(args):
     # Save config
     _save_config(args, rpu_config, effective_dw_min, num_training_steps)
 
+    # C-only eval: only for TTv1 with gamma > 0
+    do_c_only = args.eval_c_only and args.method == "ttv1" and args.gamma is not None and args.gamma > 0
+
     # Initial eval
     if args.max_steps <= 0 or args.max_steps > 100:
         print("\n=== Initial evaluation ===")
         f1, em = evaluate_model(model, eval_features, eval_examples, device)
         print(f"Initial F1: {f1:.2f}, EM: {em:.2f}")
+        if do_c_only:
+            saved_a = zero_fast_tiles(model)
+            f1_c, em_c = evaluate_model(model, eval_features, eval_examples, device)
+            restore_fast_tiles(model, saved_a)
+            print(f"Initial C-only F1: {f1_c:.2f}, EM: {em_c:.2f}")
     else:
         f1, em = 0.0, 0.0
         print(f"\n[TEST MODE] Skipping initial eval (max_steps={args.max_steps})")
@@ -904,6 +956,7 @@ def train_fixed(args):
     print("\n=== Training ===")
     global_step = 0
     best_f1 = f1
+    f1_c, em_c = 0.0, 0.0
     stop_training = False
     start_time = time.time()
 
@@ -1117,6 +1170,8 @@ def train_fixed(args):
                     "ln_lr": f"{get_current_ln_lr(optimizer):.6e}",
                     "f1": "",
                     "em": "",
+                    "f1_c_only": "",
+                    "em_c_only": "",
                     "wall_time_s": f"{wall_time:.1f}",
                 }
                 writer.writerow(row)
@@ -1136,10 +1191,20 @@ def train_fixed(args):
             f1, em = evaluate_model(model, eval_features, eval_examples, device)
             print(f"Epoch {epoch} F1: {f1:.2f}, EM: {em:.2f}")
 
+            # C-only evaluation
+            f1_c, em_c = 0.0, 0.0
+            if do_c_only:
+                saved_a = zero_fast_tiles(model)
+                f1_c, em_c = evaluate_model(model, eval_features, eval_examples, device)
+                restore_fast_tiles(model, saved_a)
+                print(f"Epoch {epoch} C-only F1: {f1_c:.2f}, EM: {em_c:.2f}  (delta: {f1 - f1_c:+.2f})")
+
             wall_time = time.time() - start_time
             eval_row = {
                 "step": global_step, "epoch": epoch,
                 "loss": f"{avg_loss:.6f}", "f1": f"{f1:.2f}", "em": f"{em:.2f}",
+                "f1_c_only": f"{f1_c:.2f}" if do_c_only else "",
+                "em_c_only": f"{em_c:.2f}" if do_c_only else "",
                 "analog_lr": f"{get_current_analog_lr(optimizer):.6e}",
                 "classifier_lr": f"{get_current_classifier_lr(optimizer):.6e}",
                 "ln_lr": f"{get_current_ln_lr(optimizer):.6e}",
@@ -1171,6 +1236,9 @@ def train_fixed(args):
             "wall_time_s": time.time() - start_time,
         },
     }
+    if do_c_only:
+        summary["results"]["final_f1_c_only"] = f1_c
+        summary["results"]["final_em_c_only"] = em_c
     summary_path = os.path.join(args.output_dir, "summary.json")
     with open(summary_path, "w") as f:
         json.dump(summary, f, indent=2)
@@ -1178,6 +1246,8 @@ def train_fixed(args):
     print(f"\n{'='*60}")
     print(f"Done: {args.method}, steps={global_step}, best_f1={best_f1:.2f}, "
           f"final_f1={f1:.2f}, em={em:.2f}")
+    if do_c_only:
+        print(f"C-only: final_f1={f1_c:.2f}, em={em_c:.2f}, delta_f1={f1 - f1_c:+.2f}")
     print(f"Output: {args.output_dir}")
 
     return best_f1
@@ -1411,6 +1481,11 @@ def _save_config(args, rpu_config, effective_dw_min, num_training_steps):
             config["ls_dw_min_std"] = args.ls_dw_min_std
         if args.ls_dw_min_dtod is not None:
             config["ls_dw_min_dtod"] = args.ls_dw_min_dtod
+        config["device_type_slow"] = args.device_type_slow
+        if args.device_type_slow != "constant_step":
+            config["ls_gamma_up_slow"] = args.ls_gamma_up_slow
+            config["ls_gamma_down_slow"] = args.ls_gamma_down_slow
+            config["ls_noise_ratio_slow"] = args.ls_noise_ratio_slow
 
     if args.method == "cttv2":
         config["fast_lr"] = args.fast_lr
@@ -1418,6 +1493,7 @@ def _save_config(args, rpu_config, effective_dw_min, num_training_steps):
         config["in_chop_prob"] = getattr(args, 'in_chop_prob', None)
         config["transfer_every"] = args.transfer_every
 
+    config["eval_c_only"] = args.eval_c_only
     config["diag_update_exact"] = args.diag_update_exact
     config["diag_steps"] = args.diag_steps
     config["diag_carry_path"] = args.diag_carry_path
@@ -1543,6 +1619,23 @@ def parse_args():
                         help="Override dw_min_std (cycle-to-cycle noise). Overrides noise_ratio scaling.")
     parser.add_argument("--ls-dw-min-dtod", type=float, default=None,
                         help="Override dw_min_dtod (device-to-device). When set, all other dtod params are zeroed.")
+
+    # Slow tile device type (TTv1)
+    parser.add_argument("--device-type-slow", type=str, default="constant_step",
+                        choices=["constant_step", "linear_step"],
+                        help="Slow tile device model (default: constant_step)")
+    parser.add_argument("--ls-gamma-up-slow", type=float, default=None,
+                        help="Slow tile absolute gamma_up (LinearStep)")
+    parser.add_argument("--ls-gamma-down-slow", type=float, default=None,
+                        help="Slow tile absolute gamma_down (LinearStep)")
+    parser.add_argument("--ls-noise-ratio-slow", type=float, default=0.0,
+                        help="Slow tile noise scale (0=noise-free)")
+
+    # Evaluation
+    parser.add_argument("--eval-c-only", action=argparse.BooleanOptionalAction, default=True,
+                        help="Evaluate with C tile only (slow weights) in addition to A+C. "
+                             "Only applies to TTv1 with gamma>0. Default: enabled. "
+                             "Use --no-eval-c-only to disable.")
 
     # Control
     parser.add_argument("--count-pulses", action="store_true")
