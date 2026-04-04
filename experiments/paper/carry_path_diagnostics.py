@@ -82,11 +82,15 @@ class _TileTracker:
 
     Maintains tumbling (non-overlapping) windows of target and visible
     delta accumulations. Emits metrics at window boundaries.
+
+    For TTv1, optionally tracks a separate slow-tile-only accumulator
+    (VRC_slow) alongside the default W_eff accumulator.
     """
 
-    def __init__(self, window_sizes, device="cpu"):
+    def __init__(self, window_sizes, device="cpu", track_slow=False):
         self.window_sizes = window_sizes
         self.device = device
+        self.track_slow = track_slow
         # Accumulators: {K: {"target": tensor, "visible": tensor, "count": int}}
         self.accumulators = {}
         for K in window_sizes:
@@ -95,16 +99,28 @@ class _TileTracker:
                 "visible": None,
                 "count": 0,
             }
+        # Slow-only accumulators (TTv1): same structure, accumulates delta_slow
+        if track_slow:
+            self.slow_accumulators = {}
+            for K in window_sizes:
+                self.slow_accumulators[K] = {
+                    "target": None,
+                    "visible": None,
+                    "count": 0,
+                }
 
-    def accumulate(self, delta_target, delta_visible):
+    def accumulate(self, delta_target, delta_visible, delta_slow=None):
         """Add one step's deltas to all window accumulators.
 
         Args:
             delta_target: FP32 tensor (ideally on CPU).
-            delta_visible: FP32 tensor (ideally on CPU).
+            delta_visible: FP32 tensor (ideally on CPU). W_eff delta for TTv1.
+            delta_slow: FP32 tensor (optional). Slow tile delta for TTv1.
+                        If None and track_slow is True, zeros are accumulated.
 
         Returns:
             List of (K, vrc_k, vrr_k) for each window that just completed.
+            If track_slow, each entry is (K, vrc_k, vrr_k, vrc_slow_k, vrr_slow_k).
         """
         completed = []
         for K in self.window_sizes:
@@ -119,11 +135,36 @@ class _TileTracker:
                 acc["visible"] += dv
             acc["count"] += 1
 
-            if acc["count"] >= K:
+            eff_done = acc["count"] >= K
+
+            # Slow accumulator (parallel, same window boundaries)
+            slow_vrc_k, slow_vrr_k = None, None
+            if self.track_slow:
+                sacc = self.slow_accumulators[K]
+                ds = delta_slow.float() if delta_slow is not None else torch.zeros_like(dt)
+                if sacc["target"] is None:
+                    sacc["target"] = dt.clone()
+                    sacc["visible"] = ds.clone()
+                else:
+                    sacc["target"] += dt
+                    sacc["visible"] += ds
+                sacc["count"] += 1
+
+                if sacc["count"] >= K:
+                    slow_vrc_k = _cosine_sim(sacc["target"], sacc["visible"])
+                    slow_vrr_k = _ratio(sacc["visible"], sacc["target"])
+                    sacc["target"] = None
+                    sacc["visible"] = None
+                    sacc["count"] = 0
+
+            if eff_done:
                 vrc_k = _cosine_sim(acc["target"], acc["visible"])
                 vrr_k = _ratio(acc["visible"], acc["target"])
-                completed.append((K, vrc_k, vrr_k))
-                # Reset
+                if self.track_slow:
+                    completed.append((K, vrc_k, vrr_k, slow_vrc_k, slow_vrr_k))
+                else:
+                    completed.append((K, vrc_k, vrr_k))
+                # Reset eff accumulator
                 acc["target"] = None
                 acc["visible"] = None
                 acc["count"] = 0
@@ -236,10 +277,15 @@ class _TTv1TransferTracker:
             else:
                 signed_bias = 0.0
 
+            # Reset detection: fast tile column near-zero after transfer
+            a_pre = self.prev_fast[:, col_idx].norm().item()
+            a_post = fast_w[:, col_idx].norm().item()
+            reset_detected = (a_pre > 1e-8 and a_post < 0.01 * a_pre)
+
             result = {
                 "col_idx": col_idx,
-                "A_pre_norm": self.prev_fast[:, col_idx].norm().item(),
-                "A_post_norm": fast_w[:, col_idx].norm().item(),
+                "A_pre_norm": a_pre,
+                "A_post_norm": a_post,
                 "B_delta_norm": slow_delta_col.norm().item(),
                 "G_cum_norm": g_cum_norm_val,
                 "FastAccumCos": fast_accum_cos,
@@ -251,6 +297,7 @@ class _TTv1TransferTracker:
                 "NTE": nte,
                 "PE": pe,
                 "SignedBias": signed_bias,
+                "reset_detected": reset_detected,
             }
 
             # Reset cumulative target for transferred column
@@ -304,9 +351,12 @@ class CarryPathDiagnostics:
         self._windowed_tile_names = self._select_windowed_tiles()
 
         # Per-tile windowed accumulators (only for selected tiles)
+        # For TTv1: also track slow-tile-only VRC (VRC_slow)
         self._trackers = {}
         for name in self._windowed_tile_names:
-            self._trackers[name] = _TileTracker(self.window_sizes)
+            self._trackers[name] = _TileTracker(
+                self.window_sizes, track_slow=(method == "ttv1")
+            )
 
         # TTv1 transfer trackers (all TTv1 tiles)
         self._transfer_trackers = {}
@@ -327,6 +377,8 @@ class CarryPathDiagnostics:
 
         # Persistent w_before for windowed tiles (survives across steps)
         self._w_before_window = {}
+        # Slow-only w_before for TTv1 VRC_slow (survives across steps)
+        self._w_before_window_slow = {}
 
         # Fast lookup: name -> registry entry
         self._tile_by_name = {e["name"]: e for e in self.tile_registry}
@@ -685,16 +737,28 @@ class CarryPathDiagnostics:
                             slow_w = htensor.clone().cpu()
 
                     if fast_w is not None and slow_w is not None:
+                        # Separate slow/fast/eff deltas
+                        slow_before = self._w_before.get(f"{name}::slow")
+                        fast_before = self._w_before.get(f"{name}::fast")
+
+                        delta_slow = (slow_w - slow_before).float() if slow_before is not None else None
+                        delta_fast = (fast_w - fast_before).float() if fast_before is not None else None
+
                         if self.gamma > 0:
                             w_eff_after = slow_w + self.gamma * fast_w
                         else:
                             w_eff_after = slow_w.clone()
-
                         delta_visible = (w_eff_after - w_before).float()
+
+                        # Store separated deltas for metrics (used below)
+                        self._ttv1_deltas = {
+                            "delta_slow": delta_slow,
+                            "delta_fast": delta_fast,
+                            "delta_eff": delta_visible,
+                        }
 
                         # Transfer tracker
                         if name in self._transfer_trackers:
-                            # Compute delta_target from AnalogContext
                             dt = self._compute_analog_target(name, lr)
                             if dt is not None:
                                 t_result = self._transfer_trackers[name].step(
@@ -708,12 +772,14 @@ class CarryPathDiagnostics:
                     else:
                         w_after = tile.get_weights()[0].clone().cpu()
                         delta_visible = (w_after - w_before).float()
+                        self._ttv1_deltas = None
                 except Exception:
                     try:
                         w_after = tile.get_weights()[0].clone().cpu()
                         delta_visible = (w_after - w_before).float()
                     except Exception:
                         continue
+                    self._ttv1_deltas = None
 
                 delta_target = self._compute_analog_target(name, lr)
 
@@ -749,7 +815,7 @@ class CarryPathDiagnostics:
                 cosine = 0.0
                 res_ratio = 0.0
 
-            self.step_records.append({
+            record = {
                 "step": step,
                 "tile_name": name,
                 "subtype": subtype,
@@ -758,36 +824,83 @@ class CarryPathDiagnostics:
                 "residual_norm": residual_norm,
                 "cosine_sim": cosine,
                 "residual_ratio": res_ratio,
-            })
+            }
+
+            # TTv1: add separate slow/fast/eff metrics
+            ttv1_deltas = getattr(self, '_ttv1_deltas', None)
+            if self.method == "ttv1" and ttv1_deltas is not None and dt is not None:
+                ds = ttv1_deltas["delta_slow"]
+                df = ttv1_deltas["delta_fast"]
+                if ds is not None:
+                    ds_matched = ds[:min_d, :min_x]
+                    record["cosine_sim_slow"] = _cosine_sim(dt, ds_matched)
+                    record["delta_visible_norm_slow"] = torch.norm(ds).item()
+                    res_slow = ds_matched - dt
+                    record["residual_ratio_slow"] = torch.norm(res_slow).item() / max(delta_target_norm, 1e-30)
+                if df is not None:
+                    df_matched = df[:min_d, :min_x]
+                    record["cosine_sim_fast"] = _cosine_sim(dt, df_matched)
+                    record["delta_visible_norm_fast"] = torch.norm(df).item()
+                if self.gamma > 0:
+                    record["cosine_sim_eff"] = cosine  # delta_visible is already W_eff
+                    record["residual_ratio_eff"] = res_ratio
+
+            self.step_records.append(record)
+            self._ttv1_deltas = None  # clear
 
             # Windowed accumulation (selected tiles only)
+            # For TTv1: use W_eff delta (gamma*fast + slow) for carry-path VRC
+            # and also accumulate slow-only delta for VRC_slow
             if name in self._windowed_tile_names and dt is not None:
-                completed = self._trackers[name].accumulate(dt, dv)
-                for K, vrc_k, vrr_k in completed:
-                    self.window_records.append({
+                if self.method == "ttv1" and ttv1_deltas is not None and ttv1_deltas["delta_eff"] is not None:
+                    dv_window = ttv1_deltas["delta_eff"][:min_d, :min_x]
+                else:
+                    dv_window = dv
+                # Slow delta for VRC_slow (TTv1 only)
+                ds_window = None
+                if self.method == "ttv1" and ttv1_deltas is not None and ttv1_deltas.get("delta_slow") is not None:
+                    ds_window = ttv1_deltas["delta_slow"][:min_d, :min_x]
+
+                completed = self._trackers[name].accumulate(dt, dv_window, delta_slow=ds_window)
+                for item in completed:
+                    if len(item) == 5:
+                        K, vrc_k, vrr_k, vrc_slow_k, vrr_slow_k = item
+                    else:
+                        K, vrc_k, vrr_k = item
+                        vrc_slow_k, vrr_slow_k = None, None
+                    rec = {
                         "step": step,
                         "tile_name": name,
                         "subtype": subtype,
                         "window_K": K,
                         "VRC_K": vrc_k,
                         "VRR_K": vrr_k,
-                    })
+                    }
+                    if vrc_slow_k is not None:
+                        rec["VRC_slow_K"] = vrc_slow_k
+                        rec["VRR_slow_K"] = vrr_slow_k
+                    self.window_records.append(rec)
 
             # Sync _w_before_window so accumulate_windows_only stays consistent
+            # For TTv1: store W_eff = slow + gamma*fast (matching window delta)
             if name in self._windowed_tile_names:
                 if self.method == "ttv1":
                     try:
                         hidden = entry["tile"].get_hidden_parameters()
-                        fast_w, slow_w = None, None
+                        _fast_w_sync = None
+                        _slow_w_sync = None
                         for hname, htensor in hidden.items():
                             if "hidden_weights_0" in hname:
-                                fast_w = htensor.clone().cpu()
+                                _fast_w_sync = htensor.clone().cpu()
                             elif "hidden_weights_1" in hname:
-                                slow_w = htensor.clone().cpu()
-                        if fast_w is not None and slow_w is not None:
-                            self._w_before_window[name] = (
-                                slow_w + self.gamma * fast_w if self.gamma > 0
-                                else slow_w.clone())
+                                _slow_w_sync = htensor.clone().cpu()
+                        if _slow_w_sync is not None:
+                            if self.gamma > 0 and _fast_w_sync is not None:
+                                self._w_before_window[name] = _slow_w_sync + self.gamma * _fast_w_sync
+                            else:
+                                self._w_before_window[name] = _slow_w_sync
+                            # Sync slow-only w_before for VRC_slow
+                            self._w_before_window_slow[name] = _slow_w_sync.clone()
                         else:
                             self._w_before_window[name] = entry["tile"].get_weights()[0].clone().cpu()
                     except Exception:
@@ -912,21 +1025,26 @@ class CarryPathDiagnostics:
                 continue
 
             # --- read current (post-step) weights -------------------------
+            # For TTv1: use W_eff = slow + gamma*fast for carry-path window metrics
+            # and also read slow_w separately for VRC_slow
+            _slow_w_current = None  # TTv1 only: for VRC_slow
             if self.method == "ttv1":
                 tile = entry["tile"]
                 try:
                     hidden = tile.get_hidden_parameters()
-                    fast_w, slow_w = None, None
+                    _fast_w = None
+                    _slow_w = None
                     for hname, htensor in hidden.items():
                         if "hidden_weights_0" in hname:
-                            fast_w = htensor.clone().cpu()
+                            _fast_w = htensor.clone().cpu()
                         elif "hidden_weights_1" in hname:
-                            slow_w = htensor.clone().cpu()
-                    if fast_w is not None and slow_w is not None:
-                        if self.gamma > 0:
-                            w_after = slow_w + self.gamma * fast_w
+                            _slow_w = htensor.clone().cpu()
+                    if _slow_w is not None:
+                        _slow_w_current = _slow_w  # save for VRC_slow
+                        if self.gamma > 0 and _fast_w is not None:
+                            w_after = _slow_w + self.gamma * _fast_w
                         else:
-                            w_after = slow_w.clone()
+                            w_after = _slow_w
                     else:
                         w_after = tile.get_weights()[0].clone().cpu()
                 except Exception:
@@ -943,10 +1061,17 @@ class CarryPathDiagnostics:
             # --- first call: initialise w_before_window --------------------
             if name not in self._w_before_window:
                 self._w_before_window[name] = w_after.clone()
+                if _slow_w_current is not None:
+                    self._w_before_window_slow[name] = _slow_w_current.clone()
                 continue  # no delta on the very first call
 
             w_before = self._w_before_window[name]
             delta_visible = (w_after - w_before).float()
+
+            # Slow tile delta for VRC_slow
+            delta_slow = None
+            if _slow_w_current is not None and name in self._w_before_window_slow:
+                delta_slow = (_slow_w_current - self._w_before_window_slow[name]).float()
 
             # --- delta_target: prefer explicit dict, fall back to cache ----
             dt = None
@@ -961,19 +1086,35 @@ class CarryPathDiagnostics:
                 dt = dt[:min_d, :min_x]
                 dv = delta_visible[:min_d, :min_x]
 
-                completed = self._trackers[name].accumulate(dt, dv)
-                for K, vrc_k, vrr_k in completed:
-                    self.window_records.append({
+                # Slow delta matched
+                ds = None
+                if delta_slow is not None:
+                    ds = delta_slow[:min_d, :min_x]
+
+                completed = self._trackers[name].accumulate(dt, dv, delta_slow=ds)
+                for item in completed:
+                    if len(item) == 5:
+                        K, vrc_k, vrr_k, vrc_slow_k, vrr_slow_k = item
+                    else:
+                        K, vrc_k, vrr_k = item
+                        vrc_slow_k, vrr_slow_k = None, None
+                    rec = {
                         "step": step,
                         "tile_name": name,
                         "subtype": entry["subtype"],
                         "window_K": K,
                         "VRC_K": vrc_k,
                         "VRR_K": vrr_k,
-                    })
+                    }
+                    if vrc_slow_k is not None:
+                        rec["VRC_slow_K"] = vrc_slow_k
+                        rec["VRR_slow_K"] = vrr_slow_k
+                    self.window_records.append(rec)
 
             # --- persist w_after as next step's w_before -------------------
             self._w_before_window[name] = w_after
+            if _slow_w_current is not None:
+                self._w_before_window_slow[name] = _slow_w_current.clone()
 
     def set_accumulated_targets(self, targets_dict, lr):
         """Set pre-accumulated G_l targets from update_diagnostics.
@@ -1115,23 +1256,55 @@ class CarryPathDiagnostics:
                 window_by_k[r["window_K"]].append(r)
             window_summary = {}
             for K, recs in window_by_k.items():
-                window_summary[str(K)] = {
+                ws = {
                     "mean_VRC_K": float(np.mean([r["VRC_K"] for r in recs])),
                     "std_VRC_K": float(np.std([r["VRC_K"] for r in recs])),
                     "mean_VRR_K": float(np.mean([r["VRR_K"] for r in recs])),
                 }
+                # VRC_slow (TTv1 only)
+                slow_vrcs = [r["VRC_slow_K"] for r in recs if "VRC_slow_K" in r and r["VRC_slow_K"] is not None]
+                slow_vrrs = [r["VRR_slow_K"] for r in recs if "VRR_slow_K" in r and r["VRR_slow_K"] is not None]
+                if slow_vrcs:
+                    ws["mean_VRC_slow_K"] = float(np.mean(slow_vrcs))
+                    ws["std_VRC_slow_K"] = float(np.std(slow_vrcs))
+                if slow_vrrs:
+                    ws["mean_VRR_slow_K"] = float(np.mean(slow_vrrs))
+                window_summary[str(K)] = ws
             summary["windows"] = window_summary
+
+        # TTv1 slow/fast/eff separated metrics
+        if self.method == "ttv1" and self.step_records:
+            slow_cos = [r["cosine_sim_slow"] for r in self.step_records if "cosine_sim_slow" in r]
+            fast_cos = [r["cosine_sim_fast"] for r in self.step_records if "cosine_sim_fast" in r]
+            eff_cos = [r["cosine_sim_eff"] for r in self.step_records if "cosine_sim_eff" in r]
+            slow_res = [r["residual_ratio_slow"] for r in self.step_records if "residual_ratio_slow" in r]
+            ttv1_metrics = {}
+            if slow_cos:
+                ttv1_metrics["mean_cosine_sim_slow"] = float(np.mean(slow_cos))
+                ttv1_metrics["std_cosine_sim_slow"] = float(np.std(slow_cos))
+            if fast_cos:
+                ttv1_metrics["mean_cosine_sim_fast"] = float(np.mean(fast_cos))
+            if eff_cos:
+                ttv1_metrics["mean_cosine_sim_eff"] = float(np.mean(eff_cos))
+            if slow_res:
+                ttv1_metrics["mean_residual_ratio_slow"] = float(np.mean(slow_res))
+            if ttv1_metrics:
+                summary["ttv1_separated"] = ttv1_metrics
 
         # Transfer summary (TTv1)
         if self.transfer_records:
             e2e_cos = [r["EndToEndCos"] for r in self.transfer_records]
             handoff_cos = [r["HandoffCos"] for r in self.transfer_records]
+            resets = [r.get("reset_detected", False) for r in self.transfer_records]
+            n_resets = sum(resets)
             summary["ttv1_transfer"] = {
                 "n_transfers": len(self.transfer_records),
                 "mean_EndToEndCos": float(np.mean(e2e_cos)),
                 "mean_HandoffCos": float(np.mean(handoff_cos)),
                 "std_EndToEndCos": float(np.std(e2e_cos)),
                 "std_HandoffCos": float(np.std(handoff_cos)),
+                "n_resets_detected": n_resets,
+                "reset_fraction": n_resets / max(len(self.transfer_records), 1),
             }
 
         return summary

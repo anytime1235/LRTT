@@ -23,11 +23,28 @@ For BERT AnalogLinear (non-indexed case):
   x_input: cat(ctx.analog_input, axis=-1 if in_trans else 0)
   d_input: cat(ctx.analog_grad_output, axis=-1 if out_trans else 0)
   Target: -lr * d_input.T @ x_input -> shape [out_features, in_features]
+
+Update management (UM) — matches aihwkit defaults:
+  update_bl_management=True:
+    BL = min(ceil(lr * x_max * d_max / dw_min), desired_bl)
+    A_base = B_base = sqrt(lr / (dw_min * BL))
+  update_management=True:
+    gamma = x_max / (alpha * d_max)      where alpha = um_grad_scale (default 1.0)
+    A = A_base * gamma
+    B = B_base / gamma
+  Per-element pulse probabilities:
+    p_i = clip(A * |d_i|, 0, 1)    (d-side, column pulse)
+    q_j = clip(B * |x_j|, 0, 1)    (x-side, row pulse)
+  Expected pulses per (i,j):
+    mu_ij = BL * p_i * q_j = lr * |d_i| * |x_j| / dw_min   (invariant to BL/UM)
+    mu < 1:  sub-pulse (fundamental dw_min limitation)
+    p_i > 1 or q_j > 1: probability clipping (saturation)
 """
 
 import os
 import csv
 import json
+import math
 from collections import defaultdict
 
 import torch
@@ -38,17 +55,20 @@ from aihwkit.optim.context import AnalogContext
 
 
 class UpdateDiagnostics:
-    """Exact per-tile update diagnostics.
+    """Exact per-tile update diagnostics with UM-aware pulse probability tracking.
 
     Tracks target (FP32) vs actual (pulsed) weight updates per AnalogLinear module.
     Uses wrapper-level tracking (not sub-tile level) since AnalogContext is shared.
     """
 
-    def __init__(self, model, dw_min, layer_set=None, method=None, lr=0.016, device_w_max=1.0):
+    def __init__(self, model, dw_min, layer_set=None, method=None, lr=0.016,
+                 device_w_max=1.0, desired_bl=31, um_grad_scale=1.0):
         self.dw_min = dw_min
         self.method = method
         self.lr = lr  # for per-microbatch mu calculation
         self.device_w_max = device_w_max
+        self.desired_bl = desired_bl
+        self.um_grad_scale = um_grad_scale
         self.tile_registry = self._build_registry(model, layer_set)
         self.cumulative_target = {}
         self.cumulative_actual = {}
@@ -57,11 +77,19 @@ class UpdateDiagnostics:
         self._before_cache = {}
         # Microbatch G_l accumulators: {key: Tensor on CPU}
         self._grad_accum = {}
-        # Per-microbatch mu stats accumulators: {key: [list of mu_stats dicts]}
+        # Per-microbatch legacy mu stats: {key: [list of mu_stats dicts]}
         self._mu_per_mb = {}
+        # Per-microbatch UM scaling stats: {key: [list of scaling dicts]}
+        self._mb_scaling = {}
         # Mu distribution histograms for ECDF plotting
         self.mu_histograms = []
         self._mu_bin_edges = np.concatenate([[0], np.logspace(-6, 4, 1000)])
+        # Per-element p_i, q_j histograms for clipping analysis
+        self.pi_histograms = []
+        self.qj_histograms = []
+        self._pq_bin_edges = np.concatenate([[0], np.logspace(-6, 4, 1000)])
+        # Per-microbatch p_i/q_j accumulators: {key: [list of (pi_counts, qj_counts)]}
+        self._pq_per_mb = {}
 
         # Initialize cumulative trackers
         for entry in self.tile_registry:
@@ -123,6 +151,49 @@ class UpdateDiagnostics:
             })
         return registry
 
+    def _compute_um_scaling(self, x_abs_max, d_abs_max):
+        """Compute UM-aware scaling factors matching aihwkit behavior.
+
+        Returns dict with BL_eff, gamma, A, B, p_max, q_max.
+        """
+        if self.dw_min <= 0 or x_abs_max <= 0 or d_abs_max <= 0:
+            return {
+                "x_abs_max": x_abs_max, "d_abs_max": d_abs_max,
+                "bl_call": 0, "bl_eff": self.desired_bl,
+                "gamma": 1.0, "A": 0.0, "B": 0.0,
+                "p_max": 0.0, "q_max": 0.0,
+                "p_clipped": 0, "q_clipped": 0,
+            }
+        # update_bl_management: dynamic BL
+        bl_call = math.ceil(self.lr * x_abs_max * d_abs_max / self.dw_min)
+        bl_eff = min(bl_call, self.desired_bl) if bl_call > 0 else self.desired_bl
+
+        # Base scaling
+        A_base = math.sqrt(self.lr / (self.dw_min * bl_eff))
+
+        # update_management: gamma balancing
+        gamma = x_abs_max / (self.um_grad_scale * d_abs_max)
+        A = A_base * gamma
+        B = A_base / gamma  # B_base == A_base, then /gamma
+
+        # Max pulse probabilities (before clipping)
+        p_max = A * d_abs_max
+        q_max = B * x_abs_max
+
+        return {
+            "x_abs_max": x_abs_max,
+            "d_abs_max": d_abs_max,
+            "bl_call": bl_call,
+            "bl_eff": bl_eff,
+            "gamma": gamma,
+            "A": A,
+            "B": B,
+            "p_max": p_max,
+            "q_max": q_max,
+            "p_clipped": int(p_max > 1.0),
+            "q_clipped": int(q_max > 1.0),
+        }
+
     @torch.no_grad()
     def snapshot_weights_before(self):
         """Capture w_before at the start of a grad_accum group.
@@ -155,8 +226,7 @@ class UpdateDiagnostics:
                                     break
                             if key in self._slow_before_cache:
                                 break
-                except Exception as e:
-                    pass
+                except Exception:
                     pass
 
     @torch.no_grad()
@@ -166,6 +236,9 @@ class UpdateDiagnostics:
         Must be called after loss.backward() and BEFORE p.reset() clears
         analog_input/analog_grad_output. Raw x, d are discarded after
         computing d^T @ x, so memory cost is one [out, in] tensor per tile.
+
+        Also captures UM-aware scaling stats (x_max, d_max -> BL, gamma, A, B)
+        per microbatch using cheap scalar operations only.
         """
         for entry in self.tile_registry:
             key = entry["key"]
@@ -197,7 +270,7 @@ class UpdateDiagnostics:
             # No /N: aihwkit tile.update() uses raw outer product, not averaged
             G_m = (d.mT @ x).cpu()
 
-            # Per-microbatch mu stats (actual sub-pulse condition per tile.update() call)
+            # --- Legacy mu (outer-product based, cheap — reuses G_m) ---
             mu_m = (G_m.abs() * self.lr / self.dw_min)
             mb_stats = {
                 "frac_mu_lt_1": (mu_m < 1.0).float().mean().item(),
@@ -211,6 +284,30 @@ class UpdateDiagnostics:
                 self._mu_per_mb[key] = []
             self._mu_per_mb[key].append(mb_stats)
 
+            # --- UM-aware scaling (cheap: 2 scalar reductions + arithmetic) ---
+            x_abs_max = x.abs().max().item()
+            d_abs_max = d.abs().max().item()
+            scaling = self._compute_um_scaling(x_abs_max, d_abs_max)
+
+            if key not in self._mb_scaling:
+                self._mb_scaling[key] = []
+            self._mb_scaling[key].append(scaling)
+
+            # --- Per-element p_i, q_j histograms (cheap: abs + scalar mul) ---
+            A = scaling["A"]
+            B = scaling["B"]
+            if A > 0 and B > 0:
+                # p_i = A * |d_i| for each row sample, q_j = B * |x_j| for each col sample
+                # Flatten across batch: d is [batch, out_features], x is [batch, in_features]
+                pi_vals = (A * d.abs()).cpu().flatten().numpy()
+                qj_vals = (B * x.abs()).cpu().flatten().numpy()
+                pi_counts, _ = np.histogram(pi_vals, bins=self._pq_bin_edges)
+                qj_counts, _ = np.histogram(qj_vals, bins=self._pq_bin_edges)
+                if key not in self._pq_per_mb:
+                    self._pq_per_mb[key] = []
+                self._pq_per_mb[key].append((pi_counts, qj_counts))
+
+            # G_l accumulation
             if key in self._grad_accum:
                 self._grad_accum[key] += G_m
             else:
@@ -267,9 +364,8 @@ class UpdateDiagnostics:
                 "lr": lr,
             }
 
-        # Clear accumulators and w_before cache
+        # Clear accumulators and caches
         self._grad_accum = {}
-        self._mu_per_mb = {}
         self._w_before_cache = {}
 
     def snapshot_after_step(self, model, step):
@@ -392,9 +488,9 @@ class UpdateDiagnostics:
                 cum_actual_norm = torch.norm(self.cumulative_actual[key]).item()
                 recovery_ratio = cum_actual_norm / max(cum_target_norm, 1e-12)
 
-                # Mu distribution — two views:
-                # (a) eff_mu: accumulated target (batch=48 equivalent, 1 hypothetical tile.update)
-                # (b) mb_mu: per-microbatch (actual tile.update, 3 calls with batch=16 each)
+                # ============================================================
+                # Mu distribution — accumulated target (total expected pulses)
+                # ============================================================
                 mu_eff = delta_target.abs() / self.dw_min
                 eff_frac_mu_lt_1 = (mu_eff < 1.0).float().mean().item()
                 eff_frac_mu_lt_0p25 = (mu_eff < 0.25).float().mean().item()
@@ -403,6 +499,7 @@ class UpdateDiagnostics:
                 eff_mu_mean = mu_eff.mean().item()
                 eff_mu_max = mu_eff.max().item()
 
+                # Per-microbatch mu (from legacy stats, cheap)
                 if key in self._mu_per_mb and self._mu_per_mb[key]:
                     mb_list = self._mu_per_mb[key]
                     mb_frac_mu_lt_1 = float(np.mean([s["frac_mu_lt_1"] for s in mb_list]))
@@ -432,6 +529,19 @@ class UpdateDiagnostics:
                     "n_elements": int(mu_for_hist.numel()),
                     "counts": mu_counts.tolist(),
                 })
+
+                # Store per-element p_i, q_j histograms (aggregated across microbatches)
+                if key in self._pq_per_mb and self._pq_per_mb[key]:
+                    pi_total = sum(pc for pc, _ in self._pq_per_mb[key])
+                    qj_total = sum(qc for _, qc in self._pq_per_mb[key])
+                    self.pi_histograms.append({
+                        "step": step, "tile_name": key, "subtype": entry["subtype"],
+                        "counts": pi_total.tolist(),
+                    })
+                    self.qj_histograms.append({
+                        "step": step, "tile_name": key, "subtype": entry["subtype"],
+                        "counts": qj_total.tolist(),
+                    })
 
                 # NSR and effective bits (cumulative)
                 cum_residual = self.cumulative_actual[key] - self.cumulative_target[key]
@@ -463,6 +573,92 @@ class UpdateDiagnostics:
                     "mb_mu_mean": mb_mu_mean,
                     "mb_mu_max": mb_mu_max,
                 })
+
+                # ============================================================
+                # UM-aware pulse probability (matches aihwkit tile.update())
+                # ============================================================
+                if key in self._mb_scaling and self._mb_scaling[key]:
+                    sc_list = self._mb_scaling[key]
+                    n_sc = len(sc_list)
+
+                    # Aggregate per-microbatch UM stats
+                    avg_bl_eff = float(np.mean([s["bl_eff"] for s in sc_list]))
+                    max_bl_call = max(s["bl_call"] for s in sc_list)
+                    any_bl_saturated = int(max_bl_call > self.desired_bl)
+                    avg_gamma = float(np.mean([s["gamma"] for s in sc_list]))
+                    avg_A = float(np.mean([s["A"] for s in sc_list]))
+                    avg_B = float(np.mean([s["B"] for s in sc_list]))
+                    avg_p_max = float(np.mean([s["p_max"] for s in sc_list]))
+                    avg_q_max = float(np.mean([s["q_max"] for s in sc_list]))
+                    frac_mb_p_clip = float(np.mean([s["p_clipped"] for s in sc_list]))
+                    frac_mb_q_clip = float(np.mean([s["q_clipped"] for s in sc_list]))
+                    max_x_abs = float(np.max([s["x_abs_max"] for s in sc_list]))
+                    max_d_abs = float(np.max([s["d_abs_max"] for s in sc_list]))
+
+                    # Per-call mu: average expected pulses per single tile.update()
+                    mu_per_call = mu_eff / n_sc
+
+                    # Per-slot coincidence probability: p_i * q_j = mu_ij / BL_eff
+                    # This is what the hardware actually sees per pulse slot
+                    slot_prob = mu_per_call / max(avg_bl_eff, 1.0)
+
+                    record.update({
+                        # UM scaling factors
+                        "um_bl_eff": avg_bl_eff,
+                        "um_bl_call_max": max_bl_call,
+                        "um_bl_saturated": any_bl_saturated,
+                        "um_gamma": avg_gamma,
+                        "um_A": avg_A,
+                        "um_B": avg_B,
+                        # Max pulse probabilities (before clipping)
+                        "um_p_max": avg_p_max,
+                        "um_q_max": avg_q_max,
+                        # Clipping analysis (saturation)
+                        "um_frac_mb_p_clip": frac_mb_p_clip,
+                        "um_frac_mb_q_clip": frac_mb_q_clip,
+                        # Input magnitudes
+                        "um_x_abs_max": max_x_abs,
+                        "um_d_abs_max": max_d_abs,
+                        # Per-slot coincidence probability distribution
+                        "slot_prob_mean": slot_prob.mean().item(),
+                        "slot_prob_p50": slot_prob.median().item(),
+                        "slot_prob_p90": slot_prob.quantile(0.9).item(),
+                        "slot_prob_p99": slot_prob.quantile(0.99).item(),
+                        "slot_prob_max": slot_prob.max().item(),
+                        # Sub-pulse: elements with < 1 expected pulse per call
+                        "um_frac_mu_per_call_lt_1": (mu_per_call < 1.0).float().mean().item(),
+                    })
+                else:
+                    # grad_accum==1 or no scaling data: compute from x_input/d_input
+                    if x_input is not None and d_input is not None:
+                        x_max = x_input.abs().max().item()
+                        d_max = d_input.abs().max().item()
+                        sc = self._compute_um_scaling(x_max, d_max)
+                        bl_eff = sc["bl_eff"]
+                        slot_prob = mu_eff / max(bl_eff, 1.0)
+                        record.update({
+                            "um_bl_eff": float(bl_eff),
+                            "um_bl_call_max": sc["bl_call"],
+                            "um_bl_saturated": int(sc["bl_call"] > self.desired_bl),
+                            "um_gamma": sc["gamma"],
+                            "um_A": sc["A"],
+                            "um_B": sc["B"],
+                            "um_p_max": sc["p_max"],
+                            "um_q_max": sc["q_max"],
+                            "um_frac_mb_p_clip": float(sc["p_clipped"]),
+                            "um_frac_mb_q_clip": float(sc["q_clipped"]),
+                            "um_x_abs_max": x_max,
+                            "um_d_abs_max": d_max,
+                            "slot_prob_mean": slot_prob.mean().item(),
+                            "slot_prob_p50": slot_prob.median().item(),
+                            "slot_prob_p90": slot_prob.quantile(0.9).item(),
+                            "slot_prob_p99": slot_prob.quantile(0.99).item(),
+                            "slot_prob_max": slot_prob.max().item(),
+                            "um_frac_mu_per_call_lt_1": eff_frac_mu_lt_1,
+                        })
+                    else:
+                        record.update(_um_defaults())
+
             else:
                 record.update({
                     "target_norm": 0.0,
@@ -480,6 +676,7 @@ class UpdateDiagnostics:
                     "mb_mu_p50": 0.0, "mb_mu_p90": 0.0,
                     "mb_mu_mean": 0.0, "mb_mu_max": 0.0,
                 })
+                record.update(_um_defaults())
 
             # TTv1: fast tile (A) weight distribution
             if self.method == "ttv1":
@@ -580,6 +777,9 @@ class UpdateDiagnostics:
 
         self._before_cache = {}
         self._slow_before_cache = {}
+        self._mu_per_mb = {}
+        self._mb_scaling = {}
+        self._pq_per_mb = {}
 
     def save(self, output_dir):
         """Save diagnostics to CSV and JSON summary."""
@@ -640,6 +840,16 @@ class UpdateDiagnostics:
                 "mean_fast_w_abs_p99": float(np.mean([r.get("fast_w_abs_p99", 0) for r in recs])),
                 "mean_fast_w_abs_p50": float(np.mean([r.get("fast_w_abs_p50", 0) for r in recs])),
                 "mean_fast_w_std": float(np.mean([r.get("fast_w_std", 0) for r in recs])),
+                # UM-aware pulse probability
+                "mean_um_bl_eff": float(np.mean([r.get("um_bl_eff", 0) for r in recs])),
+                "mean_um_gamma": float(np.mean([r.get("um_gamma", 0) for r in recs])),
+                "mean_um_p_max": float(np.mean([r.get("um_p_max", 0) for r in recs])),
+                "mean_um_q_max": float(np.mean([r.get("um_q_max", 0) for r in recs])),
+                "frac_steps_p_clipped": float(np.mean([r.get("um_frac_mb_p_clip", 0) for r in recs])),
+                "frac_steps_q_clipped": float(np.mean([r.get("um_frac_mb_q_clip", 0) for r in recs])),
+                "mean_slot_prob_p50": float(np.mean([r.get("slot_prob_p50", 0) for r in recs])),
+                "mean_slot_prob_p90": float(np.mean([r.get("slot_prob_p90", 0) for r in recs])),
+                "mean_um_frac_mu_per_call_lt_1": float(np.mean([r.get("um_frac_mu_per_call_lt_1", 0) for r in recs])),
             }
 
         summary_path = os.path.join(output_dir, "update_diagnostics_summary.json")
@@ -660,7 +870,35 @@ class UpdateDiagnostics:
             print(f"Mu distribution saved: {mu_path} "
                   f"({len(self.mu_histograms)} tile×step entries)")
 
+        # Save per-element p_i, q_j distribution histograms
+        if self.pi_histograms:
+            pq_path = os.path.join(output_dir, "pq_distribution.json")
+            pq_data = {
+                "bin_edges": self._pq_bin_edges.tolist(),
+                "pi_histograms": self.pi_histograms,
+                "qj_histograms": self.qj_histograms,
+            }
+            with open(pq_path, "w") as f:
+                json.dump(pq_data, f)
+            print(f"p_i/q_j distribution saved: {pq_path} "
+                  f"({len(self.pi_histograms)} tile×step entries)")
+
         return csv_path, summary_path
+
+
+def _um_defaults():
+    """Default values for UM-aware fields when no data is available."""
+    return {
+        "um_bl_eff": 0.0, "um_bl_call_max": 0, "um_bl_saturated": 0,
+        "um_gamma": 0.0, "um_A": 0.0, "um_B": 0.0,
+        "um_p_max": 0.0, "um_q_max": 0.0,
+        "um_frac_mb_p_clip": 0.0, "um_frac_mb_q_clip": 0.0,
+        "um_x_abs_max": 0.0, "um_d_abs_max": 0.0,
+        "slot_prob_mean": 0.0, "slot_prob_p50": 0.0,
+        "slot_prob_p90": 0.0, "slot_prob_p99": 0.0,
+        "slot_prob_max": 0.0,
+        "um_frac_mu_per_call_lt_1": 0.0,
+    }
 
 
 def _get_current_analog_lr(optimizer):

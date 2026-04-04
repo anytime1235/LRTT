@@ -84,9 +84,7 @@ def make_linear_step_device(dw_min=None, count_pulses=False,
                             gamma_up=-0.1678, gamma_down=0.1410,
                             gamma_up_ratio=1.0, gamma_down_ratio=1.0,
                             noise_ratio=0.0,
-                            abs_gamma_up=None, abs_gamma_down=None,
-                            dw_min_std_override=None,
-                            dw_min_dtod_override=None):
+                            abs_gamma_up=None, abs_gamma_down=None):
     """Create a LinearStepDevice with configurable gamma parameters.
 
     Two modes:
@@ -322,9 +320,7 @@ def build_single_rpu_config(pulse_type=PulseType.STOCHASTIC_COMPRESSED,
                             device_type="constant_step",
                             ls_gamma_up_ratio=1.0, ls_gamma_down_ratio=1.0,
                             ls_noise_ratio=0.0,
-                            ls_gamma_up=None, ls_gamma_down=None,
-                            ls_dw_min_std=None,
-                            ls_dw_min_dtod=None):
+                            ls_gamma_up=None, ls_gamma_down=None):
     """SingleRPU — analog pulsed update.
 
     Args:
@@ -350,8 +346,6 @@ def build_single_rpu_config(pulse_type=PulseType.STOCHASTIC_COMPRESSED,
             noise_ratio=ls_noise_ratio,
             abs_gamma_up=ls_gamma_up,
             abs_gamma_down=ls_gamma_down,
-            dw_min_std_override=ls_dw_min_std,
-            dw_min_dtod_override=ls_dw_min_dtod,
         )
     elif device_type == "exp_step":
         device = make_exp_step_device(
@@ -390,8 +384,9 @@ def build_ttv1_config(gamma=0.0, dw_min=None, dw_min_slow=None,
                       ls_gamma_up_ratio=1.0, ls_gamma_down_ratio=1.0,
                       ls_noise_ratio=0.0,
                       ls_gamma_up=None, ls_gamma_down=None,
-                      ls_dw_min_std=None,
-                      ls_dw_min_dtod=None):
+                      device_type_slow="constant_step",
+                      ls_gamma_up_slow=None, ls_gamma_down_slow=None,
+                      ls_noise_ratio_slow=0.0):
     """TTv1 — TransferCompound (Gokmen & Haensch 2020).
 
     W_eff = gamma * W_fast + 1.0 * W_slow
@@ -414,6 +409,7 @@ def build_ttv1_config(gamma=0.0, dw_min=None, dw_min_slow=None,
         transfer_pulse_type: Override PulseType for A->B transfer write (config.device.transfer_update.pulse_type).
         io_bits: DAC/ADC bit precision (None or 0 = perfect).
     """
+    # --- Fast tile device ---
     if device_type == "linear_step":
         fast_device = make_linear_step_device(
             dw_min=dw_min, count_pulses=count_pulses,
@@ -422,13 +418,6 @@ def build_ttv1_config(gamma=0.0, dw_min=None, dw_min_slow=None,
             noise_ratio=ls_noise_ratio,
             abs_gamma_up=ls_gamma_up,
             abs_gamma_down=ls_gamma_down,
-            dw_min_std_override=ls_dw_min_std,
-            dw_min_dtod_override=ls_dw_min_dtod,
-        )
-        # Slow tile: ConstantStep (same as baseline gamma/bit sweeps)
-        slow_device = make_constant_step_device(
-            dw_min=dw_min_slow if dw_min_slow is not None else dw_min,
-            count_pulses=count_pulses,
         )
     elif device_type == "exp_step":
         fast_device = make_exp_step_device(
@@ -437,22 +426,34 @@ def build_ttv1_config(gamma=0.0, dw_min=None, dw_min_slow=None,
             gamma_down=ls_gamma_down if ls_gamma_down is not None else 5.0,
             noise_ratio=ls_noise_ratio,
         )
-        slow_device = make_constant_step_device(
-            dw_min=dw_min_slow if dw_min_slow is not None else dw_min,
-            count_pulses=count_pulses,
-        )
     elif device_type == "soft_bounds":
         fast_device = make_soft_bounds_device(
             dw_min=dw_min, count_pulses=count_pulses,
             noise_ratio=ls_noise_ratio,
         )
-        slow_device = make_constant_step_device(
-            dw_min=dw_min_slow if dw_min_slow is not None else dw_min,
-            count_pulses=count_pulses,
-        )
     else:
         fast_device = make_constant_step_device(dw_min=dw_min, count_pulses=count_pulses)
-        slow_device = None  # use default (same as fast)
+
+    # --- Slow tile device ---
+    _dw_min_slow = dw_min_slow if dw_min_slow is not None else dw_min
+    if device_type_slow == "linear_step":
+        slow_device = make_linear_step_device(
+            dw_min=_dw_min_slow, count_pulses=count_pulses,
+            noise_ratio=ls_noise_ratio_slow,
+            abs_gamma_up=ls_gamma_up_slow,
+            abs_gamma_down=ls_gamma_down_slow,
+        )
+    elif device_type_slow == "constant_step":
+        if device_type != "constant_step" or dw_min_slow is not None:
+            slow_device = make_constant_step_device(
+                dw_min=_dw_min_slow, count_pulses=count_pulses,
+            )
+        else:
+            slow_device = None  # use default (same as fast)
+    else:
+        slow_device = make_constant_step_device(
+            dw_min=_dw_min_slow, count_pulses=count_pulses,
+        )
     up = UpdateParameters(
         pulse_type=PulseType.STOCHASTIC_COMPRESSED,
         desired_bl=desired_bl,
