@@ -1,0 +1,115 @@
+# =============================================================================
+# Hardware Parameters for AIMC Training Cost Model
+# =============================================================================
+#
+# This file defines hardware timing and energy parameters for the three-method
+# training cost comparison. Values marked 'null' are unknown and will cause the
+# cost model to output symbolic formulas + a missing-data checklist.
+#
+# Tile latency proxies are literature-calibrated ranges, NOT derived from
+# 5x5 cell-current measurements. See README_cost_model.md for methodology.
+# =============================================================================
+
+common:
+  tile_size: 512
+  io_bits: 8
+
+  # Literature-calibrated AIMC tile MVM latency (nanoseconds per tile per vector)
+  # These are sensitivity sweep values, not single-point estimates.
+  tile_latency_ns_options: [128, 256, 512]
+  optional_tile_latency_ref_ns: 100
+
+  # Base tile energy per MVM (picojoules per tile per vector)
+  # null = unknown; model will output symbolic formula
+  base_tile_energy_pj: null
+
+  # Pulsed weight update latency per tile per sample (nanoseconds)
+  # Depends on desired_BL, pulse width, etc.
+  tile_update_latency_ns: null
+
+  # Pulsed weight update energy per tile per sample (picojoules)
+  tile_update_energy_pj: null
+
+  # Non-linear digital ops (attention softmax, LayerNorm, GELU, residual)
+  # Model: t_other = digital_flops * t_digital_ns_per_flop
+  t_digital_ns_per_flop: null
+  e_digital_pj_per_flop: null
+
+  # Common backward approximation multiplier
+  # T_base_bwd = k_common_bwd * T_base_fwd
+  # This approximation is ONLY for the common backbone path.
+  k_common_bwd_options: [2.0, 2.5, 3.0]
+
+digital_lora:
+  # Digital GEMM on support core (PMCA/DPU) for LoRA matmuls
+  # latency per FLOP for FP16/FP32 matmul
+  gemm_latency_ns_per_flop: null
+  gemm_energy_pj_per_flop: null
+
+  # SRAM access for LoRA weight reads/writes
+  sram_read_pj_per_byte: null
+  sram_write_pj_per_byte: null
+
+  # Vector add for residual combination y = base_out + alpha * lora_out
+  vector_add_latency_ns: null
+  vector_add_energy_pj_per_element: null
+
+  # Adam optimizer update cost per parameter
+  optimizer_update_latency_ns_per_param: null
+  optimizer_update_energy_pj_per_param: null
+
+  # Whether LoRA forward can overlap with base AIMC tile settling
+  overlap_with_base_path: false
+
+lrtt_6t1c:
+  # A/B tile MVM read latency (same physical tile type as base, but smaller)
+  # If null, uses common tile_latency_ns
+  ab_read_latency_ns: null
+  ab_read_energy_pj: null
+
+  # A/B pulsed update latency per tile per sample
+  # If null, uses common tile_update_latency_ns
+  ab_update_latency_ns: null
+  ab_update_energy_pj: null
+
+  # Transfer: one-hot read from A/B + pulsed write to C
+  # Per rank per transfer event
+  rank_transfer_read_latency_ns: null
+  rank_transfer_read_energy_pj: null
+  rank_transfer_write_latency_ns: null
+  rank_transfer_write_energy_pj: null
+
+  # Shared periphery serialization
+  # When true, A/B path and C path cannot fire simultaneously
+  shared_periphery_serialize: true
+  periphery_switch_latency_ns: null
+  periphery_switch_energy_pj: null
+
+  # Optional 6T1C cell current info (sanity check only)
+  optional_cell_current_info:
+    vds_v: 0.1
+    ids_a_max: null
+    ids_a_mid: null
+    note: "sanity check only, not for absolute 512x512 latency"
+
+tikitaka_6t1c:
+  # Full-rank U tile MVM read latency
+  # If null, uses common tile_latency_ns
+  u_visible_latency_ns: null
+  u_visible_energy_pj: null
+
+  # Full-rank U pulsed update latency per tile per sample
+  # If null, uses common tile_update_latency_ns
+  u_update_latency_ns: null
+  u_update_energy_pj: null
+
+  # Column transfer: one-hot read from U + pulsed write to C
+  column_transfer_read_latency_ns: null
+  column_transfer_read_energy_pj: null
+  column_transfer_write_latency_ns: null
+  column_transfer_write_energy_pj: null
+
+  # Shared periphery serialization (same as LRTT)
+  shared_periphery_serialize: true
+  periphery_switch_latency_ns: null
+  periphery_switch_energy_pj: null
