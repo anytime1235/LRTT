@@ -95,16 +95,40 @@ def _ab_update_with_snapshot(self, x, d, lr, in_trans=False, out_trans=False):
 
     A0, B0 = self._snapshot_ab
     with _torch.no_grad():
-        XB = x @ B0.t()   # [batch, rank] using snapshot B0
-        DA = d @ A0        # [batch, rank] using snapshot A0
+        # Use snapshot weights for projection consistency across micro-batches.
+        # For non-perfect tiles, swap weights to include IO noise/quantization.
+        _fwd_perfect = getattr(self.tile_b.rpu_config.forward, 'is_perfect', True)
+        _bwd_perfect = getattr(self.tile_a.rpu_config.backward, 'is_perfect', True)
+        if _fwd_perfect and _bwd_perfect:
+            XB = x @ B0.t()
+            DA = d @ A0
+        else:
+            # Save current weights, set snapshot, forward/backward, restore
+            cur_B = self.tile_b.get_weights()[0].clone()
+            cur_A = self.tile_a.get_weights()[0].clone()
+            self.tile_b.set_weights(B0)
+            self.tile_a.set_weights(A0)
+            XB = self.tile_b.forward(x)
+            DA = self.tile_a.backward(d)
+            self.tile_b.set_weights(cur_B)
+            self.tile_a.set_weights(cur_A)
 
-    # lr_eff
-    if self._is_hardware_mode():
-        lr_eff = 1.0
-    else:
-        lr_eff = lr * self.lora_alpha
-        if self.correct_gradient_magnitudes:
-            lr_eff /= _math.sqrt(self.rank)
+    # lr_eff_a, lr_eff_b: use pre-computed values from step() if available,
+    # otherwise compute here (fallback for non-snapshot calls)
+    m_batch = x.shape[0]
+    if not hasattr(self, '_snapshot_lr_eff'):
+        # Fallback: should not normally reach here in snapshot mode,
+        # but compute just in case
+        self._last_lr_sgd = lr
+        if self._is_hardware_mode():
+            self.last_lr_eff_a = self.last_lr_eff_b = 1.0
+        elif self.auto_scale_mode == "none":
+            self.last_lr_eff_a = self.last_lr_eff_b = self.fast_lr
+        else:
+            self._update_autoscale_ema(x, d, XB, DA, m_batch)
+
+    lr_eff_a = self.last_lr_eff_a
+    lr_eff_b = self.last_lr_eff_b
 
     # Debug logging
     self._ab_update_step += 1
@@ -112,11 +136,11 @@ def _ab_update_with_snapshot(self, x, d, lr, in_trans=False, out_trans=False):
         print(f"  [AB-Scaling Step {self._ab_update_step}] "
               f"A: x_max={XB.abs().max().item():.4f}, d_max={d.abs().max().item():.4f} | "
               f"B: x_max={x.abs().max().item():.4f}, d_max={DA.abs().max().item():.4f} | "
-              f"lr_eff={lr_eff:.4f}")
+              f"lr_eff_a={lr_eff_a:.6f}, lr_eff_b={lr_eff_b:.6f}")
 
-    # ΔA = -lr_eff · D^T · XB
+    # ΔA = -lr_eff_a · D^T · XB
     lr_a_old = self.tile_a.get_learning_rate()
-    self.tile_a.set_learning_rate(lr_eff)
+    self.tile_a.set_learning_rate(lr_eff_a)
     if hasattr(self.tile_a, '_orig_update'):
         self.tile_a._orig_update(XB, d)
     else:
@@ -124,10 +148,10 @@ def _ab_update_with_snapshot(self, x, d, lr, in_trans=False, out_trans=False):
     self.tile_a.set_learning_rate(lr_a_old)
     self.num_a_updates += 1
 
-    # ΔB = -lr_eff · DA^T · X
+    # ΔB = -lr_eff_b · DA^T · X
     if not self._b_frozen:
         lr_b_old = self.tile_b.get_learning_rate()
-        self.tile_b.set_learning_rate(lr_eff)
+        self.tile_b.set_learning_rate(lr_eff_b)
         if hasattr(self.tile_b, '_orig_update'):
             self.tile_b._orig_update(x, DA)
         else:
@@ -136,7 +160,6 @@ def _ab_update_with_snapshot(self, x, d, lr, in_trans=False, out_trans=False):
         self.num_b_updates += 1
 
     self._update_dynamic_te(lr)
-    m_batch = x.shape[0]
     self._last_m_batch = m_batch
     self.transfer_counter += m_batch
 
@@ -242,6 +265,73 @@ def _step_mem_opt(self, closure=None, **kwargs):
 
                     lr = analog_tile.get_learning_rate()
 
+                    # ── Pre-compute lr_eff using full-batch stats ──
+                    # Gather amax across all micro-batches so EMA matches
+                    # the grad_accum=1 path (single call with full batch).
+                    controller._last_lr_sgd = lr
+                    if controller._is_hardware_mode():
+                        controller.last_lr_eff_a = controller.last_lr_eff_b = 1.0
+                    elif controller.auto_scale_mode == "none":
+                        controller.last_lr_eff_a = controller.last_lr_eff_b = controller.fast_lr
+                    elif controller.auto_scale_mode in ("shared", "separate"):
+                        x_amax = _torch.tensor(0.0, device=_dev)
+                        d_amax = _torch.tensor(0.0, device=_dev)
+                        xb_amax = _torch.tensor(0.0, device=_dev)
+                        da_amax = _torch.tensor(0.0, device=_dev)
+                        total_m_batch = 0
+                        for g in range(grad_accum_steps):
+                            start = g * entries_per_fwd
+                            end = start + entries_per_fwd
+                            x_g = self._pad_and_cat(
+                                analog_ctx.analog_input[start:end],
+                                axis=-1 if analog_tile.in_trans else 0,
+                            )
+                            d_g = self._pad_and_cat(
+                                analog_ctx.analog_grad_output[start:end],
+                                axis=-1 if analog_tile.out_trans else 0,
+                            )
+                            if runtime.offload_input:
+                                x_g = x_g.to(_dev)
+                            if runtime.offload_gradient:
+                                d_g = d_g.to(_dev)
+                            x_amax = _torch.max(x_amax, x_g.abs().amax())
+                            d_amax = _torch.max(d_amax, d_g.abs().amax())
+                            with _torch.no_grad():
+                                # EMA stats: use tile forward/backward for IO fidelity.
+                                # Weights haven't been updated yet (before the loop),
+                                # so tile weights == snapshot A0/B0.
+                                xb_g = controller.tile_b.forward(x_g)
+                                da_g = controller.tile_a.backward(d_g)
+                            xb_amax = _torch.max(xb_amax, xb_g.abs().amax())
+                            da_amax = _torch.max(da_amax, da_g.abs().amax())
+                            total_m_batch += x_g.shape[0]
+                            del x_g, d_g, xb_g, da_g
+                        # Single EMA update with full-batch stats
+                        tau = (1.0 - controller.auto_momentum) / total_m_batch
+                        controller._lazy_init_ema(A0.device)
+                        if controller.auto_scale_mode == "shared":
+                            controller.m_x = (1 - tau) * controller.m_x + tau * x_amax
+                            controller.m_d = (1 - tau) * controller.m_d + tau * d_amax
+                            denom = controller.m_x * controller.m_d
+                            fast_lr_t = x_amax.new_tensor(controller.fast_lr)
+                            lr_eff = _torch.where(denom > 0, fast_lr_t / denom, fast_lr_t).item()
+                            controller.last_lr_eff_a = lr_eff
+                            controller.last_lr_eff_b = lr_eff
+                        elif controller.auto_scale_mode == "separate":
+                            controller.m_x = (1 - tau) * controller.m_x + tau * x_amax
+                            controller.m_d = (1 - tau) * controller.m_d + tau * d_amax
+                            controller.m_xb = (1 - tau) * controller.m_xb + tau * xb_amax
+                            controller.m_da = (1 - tau) * controller.m_da + tau * da_amax
+                            denom_a = controller.m_xb * controller.m_d
+                            fa = x_amax.new_tensor(controller.fast_lr * controller.gran_a)
+                            controller.last_lr_eff_a = _torch.where(denom_a > 0, fa / denom_a, fa).item()
+                            denom_b = controller.m_x * controller.m_da
+                            fb = x_amax.new_tensor(controller.fast_lr * controller.gran_b)
+                            controller.last_lr_eff_b = _torch.where(denom_b > 0, fb / denom_b, fb).item()
+
+                    # Signal snapshot path to skip per-call EMA update
+                    controller._snapshot_lr_eff = True
+
                     for g in range(grad_accum_steps):
                         start = g * entries_per_fwd
                         end = start + entries_per_fwd
@@ -267,6 +357,8 @@ def _step_mem_opt(self, closure=None, **kwargs):
                             x=x_group, d=d_group, lr=lr,
                             in_trans=False, out_trans=False,
                         )
+
+                    del controller._snapshot_lr_eff
 
                     # ── Fix counters ──
                     # ab_weight_update called _update_dynamic_te N times,
