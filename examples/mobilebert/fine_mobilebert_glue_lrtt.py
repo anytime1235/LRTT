@@ -183,6 +183,7 @@ C_DW_MIN = 0.001         # C tile dw_min (relevant for onehot/direct transfer)
 C_DESIRED_BL = 31        # C tile desired_bl (relevant for onehot/direct transfer)
 AB_DW_MIN = 0.001981        # A/B tile dw_min
 AB_DESIRED_BL = 31          # A/B tile desired_bl
+AB_MULTILEVEL = None        # If int, w_max-w_min = 2^multilevel * AB_DW_MIN (symmetric); B init scales accordingly. None = w_max=1.0
 
 # Device selection
 AB_DEVICE = "6t1c"          # "6t1c", "linearstep", "linearstepideal", "constantstep", "constantstepideal", "fp", "ideal"
@@ -261,17 +262,20 @@ os.environ["WANDB_MODE"] = "offline"
 # LRTT Device Functions
 # =============================================================================
 
-def _create_ab_device(tau_sec=None, dw_min=None):
+def _create_ab_device(tau_sec=None, dw_min=None, multilevel=None):
     """Create A/B tile device based on AB_DEVICE setting.
 
     Options:
         6t1c              - Full 6T1C with all noise/variation (realistic)
         linearstep        - LinearStepDevice with default params (no nonlinearity, default noise)
-        linearstepideal   - LinearStepDevice with all noise/dtod=0, w_max=1, w_min=-1
+        linearstepideal   - LinearStepDevice with all noise/dtod=0, symmetric w_max/w_min (multilevel-aware)
         constantstep      - ConstantStepDevice with default params (constant step, default noise)
-        constantstepideal - ConstantStepDevice with all noise/dtod=0, w_max=1, w_min=-1
+        constantstepideal - ConstantStepDevice with all noise/dtod=0, symmetric w_max/w_min (multilevel-aware)
         fp                - FloatingPointDevice (perfect, no quantization/bounds)
         ideal             - IdealDevice
+
+    multilevel: if set (int > 0), w_max-w_min = 2^multilevel * dw_min (symmetric),
+                otherwise w_max=1.0 / w_min=-1.0. Only affects linearstepideal/constantstepideal.
     """
     if tau_sec is None:
         tau_sec = TAU_SEC
@@ -286,6 +290,14 @@ def _create_ab_device(tau_sec=None, dw_min=None):
     else:
         lifetime = 0.0
 
+    if multilevel is None:
+        multilevel = AB_MULTILEVEL
+    if multilevel is not None and multilevel > 0:
+        w_max = (2 ** multilevel) * dw_min / 2.0
+    else:
+        w_max = 1.0
+    w_min = -w_max
+
     if AB_DEVICE == "fp":
         return FloatingPointDevice()
     if AB_DEVICE == "ideal":
@@ -295,7 +307,7 @@ def _create_ab_device(tau_sec=None, dw_min=None):
     if AB_DEVICE == "linearstepideal":
         return LinearStepDevice(
             dw_min=dw_min,
-            w_max=1.0, w_min=-1.0,
+            w_max=w_max, w_min=w_min,
             dw_min_dtod=0.0, dw_min_std=0.0,
             up_down_dtod=0.0, w_max_dtod=0.0, w_min_dtod=0.0,
             gamma_up_dtod=0.0, gamma_down_dtod=0.0,
@@ -308,7 +320,7 @@ def _create_ab_device(tau_sec=None, dw_min=None):
     if AB_DEVICE == "constantstepideal":
         return ConstantStepDevice(
             dw_min=dw_min,
-            w_max=1.0, w_min=-1.0,
+            w_max=w_max, w_min=w_min,
             dw_min_dtod=0.0, dw_min_std=0.0,
             up_down_dtod=0.0, w_max_dtod=0.0, w_min_dtod=0.0,
             reset_std=0.0, up_down=0.0,
@@ -411,12 +423,17 @@ def create_lrtt_config():
     c_device = _create_c_device()
 
     te = TRANSFER_EVERY if not NO_TRANSFER else 10 ** 9
+    if AB_MULTILEVEL is not None and AB_MULTILEVEL > 0:
+        ab_w_max = (2 ** AB_MULTILEVEL) * AB_DW_MIN / 2.0
+        b_reinit_gain = REINIT_GAIN * ab_w_max
+    else:
+        b_reinit_gain = REINIT_GAIN
     device_config = PythonLRTTDevice(
         rank=LRTT_RANK,
         transfer_every=te,
         lora_alpha=1.0,
         fast_lr=FAST_LR,
-        reinit_gain=REINIT_GAIN,
+        reinit_gain=b_reinit_gain,
         reinit_mode=REINIT_MODE,
         unit_cell_devices=[ab_device, ab_device, c_device],
         train_c_bias=False,        # C tile bias frozen
