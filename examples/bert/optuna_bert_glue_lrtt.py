@@ -80,6 +80,7 @@ All flags:
         --no-scale-transfer-lr          # Disable scaling transfer LR by SGD LR
         --fi-continuous-alpha           # Use transfer LR as forward-injection α (continuity)
         --ab-pulse-type <str>           # A/B pulse type: default | none | none_with_device | stochastic_compressed | mean_count | deterministic_implicit
+        --ab-multilevel                 # Sweep ab_multilevel (1-12); w_max-w_min = 2^multilevel * ab_dw_min, B init scales
 
 
 Inline flags (edit directly in script):
