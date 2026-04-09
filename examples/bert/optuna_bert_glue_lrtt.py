@@ -529,7 +529,7 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981, multilevel=None):
         w_min=-1.0,
         gamma_up=-0.1678,
         gamma_down=0.1410,
-        mult_noise=True,
+        mult_noise=False,
         dw_min_dtod=0.1,
         up_down_dtod=0.01,
         w_max_dtod=0.05,

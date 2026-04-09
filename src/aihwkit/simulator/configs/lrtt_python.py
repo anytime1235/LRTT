@@ -871,7 +871,7 @@ class PythonLRTTPreset(_PrintableMixin):
             w_min=-1.0,
             gamma_up=-0.1678,
             gamma_down=0.1410,
-            mult_noise=True,
+            mult_noise=False,
 
             # Device-to-device variation
             dw_min_dtod=0.1,
@@ -1037,7 +1037,7 @@ class PythonLRTTPreset(_PrintableMixin):
             w_min=-1.0,
             gamma_up=-0.1678,
             gamma_down=0.1410,
-            mult_noise=True,
+            mult_noise=False,
             dw_min_dtod=0.1,
             up_down_dtod=0.01,
             w_max_dtod=0.05,
