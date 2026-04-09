@@ -1816,13 +1816,21 @@ def main():
     print(f"All trials saved to: {all_trials_file}")
 
 
-class _OOMRestart(Exception):
-    """Raised to trigger process restart after OOM."""
+class _OOMRestart(BaseException):
+    """Raised to trigger process restart after OOM.
+
+    Inherits from BaseException (not Exception) so that
+    study.optimize(catch=(Exception,)) does not swallow it.
+    """
     pass
 
 
-class _OOMRetryDone(Exception):
-    """Raised after OOM retry trial to restart with default GRAD_ACCUM_STEPS."""
+class _OOMRetryDone(BaseException):
+    """Raised after OOM retry trial to restart with default GRAD_ACCUM_STEPS.
+
+    Inherits from BaseException (not Exception) so that
+    study.optimize(catch=(Exception,)) does not swallow it.
+    """
     pass
 
 

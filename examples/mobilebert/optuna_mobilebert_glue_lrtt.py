@@ -1783,12 +1783,12 @@ def main():
     print(f"All trials saved to: {all_trials_file}")
 
 
-class _OOMRestart(Exception):
+class _OOMRestart(BaseException):
     """Raised to trigger process restart after OOM."""
     pass
 
 
-class _OOMRetryDone(Exception):
+class _OOMRetryDone(BaseException):
     """Raised after OOM retry trial to restart with default GRAD_ACCUM_STEPS."""
     pass
 
