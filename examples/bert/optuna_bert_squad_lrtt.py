@@ -44,7 +44,6 @@ All flags:
         --no-scale-transfer-lr          # Disable scaling transfer LR by SGD LR
         --fi-continuous-alpha           # Use transfer LR as forward-injection α (continuity)
         --ab-pulse-type <str>           # A/B pulse type: default | none | none_with_device | stochastic_compressed | mean_count | deterministic_implicit
-        --ab-multilevel                 # Sweep ab_multilevel (1-12); w_max-w_min = 2^multilevel * ab_dw_min, B init scales
 
 
 Inline flags (edit directly in script):
@@ -289,7 +288,6 @@ OPT_CONFIG = {
     'scale_transfer_lr': True,
     'fi_continuous_alpha': False,
     'ab_pulse_type': 'default',
-    'ab_multilevel': False,  # If True, sweep ab_multilevel; else w_max=1.0 (no rescaling)
 }
 
 
@@ -359,8 +357,6 @@ def get_study_name_suffix():
         suffix += "_fica"
     if OPT_CONFIG.get('ab_pulse_type', 'default') != 'default':
         suffix += f"_abpt-{OPT_CONFIG['ab_pulse_type']}"
-    if OPT_CONFIG.get('ab_multilevel', False):
-        suffix += "_abml"
 
     # Add lora target (always include for clarity)
     suffix += f"_{LORA_TARGET}"
@@ -381,7 +377,7 @@ os.environ["WANDB_MODE"] = "offline"
 # LRTT Device Functions
 # =============================================================================
 
-def _create_ab_device(tau_sec=0.0, dw_min=0.001981, multilevel=None):
+def _create_ab_device(tau_sec=0.0, dw_min=0.001981):
     """Create A/B tile device based on AB_DEVICE setting.
 
     Options:
@@ -396,8 +392,6 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981, multilevel=None):
     Args:
         tau_sec: Retention time constant. If 0, lifetime=0 (no decay).
         dw_min: Minimum weight update step size for the device.
-        multilevel: If set, w_max - w_min = (2 ** multilevel) * dw_min (symmetric).
-                    Default (None) keeps w_max=1, w_min=-1.
     """
     # Compute retention lifetime from tau_sec
     if tau_sec > 0:
@@ -406,13 +400,6 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981, multilevel=None):
         lifetime = 1.0 / delta if delta > 0 else 0.0
     else:
         lifetime = 0.0
-
-    # Compute symmetric w_max from multilevel
-    if multilevel is not None and multilevel > 0:
-        w_max = (2 ** multilevel) * dw_min / 2.0
-    else:
-        w_max = 1.0
-    w_min = -w_max
 
     if AB_DEVICE == "fp":
         return FloatingPointDevice()
@@ -423,8 +410,8 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981, multilevel=None):
     if AB_DEVICE == "linearstepideal":
         return LinearStepDevice(
             dw_min=dw_min,
-            w_max=w_max,
-            w_min=w_min,
+            w_max=1.0,
+            w_min=-1.0,
             dw_min_dtod=0.0,
             dw_min_std=0.0,
             up_down_dtod=0.0,
@@ -443,8 +430,8 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981, multilevel=None):
     if AB_DEVICE == "constantstepideal":
         return ConstantStepDevice(
             dw_min=dw_min,
-            w_max=w_max,
-            w_min=w_min,
+            w_max=1.0,
+            w_min=-1.0,
             dw_min_dtod=0.0,
             dw_min_std=0.0,
             up_down_dtod=0.0,
@@ -576,20 +563,10 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, 
                        fi_continuous_alpha=False,
                        ab_pulse_type='default',
                        ab_dw_min=0.001981, ab_desired_bl=31,
-                       ab_multilevel=None,
                        lora_alpha=1.0):
     """Create LRTT RPU configuration for analog layers."""
-    ab_device = _create_ab_device(tau_sec=tau_sec, dw_min=ab_dw_min, multilevel=ab_multilevel)
+    ab_device = _create_ab_device(tau_sec=tau_sec, dw_min=ab_dw_min)
     c_device = _create_c_device(dw_min=c_dw_min)
-
-    # Scale B initialization to match new w_max/w_min bounds.
-    # Default w_max=1.0; with multilevel, w_max = 2^(multilevel-1) * ab_dw_min.
-    # reinit_gain multiplies B_init (and A_init, but A is "zero" by default).
-    if ab_multilevel is not None and ab_multilevel > 0:
-        ab_w_max = (2 ** ab_multilevel) * ab_dw_min / 2.0
-        b_reinit_gain = REINIT_GAIN * ab_w_max
-    else:
-        b_reinit_gain = REINIT_GAIN
 
     te = transfer_every
     device_config = PythonLRTTDevice(
@@ -597,7 +574,7 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, 
         transfer_every=te,
         lora_alpha=lora_alpha,
         fast_lr=fast_lr,
-        reinit_gain=b_reinit_gain,
+        reinit_gain=REINIT_GAIN,
         reinit_mode=reinit_mode,
         unit_cell_devices=[ab_device, ab_device, c_device],
         train_c_bias=False,        # C tile bias frozen
@@ -772,7 +749,6 @@ def create_model(params):
             tau_sec=params["tau_sec"],
             ab_dw_min=params["ab_dw_min"],
             ab_desired_bl=params["ab_desired_bl"],
-            ab_multilevel=params["ab_multilevel"],
             c_dw_min=params["c_dw_min"],
             c_desired_bl=params["c_desired_bl"],
             out_noise=params["out_noise"],
@@ -1205,7 +1181,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         torch.cuda.empty_cache()
 
     # Hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 1e-4, 1e-2, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 8e-4, 7e-3, log=True)
 
     # LRTT parameters: skip sweep if --no-transfer (A/B frozen, no transfer happens)
     if OPT_CONFIG['no_transfer']:
@@ -1216,26 +1192,20 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         fast_lr = 1.0            # fixed (no effect)
         tau_sec = 0.0            # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 1e-2, 1e5, log=True)
-        transfer_every = trial.suggest_int('transfer_every', 1, 800, log=True)
+        transfer_lr = trial.suggest_float('transfer_lr', 8e-2, 3e3, log=True)
+        transfer_every = trial.suggest_int('transfer_every', 1, 400, log=True)
         rank_exp = trial.suggest_int('rank_exp', 0, 6)
         rank = 2 ** rank_exp
-        fast_lr = trial.suggest_float('fast_lr', 1e-3, 1e1, log=True)
-        tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
+        fast_lr = trial.suggest_float('fast_lr', 1e-2, 4e0, log=True)
+        tau_sec = trial.suggest_float('tau_sec', 1e1, 1e7, log=True)  # 0 = no decay
 
     # A/B device params
-    ab_dw_min = trial.suggest_float('ab_dw_min',1e-7, 1e-2, log=True)  # default: 6t1c value
+    ab_dw_min = trial.suggest_float('ab_dw_min',0.001981, 0.001981, log=True)  # default: 6t1c value
     ab_desired_bl = trial.suggest_int('ab_desired_bl', 31, 31)        # default: 31
-    # ab_multilevel: w_max-w_min = 2^multilevel * ab_dw_min (symmetric).
-    # When enabled, B init also scales accordingly. Default: disabled (w_max=1.0).
-    if OPT_CONFIG.get('ab_multilevel', False):
-        ab_multilevel = trial.suggest_int('ab_multilevel', 6, 14)
-    else:
-        ab_multilevel = None
 
     # C tile pulsed transfer params (only meaningful for onehot/direct)
     if TRANSFER_METHOD in ("onehot", "direct") and not OPT_CONFIG['no_transfer']:
-        c_dw_min = trial.suggest_float('c_dw_min', 0.001953, 0.001953, log=True)
+        c_dw_min = trial.suggest_float('c_dw_min', 0.001, 0.001, log=True)
         c_desired_bl = trial.suggest_int('c_desired_bl', 31, 31)
     else:
         c_dw_min = 0.001   # default (unused for "set")
@@ -1292,7 +1262,6 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         "tau_sec": tau_sec,
         "ab_dw_min": ab_dw_min,
         "ab_desired_bl": ab_desired_bl,
-        "ab_multilevel": ab_multilevel,
         "c_dw_min": c_dw_min,
         "c_desired_bl": c_desired_bl,
         "out_noise": out_noise,
@@ -1307,10 +1276,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
     print(f"  fast_lr={fast_lr:.2e}, lr={learning_rate:.2e}, wd={weight_decay:.2e}")
     print(f"  momentum={momentum:.2f}, nesterov={nesterov}, reinit_mode={reinit_mode}")
     print(f"  tau_sec={tau_sec:.1f}, optimizer={optimizer_name}, min_lr_rate={min_lr_rate:.4f}")
-    if ab_multilevel is not None:
-        print(f"  ab_dw_min={ab_dw_min:.4e}, ab_desired_bl={ab_desired_bl}, ab_multilevel={ab_multilevel} (w_max=±{(2**ab_multilevel)*ab_dw_min/2:.4e})")
-    else:
-        print(f"  ab_dw_min={ab_dw_min:.4e}, ab_desired_bl={ab_desired_bl}, ab_multilevel=off (w_max=±1.0)")
+    print(f"  ab_dw_min={ab_dw_min:.4e}, ab_desired_bl={ab_desired_bl}")
     if TRANSFER_METHOD in ("onehot", "direct"):
         print(f"  c_dw_min={c_dw_min:.4e}, c_desired_bl={c_desired_bl}")
     print(f"{'='*70}")
@@ -1644,8 +1610,6 @@ def main():
                         help='Number of ranks per transfer step in round_robin mode (default: 1)')
     parser.add_argument('--no-scale-transfer-lr', action='store_true',
                         help='Disable scaling transfer LR by SGD LR (default: scale enabled)')
-    parser.add_argument('--ab-multilevel', action='store_true',
-                        help='Sweep ab_multilevel (w_max-w_min = 2^multilevel * ab_dw_min, B init scales)')
     parser.add_argument('--ab-pulse-type', type=str, default='default',
                         choices=['default', 'none', 'none_with_device', 'stochastic_compressed', 'mean_count', 'deterministic_implicit'],
                         help='Pulse type for A/B tile updates (default: use RPUConfig default)')
@@ -1682,7 +1646,6 @@ def main():
     OPT_CONFIG['scale_transfer_lr'] = not args.no_scale_transfer_lr
     OPT_CONFIG['fi_continuous_alpha'] = args.fi_continuous_alpha
     OPT_CONFIG['ab_pulse_type'] = args.ab_pulse_type
-    OPT_CONFIG['ab_multilevel'] = args.ab_multilevel
     ENCODER_ANALOG = args.encoder_analog
     HEAD_ANALOG = args.head_analog
     BACKWARD_OUT_BOUND = args.backward_out_bound
