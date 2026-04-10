@@ -24,8 +24,8 @@ All flags:
         --epochs <int>              # Number of epochs (default: 15)
         --warmup-steps <int>        # LR warmup steps (default: 0)
         --transfer-method <str>     # Transfer method: onehot | direct | set (default: onehot)
-        --ab-device <str>           # A/B tile device: 6t1c | linearstep | linearstepideal | constantstep | constantstepideal | fp | ideal (default: 6t1c)
-        --c-device <str>            # C tile device: softboundsideal | linearstepideal | constantstep | constantstepideal | ideal (default: softboundsideal)
+        --ab-device <str>           # A/B tile device: 6t1c | linearstep | linearstepideal | constantstep | constantstepideal | constantstep6t1cgamma | fp | ideal (default: 6t1c)
+        --c-device <str>            # C tile device: softboundsideal | linearstepideal | constantstep | constantstepideal | constantstep6t1cgamma | ideal (default: softboundsideal)
         --no-io-noise               # Disable IO out_noise (resolution kept)
         --forward-inject            # Enable forward noise injection
         --is-perfect                # Use ideal FP forward/backward (no ADC/DAC/noise)
@@ -395,6 +395,7 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981, multilevel=None):
         linearstepideal   - LinearStepDevice with all noise/dtod=0, w_max=1, w_min=-1
         constantstep      - ConstantStepDevice with default params (constant step, default noise)
         constantstepideal - ConstantStepDevice with all noise/dtod=0, w_max=1, w_min=-1
+        constantstep6t1cgamma - LinearStepDevice with all noise/dtod=0 but gamma_up/gamma_down from 6t1c
         fp                - FloatingPointDevice (perfect, no quantization/bounds)
 
     Args:
@@ -455,6 +456,26 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981, multilevel=None):
             w_min_dtod=0.0,
             reset_std=0.0,
             up_down=0.0,
+            lifetime=lifetime,
+        )
+    if AB_DEVICE == "constantstep6t1cgamma":
+        return LinearStepDevice(
+            dw_min=dw_min,
+            w_max=w_max,
+            w_min=w_min,
+            gamma_up=-0.1678,
+            gamma_down=0.1410,
+            dw_min_dtod=0.0,
+            dw_min_std=0.0,
+            up_down_dtod=0.0,
+            w_max_dtod=0.0,
+            w_min_dtod=0.0,
+            gamma_up_dtod=0.0,
+            gamma_down_dtod=0.0,
+            write_noise_std=0.0,
+            reset_std=0.0,
+            up_down=0.0,
+            mult_noise=False,
             lifetime=lifetime,
         )
 
@@ -518,6 +539,25 @@ def _create_c_device(dw_min=0.001):
             w_min_dtod=0.0,
             reset_std=0.0,
             up_down=0.0,
+        )
+    if C_DEVICE == "constantstep6t1cgamma":
+        return LinearStepDevice(
+            dw_min=dw_min,
+            w_max=1.0,
+            w_min=-1.0,
+            gamma_up=-0.1678,
+            gamma_down=0.1410,
+            dw_min_dtod=0.0,
+            dw_min_std=0.0,
+            up_down_dtod=0.0,
+            w_max_dtod=0.0,
+            w_min_dtod=0.0,
+            gamma_up_dtod=0.0,
+            gamma_down_dtod=0.0,
+            write_noise_std=0.0,
+            reset_std=0.0,
+            up_down=0.0,
+            mult_noise=False,
         )
     return SoftBoundsDevice(
         dw_min=dw_min,
@@ -1612,10 +1652,10 @@ def main():
                         choices=['onehot', 'direct', 'set'],
                         help=f'Transfer method (default: {TRANSFER_METHOD})')
     parser.add_argument('--ab-device', type=str, default=AB_DEVICE,
-                        choices=['6t1c', 'linearstep', 'linearstepideal', 'constantstep', 'constantstepideal', 'fp', 'ideal'],
+                        choices=['6t1c', 'linearstep', 'linearstepideal', 'constantstep', 'constantstepideal', 'constantstep6t1cgamma', 'fp', 'ideal'],
                         help=f'A/B tile device type (default: {AB_DEVICE})')
     parser.add_argument('--c-device', type=str, default=C_DEVICE,
-                        choices=['softboundsideal', 'linearstepideal', 'constantstep', 'constantstepideal', 'ideal'],
+                        choices=['softboundsideal', 'linearstepideal', 'constantstep', 'constantstepideal', 'constantstep6t1cgamma', 'ideal'],
                         help=f'C tile device type (default: {C_DEVICE})')
     parser.add_argument('--no-io-noise', action='store_true',
                         help='Disable IO out_noise (resolution kept)')

@@ -23,8 +23,8 @@ All flags:
         --epochs <int>              # Number of epochs (default: 15)
         --warmup-steps <int>        # LR warmup steps (default: 0)
         --transfer-method <str>     # Transfer method: onehot | direct | set (default: onehot)
-        --ab-device <str>           # A/B tile device: 6t1c | linearstep | linearstepideal | constantstep | constantstepideal | fp | ideal (default: 6t1c)
-        --c-device <str>            # C tile device: softboundsideal | linearstepideal | constantstep | constantstepideal | ideal (default: softboundsideal)
+        --ab-device <str>           # A/B tile device: 6t1c | linearstep | linearstepideal | constantstep | constantstepideal | constantstep6t1cgamma | fp | ideal (default: 6t1c)
+        --c-device <str>            # C tile device: softboundsideal | linearstepideal | constantstep | constantstepideal | constantstep6t1cgamma | ideal (default: softboundsideal)
         --no-io-noise               # Disable IO out_noise (resolution kept)
         --forward-inject            # Enable forward noise injection
         --is-perfect                # Use ideal FP forward/backward (no ADC/DAC/noise)
@@ -42,6 +42,7 @@ All flags:
         --transfer-rank-schedule <str>  # Transfer rank schedule: all | round_robin (default: all)
         --transfer-ranks-per-step <int> # Ranks per transfer step in round_robin mode (default: 1)
         --no-scale-transfer-lr          # Disable scaling transfer LR by SGD LR
+        --ab-multilevel                 # Sweep ab_multilevel (1-12); w_max-w_min = 2^multilevel * ab_dw_min, B init scales
         --fi-continuous-alpha           # Use transfer LR as forward-injection α (continuity)
         --ab-pulse-type <str>           # A/B pulse type: default | none | none_with_device | stochastic_compressed | mean_count | deterministic_implicit
         --ab-multilevel                 # Sweep ab_multilevel (1-12); w_max-w_min = 2^multilevel * ab_dw_min, B init scales
@@ -238,8 +239,8 @@ TE_WARMUP_SCHEDULE = []
 # Fixed LRTT parameters
 REINIT_GAIN = 1.0
 TRANSFER_METHOD = "onehot"  # "onehot", "direct", or "set"
-AB_DEVICE = "6t1c"  # "6t1c", "linearstep", "linearstepideal", "constantstep", "constantstepideal", "fp", or "ideal"
-C_DEVICE = "softboundsideal"  # "softboundsideal", "linearstepideal", "constantstep", "constantstepideal", or "ideal"
+AB_DEVICE = "6t1c"  # "6t1c", "linearstep", "linearstepideal", "constantstep", "constantstepideal", "constantstep6t1cgamma", "fp", or "ideal"
+C_DEVICE = "softboundsideal"  # "softboundsideal", "linearstepideal", "constantstep", "constantstepideal", "constantstep6t1cgamma", or "ideal"
 IO_NOISE = True  # If False, disable out_noise (resolution kept)
 FORWARD_INJECT = False  # If True, enable forward noise injection
 IS_PERFECT = False  # If True, forward/backward use ideal FP matmul (no ADC/DAC/noise)
@@ -390,6 +391,7 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981, multilevel=None):
         linearstepideal   - LinearStepDevice with all noise/dtod=0, w_max=1, w_min=-1
         constantstep      - ConstantStepDevice with default params (constant step, default noise)
         constantstepideal - ConstantStepDevice with all noise/dtod=0, w_max=1, w_min=-1
+        constantstep6t1cgamma - LinearStepDevice with all noise/dtod=0 but gamma_up/gamma_down from 6t1c
         fp                - FloatingPointDevice (perfect, no quantization/bounds)
         ideal             - IdealDevice
 
@@ -454,6 +456,26 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981, multilevel=None):
             up_down=0.0,
             lifetime=lifetime,
         )
+    if AB_DEVICE == "constantstep6t1cgamma":
+        return LinearStepDevice(
+            dw_min=dw_min,
+            w_max=w_max,
+            w_min=w_min,
+            gamma_up=-0.1678,
+            gamma_down=0.1410,
+            dw_min_dtod=0.0,
+            dw_min_std=0.0,
+            up_down_dtod=0.0,
+            w_max_dtod=0.0,
+            w_min_dtod=0.0,
+            gamma_up_dtod=0.0,
+            gamma_down_dtod=0.0,
+            write_noise_std=0.0,
+            reset_std=0.0,
+            up_down=0.0,
+            mult_noise=False,
+            lifetime=lifetime,
+        )
 
     # Default: 6t1c (full noise)
     return LinearStepDevice(
@@ -515,6 +537,25 @@ def _create_c_device(dw_min=0.001):
             w_min_dtod=0.0,
             reset_std=0.0,
             up_down=0.0,
+        )
+    if C_DEVICE == "constantstep6t1cgamma":
+        return LinearStepDevice(
+            dw_min=dw_min,
+            w_max=1.0,
+            w_min=-1.0,
+            gamma_up=-0.1678,
+            gamma_down=0.1410,
+            dw_min_dtod=0.0,
+            dw_min_std=0.0,
+            up_down_dtod=0.0,
+            w_max_dtod=0.0,
+            w_min_dtod=0.0,
+            gamma_up_dtod=0.0,
+            gamma_down_dtod=0.0,
+            write_noise_std=0.0,
+            reset_std=0.0,
+            up_down=0.0,
+            mult_noise=False,
         )
     return SoftBoundsDevice(
         dw_min=dw_min,
@@ -1601,10 +1642,10 @@ def main():
                         choices=['onehot', 'direct', 'set'],
                         help=f'Transfer method (default: {TRANSFER_METHOD})')
     parser.add_argument('--ab-device', type=str, default=AB_DEVICE,
-                        choices=['6t1c', 'linearstep', 'linearstepideal', 'constantstep', 'constantstepideal', 'fp', 'ideal'],
+                        choices=['6t1c', 'linearstep', 'linearstepideal', 'constantstep', 'constantstepideal', 'constantstep6t1cgamma', 'fp', 'ideal'],
                         help=f'A/B tile device type (default: {AB_DEVICE})')
     parser.add_argument('--c-device', type=str, default=C_DEVICE,
-                        choices=['softboundsideal', 'linearstepideal', 'constantstep', 'constantstepideal', 'ideal'],
+                        choices=['softboundsideal', 'linearstepideal', 'constantstep', 'constantstepideal', 'constantstep6t1cgamma', 'ideal'],
                         help=f'C tile device type (default: {C_DEVICE})')
     parser.add_argument('--no-io-noise', action='store_true',
                         help='Disable IO out_noise (resolution kept)')

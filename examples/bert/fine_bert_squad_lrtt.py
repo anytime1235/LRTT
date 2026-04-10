@@ -135,8 +135,8 @@ AB_DESIRED_BL = 31          # A/B tile desired_bl
 AB_MULTILEVEL = None        # If int, w_max-w_min = 2^multilevel * AB_DW_MIN (symmetric); B init scales accordingly. None = w_max=1.0
 
 # Device selection
-AB_DEVICE = "constantstepideal"  # "6t1c", "linearstep", "linearstepideal", "constantstep", "constantstepideal", "fp", "ideal"
-C_DEVICE = "constantstepideal"   # "softboundsideal", "linearstepideal", "constantstep", "constantstepideal", "ideal"
+AB_DEVICE = "constantstepideal"  # "6t1c", "linearstep", "linearstepideal", "constantstep", "constantstepideal", "constantstep6t1cgamma", "fp", "ideal"
+C_DEVICE = "constantstepideal"   # "softboundsideal", "linearstepideal", "constantstep", "constantstepideal", "constantstep6t1cgamma", "ideal"
 
 # IO / noise options
 IO_NOISE = True             # If False, disable out_noise (resolution kept)
@@ -218,6 +218,7 @@ def _create_ab_device(tau_sec=None, dw_min=None, multilevel=None):
         linearstepideal   - LinearStepDevice with all noise/dtod=0, w_max=1, w_min=-1
         constantstep      - ConstantStepDevice with default params (constant step, default noise)
         constantstepideal - ConstantStepDevice with all noise/dtod=0, w_max=1, w_min=-1
+        constantstep6t1cgamma - LinearStepDevice with all noise/dtod=0 but gamma_up/gamma_down from 6t1c
         fp                - FloatingPointDevice (perfect, no quantization/bounds)
         ideal             - IdealDevice
 
@@ -274,6 +275,26 @@ def _create_ab_device(tau_sec=None, dw_min=None, multilevel=None):
             reset_std=0.0, up_down=0.0,
             lifetime=lifetime,
         )
+    if AB_DEVICE == "constantstep6t1cgamma":
+        return LinearStepDevice(
+            dw_min=dw_min,
+            w_max=w_max,
+            w_min=w_min,
+            gamma_up=-0.1678,
+            gamma_down=0.1410,
+            dw_min_dtod=0.0,
+            dw_min_std=0.0,
+            up_down_dtod=0.0,
+            w_max_dtod=0.0,
+            w_min_dtod=0.0,
+            gamma_up_dtod=0.0,
+            gamma_down_dtod=0.0,
+            write_noise_std=0.0,
+            reset_std=0.0,
+            up_down=0.0,
+            mult_noise=False,
+            lifetime=lifetime,
+        )
 
     return LinearStepDevice(
         dw_min=dw_min,
@@ -316,6 +337,25 @@ def _create_c_device(dw_min=None):
             dw_min_dtod=0.0, dw_min_std=0.0,
             up_down_dtod=0.0, w_max_dtod=0.0, w_min_dtod=0.0,
             reset_std=0.0, up_down=0.0,
+        )
+    if C_DEVICE == "constantstep6t1cgamma":
+        return LinearStepDevice(
+            dw_min=dw_min,
+            w_max=1.0,
+            w_min=-1.0,
+            gamma_up=-0.1678,
+            gamma_down=0.1410,
+            dw_min_dtod=0.0,
+            dw_min_std=0.0,
+            up_down_dtod=0.0,
+            w_max_dtod=0.0,
+            w_min_dtod=0.0,
+            gamma_up_dtod=0.0,
+            gamma_down_dtod=0.0,
+            write_noise_std=0.0,
+            reset_std=0.0,
+            up_down=0.0,
+            mult_noise=False,
         )
     # Default: softboundsideal
     return SoftBoundsDevice(
