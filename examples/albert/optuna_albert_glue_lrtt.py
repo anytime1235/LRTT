@@ -1701,12 +1701,20 @@ def main():
         return
 
     # Check for OOM retry file (from previous OOM restart)
-    retry_file = os.path.join(RESULTS, f"_oom_retry_{study_name}.json")
+    # Multi-worker safe: each worker writes retry file with its PID, reads via glob.
+    import glob as _glob
     retry_info = None
-    if os.path.exists(retry_file):
-        with open(retry_file) as f:
-            retry_info = json.load(f)
-        os.remove(retry_file)  # Delete immediately so it won't persist across manual reruns
+    retry_pattern = os.path.join(RESULTS, f"_oom_retry_{study_name}_*.json")
+    retry_legacy = os.path.join(RESULTS, f"_oom_retry_{study_name}.json")
+    for rf in _glob.glob(retry_pattern) + ([retry_legacy] if os.path.exists(retry_legacy) else []):
+        try:
+            with open(rf) as f:
+                retry_info = json.load(f)
+            os.remove(rf)
+        except (json.JSONDecodeError, OSError):
+            continue
+        if retry_info:
+            break
         GRAD_ACCUM_STEPS = retry_info["grad_accum_steps"]
         _oom_retry_pending = True
         print(f"[OOM Retry] Retrying trial {retry_info['trial_number']}, "
@@ -1732,6 +1740,19 @@ def main():
               f"Verify the study name above matches your intent.\n")
     else:
         print(f"Loaded existing study: {len(existing_trials)} trials total, {n_complete} complete.\n")
+
+    # Fix zombie RUNNING trials: mark them as FAIL so they don't block the queue.
+    zombie_lock = os.path.join(RESULTS, f"_zombie_cleanup_{study_name}.lock")
+    if not os.path.exists(zombie_lock):
+        n_zombie = 0
+        for t in existing_trials:
+            if t.state == TrialState.RUNNING:
+                study.tell(t.number, state=TrialState.FAIL)
+                n_zombie += 1
+        if n_zombie > 0:
+            print(f"[Cleanup] Marked {n_zombie} zombie RUNNING trial(s) as FAIL.")
+        with open(zombie_lock, 'w') as f:
+            f.write(str(os.getpid()))
 
     # Enqueue retry trial if OOM retry pending
     if retry_info is not None:
@@ -1852,7 +1873,7 @@ def _oom_restart_callback(study, trial):
             new_grad_accum = larger[0]
             micro_bs = BATCH_SIZE // new_grad_accum
 
-            retry_file = os.path.join(RESULTS, f"_oom_retry_{study.study_name}.json")
+            retry_file = os.path.join(RESULTS, f"_oom_retry_{study.study_name}_{os.getpid()}.json")
             retry_info = {
                 "trial_params": dict(trial.params),
                 "trial_number": trial.number,
@@ -1867,7 +1888,7 @@ def _oom_restart_callback(study, trial):
         elif is_cuda_assert:
             # CUDA context corruption (not OOM): retry same trial in a fresh process
             # with the same ga (no bump) so the trial gets a clean CUDA context.
-            retry_file = os.path.join(RESULTS, f"_oom_retry_{study.study_name}.json")
+            retry_file = os.path.join(RESULTS, f"_oom_retry_{study.study_name}_{os.getpid()}.json")
             retry_info = {
                 "trial_params": dict(trial.params),
                 "trial_number": trial.number,

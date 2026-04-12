@@ -1257,9 +1257,9 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         fast_lr = 1.0            # fixed (no effect)
         tau_sec = 0.0            # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 8e-3, 1e10, log=True)
+        transfer_lr = trial.suggest_float('transfer_lr', 8e-3, 1e2, log=True)
         transfer_every = trial.suggest_int('transfer_every', 1, 1000, log=True)
-        rank_exp = trial.suggest_int('rank_exp', 0, 6)
+        rank_exp = trial.suggest_int('rank_exp', 5, 5)
         rank = 2 ** rank_exp
         fast_lr = trial.suggest_float('fast_lr', 8e-4, 4e0, log=True)
         tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
@@ -1745,12 +1745,22 @@ def main():
         return
 
     # Check for OOM retry file (from previous OOM restart)
-    retry_file = os.path.join(RESULTS, f"_oom_retry_{study_name}.json")
+    # Multi-worker safe: each worker writes retry file with its PID, reads via glob.
+    # On restart (execv→Popen), PID changes, so glob picks up any matching file.
+    import glob as _glob
     retry_info = None
-    if os.path.exists(retry_file):
-        with open(retry_file) as f:
-            retry_info = json.load(f)
-        os.remove(retry_file)  # Delete immediately so it won't persist across manual reruns
+    retry_pattern = os.path.join(RESULTS, f"_oom_retry_{study_name}_*.json")
+    retry_legacy = os.path.join(RESULTS, f"_oom_retry_{study_name}.json")
+    for rf in _glob.glob(retry_pattern) + ([retry_legacy] if os.path.exists(retry_legacy) else []):
+        try:
+            with open(rf) as f:
+                retry_info = json.load(f)
+            os.remove(rf)
+        except (json.JSONDecodeError, OSError):
+            continue
+        if retry_info:
+            break
+    if retry_info is not None:
         GRAD_ACCUM_STEPS = retry_info["grad_accum_steps"]
         _oom_retry_pending = True
         print(f"[OOM Retry] Retrying trial {retry_info['trial_number']}, "
@@ -1776,6 +1786,24 @@ def main():
               f"Verify the study name above matches your intent.\n")
     else:
         print(f"Loaded existing study: {len(existing_trials)} trials total, {n_complete} complete.\n")
+
+    # Fix zombie RUNNING trials: mark them as FAIL so they don't block the queue.
+    # In multi-worker setups, a hard crash (OOM kill, SIGKILL) can leave trials
+    # stuck in RUNNING state forever. Only clean up if this is the FIRST worker
+    # (no other workers are actively running this study). Check via a simple
+    # file lock to avoid killing another worker's active trial.
+    zombie_lock = os.path.join(RESULTS, f"_zombie_cleanup_{study_name}.lock")
+    if not os.path.exists(zombie_lock):
+        n_zombie = 0
+        for t in existing_trials:
+            if t.state == TrialState.RUNNING:
+                study.tell(t.number, state=TrialState.FAIL)
+                n_zombie += 1
+        if n_zombie > 0:
+            print(f"[Cleanup] Marked {n_zombie} zombie RUNNING trial(s) as FAIL.")
+        # Create lock so subsequent workers skip cleanup
+        with open(zombie_lock, 'w') as f:
+            f.write(str(os.getpid()))
 
     # Enqueue retry trial if OOM retry pending
     if retry_info is not None:
@@ -1899,7 +1927,7 @@ def _oom_restart_callback(study, trial):
             new_grad_accum = larger[0]
             micro_bs = BATCH_SIZE // new_grad_accum
 
-            retry_file = os.path.join(RESULTS, f"_oom_retry_{study.study_name}.json")
+            retry_file = os.path.join(RESULTS, f"_oom_retry_{study.study_name}_{os.getpid()}.json")
             retry_info = {
                 "trial_params": dict(trial.params),
                 "trial_number": trial.number,
@@ -1914,7 +1942,7 @@ def _oom_restart_callback(study, trial):
         elif is_cuda_assert:
             # CUDA context corruption (not OOM): retry same trial in a fresh process
             # with the same ga (no bump) so the trial gets a clean CUDA context.
-            retry_file = os.path.join(RESULTS, f"_oom_retry_{study.study_name}.json")
+            retry_file = os.path.join(RESULTS, f"_oom_retry_{study.study_name}_{os.getpid()}.json")
             retry_info = {
                 "trial_params": dict(trial.params),
                 "trial_number": trial.number,
