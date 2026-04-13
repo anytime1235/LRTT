@@ -1246,7 +1246,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         torch.cuda.empty_cache()
 
     # Hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 7e-4, 8e-3, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 1e-5, 1e0, log=True)
 
     # LRTT parameters: skip sweep if --no-transfer (A/B frozen, no transfer happens)
     if OPT_CONFIG['no_transfer']:
