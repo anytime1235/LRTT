@@ -200,6 +200,9 @@ class ScratchExperimentConfig:
     # Pulse/Update configuration (Hardware-realistic settings)
     desired_bl = 5  # Bit length for A/B updates (from sweep top1)
     pulse_type = PulseType.STOCHASTIC_COMPRESSED  # Pulse generation type
+    # Options: NONE (fp update), STOCHASTIC_COMPRESSED (stochastic, single pass),
+    #          STOCHASTIC (two pass, CPU only), NONE_WITH_DEVICE (fp + device effects),
+    #          MEAN_COUNT (prob-based p_a*p_b), DETERMINISTIC_IMPLICIT (deterministic BL*x_q*d_q)
 
     # Manual scaling factors (used when use_manual_scaling=True)
     # x_scaling: applied to input x (B factor in aihwkit)

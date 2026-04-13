@@ -7,6 +7,18 @@ to maximize R² score. b_x_scaling is fixed at 1.0.
 Usage:
     python optuna_regression_hw.py --n-trials 50
     python optuna_regression_hw.py --n-trials 100
+    python optuna_regression_hw.py --n-trials 50 --max-concurrent 25 --n-jobs 1
+    python optuna_regression_hw.py --study-name my_study --transfer-every 5
+    python optuna_regression_hw.py --use-default --no-save
+
+Options:
+    --n-trials N          Number of trials (default: 50)
+    --max-concurrent N    Max concurrent GPU operations (default: 25)
+    --n-jobs N            Parallel trials (default: 1 = sequential for TPE)
+    --study-name NAME     Study name (auto-generated if omitted)
+    --no-save             Don't save results
+    --use-default         Use DEFAULT_SEARCH_SPACE (ignore other args)
+    --transfer-every N    Override FIXED_TRANSFER_EVERY
 
 Dashboard:
     pip install optuna-dashboard

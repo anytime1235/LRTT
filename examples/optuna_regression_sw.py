@@ -7,6 +7,18 @@ to maximize R² score. b_x_scaling is fixed at 1.0.
 Usage:
     python optuna_regression_sw.py --n-trials 50
     python optuna_regression_sw.py --n-trials 100
+    python optuna_regression_sw.py --n-trials 50 --max-concurrent 25 --n-jobs 1
+    python optuna_regression_sw.py --study-name my_study --transfer-every 5
+    python optuna_regression_sw.py --use-default --no-save
+
+Options:
+    --n-trials N          Number of trials (default: 50)
+    --max-concurrent N    Max concurrent GPU operations (default: 25)
+    --n-jobs N            Parallel trials (default: 1 = sequential for TPE)
+    --study-name NAME     Study name (auto-generated if omitted)
+    --no-save             Don't save results
+    --use-default         Use DEFAULT_SEARCH_SPACE (ignore other args)
+    --transfer-every N    Override FIXED_TRANSFER_EVERY
 
 Dashboard:
     pip install optuna-dashboard
@@ -51,10 +63,11 @@ FIXED_LORA_ALPHA = 1.0
 FIXED_TRANSFER_EVERY = 1000
 FIXED_DESIRED_BL = 10
 FIXED_LRTT_RANK = 4
+FIXED_AB_DW_MIN = 0.001981  # A/B tile dw_min (from 6T1C fitting)
 FIXED_C_DW_MIN = 0.0008
 FIXED_C_DESIRED_BL = 10
-FIXED_A_LIFETIME_PER_BATCH = 1  # Batch 단위 lifetime (내부적으로 pulse 단위로 변환됨) - A device
-FIXED_B_LIFETIME_PER_BATCH = 10000000  # B device lifetime (사실상 decay 없음)
+FIXED_A_LIFETIME_PER_BATCH = 1000  # Batch 단위 lifetime (내부적으로 pulse 단위로 변환됨) - A device
+FIXED_B_LIFETIME_PER_BATCH = None  # B device lifetime (None = same as A)
 FIXED_LRTT_LR = 0.01   # Learning rate (used when use_manual_scaling=False)
 FIXED_BATCH_SIZE = 1   # Batch size for training
 FIXED_TRANSFER_RANK_SCHEDULE = 'all'  # 'all' or 'round_robin'
@@ -76,7 +89,7 @@ FIXED_TRANSFER_RANKS_PER_STEP = 1     # Ranks per transfer step (only used in ro
 #
 # 예시 (batch_size 1→4):
 #   transfer_every: 378 → 95 (378/4)
-#   lifetime: 7370 → 1842 (7370/4)
+#   lifetime: 7370 → 1842 (7370/4)ㄴ
 # ============================================================================
 
 # ============================================================================
@@ -87,18 +100,20 @@ DEFAULT_SEARCH_SPACE = {
     #'a_x': (0.0, 1.0),           # a_x_scaling range
     #'a_d': (0.0, 1.0),           # a_d_scaling range
     #'b_d': (0.0, 1.0),           # b_d_scaling range
-    'lora_alpha': (0.0, 30.0),   # lora_alpha range (transfer LR)
-    #'transfer_every': (1, 1000), # transfer_every range (int)
-    #'desired_bl': (1, 10),      # desired_bl range (int, pulse train length)
-    #'lrtt_rank': (1, 4),         # lrtt_rank range (int, log scale)
+    'lora_alpha': (9e-3, 9e1),   # lora_alpha range (transfer LR, log scale)
+    'transfer_every': (1, 100), # transfer_every range (int, log scale)
+    #'desired_bl': (1, 10),      # desired_bl rㄴange (int, pulse train length)
+    'lrtt_rank': (1, 4),         # lrtt_rank range (int)
+    #'ab_dw_min': (0.0005, 0.01), # ab_dw_min range (A/B tile, float, log scale)
     #'c_dw_min': (0.0002, 0.2),  # c_dw_min range (float, log scale)
     #'c_desired_bl': (1, 20),    # c_desired_bl range (int, pulse train length for C transfer)
-    'lifetime': (1.0, 1e9), # lifetime range (batch units, log scale)
-    'lrtt_lr': (0.00001, 1.0),   # learning rate range (log scale, used when use_manual_scaling=False)
+    #'a_lifetime': (6e-1, 2e8), # A lifetime range (batch units, log scale)
+    #'b_lifetime': (1e0, 1e9), # B lifetime range (batch units, log scale, None = same as A)
+    'lrtt_lr': (5e-4, 1e-2),   # learning rate range (log scale, used when use_manual_scaling=False)
 }
 
 # Number of runs per trial (average over multiple seeds for noisy environments)
-N_RUNS_PER_TRIAL = 25
+N_RUNS_PER_TRIAL = 5
 
 
 @contextmanager
@@ -128,7 +143,7 @@ class TuningConfig(ScratchExperimentConfig):
     pass
 
 
-def create_config(a_x_scaling, a_d_scaling, b_d_scaling, lora_alpha=2.0, transfer_every=10, desired_bl=7, lrtt_rank=1, c_dw_min=0.0002, c_desired_bl=10, lifetime=7370, b_lifetime=10000000, lrtt_lr=0.01, batch_size=1, transfer_rank_schedule='all', transfer_ranks_per_step=1):
+def create_config(a_x_scaling, a_d_scaling, b_d_scaling, lora_alpha=2.0, transfer_every=10, desired_bl=7, lrtt_rank=1, ab_dw_min=0.001981, c_dw_min=0.0002, c_desired_bl=10, a_lifetime=7370, b_lifetime=None, lrtt_lr=0.01, batch_size=1, transfer_rank_schedule='all', transfer_ranks_per_step=1):
     """Create a config with specified scaling factors.
 
     Note: batch_size 변경 시 transfer_every, lifetime도 함께 조정 필요.
@@ -151,10 +166,11 @@ def create_config(a_x_scaling, a_d_scaling, b_d_scaling, lora_alpha=2.0, transfe
     config.lrtt_transfer_every = transfer_every
     config.desired_bl = desired_bl
     config.lrtt_rank = lrtt_rank
+    config.ab_dw_min = ab_dw_min
     config.c_dw_min = c_dw_min
     config.c_desired_bl = c_desired_bl
-    config.a_lifetime = lifetime  # Batch 단위 lifetime (A device)
-    config.b_lifetime = b_lifetime  # Batch 단위 lifetime (B device)
+    config.lifetime = a_lifetime  # Batch 단위 lifetime (A device)
+    config.b_lifetime = b_lifetime  # Batch 단위 lifetime (B device, None = same as A)
     config.lrtt_lr = lrtt_lr    # Learning rate
     config.lrtt_batch_size = batch_size  # Batch size
     config.transfer_rank_schedule = transfer_rank_schedule
@@ -197,23 +213,25 @@ def run_single_training(config, seed: int) -> float:
                 seed=seed, use_wandb=False, collect_history=False
             )
 
-        # Get final validation loss
+        # Get final validation loss and epoch count
         if epoch_history:
             final_val_loss = epoch_history[-1].get('val_loss', float('inf'))
+            n_epochs = len(epoch_history)
         else:
             final_val_loss = float('inf')
+            n_epochs = 0
 
         # Cleanup
         del model, history, epoch_history
         gc.collect()
         torch.cuda.empty_cache()
 
-        return final_val_loss
+        return final_val_loss, n_epochs
 
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return float('inf')
+        return float('inf'), 0
     finally:
         # Release semaphore
         if GPU_SEMAPHORE is not None:
@@ -253,18 +271,19 @@ def _objective_inner(trial: Trial, search_space: dict = None) -> float:
         a_d_scaling = FIXED_A_D_SCALING
         b_d_scaling = FIXED_B_D_SCALING
 
-    lora_alpha = trial.suggest_float("lora_alpha", *search_space['lora_alpha']) if 'lora_alpha' in search_space else trial.suggest_float("lora_alpha", FIXED_LORA_ALPHA, FIXED_LORA_ALPHA)
-    transfer_every = trial.suggest_int("transfer_every", *search_space['transfer_every']) if 'transfer_every' in search_space else trial.suggest_int("transfer_every", FIXED_TRANSFER_EVERY, FIXED_TRANSFER_EVERY)
-    desired_bl = trial.suggest_int("desired_bl", *search_space['desired_bl']) if 'desired_bl' in search_space else trial.suggest_int("desired_bl", FIXED_DESIRED_BL, FIXED_DESIRED_BL)
-    lrtt_rank = trial.suggest_int("lrtt_rank", *search_space['lrtt_rank'], log=True) if 'lrtt_rank' in search_space else trial.suggest_int("lrtt_rank", FIXED_LRTT_RANK, FIXED_LRTT_RANK, log=True)
-    c_dw_min = trial.suggest_float("c_dw_min", *search_space['c_dw_min'], log=True) if 'c_dw_min' in search_space else trial.suggest_float("c_dw_min", FIXED_C_DW_MIN, FIXED_C_DW_MIN, log=True)
-    c_desired_bl = trial.suggest_int("c_desired_bl", *search_space['c_desired_bl']) if 'c_desired_bl' in search_space else trial.suggest_int("c_desired_bl", FIXED_C_DESIRED_BL, FIXED_C_DESIRED_BL)
-    lifetime = trial.suggest_float("lifetime", *search_space['lifetime'], log=True) if 'lifetime' in search_space else trial.suggest_float("lifetime", FIXED_A_LIFETIME_PER_BATCH, FIXED_A_LIFETIME_PER_BATCH, log=True)
-    b_lifetime = trial.suggest_float("b_lifetime", *search_space['b_lifetime'], log=True) if 'b_lifetime' in search_space else trial.suggest_float("b_lifetime", FIXED_B_LIFETIME_PER_BATCH, FIXED_B_LIFETIME_PER_BATCH, log=True)
-    lrtt_lr = trial.suggest_float("lrtt_lr", *search_space['lrtt_lr'], log=True) if 'lrtt_lr' in search_space else trial.suggest_float("lrtt_lr", FIXED_LRTT_LR, FIXED_LRTT_LR, log=True)
-    batch_size = trial.suggest_int("batch_size", *search_space['batch_size']) if 'batch_size' in search_space else trial.suggest_int("batch_size", FIXED_BATCH_SIZE, FIXED_BATCH_SIZE)
-    transfer_rank_schedule = trial.suggest_categorical("transfer_rank_schedule", search_space['transfer_rank_schedule']) if 'transfer_rank_schedule' in search_space else trial.suggest_categorical("transfer_rank_schedule", [FIXED_TRANSFER_RANK_SCHEDULE])
-    transfer_ranks_per_step = trial.suggest_int("transfer_ranks_per_step", *search_space['transfer_ranks_per_step']) if 'transfer_ranks_per_step' in search_space else trial.suggest_int("transfer_ranks_per_step", FIXED_TRANSFER_RANKS_PER_STEP, FIXED_TRANSFER_RANKS_PER_STEP)
+    lora_alpha = trial.suggest_float("lora_alpha", *search_space['lora_alpha'], log=True) if 'lora_alpha' in search_space else FIXED_LORA_ALPHA
+    transfer_every = trial.suggest_int("transfer_every", *search_space['transfer_every'], log=True) if 'transfer_every' in search_space else FIXED_TRANSFER_EVERY
+    desired_bl = trial.suggest_int("desired_bl", *search_space['desired_bl']) if 'desired_bl' in search_space else FIXED_DESIRED_BL
+    lrtt_rank = trial.suggest_int("lrtt_rank", *search_space['lrtt_rank']) if 'lrtt_rank' in search_space else FIXED_LRTT_RANK
+    ab_dw_min = trial.suggest_float("ab_dw_min", *search_space['ab_dw_min'], log=True) if 'ab_dw_min' in search_space else FIXED_AB_DW_MIN
+    c_dw_min = trial.suggest_float("c_dw_min", *search_space['c_dw_min'], log=True) if 'c_dw_min' in search_space else FIXED_C_DW_MIN
+    c_desired_bl = trial.suggest_int("c_desired_bl", *search_space['c_desired_bl']) if 'c_desired_bl' in search_space else FIXED_C_DESIRED_BL
+    a_lifetime = trial.suggest_float("a_lifetime", *search_space['a_lifetime'], log=True) if 'a_lifetime' in search_space else FIXED_A_LIFETIME_PER_BATCH
+    b_lifetime = trial.suggest_float("b_lifetime", *search_space['b_lifetime'], log=True) if 'b_lifetime' in search_space else FIXED_B_LIFETIME_PER_BATCH
+    lrtt_lr = trial.suggest_float("lrtt_lr", *search_space['lrtt_lr'], log=True) if 'lrtt_lr' in search_space else FIXED_LRTT_LR
+    batch_size = trial.suggest_int("batch_size", *search_space['batch_size']) if 'batch_size' in search_space else FIXED_BATCH_SIZE
+    transfer_rank_schedule = trial.suggest_categorical("transfer_rank_schedule", search_space['transfer_rank_schedule']) if 'transfer_rank_schedule' in search_space else FIXED_TRANSFER_RANK_SCHEDULE
+    transfer_ranks_per_step = trial.suggest_int("transfer_ranks_per_step", *search_space['transfer_ranks_per_step']) if 'transfer_ranks_per_step' in search_space else FIXED_TRANSFER_RANKS_PER_STEP
 
     # Print all trial parameters at start
     params = []
@@ -276,15 +295,17 @@ def _objective_inner(trial: Trial, search_space: dict = None) -> float:
     params.append(f"t_every={transfer_every}")
     params.append(f"bl={desired_bl}")
     params.append(f"rank={lrtt_rank}")
+    if 'ab_dw_min' in search_space: params.append(f"ab_dw={ab_dw_min:.5f}")
     params.append(f"c_dw={c_dw_min:.5f}")
     params.append(f"c_bl={c_desired_bl}")
-    params.append(f"life={lifetime:.1f}")
-    params.append(f"b_life={b_lifetime:.1f}")
+    params.append(f"life={a_lifetime:.1f}")
+    params.append(f"b_life={b_lifetime:.1f}" if b_lifetime is not None else "b_life=A")
     params.append(f"lr={lrtt_lr:.5f}")
     if 'batch_size' in search_space: params.append(f"bs={batch_size}")
     params.append(f"rank_sched={transfer_rank_schedule}")
     params.append(f"ranks_per_step={transfer_ranks_per_step}")
-    print(f"[Trial {trial.number:3d}] START | {', '.join(params)}", flush=True)
+    sys.stderr.write(f"[Trial {trial.number:3d}] START | {', '.join(params)}\n")
+    sys.stderr.flush()
 
     # Record config-level parameters as user_attrs (not in search space but important for reproducibility)
     cfg = ScratchExperimentConfig
@@ -302,19 +323,33 @@ def _objective_inner(trial: Trial, search_space: dict = None) -> float:
     trial.set_user_attr("n_runs_per_trial", N_RUNS_PER_TRIAL)
 
     # Create config with sampled parameters
-    config = create_config(a_x_scaling, a_d_scaling, b_d_scaling, lora_alpha, transfer_every, desired_bl, lrtt_rank, c_dw_min, c_desired_bl, lifetime, b_lifetime, lrtt_lr, batch_size, transfer_rank_schedule, transfer_ranks_per_step)
+    config = create_config(a_x_scaling, a_d_scaling, b_d_scaling, lora_alpha, transfer_every, desired_bl, lrtt_rank, ab_dw_min, c_dw_min, c_desired_bl, a_lifetime, b_lifetime, lrtt_lr, batch_size, transfer_rank_schedule, transfer_ranks_per_step)
 
     # Run multiple times with different seeds in parallel
     seeds = [42 + run_idx * 100 for run_idx in range(N_RUNS_PER_TRIAL)]
 
     # Use ThreadPoolExecutor for parallel runs within a trial
     losses = []
+    epoch_counts = []
+    completed = 0
     with ThreadPoolExecutor(max_workers=N_RUNS_PER_TRIAL) as executor:
         futures = {executor.submit(run_single_training, config, seed): seed for seed in seeds}
         for future in as_completed(futures):
-            loss = future.result()
+            loss, n_epochs = future.result()
+            completed += 1
+            epoch_counts.append(n_epochs)
             if loss < float('inf') and not np.isnan(loss):
                 losses.append(loss)
+            sys.stderr.write(f"\r  [Trial {trial.number:3d}] Runs: {completed}/{N_RUNS_PER_TRIAL}")
+            sys.stderr.flush()
+    sys.stderr.write("\n")
+    sys.stderr.flush()
+
+    # Record epoch stats
+    if epoch_counts:
+        trial.set_user_attr("avg_epochs", float(np.mean(epoch_counts)))
+        trial.set_user_attr("min_epochs", int(min(epoch_counts)))
+        trial.set_user_attr("max_epochs", int(max(epoch_counts)))
 
     # Final cleanup
     gc.collect()
@@ -387,14 +422,16 @@ def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True,
         print(f"  desired_bl = {FIXED_DESIRED_BL}")
     if 'lrtt_rank' not in search_space:
         print(f"  lrtt_rank = {FIXED_LRTT_RANK}")
+    if 'ab_dw_min' not in search_space:
+        print(f"  ab_dw_min = {FIXED_AB_DW_MIN}")
     if 'c_dw_min' not in search_space:
         print(f"  c_dw_min = {FIXED_C_DW_MIN}")
     if 'c_desired_bl' not in search_space:
         print(f"  c_desired_bl = {FIXED_C_DESIRED_BL}")
-    if 'lifetime' not in search_space:
+    if 'a_lifetime' not in search_space:
         print(f"  a_lifetime = {FIXED_A_LIFETIME_PER_BATCH}")
     if 'b_lifetime' not in search_space:
-        print(f"  b_lifetime = {FIXED_B_LIFETIME_PER_BATCH}")
+        print(f"  b_lifetime = {FIXED_B_LIFETIME_PER_BATCH if FIXED_B_LIFETIME_PER_BATCH is not None else 'same as A'}")
     if 'lrtt_lr' not in search_space:
         print(f"  lrtt_lr = {FIXED_LRTT_LR}")
     if 'batch_size' not in search_space:
@@ -407,19 +444,21 @@ def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True,
     if 'b_d' in search_space:
         print(f"  b_d_scaling:    [{search_space['b_d'][0]}, {search_space['b_d'][1]}]")
     if 'lora_alpha' in search_space:
-        print(f"  lora_alpha:     [{search_space['lora_alpha'][0]}, {search_space['lora_alpha'][1]}]")
+        print(f"  lora_alpha:     [{search_space['lora_alpha'][0]}, {search_space['lora_alpha'][1]}] (log)")
     if 'transfer_every' in search_space:
-        print(f"  transfer_every: [{search_space['transfer_every'][0]}, {search_space['transfer_every'][1]}]")
+        print(f"  transfer_every: [{search_space['transfer_every'][0]}, {search_space['transfer_every'][1]}] (log)")
     if 'desired_bl' in search_space:
         print(f"  desired_bl:     [{search_space['desired_bl'][0]}, {search_space['desired_bl'][1]}]")
     if 'lrtt_rank' in search_space:
-        print(f"  lrtt_rank:      [{search_space['lrtt_rank'][0]}, {search_space['lrtt_rank'][1]}] (log)")
+        print(f"  lrtt_rank:      [{search_space['lrtt_rank'][0]}, {search_space['lrtt_rank'][1]}]")
+    if 'ab_dw_min' in search_space:
+        print(f"  ab_dw_min:      [{search_space['ab_dw_min'][0]}, {search_space['ab_dw_min'][1]}] (log)")
     if 'c_dw_min' in search_space:
         print(f"  c_dw_min:       [{search_space['c_dw_min'][0]}, {search_space['c_dw_min'][1]}] (log)")
     if 'c_desired_bl' in search_space:
         print(f"  c_desired_bl:   [{search_space['c_desired_bl'][0]}, {search_space['c_desired_bl'][1]}]")
-    if 'lifetime' in search_space:
-        print(f"  a_lifetime:     [{search_space['lifetime'][0]}, {search_space['lifetime'][1]}] (log)")
+    if 'a_lifetime' in search_space:
+        print(f"  a_lifetime:     [{search_space['a_lifetime'][0]}, {search_space['a_lifetime'][1]}] (log)")
     if 'b_lifetime' in search_space:
         print(f"  b_lifetime:     [{search_space['b_lifetime'][0]}, {search_space['b_lifetime'][1]}] (log)")
     if 'lrtt_lr' in search_space:
@@ -456,8 +495,8 @@ def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True,
             for key, fmt in [
                 ("a_x_scaling", ".3f"), ("a_d_scaling", ".3f"), ("b_d_scaling", ".3f"),
                 ("lora_alpha", ".2f"), ("transfer_every", "d"), ("desired_bl", "d"),
-                ("lrtt_rank", "d"), ("c_dw_min", ".5f"), ("c_desired_bl", "d"),
-                ("lifetime", ".1f"), ("b_lifetime", ".1f"), ("lrtt_lr", ".5f"),
+                ("lrtt_rank", "d"), ("ab_dw_min", ".5f"), ("c_dw_min", ".5f"), ("c_desired_bl", "d"),
+                ("a_lifetime", ".1f"), ("b_lifetime", ".1f"), ("lrtt_lr", ".5f"),
                 ("batch_size", "d"), ("transfer_ranks_per_step", "d"),
             ]:
                 if key in p:
@@ -465,6 +504,11 @@ def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True,
             if "transfer_rank_schedule" in p:
                 parts.append(f"rank_sched={p['transfer_rank_schedule']},")
             msg = " ".join(parts).rstrip(",")
+
+            # Add epoch info if available
+            avg_ep = trial.user_attrs.get("avg_epochs")
+            if avg_ep is not None:
+                msg += f" | epochs={avg_ep:.0f} ({trial.user_attrs.get('min_epochs', 0)}-{trial.user_attrs.get('max_epochs', 0)})"
 
             # Add best trial info
             best = study.best_trial
@@ -475,12 +519,13 @@ def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True,
             with open(log_file, 'a') as f:
                 f.write(msg + '\n')
                 f.write(best_msg + '\n')
-            # Try to print (may fail with n_jobs > 1)
+            # Print to stderr (immune to suppress_stdout race condition)
             try:
-                print(msg, flush=True)
-                print(best_msg, flush=True)
+                sys.stderr.write(msg + '\n')
+                sys.stderr.write(best_msg + '\n')
+                sys.stderr.flush()
             except (ValueError, OSError):
-                pass  # stdout closed in subprocess
+                pass  # stderr closed in subprocess
 
     # Run optimization
     # n_jobs=n_trials to start all trials at once (semaphore limits actual GPU usage)
@@ -494,7 +539,6 @@ def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True,
     )
 
     # Restore stdout if closed (can happen with tqdm/multiprocessing)
-    import sys
     if sys.stdout.closed:
         sys.stdout = open('/dev/tty', 'w')
 
@@ -515,10 +559,12 @@ def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True,
     print(f"    transfer_every = {study.best_params.get('transfer_every', FIXED_TRANSFER_EVERY)}{'' if 'transfer_every' in study.best_params else ' (fixed)'}")
     print(f"    desired_bl     = {study.best_params.get('desired_bl', FIXED_DESIRED_BL)}{'' if 'desired_bl' in study.best_params else ' (fixed)'}")
     print(f"    lrtt_rank      = {study.best_params.get('lrtt_rank', FIXED_LRTT_RANK)}{'' if 'lrtt_rank' in study.best_params else ' (fixed)'}")
+    print(f"    ab_dw_min      = {study.best_params.get('ab_dw_min', FIXED_AB_DW_MIN):.6f}{'' if 'ab_dw_min' in study.best_params else ' (fixed)'}")
     print(f"    c_dw_min       = {study.best_params.get('c_dw_min', FIXED_C_DW_MIN):.6f}{'' if 'c_dw_min' in study.best_params else ' (fixed)'}")
     print(f"    c_desired_bl   = {study.best_params.get('c_desired_bl', FIXED_C_DESIRED_BL)}{'' if 'c_desired_bl' in study.best_params else ' (fixed)'}")
-    print(f"    a_lifetime     = {study.best_params.get('lifetime', FIXED_A_LIFETIME_PER_BATCH):.4f}{'' if 'lifetime' in study.best_params else ' (fixed)'}")
-    print(f"    b_lifetime     = {study.best_params.get('b_lifetime', FIXED_B_LIFETIME_PER_BATCH):.4f}{'' if 'b_lifetime' in study.best_params else ' (fixed)'}")
+    print(f"    a_lifetime     = {study.best_params.get('a_lifetime', FIXED_A_LIFETIME_PER_BATCH):.4f}{'' if 'a_lifetime' in study.best_params else ' (fixed)'}")
+    _b_life = study.best_params.get('b_lifetime', FIXED_B_LIFETIME_PER_BATCH)
+    print(f"    b_lifetime     = {f'{_b_life:.4f}' if _b_life is not None else 'same as A'}{'' if 'b_lifetime' in study.best_params else ' (fixed)'}")
     print(f"    lrtt_lr        = {study.best_params.get('lrtt_lr', FIXED_LRTT_LR):.6f}{'' if 'lrtt_lr' in study.best_params else ' (fixed)'}")
 
     # Top 5 trials
@@ -542,12 +588,14 @@ def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True,
             parts.append(f"bl={t.params['desired_bl']},")
         if 'lrtt_rank' in t.params:
             parts.append(f"rank={t.params['lrtt_rank']},")
+        if 'ab_dw_min' in t.params:
+            parts.append(f"ab_dw={t.params['ab_dw_min']:.5f},")
         if 'c_dw_min' in t.params:
             parts.append(f"c_dw={t.params['c_dw_min']:.5f},")
         if 'c_desired_bl' in t.params:
             parts.append(f"c_bl={t.params['c_desired_bl']},")
-        if 'lifetime' in t.params:
-            parts.append(f"life={t.params['lifetime']:.1f},")
+        if 'a_lifetime' in t.params:
+            parts.append(f"life={t.params['a_lifetime']:.1f},")
         if 'b_lifetime' in t.params:
             parts.append(f"b_life={t.params['b_lifetime']:.1f},")
         if 'lrtt_lr' in t.params:
@@ -593,10 +641,12 @@ def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True,
     print(f"    lrtt_transfer_every = {study.best_params.get('transfer_every', FIXED_TRANSFER_EVERY)}")
     print(f"    desired_bl = {study.best_params.get('desired_bl', FIXED_DESIRED_BL)}")
     print(f"    lrtt_rank = {study.best_params.get('lrtt_rank', FIXED_LRTT_RANK)}")
+    print(f"    ab_dw_min = {study.best_params.get('ab_dw_min', FIXED_AB_DW_MIN):.6f}")
     print(f"    c_dw_min = {study.best_params.get('c_dw_min', FIXED_C_DW_MIN):.6f}")
     print(f"    c_desired_bl = {study.best_params.get('c_desired_bl', FIXED_C_DESIRED_BL)}")
-    print(f"    a_lifetime = {study.best_params.get('lifetime', FIXED_A_LIFETIME_PER_BATCH):.4f}")
-    print(f"    b_lifetime = {study.best_params.get('b_lifetime', FIXED_B_LIFETIME_PER_BATCH):.4f}")
+    print(f"    a_lifetime = {study.best_params.get('a_lifetime', FIXED_A_LIFETIME_PER_BATCH):.4f}")
+    _b_life2 = study.best_params.get('b_lifetime', FIXED_B_LIFETIME_PER_BATCH)
+    print(f"    b_lifetime = {f'{_b_life2:.4f}' if _b_life2 is not None else 'same as A'}")
     print(f"    lrtt_lr = {study.best_params.get('lrtt_lr', FIXED_LRTT_LR):.6f}")
     print(f"{'='*60}\n")
 

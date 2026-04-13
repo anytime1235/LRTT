@@ -65,7 +65,7 @@ class ScratchExperimentConfig:
 
     # Input data type
     # Options: 'continuous', 'ternary' (0, 0.5, 1), 'binary' (0, 1)
-    input_type = 'continuous'  # Change this to 'ternary' or 'binary' for discrete inputs
+    input_type = 'ternary'  # Change this to 'ternary' or 'binary' for discrete inputs
 
     # Custom input file (CSV format: x1,x2,x3,... per line)
     # If specified, loads inputs from this file instead of generating randomly
@@ -78,7 +78,7 @@ class ScratchExperimentConfig:
 
     # Training hyperparameters - LRTT scratch training
     lrtt_epochs = 2000
-    lrtt_batch_size = 8
+    lrtt_batch_size = 1
     lrtt_patience = 7  # Allow a bit more training than fine-tuning
     lrtt_grad_clip = 2.0  # Conservative clipping
 
@@ -125,6 +125,7 @@ class ScratchExperimentConfig:
     # 'idealized': IdealizedPresetDevice (idealized, noise only)
     # 'floating_point': FloatingPointDevice (idealized, no quantization)
     # 'softbounds': SoftBoundsReferenceDevice (realistic analog with bounds)
+    # 'linearstep': LinearStepDevice (configurable gamma nonlinearity)
     c_device_type = 'softbounds'
 
     # Transfer method for C update
@@ -144,27 +145,41 @@ class ScratchExperimentConfig:
     #   - idealized (IdealizedPresetDevice): 0.0002
     #   - softbounds (SoftBoundsReferenceDevice): 0.001
     #   - floating_point (FloatingPointDevice): N/A (exact, no pulse)
+    ab_up_down = 0.0  # A/B tile up/down asymmetry (0 = symmetric)
+    ab_gamma_up = -0.1678  # A/B tile gamma_up (nonlinearity, from 6T1C fitting)
+    ab_gamma_down = 0.1410  # A/B tile gamma_down (nonlinearity, from 6T1C fitting)
+    ab_dw_min = 0.001981  # A/B tile dw_min (from 6T1C fitting)
     c_w_max = 1.0  # Maximum weight value
     c_w_min = -1.0  # Minimum weight value
     c_dw_min = 0.000804  # 5th best trial (Trial 21) c_dw_min
     c_desired_bl = 10  # Bit length for C transfer (higher for accuracy)
 
-    # SoftBoundsReferenceDevice additional parameters (only used when c_device_type='softbounds')
+    # SoftBoundsReferenceDevice / LinearStepDevice additional parameters
     # Asymmetry
     c_up_down = 0.0  # up/down asymmetry (0 = symmetric)
     c_up_down_dtod = 0.01  # up/down asymmetry dtod variation
+    # Nonlinearity (LinearStepDevice only)
+    c_gamma_up = -0.1678  # C tile gamma_up (default: same as AB)
+    c_gamma_down = 0.1410  # C tile gamma_down (default: same as AB)
 
     # Retention configuration (BATCH 단위, 내부적으로 pulse 단위로 변환됨)
     # create_6t1c_device()에서 batch lifetime → pulse lifetime 변환
     # 트레이닝 루프에서 decay_weights()가 desired_bl번 호출됨
     # (1 - 1/lifetime_pulse)^desired_bl = (1 - 1/lifetime_batch)
     # 예: lifetime=24.89이면 378 batch 후 95% retention
-    lifetime = 24.89  # Batch 단위 lifetime (0 = no decay)
+    lifetime = 24.89  # A tile batch 단위 lifetime (0 = no decay)
+    b_lifetime = None  # B tile lifetime (None = same as lifetime, 0 = no decay)
     include_retention = True  # Enable/disable retention effects
+
+    # I/O configuration
+    is_perfect = True  # True = ideal fp forward/backward (bypass IO noise/quantization)
 
     # Pulse/Update configuration (Hardware-realistic settings)
     desired_bl = 10  # Bit length for A/B updates (pulse train length)
     pulse_type = PulseType.STOCHASTIC_COMPRESSED  # Pulse generation type
+    # Options: NONE (fp update), STOCHASTIC_COMPRESSED (stochastic, single pass),
+    #          STOCHASTIC (two pass, CPU only), NONE_WITH_DEVICE (fp + device effects),
+    #          MEAN_COUNT (prob-based p_a*p_b), DETERMINISTIC_IMPLICIT (deterministic BL*x_q*d_q)
 
     # Manual scaling factors (used when use_manual_scaling=True)
     # x_scaling: applied to input x (B factor in aihwkit)
@@ -201,7 +216,7 @@ class ScratchExperimentConfig:
 # Device Configuration
 # ============================================================================
 
-def create_6t1c_device(lifetime=0, transfer_every=10, include_retention=True, desired_bl=10):
+def create_6t1c_device(lifetime=0, transfer_every=10, include_retention=True, desired_bl=10, dw_min=0.001981, up_down=0.0, gamma_up=-0.1678, gamma_down=0.1410):
     """Create 6T1C device for A/B tiles.
 
     6T1C Device Characteristics:
@@ -241,12 +256,12 @@ def create_6t1c_device(lifetime=0, transfer_every=10, include_retention=True, de
 
     return LinearStepDevice(
         # Core update parameters (fitted from 6T1C data)
-        dw_min=0.001981, #0.001981,
-        up_down=0.0,
+        dw_min=dw_min,
+        up_down=up_down,
         w_max=1.0,
         w_min=-1.0,
-        gamma_up=-0.1678,
-        gamma_down=0.1410,
+        gamma_up=gamma_up,
+        gamma_down=gamma_down,
         mult_noise=True,
 
         # Device-to-device variation
@@ -377,15 +392,31 @@ class LRTTModel(nn.Module):
         from aihwkit.simulator.parameters import WeightNoiseType, BoundManagementType, NoiseManagementType
 
         # Select devices for A/B tiles
+        b_lifetime = config.b_lifetime if config.b_lifetime is not None else config.lifetime
         if config.USE_6T1C_AB:
-            ab_device = create_6t1c_device(
+            a_device = create_6t1c_device(
                 lifetime=config.lifetime,
                 transfer_every=config.lrtt_transfer_every,
                 include_retention=config.include_retention,
-                desired_bl=config.desired_bl
+                desired_bl=config.desired_bl,
+                dw_min=config.ab_dw_min,
+                up_down=config.ab_up_down,
+                gamma_up=config.ab_gamma_up,
+                gamma_down=config.ab_gamma_down
+            )
+            b_device = create_6t1c_device(
+                lifetime=b_lifetime,
+                transfer_every=config.lrtt_transfer_every,
+                include_retention=config.include_retention,
+                desired_bl=config.desired_bl,
+                dw_min=config.ab_dw_min,
+                up_down=config.ab_up_down,
+                gamma_up=config.ab_gamma_up,
+                gamma_down=config.ab_gamma_down
             )
         else:
-            ab_device = IdealizedPresetDevice()
+            a_device = IdealizedPresetDevice()
+            b_device = IdealizedPresetDevice()
             print("Using IdealizedPresetDevice for A/B matrices")
 
         # Create C device based on configuration
@@ -416,6 +447,30 @@ class LRTTModel(nn.Module):
             print(f"Using SoftBoundsReferenceDevice for C matrix:")
             print(f"  Bounds: w_min={config.c_w_min}, w_max={config.c_w_max}, dw_min={config.c_dw_min}")
             print(f"  Asymmetry: up_down={config.c_up_down}, up_down_dtod={config.c_up_down_dtod}")
+        elif config.c_device_type == 'linearstep':
+            c_device = LinearStepDevice(
+                dw_min=config.c_dw_min,
+                up_down=config.c_up_down,
+                w_max=config.c_w_max,
+                w_min=config.c_w_min,
+                gamma_up=config.c_gamma_up,
+                gamma_down=config.c_gamma_down,
+                mult_noise=True,
+                # Device-to-device variation
+                dw_min_dtod=0.1,
+                up_down_dtod=config.c_up_down_dtod,
+                w_max_dtod=0.0,
+                w_min_dtod=0.0,
+                gamma_up_dtod=0.05,
+                gamma_down_dtod=0.05,
+                # Cycle-to-cycle variation
+                dw_min_std=0.3,
+                write_noise_std=0.0,
+            )
+            print(f"Using LinearStepDevice for C matrix:")
+            print(f"  Bounds: w_min={config.c_w_min}, w_max={config.c_w_max}, dw_min={config.c_dw_min}")
+            print(f"  Gamma: up={config.c_gamma_up}, down={config.c_gamma_down}")
+            print(f"  Asymmetry: up_down={config.c_up_down}")
         elif config.c_device_type == 'floating_point':
             c_device = FloatingPointDevice()
             print("Using FloatingPointDevice for C matrix (idealized, no quantization)")
@@ -441,8 +496,8 @@ class LRTTModel(nn.Module):
             transfer_micro_steps=1,  # Microsteps for smoother transfer (1=off)
             differential_read=False,  # Use +e/-e differential read
             unit_cell_devices=[
-                ab_device,  # A matrix
-                ab_device,  # B matrix
+                a_device,  # A matrix
+                b_device,  # B matrix
                 c_device,   # C matrix
             ],
             # Separate A/B tile scaling factors
@@ -468,21 +523,24 @@ class LRTTModel(nn.Module):
         device_config.transfer_lr = device_config.lora_alpha
 
         # I/O configuration
-        forward_io = IOParameters(
-            inp_res=0.007937,
-            inp_bound=1.0,
-            out_res=0.001961,
-            out_bound=12.0,
-            out_noise=0.06
-        )
-
-        backward_io = IOParameters(
-            inp_res=0.007937,
-            inp_bound=1.0,
-            out_res=0.001961,
-            out_bound=12.0,
-            out_noise=0.06
-        )
+        if config.is_perfect:
+            forward_io = IOParameters(is_perfect=True)
+            backward_io = IOParameters(is_perfect=True)
+        else:
+            forward_io = IOParameters(
+                inp_res=0.007937,
+                inp_bound=1.0,
+                out_res=0.001961,
+                out_bound=12.0,
+                out_noise=0.06
+            )
+            backward_io = IOParameters(
+                inp_res=0.007937,
+                inp_bound=1.0,
+                out_res=0.001961,
+                out_bound=12.0,
+                out_noise=0.06
+            )
 
         mapping = MappingParameter(
             learn_out_scaling=False,  # Disable automatic output scaling
@@ -1618,7 +1676,8 @@ def run_multi_param_experiments(param_configs: list,
                     'transfer_every': config.lrtt_transfer_every,
                     'lora_alpha': config.lora_alpha,
                     'use_6t1c_ab': config.USE_6T1C_AB,
-                    'lifetime': config.lifetime if config.USE_6T1C_AB else None,
+                    'a_lifetime': config.lifetime if config.USE_6T1C_AB else None,
+                    'b_lifetime': (config.b_lifetime if config.b_lifetime is not None else config.lifetime) if config.USE_6T1C_AB else None,
                     'include_retention': config.include_retention if config.USE_6T1C_AB else None,
                 },
                 reinit=True
@@ -1635,8 +1694,8 @@ def run_multi_param_experiments(param_configs: list,
             config, train_loader, val_loader, seed=seed, use_wandb=use_wandb
         )
 
-        # Evaluate
-        test_ds = generate_target_dataset(complexity_level, config, train=False, seed=seed+1000)
+        # Evaluate (same seed as training to use same target matrix)
+        test_ds = generate_target_dataset(complexity_level, config, train=False, seed=seed)
         test_loader = DataLoader(test_ds, batch_size=len(test_ds), shuffle=False)
         X_test, Y_test = next(iter(test_loader))
         X_test, Y_test = X_test.to(DEVICE), Y_test.to(DEVICE)
@@ -1649,16 +1708,34 @@ def run_multi_param_experiments(param_configs: list,
             ss_tot = ((Y_test - Y_test.mean()) ** 2).sum().item()
             r2 = 1 - ss_res / ss_tot if ss_tot > 0 else 0
 
+        # Strip training_history to keep only fields needed for plotting
+        # PCA trajectory: C_matrix, is_transfer
+        # Combined norms: step, A_norm, B_norm, C_norm, delta_W_norm
+        _keep_keys = {'step', 'epoch', 'batch_idx', 'batch_loss', 'is_transfer',
+                       'A_norm', 'B_norm', 'C_norm', 'delta_W_norm', 'C_matrix'}
+        training_history_slim = [
+            {k: v for k, v in h.items() if k in _keep_keys}
+            for h in training_history
+        ]
+        del training_history
+
         all_results[label] = {
-            'training_history': training_history,
+            'training_history': training_history_slim,
             'epoch_history': epoch_history,
             'final_mse': mse,
             'final_r2': r2,
-            'config': {k: v for k, v in param_config.items() if k != 'label'}
+            'config': {k: getattr(config, k) for k in dir(config) if not k.startswith('_') and not callable(getattr(config, k))}
         }
-        trajectories[label] = training_history
+        trajectories[label] = training_history_slim
 
         print(f"  Final MSE: {mse:.6f}, R²: {r2:.4f}")
+
+        # Free model and CUDA memory before next experiment
+        del model
+        import gc
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
         # Finish wandb run for this experiment
         if use_wandb:
@@ -1669,6 +1746,13 @@ def run_multi_param_experiments(param_configs: list,
             wandb.summary['final_mse'] = mse
             wandb.summary['final_r2'] = r2
             wandb.finish()
+
+    # Save raw data (training_history, epoch_history, config per experiment)
+    import pickle
+    raw_data_path = os.path.join(base_config.results_dir, f"raw_data_{complexity_level}_seed{seed}_{timestamp}.pkl")
+    with open(raw_data_path, 'wb') as f:
+        pickle.dump(all_results, f)
+    print(f"\nRaw data saved to: {raw_data_path}")
 
     # Generate combined plots
     print(f"\n{'='*60}")
@@ -1692,13 +1776,13 @@ def run_multi_param_experiments(param_configs: list,
         grid_resolution=80
     )
 
-    plot_learning_trajectories_pca_3d(
-        trajectories=trajectories,
-        target_matrix=target_matrix,
-        config=base_config,
-        train_dataset=train_dataset,
-        grid_resolution=50
-    )
+    # plot_learning_trajectories_pca_3d(
+    #     trajectories=trajectories,
+    #     target_matrix=target_matrix,
+    #     config=base_config,
+    #     train_dataset=train_dataset,
+    #     grid_resolution=50
+    # )
 
     # Print summary
     print(f"\n{'='*60}")
@@ -1839,6 +1923,7 @@ def plot_learning_trajectories_pca(trajectories: dict,
                                     config: ScratchExperimentConfig,
                                     train_dataset: TensorDataset,
                                     save_path: str = None,
+                                    zoom_target: float = None,
                                     grid_resolution: int = 80,
                                     margin: float = 0.3) -> str:
     """Plot loss surface in PCA space with multiple learning trajectories.
@@ -1935,13 +2020,17 @@ def plot_learning_trajectories_pca(trajectories: dict,
     except:
         pass  # If convex hull fails, use all vertices
 
-    # Use zonotope bounds for grid (to cover entire valid region)
-    x_min, x_max = vertices[:, 0].min(), vertices[:, 0].max()
-    y_min, y_max = vertices[:, 1].min(), vertices[:, 1].max()
+    # Use trajectory bounds for grid (zoom into relevant region)
+    traj_only = all_C_2d[:target_idx]  # exclude target from grid computation
+    all_pts = np.vstack([traj_only, target_2d.reshape(1, -1)])
+    x_min_t, x_max_t = all_pts[:, 0].min(), all_pts[:, 0].max()
+    y_min_t, y_max_t = all_pts[:, 1].min(), all_pts[:, 1].max()
+    grid_margin_x = (x_max_t - x_min_t) * 0.2
+    grid_margin_y = (y_max_t - y_min_t) * 0.2
 
-    # Create 2D grid in PCA space (covering the entire valid region)
-    x_grid = np.linspace(x_min, x_max, grid_resolution)
-    y_grid = np.linspace(y_min, y_max, grid_resolution)
+    # Create 2D grid in PCA space (covering trajectory region with margin)
+    x_grid = np.linspace(x_min_t - grid_margin_x, x_max_t + grid_margin_x, grid_resolution)
+    y_grid = np.linspace(y_min_t - grid_margin_y, y_max_t + grid_margin_y, grid_resolution)
     X_grid, Y_grid = np.meshgrid(x_grid, y_grid)
 
     # Get training data
@@ -1950,16 +2039,20 @@ def plot_learning_trajectories_pca(trajectories: dict,
     X_train, Y_train = X_train.to(DEVICE), Y_train.to(DEVICE)
 
     # Compute loss surface: for each 2D point, reconstruct C matrix and compute loss
+    # Use target T' as the base for reconstruction so that target = loss minimum.
+    # C(a,b) = T' + (a - a_target)*PC1 + (b - b_target)*PC2
+    # This ensures the remaining 79 dimensions match T' exactly.
     print(f"Computing loss surface in PCA space ({grid_resolution}x{grid_resolution})...")
     Z = np.zeros_like(X_grid)
 
+    pc1 = pca.components_[0]  # (81,)
+    pc2 = pca.components_[1]  # (81,)
+
     for i in range(grid_resolution):
         for j in range(grid_resolution):
-            # Point in 2D PCA space
-            point_2d = np.array([[X_grid[i, j], Y_grid[i, j]]])
-
-            # Inverse transform to get C matrix (approximate)
-            C_flat = pca.inverse_transform(point_2d)[0]
+            da = X_grid[i, j] - target_2d[0]
+            db = Y_grid[i, j] - target_2d[1]
+            C_flat = target_flat + da * pc1 + db * pc2
             C_matrix = torch.tensor(C_flat.reshape(config.output_dim, config.input_dim),
                                    dtype=torch.float32)
 
@@ -1967,86 +2060,88 @@ def plot_learning_trajectories_pca(trajectories: dict,
             Y_pred = X_train @ C_matrix.T.to(DEVICE)
             Z[i, j] = F.mse_loss(Y_pred, Y_train).item()
 
-    # Create figure (publication-quality settings)
+    # Set axis limits based on trajectories (zoom in) with target included
+    traj_points = all_C_2d[:target_idx]
+    all_points = np.vstack([traj_points, target_2d.reshape(1, -1)])
+    if zoom_target is not None:
+        # Zoom into target neighborhood: zoom_target = half-width of view
+        xlim = (target_2d[0] - zoom_target, target_2d[0] + zoom_target)
+        ylim = (target_2d[1] - zoom_target, target_2d[1] + zoom_target)
+    else:
+        x_min, x_max = all_points[:, 0].min(), all_points[:, 0].max()
+        y_min, y_max = all_points[:, 1].min(), all_points[:, 1].max()
+        margin_x = (x_max - x_min) * 0.15
+        margin_y = (y_max - y_min) * 0.15
+        xlim = (x_min - margin_x, x_max + margin_x)
+        ylim = (y_min - margin_y, y_max + margin_y)
+
+    # Create figure
     fig, ax = plt.subplots(figsize=(10, 8))
     plt.rcParams.update({'font.size': 11, 'axes.labelsize': 13, 'axes.titlesize': 14})
 
-    # Plot loss surface as contour
+    from matplotlib.patches import Polygon
+    from matplotlib.ticker import LogLocator
+
+    # Plot loss surface: filled contour with muted colors
     Z_safe = np.clip(Z, 1e-8, None)
-    levels = np.logspace(np.log10(Z_safe.min()), np.log10(Z_safe.max()), 40)
-    contour = ax.contourf(X_grid, Y_grid, Z_safe, levels=levels, cmap='viridis',
+    levels = np.logspace(np.log10(Z_safe.min()), np.log10(Z_safe.max()), 30)
+    contour = ax.contourf(X_grid, Y_grid, Z_safe, levels=levels, cmap='viridis', alpha=0.35,
                           norm=plt.matplotlib.colors.LogNorm())
+    # Subtle contour lines
+    contour_lines = ax.contour(X_grid, Y_grid, Z_safe, levels=levels[::3],
+                               colors='gray', alpha=0.3, linewidths=0.4)
 
-    # Clip contour to valid region using Path
-    from matplotlib.path import Path
-    from matplotlib.patches import PathPatch, Polygon
-    from matplotlib.ticker import FormatStrFormatter, LogLocator
-
-    zonotope_path = Path(vertices)
-    clip_patch = PathPatch(zonotope_path, transform=ax.transData)
-
-    # Apply clip path to contour (matplotlib 3.8+ API)
-    contour.set_clip_path(clip_patch)
-
-    # Colorbar with log10 values (matching 3D style)
+    # Colorbar
     cbar = plt.colorbar(contour, ax=ax)
     cbar.set_label('log₁₀(MSE)', fontsize=12)
-    # Set ticks at powers of 10 and format as log10 values
     cbar.ax.yaxis.set_major_locator(LogLocator(base=10, numticks=8))
     cbar.ax.yaxis.set_major_formatter(lambda x, pos: f'{np.log10(x):.0f}' if x > 0 else '')
 
-    # Also clip the contour lines
-    contour_lines = ax.contour(X_grid, Y_grid, Z_safe, levels=levels[::4], colors='white', alpha=0.3, linewidths=0.5)
-    contour_lines.set_clip_path(clip_patch)
-
-    # Draw valid region boundary
-    zonotope_patch = Polygon(vertices, fill=False, edgecolor='red', linewidth=2.5,
-                             linestyle='--', label='Valid region (C∈[-1,1])')
+    # Draw valid region boundary (may be partially outside view)
+    zonotope_patch = Polygon(vertices, fill=False, edgecolor='gray', linewidth=1.5,
+                             linestyle='--', alpha=0.5, label='Valid region (C∈[-1,1])')
     ax.add_patch(zonotope_patch)
 
-    # Set axis limits to fit the zonotope with small margin
-    x_min, x_max = vertices[:, 0].min(), vertices[:, 0].max()
-    y_min, y_max = vertices[:, 1].min(), vertices[:, 1].max()
-    margin_x = (x_max - x_min) * 0.05
-    margin_y = (y_max - y_min) * 0.05
-    ax.set_xlim(x_min - margin_x, x_max + margin_x)
-    ax.set_ylim(y_min - margin_y, y_max + margin_y)
+    # Apply axis limits BEFORE drawing trajectories (clips contours to axes)
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
 
-    # Generate distinct colors for each trajectory using colormap
+    # Generate distinct colors for each trajectory
     n_trajectories = len(trajectory_indices)
-    cmap = plt.cm.get_cmap('tab20', n_trajectories)
-    colors = [cmap(i) for i in range(n_trajectories)]
+    traj_colors = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00', '#a65628'][:n_trajectories]
 
     for i, (label, (start, end)) in enumerate(trajectory_indices.items()):
-        color = colors[i]
+        color = traj_colors[i % len(traj_colors)]
         traj_2d = all_C_2d[start:end]
         traj_transfers = all_is_transfer[start:end]
 
-        # Plot trajectory line (thinner)
-        ax.plot(traj_2d[:, 0], traj_2d[:, 1], '-', color=color, linewidth=0.6, alpha=0.7, label=label)
+        # Plot trajectory line
+        ax.plot(traj_2d[:, 0], traj_2d[:, 1], '-', color=color, linewidth=1.2, alpha=0.85, label=label)
 
-        # Mark transfer points with dots (on top of line)
-        transfer_mask = traj_transfers.astype(bool)
-        if transfer_mask.any():
-            ax.scatter(traj_2d[transfer_mask, 0], traj_2d[transfer_mask, 1],
-                      color=color, s=12, marker='o', edgecolors='white', linewidths=0.2, alpha=1.0, zorder=7)
+        # Mark transfer points (all transfers, capped at 5000 for SVG size)
+        transfer_idx = np.where(traj_transfers.astype(bool))[0]
+        if len(transfer_idx) > 0:
+            if len(transfer_idx) > 5000:
+                transfer_idx = transfer_idx[::len(transfer_idx) // 5000]
+            ax.scatter(traj_2d[transfer_idx, 0], traj_2d[transfer_idx, 1],
+                       color=color, s=12, marker='o', alpha=0.6, edgecolors='black',
+                       linewidths=0.2, zorder=4)
 
         # Mark start point (circle)
-        ax.scatter(traj_2d[0, 0], traj_2d[0, 1], color=color, s=40, marker='o',
-                   edgecolors='black', linewidths=0.6, zorder=5)
+        ax.scatter(traj_2d[0, 0], traj_2d[0, 1], color=color, s=50, marker='o',
+                   edgecolors='black', linewidths=0.8, zorder=5)
         # Mark end point (star)
-        ax.scatter(traj_2d[-1, 0], traj_2d[-1, 1], color=color, s=80, marker='*',
-                   edgecolors='black', linewidths=0.6, zorder=6)
+        ax.scatter(traj_2d[-1, 0], traj_2d[-1, 1], color=color, s=100, marker='*',
+                   edgecolors='black', linewidths=0.8, zorder=6)
 
-    # Plot target (smaller marker)
-    ax.scatter(target_2d[0], target_2d[1], c='yellow', s=80, marker='X',
+    # Plot target
+    ax.scatter(target_2d[0], target_2d[1], c='yellow', s=100, marker='X',
                edgecolors='black', linewidths=1.5, zorder=10, label='Target')
 
     ax.set_xlabel(f'PC1 ({pca.explained_variance_ratio_[0]*100:.1f}%)', fontsize=13)
     ax.set_ylabel(f'PC2 ({pca.explained_variance_ratio_[1]*100:.1f}%)', fontsize=13)
     ax.set_title('Loss Surface with Learning Trajectories (PCA)', fontsize=14, fontweight='bold')
     leg = ax.legend(loc='upper right', fontsize=9, framealpha=0.9)
-    # Make legend lines thicker
     for line in leg.get_lines():
         line.set_linewidth(3.0)
 
@@ -2407,7 +2502,8 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
             'b_init_mode',
             'reinit_mode',
             'use_6t1c',
-            'lifetime',
+            'a_lifetime',
+            'b_lifetime',
             'include_retention',
             'desired_bl',
             'dw_min',
@@ -2459,6 +2555,7 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
             config.reinit_mode,
             config.USE_6T1C_AB,
             config.lifetime if config.USE_6T1C_AB else None,
+            (config.b_lifetime if config.b_lifetime is not None else config.lifetime) if config.USE_6T1C_AB else None,
             config.include_retention if config.USE_6T1C_AB else None,
             config.desired_bl,
             0.02,  # dw_min from LinearStepDevice
@@ -2505,7 +2602,8 @@ def save_experiment_details_to_excel(config: ScratchExperimentConfig,
             'B (up-proj) init mode (zero/kaiming)',
             'Reinit mode (standard/decay/orthogonal_zero/orthogonal_decay/...)',
             'Use 6T1C device for A/B matrices',
-            'Batch lifetime for retention decay',
+            'A tile batch lifetime for retention decay',
+            'B tile batch lifetime for retention decay',
             'Include retention effects',
             'Bit length (pulse train length) for A/B',
             'Minimum weight update step for A/B',
@@ -2739,7 +2837,8 @@ def run_scratch_experiment(config: ScratchExperimentConfig, complexity_level: st
     print(f"Running SCRATCH experiment with seed={seed}, complexity_level={complexity_level}")
     print(f"REINIT CONFIG: mode={config.reinit_mode}")
     if config.USE_6T1C_AB and config.include_retention:
-        print(f"DEVICE CONFIG: 6T1C_AB=True, lifetime={config.lifetime} batches")
+        _b_life = config.b_lifetime if config.b_lifetime is not None else config.lifetime
+        print(f"DEVICE CONFIG: 6T1C_AB=True, a_lifetime={config.lifetime} b_lifetime={_b_life} batches")
     else:
         print(f"DEVICE CONFIG: 6T1C_AB={config.USE_6T1C_AB}, retention={'OFF' if not config.include_retention else 'N/A'}")
     if config.quantize_x or config.quantize_d:
@@ -2763,7 +2862,8 @@ def run_scratch_experiment(config: ScratchExperimentConfig, complexity_level: st
                 'transfer_every': config.lrtt_transfer_every,
                 'lora_alpha': config.lora_alpha,
                 'use_6t1c_ab': config.USE_6T1C_AB,
-                'lifetime': config.lifetime if config.USE_6T1C_AB else None,
+                'a_lifetime': config.lifetime if config.USE_6T1C_AB else None,
+                'b_lifetime': (config.b_lifetime if config.b_lifetime is not None else config.lifetime) if config.USE_6T1C_AB else None,
                 'include_retention': config.include_retention if config.USE_6T1C_AB else None,
                 'quantize_x': config.quantize_x,
                 'quantize_d': config.quantize_d,
@@ -2943,39 +3043,71 @@ if __name__ == "__main__":
     config = ScratchExperimentConfig()
 
     if config.save_figures:
-        # Multi-param experiments with combined plots
-        # Define parameter configurations to compare (modify here!)
-        param_configs = [
-            {'label': 'r=1', 'lrtt_transfer_every': 864, 'lrtt_rank' : 1, 'lora_alpha': 16.81, 'c_dw_min' : 0.00116, 'lifetime' : 68.1, 'lrtt_lr': 0.1052},
-            {'label': 'r=2', 'lrtt_transfer_every': 592, 'lrtt_rank' : 2, 'lora_alpha': 9.87, 'c_dw_min' : 0.000576, 'lifetime' : 15039841, 'lrtt_lr': 0.0621},
-            {'label': 'r=3', 'lrtt_transfer_every': 656, 'lrtt_rank' : 3, 'lora_alpha': 12.21, 'c_dw_min' : 0.000500, 'lifetime' : 42721, 'lrtt_lr': 0.1204},
-            {'label': 'r=4', 'lrtt_transfer_every': 928, 'lrtt_rank' : 4, 'lora_alpha': 12.89, 'c_dw_min' : 0.000804, 'lifetime' : 199.1, 'lrtt_lr': 0.1008},
+        # ============================================================
+        # HW-realistic test: best ideal params + stochastic pulse + onehot + 6T1C + softbounds
+        # Base: Trial 164 (te=100, rank=4, alpha=0.43, lr=0.00879)
+        # ============================================================
+        _hw = {
+            'lrtt_transfer_every': 100,
+            'lrtt_rank': 4,
+            'lora_alpha': 0.43,
+            'lrtt_lr': 0.00879,
+            'lrtt_epochs': 2000,
+            'is_perfect': False,
+            'pulse_type': PulseType.STOCHASTIC_COMPRESSED,
+            'transfer_method': 'onehot',
+            'USE_6T1C_AB': True,
+            'c_device_type': 'linearstep',
+            'include_retention': True,
+            'lifetime': 0, 'b_lifetime': 0,
+        }
 
-            #{'label': 't=408', 'lrtt_transfer_every': 408, 'lora_alpha': 5.07, 'c_dw_min' : 0.000615, 'lifetime' : 8893, 'lrtt_lr': 0.0650},
-            #{'label': 't=592', 'lrtt_transfer_every': 592, 'lora_alpha': 10.56, 'c_dw_min' : 0.00171, 'lifetime' : 4015848, 'lrtt_lr': 0.0105},
-            #{'label': 't=704', 'lrtt_transfer_every': 704, 'lora_alpha': 18.60, 'c_dw_min' : 0.000478, 'lifetime' : 86936, 'lrtt_lr': 0.0488},
-            #{'label': 't=1000', 'lrtt_transfer_every': 1000, 'lora_alpha': 20.47, 'c_dw_min' : 0.00110, 'lifetime' : 997760, 'lrtt_lr': 0.00267},
-            #{'label': 't=1 (set)', 'lrtt_transfer_every': 1, 'transfer_method': 'set',
-            # 'a_x_scaling': 0.255, 'a_d_scaling': 0.574, 'b_d_scaling': 0.331,
-            # 'lora_alpha': 0.10, 'desired_bl': 4},
-            #{'label': 't=1 (bl10dw0.001)', 'lrtt_transfer_every': 1, 'transfer_method': 'onehot',
-            # 'c_desired_bl': 10, 'c_dw_min': 0.001,
-            # 'a_x_scaling': 0.255, 'a_d_scaling': 0.574, 'b_d_scaling': 0.331,
-            # 'lora_alpha': 0.10, 'desired_bl': 4},
-            #{'label': 't=1 (bl10dw0.01)', 'lrtt_transfer_every': 1, 'transfer_method': 'onehot',
-            # 'c_desired_bl': 10, 'c_dw_min': 0.01,
-            # 'a_x_scaling': 0.255, 'a_d_scaling': 0.574, 'b_d_scaling': 0.331,
-            # 'lora_alpha': 0.10, 'desired_bl': 4},
-            #{'label': 't=1 (bl10dw0.1)', 'lrtt_transfer_every': 1, 'transfer_method': 'onehot',
-            # 'c_desired_bl': 10, 'c_dw_min': 0.1,
-            # 'a_x_scaling': 0.255, 'a_d_scaling': 0.574, 'b_d_scaling': 0.331,
-            # 'lora_alpha': 0.10, 'desired_bl': 4},
-            # Add more configurations as needed:
-            #{'label': 't=10', 'lrtt_transfer_every': 10, ...},
-            #{'label': 't=100', 'lrtt_transfer_every': 100, ...},
+        # Default gamma (from 6T1C fitting)
+        _g0 = {'ab_gamma_up': -0.1678, 'ab_gamma_down': 0.1410,
+                'c_gamma_up': -0.1678, 'c_gamma_down': 0.1410}
+
+        # ============================================================
+        # Plot A: C gamma (nonlinearity) sweep — AB gamma fixed at default
+        # gamma sign: negative=potentiation slope, positive=depression slope
+        # ============================================================
+        c_gamma_configs = [
+            {'label': 'C γ=default', **_g0, **_hw},
+            {'label': 'C γ=1.0', 'ab_gamma_up': -0.1678, 'ab_gamma_down': 0.1410,
+             'c_gamma_up': -1.0, 'c_gamma_down': 1.0, **_hw},
+            {'label': 'C γ=2.0', 'ab_gamma_up': -0.1678, 'ab_gamma_down': 0.1410,
+             'c_gamma_up': -2.0, 'c_gamma_down': 2.0, **_hw},
+            {'label': 'C γ=5.0', 'ab_gamma_up': -0.1678, 'ab_gamma_down': 0.1410,
+             'c_gamma_up': -5.0, 'c_gamma_down': 5.0, **_hw},
         ]
+
+        print("\n" + "#"*60)
+        print("# Plot A: C array gamma (nonlinearity) sweep")
+        print("#"*60)
         run_multi_param_experiments(
-            param_configs=param_configs,
+            param_configs=c_gamma_configs,
+            complexity_level='medium',
+            seed=config.primary_seed,
+            use_wandb=not args.no_wandb
+        )
+
+        # ============================================================
+        # Plot B: AB gamma (nonlinearity) sweep — C gamma fixed at default
+        # ============================================================
+        ab_gamma_configs = [
+            {'label': 'AB γ=default', **_g0, **_hw},
+            {'label': 'AB γ=1.0', 'c_gamma_up': -0.1678, 'c_gamma_down': 0.1410,
+             'ab_gamma_up': -1.0, 'ab_gamma_down': 1.0, **_hw},
+            {'label': 'AB γ=2.0', 'c_gamma_up': -0.1678, 'c_gamma_down': 0.1410,
+             'ab_gamma_up': -2.0, 'ab_gamma_down': 2.0, **_hw},
+            {'label': 'AB γ=5.0', 'c_gamma_up': -0.1678, 'c_gamma_down': 0.1410,
+             'ab_gamma_up': -5.0, 'ab_gamma_down': 5.0, **_hw},
+        ]
+
+        print("\n" + "#"*60)
+        print("# Plot B: AB array gamma (nonlinearity) sweep")
+        print("#"*60)
+        run_multi_param_experiments(
+            param_configs=ab_gamma_configs,
             complexity_level='medium',
             seed=config.primary_seed,
             use_wandb=not args.no_wandb
