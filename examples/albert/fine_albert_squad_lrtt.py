@@ -1164,7 +1164,7 @@ def _compute_multi_mean(multi_logs):
 
 def _effective_rank(M):
     """Compute effective rank = exp(entropy of normalized singular values)."""
-    s = torch.linalg.svdvals(M.float())
+    s = torch.linalg.svdvals(M.float().cuda())
     s = s[s > 1e-10]
     if len(s) == 0:
         return 0.0
