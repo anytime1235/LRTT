@@ -1,0 +1,545 @@
+{
+  "fast_slow_tile_bit_sweep": {
+    "title": "Tile Weight Bit Sweep \u2014 Fixed Condition (12bit-optimized T249 params, constantstep6t1cgamma gamma=1)",
+    "xlabel": "Weight Bits",
+    "lines": [
+      {
+        "label": "Slow tile (C) sweep (A/B=12b fixed)",
+        "bits": [
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13
+        ],
+        "f1": [
+          80.33,
+          80.78,
+          83.31,
+          83.47,
+          83.12,
+          83.3,
+          83.33,
+          83.6
+        ],
+        "color": "#4C72B0",
+        "marker": "o"
+      },
+      {
+        "label": "Fast tile (A/B) sweep (C=10b fixed)",
+        "bits": [
+          4,
+          6,
+          8,
+          10,
+          12,
+          14,
+          16,
+          18
+        ],
+        "f1": [
+          6.96,
+          6.35,
+          74.48,
+          83.21,
+          83.51,
+          7.89,
+          6.93,
+          6.51
+        ],
+        "color": "#C44E52",
+        "marker": "s"
+      }
+    ],
+    "source": {
+      "base": "T249 params (rank=32, abml=12, decay, onehot, constantstep6t1cgamma gamma=1, F1=83.51)",
+      "slow_sweep": {
+        "ab_bits": "12b fixed",
+        "c_bits_range": "6b-13b"
+      },
+      "fast_sweep": {
+        "c_bits": "10b fixed",
+        "ab_bits_range": "4b-18b"
+      }
+    },
+    "description": "All bit levels share the same hyperparameters optimized at 12bit (T249: lr=0.0038, tlr=0.095, te=1, flr=0.474). Only ab_dw_min varies to change bit resolution."
+  },
+  "noise_ratio_sweep": {
+    "title": "Noise Ratio Sweep: F1 vs Noise Ratio",
+    "xlabel": "Noise Ratio",
+    "ylabel": "F1",
+    "data": [
+      {
+        "noise_ratio": 0.0,
+        "f1": 84.06,
+        "source": "qkvo_T249"
+      },
+      {
+        "noise_ratio": 0.1,
+        "f1": 83.76
+      },
+      {
+        "noise_ratio": 0.3,
+        "f1": 84.2
+      },
+      {
+        "noise_ratio": 0.5,
+        "f1": 82.9
+      },
+      {
+        "noise_ratio": 0.7,
+        "f1": 80.74
+      },
+      {
+        "noise_ratio": 1.0,
+        "f1": 78.12
+      }
+    ],
+    "source": {
+      "base": "T249 (rank=32, F1=84.06)",
+      "timestamp": "20260416_154800"
+    }
+  },
+  "asymmetry_ratio_sweep": {
+    "title": "Asymmetry Ratio Sweep: F1 vs Gamma Ratio",
+    "xlabel": "Gamma Ratio",
+    "ylabel": "F1",
+    "data": [
+      {
+        "gamma_ratio": 0.0,
+        "f1": 7.27
+      },
+      {
+        "gamma_ratio": 0.5,
+        "f1": 7.27
+      },
+      {
+        "gamma_ratio": 1.0,
+        "f1": 84.06,
+        "source": "qkvo_T249"
+      },
+      {
+        "gamma_ratio": 2.0,
+        "f1": 82.11
+      },
+      {
+        "gamma_ratio": 3.0,
+        "f1": 81.43
+      },
+      {
+        "gamma_ratio": 5.0,
+        "f1": 80.26
+      },
+      {
+        "gamma_ratio": 10.0,
+        "f1": 79.37
+      }
+    ],
+    "source": {
+      "base": "T249 (rank=32, F1=84.06)",
+      "timestamp": "20260416_154800"
+    }
+  },
+  "gamma_wmax_2d_sweep": {
+    "title": "Gamma Ratio \u00d7 w_max 2D Sweep (T249 base, fixed bit count)",
+    "xlabel": "Gamma Ratio",
+    "ylabel": "w_max",
+    "f1_label": "F1",
+    "gamma_ratios": [
+      0.0,
+      0.5,
+      1.0,
+      2.0,
+      5.0
+    ],
+    "w_max_targets": [
+      0.0312,
+      0.0624,
+      0.125,
+      0.25,
+      0.5,
+      1.0
+    ],
+    "abml_fixed": 12,
+    "data": [
+      {
+        "gamma_ratio": 0.0,
+        "w_max": 0.0312,
+        "abml": 12,
+        "ab_dw_min": 1.5234375e-05,
+        "gamma_up": -0.0,
+        "gamma_down": 0.0,
+        "f1": 67.0,
+        "exit_code": 0
+      },
+      {
+        "gamma_ratio": 0.0,
+        "w_max": 0.0624,
+        "abml": 12,
+        "ab_dw_min": 3.046875e-05,
+        "gamma_up": -0.0,
+        "gamma_down": 0.0,
+        "f1": 10.56,
+        "exit_code": 0
+      },
+      {
+        "gamma_ratio": 0.0,
+        "w_max": 0.125,
+        "abml": 12,
+        "ab_dw_min": 6.103515625e-05,
+        "gamma_up": -0.0,
+        "gamma_down": 0.0,
+        "f1": 7.27,
+        "exit_code": 0
+      },
+      {
+        "gamma_ratio": 0.0,
+        "w_max": 0.25,
+        "abml": 12,
+        "ab_dw_min": 0.0001220703125,
+        "gamma_up": -0.0,
+        "gamma_down": 0.0,
+        "f1": 7.27,
+        "exit_code": 0
+      },
+      {
+        "gamma_ratio": 0.0,
+        "w_max": 0.5,
+        "abml": 12,
+        "ab_dw_min": 0.000244140625,
+        "gamma_up": -0.0,
+        "gamma_down": 0.0,
+        "f1": 7.3,
+        "exit_code": 0
+      },
+      {
+        "gamma_ratio": 0.0,
+        "w_max": 1.0,
+        "abml": 12,
+        "ab_dw_min": 0.00048828125,
+        "gamma_up": -0.0,
+        "gamma_down": 0.0,
+        "f1": 7.36,
+        "exit_code": 0
+      },
+      {
+        "gamma_ratio": 0.5,
+        "w_max": 0.0312,
+        "abml": 12,
+        "ab_dw_min": 1.5234375e-05,
+        "gamma_up": -0.0839,
+        "gamma_down": 0.0705,
+        "f1": 68.25,
+        "exit_code": 0
+      },
+      {
+        "gamma_ratio": 0.5,
+        "w_max": 0.0624,
+        "abml": 12,
+        "ab_dw_min": 3.046875e-05,
+        "gamma_up": -0.0839,
+        "gamma_down": 0.0705,
+        "f1": 70.82,
+        "exit_code": 0
+      },
+      {
+        "gamma_ratio": 0.5,
+        "w_max": 0.125,
+        "abml": 12,
+        "ab_dw_min": 6.103515625e-05,
+        "gamma_up": -0.0839,
+        "gamma_down": 0.0705,
+        "f1": 70.97,
+        "exit_code": 0
+      },
+      {
+        "gamma_ratio": 0.5,
+        "w_max": 0.25,
+        "abml": 12,
+        "ab_dw_min": 0.0001220703125,
+        "gamma_up": -0.0839,
+        "gamma_down": 0.0705,
+        "f1": 7.27,
+        "exit_code": 0
+      },
+      {
+        "gamma_ratio": 0.5,
+        "w_max": 0.5,
+        "abml": 12,
+        "ab_dw_min": 0.000244140625,
+        "gamma_up": -0.0839,
+        "gamma_down": 0.0705,
+        "f1": 7.27,
+        "exit_code": 0
+      },
+      {
+        "gamma_ratio": 0.5,
+        "w_max": 1.0,
+        "abml": 12,
+        "ab_dw_min": 0.00048828125,
+        "gamma_up": -0.0839,
+        "gamma_down": 0.0705,
+        "f1": 7.66,
+        "exit_code": 0
+      },
+      {
+        "gamma_ratio": 1.0,
+        "w_max": 0.0312,
+        "abml": 12,
+        "ab_dw_min": 1.5234375e-05,
+        "gamma_up": -0.1678,
+        "gamma_down": 0.141,
+        "f1": 72.23,
+        "exit_code": 0
+      },
+      {
+        "gamma_ratio": 1.0,
+        "w_max": 0.0624,
+        "abml": 12,
+        "ab_dw_min": 3.046875e-05,
+        "gamma_up": -0.1678,
+        "gamma_down": 0.141,
+        "f1": 61.22,
+        "exit_code": 0
+      },
+      {
+        "gamma_ratio": 1.0,
+        "w_max": 0.125,
+        "abml": 12,
+        "ab_dw_min": 6.103515625e-05,
+        "gamma_up": -0.1678,
+        "gamma_down": 0.141,
+        "f1": 73.24,
+        "exit_code": 0
+      },
+      {
+        "gamma_ratio": 1.0,
+        "w_max": 0.25,
+        "abml": 12,
+        "ab_dw_min": 0.0001220703125,
+        "gamma_up": -0.1678,
+        "gamma_down": 0.141,
+        "f1": 70.01,
+        "exit_code": 0
+      },
+      {
+        "gamma_ratio": 1.0,
+        "w_max": 0.5,
+        "abml": 12,
+        "ab_dw_min": 0.000244140625,
+        "gamma_up": -0.1678,
+        "gamma_down": 0.141,
+        "f1": 78.37,
+        "exit_code": 0
+      },
+      {
+        "gamma_ratio": 1.0,
+        "w_max": 1.0,
+        "abml": 12,
+        "ab_dw_min": 0.0004883,
+        "gamma_up": -0.1678,
+        "gamma_down": 0.141,
+        "f1": 84.06,
+        "exit_code": 0,
+        "source": "qkvo_T249"
+      },
+      {
+        "gamma_ratio": 2.0,
+        "w_max": 0.0312,
+        "abml": 12,
+        "ab_dw_min": 1.5234375e-05,
+        "gamma_up": -0.3356,
+        "gamma_down": 0.282,
+        "f1": 77.69,
+        "exit_code": 0
+      },
+      {
+        "gamma_ratio": 2.0,
+        "w_max": 0.0624,
+        "abml": 12,
+        "ab_dw_min": 3.046875e-05,
+        "gamma_up": -0.3356,
+        "gamma_down": 0.282,
+        "f1": 75.17,
+        "exit_code": 0
+      },
+      {
+        "gamma_ratio": 2.0,
+        "w_max": 0.125,
+        "abml": 12,
+        "ab_dw_min": 6.103515625e-05,
+        "gamma_up": -0.3356,
+        "gamma_down": 0.282,
+        "f1": 78.83,
+        "exit_code": 0
+      },
+      {
+        "gamma_ratio": 2.0,
+        "w_max": 0.25,
+        "abml": 12,
+        "ab_dw_min": 0.0001220703125,
+        "gamma_up": -0.3356,
+        "gamma_down": 0.282,
+        "f1": 79.77,
+        "exit_code": 0
+      },
+      {
+        "gamma_ratio": 2.0,
+        "w_max": 0.5,
+        "abml": 12,
+        "ab_dw_min": 0.000244140625,
+        "gamma_up": -0.3356,
+        "gamma_down": 0.282,
+        "f1": 80.8,
+        "exit_code": 0
+      },
+      {
+        "gamma_ratio": 2.0,
+        "w_max": 1.0,
+        "abml": 12,
+        "ab_dw_min": 0.00048828125,
+        "gamma_up": -0.3356,
+        "gamma_down": 0.282,
+        "f1": 82.25,
+        "exit_code": 0
+      },
+      {
+        "gamma_ratio": 5.0,
+        "w_max": 0.0312,
+        "abml": 12,
+        "ab_dw_min": 1.5234375e-05,
+        "gamma_up": -0.839,
+        "gamma_down": 0.705,
+        "f1": 78.49,
+        "exit_code": 0
+      },
+      {
+        "gamma_ratio": 5.0,
+        "w_max": 0.0624,
+        "abml": 12,
+        "ab_dw_min": 3.046875e-05,
+        "gamma_up": -0.839,
+        "gamma_down": 0.705,
+        "f1": 78.36,
+        "exit_code": 0
+      },
+      {
+        "gamma_ratio": 5.0,
+        "w_max": 0.125,
+        "abml": 12,
+        "ab_dw_min": 6.103515625e-05,
+        "gamma_up": -0.839,
+        "gamma_down": 0.705,
+        "f1": 78.42,
+        "exit_code": 0
+      },
+      {
+        "gamma_ratio": 5.0,
+        "w_max": 0.25,
+        "abml": 12,
+        "ab_dw_min": 0.0001220703125,
+        "gamma_up": -0.839,
+        "gamma_down": 0.705,
+        "f1": 78.77,
+        "exit_code": 0
+      },
+      {
+        "gamma_ratio": 5.0,
+        "w_max": 0.5,
+        "abml": 12,
+        "ab_dw_min": 0.000244140625,
+        "gamma_up": -0.839,
+        "gamma_down": 0.705,
+        "f1": 79.13,
+        "exit_code": 0
+      },
+      {
+        "gamma_ratio": 5.0,
+        "w_max": 1.0,
+        "abml": 12,
+        "ab_dw_min": 0.00048828125,
+        "gamma_up": -0.839,
+        "gamma_down": 0.705,
+        "f1": 80.35,
+        "exit_code": 0
+      }
+    ],
+    "source": {
+      "base": "T249 (rank=32, F1=84.06)",
+      "timestamp": "20260416_220600"
+    }
+  },
+  "fast_tile_bit_sweep_optimized": {
+    "title": "A/B Bit Sweep \u2014 Per-Bit Optimized (constantstep6t1cgamma, rank=32, C=10b)",
+    "xlabel": "A/B Weight Bits",
+    "ylabel": "F1",
+    "description": "Each bit independently optimized for lr, tlr, te, fast_lr. Unlike the fixed-condition sweep, each point uses its own best hyperparameters.",
+    "data": [
+      {
+        "bits": 6,
+        "f1": 78.31,
+        "best_params": {
+          "lr": 0.0038,
+          "tlr": 0.095,
+          "te": 50,
+          "flr": 0.003,
+          "ab_dw_min": 0.03125
+        }
+      },
+      {
+        "bits": 8,
+        "f1": 79.31,
+        "best_params": {
+          "lr": 0.0038,
+          "tlr": 0.095,
+          "te": 15,
+          "flr": 0.02,
+          "ab_dw_min": 0.0078125
+        }
+      },
+      {
+        "bits": 10,
+        "f1": 83.29,
+        "best_params": {
+          "lr": 0.0038,
+          "tlr": 0.05,
+          "te": 1,
+          "flr": 0.474,
+          "ab_dw_min": 0.001953125
+        }
+      },
+      {
+        "bits": 12,
+        "f1": 84.49,
+        "best_params": {
+          "lr": 0.0038,
+          "tlr": 0.095,
+          "te": 1,
+          "flr": 0.4,
+          "ab_dw_min": 0.0004882812
+        }
+      },
+      {
+        "bits": 14,
+        "f1": 84.42,
+        "best_params": {
+          "lr": 0.0033,
+          "tlr": 0.25,
+          "te": 1,
+          "flr": 0.15,
+          "ab_dw_min": 0.0001220703
+        }
+      }
+    ],
+    "fixed": {
+      "rank": 32,
+      "c_dw_min": 0.001953,
+      "ab_multilevel": "None (w_max=1.0)",
+      "device": "constantstep6t1cgamma"
+    },
+    "source": "optuna study: constantstep6t1cgamma qkvo, per-bit enqueue optimization"
+  }
+}

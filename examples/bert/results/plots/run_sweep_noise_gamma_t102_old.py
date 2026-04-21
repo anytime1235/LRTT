@@ -1,5 +1,17 @@
 #!/usr/bin/env python3
-"""Noise ratio & Gamma ratio sweep based on T102 (rank=32, F1=83.66).
+"""[OLD/DEPRECATED] Noise ratio & Gamma ratio sweep based on T102 (rank=32, F1=83.66).
+
+⚠️  THIS IS THE OLD VERSION (T102 base, abml=11, constantstepideal).
+    For new experiments, use run_sweep_noise_gamma_t249.py
+    (T249 base, no abml, constantstep6t1cgamma device, F1=84.06).
+
+    Differences:
+      - Old (T102):  abml=11, AB device = linearstepideal (gamma=0 baseline)
+                     noise sweep scales BOTH noise AND gamma together
+      - New (T249):  no abml, AB device = constantstep6t1cgamma (gamma=1.0 baseline)
+                     noise sweep keeps gamma fixed at 1.0, only noise scales
+
+    Old results saved as summary_data_constantstepideal.json (already plotted).
 
 Generates patched copies of fine_bert_squad_lrtt.py and runs them sequentially.
 Each run produces F1; results are saved to a JSON file for plotting.
