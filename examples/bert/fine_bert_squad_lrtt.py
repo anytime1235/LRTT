@@ -105,7 +105,7 @@ N_EPOCHS = 5  # diagnostic 5 epochs
 SCHEDULE_EPOCHS = 5  # LR schedule horizon (set > N_EPOCHS to match longer runs)
 BATCH_SIZE = 48
 EVAL_BATCH_SIZE = 256
-LEARNING_RATE = 0.003955963313199295  # onehot new T10
+LEARNING_RATE = 0.00328  # T267 (abml qkvo, constantstepideal, F1=84.98)
 WEIGHT_DECAY = 0.0
 EARLY_STOP_PATIENCE = 2
 TRAIN_LOSS_EARLY_STOP_PATIENCE = 1  # Stop if train loss doesn't improve for this many epochs
@@ -120,19 +120,19 @@ OPTIMIZER = "AnalogAdam"  # "AnalogSGD" or "AnalogAdam"
 
 # LRTT parameters
 LRTT_RANK = 32  # rank_exp=5 → 2^5=32
-TRANSFER_EVERY = 412  # onehot new T10
-TRANSFER_LR = 3690.254224629752  # onehot new T10
-FAST_LR = 0.09204971995939443  # onehot new T10
+TRANSFER_EVERY = 2  # T267
+TRANSFER_LR = 0.25  # T267
+FAST_LR = 0.3  # T267
 AUTO_SCALE_MODE = "none"  # Auto-scale mode: "none", "shared", or "separate"
 CORRECT_GRADIENT_MAGNITUDES = False  # Correct transfer magnitude by dividing by effective A/B LR
-REINIT_MODE = "hybrid"
+REINIT_MODE = "decay"
 REINIT_GAIN = 1.0
 TRANSFER_METHOD = "onehot"  # "onehot", "direct", or "set"
-C_DW_MIN = 0.001953         # C tile dw_min (onehot trial 133)
+C_DW_MIN = 0.001953         # C tile dw_min (10bit)
 C_DESIRED_BL = 31           # C tile desired_bl (relevant for onehot/direct transfer)
-AB_DW_MIN = 3.906e-06  # A/B tile dw_min
+AB_DW_MIN = 0.0001210937  # A/B tile dw_min (T267, abml=10, w_max=0.0624)
 AB_DESIRED_BL = 31          # A/B tile desired_bl
-AB_MULTILEVEL = None        # If int, w_max-w_min = 2^multilevel * AB_DW_MIN (symmetric); B init scales accordingly. None = w_max=1.0
+AB_MULTILEVEL = 10        # T267: w_max = 2^10 * 1.2109e-4 / 2 = 0.0624
 
 # Device selection
 AB_DEVICE = "constantstepideal"  # "6t1c", "linearstep", "linearstepideal", "constantstep", "constantstepideal", "constantstep6t1cgamma", "fp", "ideal"
@@ -140,8 +140,8 @@ C_DEVICE = "constantstepideal"   # "softboundsideal", "linearstepideal", "consta
 
 # IO / noise options
 IO_NOISE = True             # If False, disable out_noise (resolution kept)
-FORWARD_INJECT = True       # If True, enable forward noise injection
-FI_CONTINUOUS_ALPHA = True  # If True, use continuous alpha for forward injection
+FORWARD_INJECT = False       # If True, enable forward noise injection
+FI_CONTINUOUS_ALPHA = False  # If True, use continuous alpha for forward injection
 IS_PERFECT = True           # If True, forward/backward use ideal FP matmul (no ADC/DAC/noise)
 NO_QUANT = False            # If True, disable DAC/ADC quantization (inp_res/out_res → -1)
 OUT_NOISE = 0.0             # Forward out_noise value
@@ -193,6 +193,8 @@ LORA_TARGET_MODULES = {
 # Diagnostic
 ENABLE_DIAGNOSTIC = True   # False = no diagnostic overhead, fast training
 DIAG_EPOCHS = 5            # 0 = all epochs, N = first N epochs only
+MULTI_TILE_DIAG = True     # If False, skip L0/L6/L11 × qkvo multi-tile diagnostic (saves SVD time)
+ERANK_RATE_LIMIT_STEPS = 0 # If >0, compute erank only at transfer events AND with ≥N step gap (saves SVD time). 0 = every step
 
 # Data subset sizes (0 = use full dataset)
 TRAIN_SUBSET_SIZE = 0
@@ -1082,7 +1084,7 @@ def snapshot_weights(tile):
 def collect_tile_diagnostics(tile, C_prev_raw, A_before, B_before, C_before,
                              C_raw_before, step, prev_num_transfers,
                              A_ci, B_ci, C_ci, A_pre_transfer=None,
-                             C_initial_eff=None):
+                             C_initial_eff=None, compute_erank=True):
     controller = tile.controller
     A = A_pre_transfer if A_pre_transfer is not None else tile.tile_a.get_weights()[0]
     B = tile.tile_b.get_weights()[0]
@@ -1128,9 +1130,13 @@ def collect_tile_diagnostics(tile, C_prev_raw, A_before, B_before, C_before,
         "delta_A": delta_A, "delta_B": delta_B, "delta_C_raw": delta_C_raw_step,
         "transfer_counter": controller.transfer_counter,
         "num_transfers": num_transfers, "is_transfer": is_transfer,
-        "erank_C": _effective_rank(C_eff),
-        "erank_C_delta": _effective_rank(C_eff - C_initial_eff) if C_initial_eff is not None else 0.0,
     }
+    if compute_erank:
+        record["erank_C"] = _effective_rank(C_eff)
+        record["erank_C_delta"] = _effective_rank(C_eff - C_initial_eff) if C_initial_eff is not None else 0.0
+    else:
+        record["erank_C"] = None
+        record["erank_C_delta"] = None
     return record, C_raw.clone().detach(), num_transfers
 
 
@@ -1150,8 +1156,9 @@ def _compute_multi_mean(multi_logs):
     for i in range(n_steps):
         rec = {"step": multi_logs[keys_with_data[0]][i]["step"]}
         for f in fields:
-            vals = [multi_logs[k][i].get(f, 0) for k in keys_with_data]
-            rec[f] = sum(vals) / len(vals)
+            vals = [multi_logs[k][i].get(f) for k in keys_with_data
+                    if multi_logs[k][i].get(f) is not None]
+            rec[f] = (sum(vals) / len(vals)) if vals else None
         mean_log.append(rec)
     return mean_log
 
@@ -1255,12 +1262,16 @@ def make_diagnostic_plots(log_data, output_path, tile_label="",
     ax.set_title("C weight min/max (raw=red, eff=purple)")
     ax.legend(fontsize=6, ncol=2); ax.grid(True, alpha=0.3)
 
-    # (1,1) Effective rank
-    erank_C = [r.get("erank_C", 0) for r in log_data]
-    erank_C_delta = [r.get("erank_C_delta", 0) for r in log_data]
+    # (1,1) Effective rank (filter None entries from rate-limiting)
+    er_steps = [r["step"] for r in log_data if r.get("erank_C") is not None]
+    erank_C = [r["erank_C"] for r in log_data if r.get("erank_C") is not None]
+    erd_steps = [r["step"] for r in log_data if r.get("erank_C_delta") is not None]
+    erank_C_delta = [r["erank_C_delta"] for r in log_data if r.get("erank_C_delta") is not None]
     ax = axes[1, 1]
-    ax.plot(steps, erank_C, label="erank(C)", color="green", alpha=0.8, linewidth=1.0)
-    ax.plot(steps, erank_C_delta, label="erank(C - C_init)", color="blue", alpha=0.8, linewidth=1.0)
+    if er_steps:
+        ax.plot(er_steps, erank_C, label="erank(C)", color="green", alpha=0.8, linewidth=1.0, marker='.', markersize=3)
+    if erd_steps:
+        ax.plot(erd_steps, erank_C_delta, label="erank(C - C_init)", color="blue", alpha=0.8, linewidth=1.0, marker='.', markersize=3)
     tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("Effective rank")
     ax.set_title("Effective rank of C and C delta")
     ax.legend(fontsize=7); ax.grid(True, alpha=0.3)
@@ -1437,19 +1448,22 @@ def make_multi_tile_plots(multi_logs, mean_log, output_path):
     for idx, (field, title) in enumerate(metrics):
         ax = axes[idx // 2, idx % 2]
 
-        # Plot each tile
+        # Plot each tile (filter None for rate-limited erank fields)
         for i, k in enumerate(tile_keys):
             steps_data = multi_logs[k]
             if not steps_data:
                 continue
-            steps = [s["step"] for s in steps_data]
-            vals = [s.get(field, 0) for s in steps_data]
-            ax.plot(steps, vals, color=colors[i], alpha=0.4, linewidth=0.7, label=k)
+            pairs = [(s["step"], s.get(field)) for s in steps_data if s.get(field) is not None]
+            if not pairs:
+                continue
+            steps_v, vals_v = zip(*pairs)
+            ax.plot(steps_v, vals_v, color=colors[i], alpha=0.4, linewidth=0.7, label=k)
 
-        # Plot mean
-        steps = [s["step"] for s in mean_log]
-        vals = [s.get(field, 0) for s in mean_log]
-        ax.plot(steps, vals, color="black", linewidth=2.0, label="mean")
+        # Plot mean (filter None)
+        mpairs = [(s["step"], s.get(field)) for s in mean_log if s.get(field) is not None]
+        if mpairs:
+            steps_v, vals_v = zip(*mpairs)
+            ax.plot(steps_v, vals_v, color="black", linewidth=2.0, label="mean")
 
         ax.set_xlabel("Step")
         ax.set_ylabel(title)
@@ -1582,6 +1596,10 @@ def main():
         first_tile.controller.enable_diagnostics = True
         last_tile.controller.enable_diagnostics = True
 
+        # Rate-limit erank computation for first/last tile (gated by ERANK_RATE_LIMIT_STEPS)
+        first_last_erank_step = -10**9
+        last_last_erank_step = -10**9
+
         A_shape = tuple(first_tile.tile_a.get_weights()[0].shape)
         B_shape = tuple(first_tile.tile_b.get_weights()[0].shape)
         C_shape = tuple(first_tile.tile_c.get_weights()[0].shape)
@@ -1597,10 +1615,15 @@ def main():
         print(f"Diag tile (last):  {last_name}")
         print(f"Diag epochs: {'all' if DIAG_EPOCHS == 0 else f'first {DIAG_EPOCHS}'}")
 
-        # Multi-tile tracking: layer 0, 6, 11 × qkvo
-        multi_tiles = find_target_lrtt_tiles(model)
+        # Multi-tile tracking: layer 0, 6, 11 × qkvo (controlled by MULTI_TILE_DIAG)
+        if MULTI_TILE_DIAG:
+            multi_tiles = find_target_lrtt_tiles(model)
+        else:
+            multi_tiles = {}
+            print(f"  Multi-tile diagnostic: DISABLED")
         multi_logs = {k: [] for k in multi_tiles}
         multi_C_initial = {}
+        multi_last_erank_step = {k: -10**9 for k in multi_tiles}
         for k, (tname, tmod) in multi_tiles.items():
             multi_C_initial[k] = tmod.tile_c.get_weights()[0].clone().detach()
             tmod.controller.enable_diagnostics = True
@@ -1608,6 +1631,8 @@ def main():
 
         def _collect_multi_tile_metrics(step):
             """Collect lightweight metrics for all tracked tiles."""
+            if not multi_tiles:
+                return
             for k, (tname, tmod) in multi_tiles.items():
                 A = tmod.tile_a.get_weights()[0]
                 B = tmod.tile_b.get_weights()[0]
@@ -1620,12 +1645,12 @@ def main():
                     "norm_B": torch.norm(B).item(),
                     "norm_C_raw": torch.norm(C_raw).item(),
                     "norm_AB": torch.norm(A @ B).item(),
+                    "mean_A": A.mean().item(), "mean_B": B.mean().item(),
+                    "mean_C_raw": C_raw.mean().item(), "mean_C_eff": C_eff.mean().item(),
                     "A_eff_min": A.min().item(), "A_eff_max": A.max().item(),
                     "B_eff_min": B.min().item(), "B_eff_max": B.max().item(),
                     "C_eff_min": C_eff.min().item(), "C_eff_max": C_eff.max().item(),
                     "C_raw_min": C_raw.min().item(), "C_raw_max": C_raw.max().item(),
-                    "erank_C": _effective_rank(C_eff),
-                    "erank_C_delta": _effective_rank(C_eff - multi_C_initial[k]),
                     "num_transfers": ctrl.num_transfers,
                     "is_transfer": False,  # updated below
                 }
@@ -1922,16 +1947,31 @@ def main():
                     ]:
                         A_bef, B_bef, C_bef, Craw_bef = snap
                         A_pre = gcd.pop('_A_pre_transfer', None)
+                        # Rate-limited erank: compute only on transfer events with min step gap
                         if prev_state == "first":
+                            _is_xfer = tile.controller.num_transfers > first_prev_nt
+                            _do_erank = (ERANK_RATE_LIMIT_STEPS <= 0) or (
+                                _is_xfer and (global_step - first_last_erank_step) >= ERANK_RATE_LIMIT_STEPS
+                            )
+                            if _do_erank:
+                                first_last_erank_step = global_step
                             rec, first_C_prev_raw, first_prev_nt = collect_tile_diagnostics(
                                 tile, first_C_prev_raw, A_bef, B_bef, C_bef, Craw_bef,
                                 global_step, first_prev_nt, A_CI, B_CI, C_CI,
-                                A_pre_transfer=A_pre, C_initial_eff=first_C_initial_eff)
+                                A_pre_transfer=A_pre, C_initial_eff=first_C_initial_eff,
+                                compute_erank=_do_erank)
                         else:
+                            _is_xfer = tile.controller.num_transfers > last_prev_nt
+                            _do_erank = (ERANK_RATE_LIMIT_STEPS <= 0) or (
+                                _is_xfer and (global_step - last_last_erank_step) >= ERANK_RATE_LIMIT_STEPS
+                            )
+                            if _do_erank:
+                                last_last_erank_step = global_step
                             rec, last_C_prev_raw, last_prev_nt = collect_tile_diagnostics(
                                 tile, last_C_prev_raw, A_bef, B_bef, C_bef, Craw_bef,
                                 global_step, last_prev_nt, A_CI, B_CI, C_CI,
-                                A_pre_transfer=A_pre, C_initial_eff=last_C_initial_eff)
+                                A_pre_transfer=A_pre, C_initial_eff=last_C_initial_eff,
+                                compute_erank=_do_erank)
                         rec["loss"] = loss.item() * GRAD_ACCUM_STEPS
                         rec["norm_G_accum"] = gcd.get('norm_G_accum', 0.0)
                         rec["norm_AB_pre"] = gcd.get('norm_AB_pre', 0.0)
