@@ -551,8 +551,8 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981, multilevel=None):
     return LinearStepDevice(
         dw_min=dw_min,
         up_down=0.0,
-        w_max=1.0,
-        w_min=-1.0,
+        w_max=w_max,
+        w_min=w_min,
         gamma_up=-0.1678,
         gamma_down=0.1410,
         mult_noise=False,

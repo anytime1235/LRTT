@@ -481,8 +481,8 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981, multilevel=None):
     return LinearStepDevice(
         dw_min=dw_min,
         up_down=0.0,
-        w_max=1.0,
-        w_min=-1.0,
+        w_max=w_max,
+        w_min=w_min,
         gamma_up=-0.1678,
         gamma_down=0.1410,
         mult_noise=False,
@@ -1265,12 +1265,12 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
 
     # A/B device params
-    ab_dw_min = trial.suggest_float('ab_dw_min',8e-8, 6e-3, log=True)  # default: 6t1c value
+    ab_dw_min = trial.suggest_float('ab_dw_min', 8e-8, 6e-3, log=True)  # default: 6t1c value
     ab_desired_bl = trial.suggest_int('ab_desired_bl', 31, 31)        # default: 31
     # ab_multilevel: w_max-w_min = 2^multilevel * ab_dw_min (symmetric).
     # When enabled, B init also scales accordingly. Default: disabled (w_max=1.0).
     if OPT_CONFIG.get('ab_multilevel', False):
-        ab_multilevel = trial.suggest_int('ab_multilevel', 7, 14)
+        ab_multilevel = trial.suggest_int('ab_multilevel', 12, 12)
     else:
         ab_multilevel = None
 
