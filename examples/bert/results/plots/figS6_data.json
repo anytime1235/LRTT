@@ -1,0 +1,67 @@
+{
+  "figure": "S6",
+  "title": "A/B (auxiliary) tile bit sweep — AF ratio = 1 (6T1C-gamma), per-bit optimized",
+  "model": "BERT-base-uncased",
+  "task": "SQuAD v1.1",
+  "method": "LR-TT",
+  "target_layers": "QKVO",
+  "device_condition": "AF ratio = 1 (constantstep6t1cgamma)",
+  "optimization": "per-bit optimized via Optuna (each bit independently optimized for lr, tlr, te, flr)",
+  "common_params": {
+    "rank": 32,
+    "c_dw_min": 0.001953,
+    "c_bits": 10,
+    "ab_multilevel": false,
+    "w_max": 1.0,
+    "n_epochs": 5,
+    "batch_size": 48,
+    "optimizer": "AnalogAdam",
+    "transfer_method": "onehot"
+  },
+  "dw_min_formula": "ab_dw_min = 2 / 2^bits (w_max = 1.0)",
+  "data": [
+    {
+      "bits": 6,
+      "f1": 78.00,
+      "trial": "T588",
+      "trials_run": 12,
+      "ab_dw_min": 0.03125,
+      "best_params": {"lr": 0.0038, "tlr": 0.095, "te": 50, "flr": 0.003}
+    },
+    {
+      "bits": 8,
+      "f1": 75.88,
+      "trial": "T600",
+      "trials_run": 9,
+      "ab_dw_min": 0.0078125,
+      "best_params": {"lr": 0.0038, "tlr": 0.095, "te": 1, "flr": 0.003},
+      "note": "optimization still in progress"
+    },
+    {
+      "bits": 10,
+      "f1": 83.21,
+      "trial": "T419",
+      "trials_run": 1,
+      "ab_dw_min": 0.001953125,
+      "best_params": {"lr": 0.0038, "tlr": 0.095, "te": 1, "flr": 0.474},
+      "note": "only 1 trial — may improve with further optimization"
+    },
+    {
+      "bits": 12,
+      "f1": 84.06,
+      "trial": "T249",
+      "trials_run": 92,
+      "ab_dw_min": 0.000488281,
+      "best_params": {"lr": 0.0038, "tlr": 0.095, "te": 1, "flr": 0.474}
+    },
+    {
+      "bits": 14,
+      "f1": 83.63,
+      "trial": "T31",
+      "trials_run": 10,
+      "ab_dw_min": 0.000122070,
+      "best_params": {"lr": 0.0033, "tlr": 0.25, "te": 2, "flr": 0.116}
+    }
+  ],
+  "source_study": "optuna_bert_squad_lrtt_bs48_adam_decay_nowd_nomom_nonest_onehot_constantstep6t1cgamma_cconstantstepideal_perfect_noos_qkvo_5ep"
+}

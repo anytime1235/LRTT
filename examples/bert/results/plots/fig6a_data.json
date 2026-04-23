@@ -1,0 +1,80 @@
+{
+  "figure": "6(a)",
+  "title": "F1 comparison across training methods and LoRA targets",
+  "model": "BERT-base-uncased",
+  "task": "SQuAD v1.1",
+  "targets": ["QKVO", "FFN", "ALL"],
+  "methods": {
+    "Digital training": {
+      "description": "Standard digital fine-tuning (full-precision, GPU-based, full-rank)",
+      "data": {"QKVO": 88.07, "FFN": 86.64, "ALL": 87.43},
+      "conditions": {
+        "QKVO": {"best_lr": 1.51e-4, "complete": 9, "pruned": 9, "running": 4},
+        "FFN": {"best_lr": 1.58e-4, "complete": 5, "pruned": 3, "running": 1},
+        "ALL": {"best_lr": 5.61e-5, "complete": 5, "pruned": 0, "running": 1}
+      },
+      "note": "Optimization still in progress — values may be updated"
+    },
+    "Digital LoRA": {
+      "description": "Digital LoRA fine-tuning (full-precision, GPU-based, low-rank adaptation, rank=32)",
+      "data": {"QKVO": 88.12, "FFN": 87.21, "ALL": 88.26},
+      "conditions": {
+        "QKVO": {"best_lr": 3.05e-4, "note": "1-shot (single best lr)"},
+        "FFN": {"best_lr": 4.20e-4, "note": "1-shot (single best lr)"},
+        "ALL": {"best_lr": 4.20e-4, "note": "1-shot (single best lr)"}
+      }
+    },
+    "Tiki-Taka": {
+      "description": "Original Tiki-Taka analog training algorithm",
+      "data": {"QKVO": null, "FFN": null, "ALL": null},
+      "note": "To be filled with experimental results"
+    },
+    "LR-TT": {
+      "description": "Low-Rank Tiki-Taka with constantstepideal AB tiles",
+      "data": {"QKVO": 84.98, "FFN": 84.12, "ALL": 85.22},
+      "conditions": {
+        "QKVO": {
+          "study": "BERT_SQUAD_LRTT_FINE",
+          "trial": "T267",
+          "target": "qkvo (query, key, value, attention.output)",
+          "rank": 32,
+          "transfer_method": "onehot",
+          "ab_device": "constantstepideal",
+          "ab_multilevel": true,
+          "ab_multilevel_count": 10,
+          "n_epochs": 5,
+          "learning_rate": 0.003277,
+          "transfer_lr": 0.25,
+          "scale_transfer_lr": true,
+          "flr": 0.3,
+          "ab_dw_min": 1.2109e-4,
+          "w_max": 0.0624,
+          "c_device": "constantstep",
+          "c_bits": 10
+        },
+        "FFN": {
+          "study": "BERT_SQUAD_LRTT_FINE_constantstep6t1cgamma_ffn",
+          "target": "ffn (intermediate.dense, output.dense)",
+          "note": "Best trial from FFN-targeted optuna study",
+          "rank": 32,
+          "transfer_method": "onehot",
+          "ab_device": "constantstepideal",
+          "ab_multilevel": true,
+          "c_device": "constantstep",
+          "c_bits": 10
+        },
+        "ALL": {
+          "study": "BERT_SQUAD_LRTT_FINE_constantstep6t1cgamma_all",
+          "target": "all (qkvo + ffn)",
+          "note": "Best trial from ALL-targeted optuna study",
+          "rank": 32,
+          "transfer_method": "onehot",
+          "ab_device": "constantstepideal",
+          "ab_multilevel": true,
+          "c_device": "constantstep",
+          "c_bits": 10
+        }
+      }
+    }
+  }
+}

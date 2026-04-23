@@ -1,0 +1,64 @@
+{
+  "figure": "S8",
+  "title": "Cosine similarity — Layer 0, query (supplementary)",
+  "model": "BERT-base-uncased",
+  "task": "SQuAD v1.1",
+  "method": "LR-TT",
+  "diagnostic_source": "squad_diagnostic_log_te2_r32_onehot.json",
+  "condition": {
+    "study": "BERT_SQUAD_LRTT_FINE",
+    "trial": "T267 (constantstepideal baseline)",
+    "rank": 32,
+    "transfer_method": "onehot",
+    "ab_device": "constantstepideal",
+    "ab_multilevel": true,
+    "ab_multilevel_count": 10,
+    "n_epochs": 5,
+    "learning_rate": 0.003277,
+    "transfer_lr": 0.25,
+    "scale_transfer_lr": true,
+    "effective_transfer_lr": 0.000819,
+    "flr": 0.3,
+    "ab_dw_min": 1.2109e-4,
+    "w_max": 0.0624,
+    "c_device": "constantstep",
+    "c_bits": 10
+  },
+  "tile": {
+    "key": "first_tile",
+    "layer": "Layer 0, query projection",
+    "code_tile_name": "first_tile (encoder.layer.0.attention.self.query)"
+  },
+  "metrics_plotted": [
+    {
+      "name": "cos(τ·AB, -G)",
+      "description": "Cosine similarity between analog tile product τ·AB and negative gradient -G. Scale-invariant (same as cos(AB,-G)). Positive values indicate alignment with descent direction.",
+      "source_field": "-cos_AB_G (sign-flipped to show alignment with -G)",
+      "sampling": "every training step",
+      "moving_average_window": 200,
+      "color": "#2ca02c"
+    },
+    {
+      "name": "cos(ΔC, τ·AB)",
+      "description": "Cosine similarity between actual C tile update ΔC and intended transfer τ·AB. Measures fidelity of analog transfer under quantization.",
+      "source_field": "cos_dC_tlrAB",
+      "sampling": "transfer steps only",
+      "moving_average_window": 200,
+      "color": "#9467bd"
+    },
+    {
+      "name": "Training loss",
+      "description": "Cross-entropy training loss",
+      "source_field": "loss",
+      "sampling": "every training step",
+      "moving_average_window": 200,
+      "color": "gray",
+      "axis": "secondary (right y-axis)"
+    }
+  ],
+  "visualization": {
+    "raw_scatter_alpha": 0.06,
+    "moving_average_window": 200,
+    "figsize": [5.0, 3.2]
+  }
+}

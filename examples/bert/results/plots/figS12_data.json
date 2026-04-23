@@ -1,0 +1,37 @@
+{
+  "figure": "S12",
+  "title": "Effective rank — full comparison (first/last tile × erank(C)/erank(ΔC))",
+  "model": "BERT-base-uncased",
+  "task": "SQuAD v1.1",
+  "method": "LR-TT",
+  "target_layers": "QKVO",
+  "tiles_plotted": [
+    {"key": "first_tile", "label": "Layer 0, query"},
+    {"key": "last_tile", "label": "Layer 11, attention output"}
+  ],
+  "metrics": [
+    "erank(C): effective rank of full weight matrix C",
+    "erank(C - C_init): effective rank of weight change from initialization"
+  ],
+  "condition": {
+    "ab_device": "constantstepideal",
+    "ab_multilevel": true,
+    "ab_multilevel_count": 10,
+    "ab_dw_min": 1.211e-4,
+    "c_device": "constantstep",
+    "c_dw_min": 0.001953,
+    "c_bits": 10,
+    "transfer_method": "onehot",
+    "optimization": "per-rank optimized"
+  },
+  "ranks": [
+    {"rank": 1, "f1": 82.46, "trial": "T366"},
+    {"rank": 2, "f1": 82.85, "trial": "T369"},
+    {"rank": 4, "f1": 83.31, "trial": "T374"},
+    {"rank": 8, "f1": 83.98, "trial": "T401"},
+    {"rank": 16, "f1": 84.31, "trial": "T426"},
+    {"rank": 32, "f1": 84.79, "trial": "T267"},
+    {"rank": 64, "f1": 84.60, "trial": "T414"}
+  ],
+  "note": "Main paper uses only last tile erank(C-C_init) as Fig 6(d). This supplementary shows all four combinations."
+}

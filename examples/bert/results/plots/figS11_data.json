@@ -1,0 +1,48 @@
+{
+  "figure": "S11",
+  "title": "Gamma ratio × w_max 2D sweep heatmaps",
+  "model": "BERT-base-uncased",
+  "task": "SQuAD v1.1",
+  "method": "LR-TT",
+  "target_layers": "QKVO",
+  "sweep_axes": {
+    "x": "w_max (analog tile weight bound)",
+    "y": "AF ratio (asymmetry factor scaling ratio)"
+  },
+  "gamma_ratios": [0.0, 0.5, 1.0, 2.0, 5.0],
+  "w_max_values": [0.0312, 0.0624, 0.125, 0.25, 0.5, 1.0],
+  "conditions": {
+    "AF ratio = 0": {
+      "trial": "T267",
+      "device": "constantstepideal",
+      "abml": 10,
+      "optimized_at": {"gamma_ratio": 0.0, "w_max": 0.0624},
+      "fixed_params": {"lr": 0.003277, "tlr": 0.25, "te": 2, "flr": 0.3, "rank": 32},
+      "note": "ab_dw_min varies with w_max to maintain fixed bit count (abml=10). NOT per-cell optimized.",
+      "source": "sweep_gamma_wmax_t267_20260420_142203.json",
+      "f1_matrix": [
+        [84.42, 84.98, 80.00, 57.76, 8.99, 7.27],
+        [79.07, 79.99, 81.16, 82.62, 83.55, 75.10],
+        [78.46, 79.09, 79.89, 80.99, 82.59, 82.38],
+        [78.59, 78.53, 78.77, 79.51, 80.88, 82.37],
+        [78.24, 78.41, 78.45, 78.49, 79.23, 80.62]
+      ]
+    },
+    "AF ratio = 1": {
+      "trial": "T249",
+      "device": "constantstep6t1cgamma",
+      "abml": 12,
+      "optimized_at": {"gamma_ratio": 1.0, "w_max": 1.0},
+      "fixed_params": {"lr": 0.0038, "tlr": 0.095, "te": 1, "flr": 0.474, "rank": 32},
+      "note": "ab_dw_min varies with w_max to maintain fixed bit count (abml=12). NOT per-cell optimized.",
+      "source": "sweep_gamma_wmax_t249_20260416_220600.json",
+      "f1_matrix": [
+        [67.00, 10.56, 7.27, 7.27, 7.30, 7.36],
+        [68.25, 70.82, 70.97, 7.27, 7.27, 7.66],
+        [72.23, 61.22, 73.24, 70.01, 78.37, 84.06],
+        [77.69, 75.17, 78.83, 79.77, 80.80, 82.25],
+        [78.49, 78.36, 78.42, 78.77, 79.13, 80.35]
+      ]
+    }
+  }
+}

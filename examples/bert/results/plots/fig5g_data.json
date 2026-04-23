@@ -1,0 +1,107 @@
+{
+  "title": "Auxiliary Tile (A/B) Bit Sweep \u2014 Per-Bit Optimized (constantstepideal)",
+  "description": "F1 vs auxiliary tile weight bits. Each bit level independently optimized for lr, tlr, te, flr via Optuna. C tile fixed at 10-bit.",
+  "figure": "Figure 5(g)",
+  "config": {
+    "model": "bert-base-uncased",
+    "task": "SQuAD v1.1",
+    "device_type": {
+      "AB": "constantstepideal",
+      "C": "constantstepideal"
+    },
+    "lora_target": "qkvo",
+    "rank": 32,
+    "optimizer": "AnalogAdam",
+    "batch_size": 48,
+    "grad_accum_steps": 3,
+    "n_epochs": 5,
+    "warmup_steps": 365,
+    "weight_decay": 0.0,
+    "reinit_mode": "decay",
+    "reinit_gain": 1.0,
+    "transfer_method": "onehot",
+    "c_dw_min": 0.001953,
+    "c_desired_bl": 31,
+    "is_perfect": true,
+    "seed": 42,
+    "auto_scale_mode": "none",
+    "ab_w_max": 0.0624,
+    "ab_dw_min_formula": "2 * 0.0624 / 2^ab_multilevel"
+  },
+  "fixed_params": {
+    "C_tile_bits": 10,
+    "c_dw_min": 0.001953,
+    "rank": 32,
+    "w_max": 0.0624
+  },
+  "swept_param": "ab_multilevel (auxiliary tile bits)",
+  "optimization": "per-bit independent Optuna optimization of lr, tlr, te, flr",
+  "source_log": "optuna_bert_squad_lrtt_bs48_adam_decay_nowd_nomom_nonest_onehot_constantstepideal_cconstantstepideal_perfect_noos_abml_qkvo_5ep.log",
+  "data": [
+    {
+      "bits": 6,
+      "f1": 83.63,
+      "trial": "T322",
+      "best_params": {
+        "lr": 0.00328,
+        "tlr": 0.25,
+        "te": 1,
+        "flr": 3.024,
+        "ab_multilevel": 6,
+        "ab_dw_min": 0.001953125
+      }
+    },
+    {
+      "bits": 8,
+      "f1": 84.98,
+      "trial": "T290",
+      "best_params": {
+        "lr": 0.00328,
+        "tlr": 0.25,
+        "te": 2,
+        "flr": 1.008,
+        "ab_multilevel": 8,
+        "ab_dw_min": 0.00048828125
+      }
+    },
+    {
+      "bits": 10,
+      "f1": 84.98,
+      "trial": "T267",
+      "best_params": {
+        "lr": 0.00328,
+        "tlr": 0.25,
+        "te": 2,
+        "flr": 0.3,
+        "ab_multilevel": 10,
+        "ab_dw_min": 0.00012109375
+      }
+    },
+    {
+      "bits": 12,
+      "f1": 82.16,
+      "trial": "T242",
+      "best_params": {
+        "lr": 0.0025,
+        "tlr": 0.25,
+        "te": 2,
+        "flr": 0.116,
+        "ab_multilevel": 12,
+        "ab_dw_min": 3.02734375e-05
+      }
+    },
+    {
+      "bits": 14,
+      "f1": 78.72,
+      "trial": "T347",
+      "best_params": {
+        "lr": 0.00328,
+        "tlr": 0.35,
+        "te": 2,
+        "flr": 0.02,
+        "ab_multilevel": 14,
+        "ab_dw_min": 7.568359375e-06
+      }
+    }
+  ]
+}

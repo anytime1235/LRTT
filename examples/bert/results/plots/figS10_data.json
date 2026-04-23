@@ -1,0 +1,37 @@
+{
+  "figure": "S10",
+  "title": "Rank sweep — AF ratio = 1 (6T1C-gamma) condition",
+  "model": "BERT-base-uncased",
+  "task": "SQuAD v1.1",
+  "method": "LR-TT",
+  "device_condition": "AF ratio = 1 (constantstep6t1cgamma)",
+  "transfer_method": "onehot",
+  "optimization": "per-rank optimized via Optuna",
+  "common_params": {
+    "ab_dw_min": 0.0004883,
+    "c_dw_min": 0.001953,
+    "ab_multilevel": false,
+    "w_max": 1.0,
+    "n_epochs": 5
+  },
+  "trainable_params_formula": {
+    "lrtt": "48 × 2 × 768 × rank + 39,938 (LayerNorm + qa_outputs)",
+    "full_rank": "48 × 768 × 768 + 39,938 = 28,351,490"
+  },
+  "data": [
+    {"rank": 1, "f1": 82.02, "trial": "T256", "params": 113666, "param_pct": 0.40,
+     "best_params": {"lr": 0.002, "tlr": 1.0, "te": 1, "flr": 0.3}},
+    {"rank": 2, "f1": 81.97, "trial": "T229", "params": 187394, "param_pct": 0.66,
+     "best_params": {"lr": 0.002, "tlr": 1.0, "te": 1, "flr": 0.3}},
+    {"rank": 4, "f1": 82.41, "trial": "T284", "params": 334850, "param_pct": 1.18,
+     "best_params": {"lr": 0.0033, "tlr": 0.25, "te": 1, "flr": 0.3}},
+    {"rank": 8, "f1": 82.76, "trial": "T316", "params": 629762, "param_pct": 2.22,
+     "best_params": {"lr": 0.0033, "tlr": 0.35, "te": 1, "flr": 0.3}},
+    {"rank": 16, "f1": 83.42, "trial": "T289", "params": 1219586, "param_pct": 4.30,
+     "best_params": {"lr": 0.004, "tlr": 0.25, "te": 1, "flr": 0.3}},
+    {"rank": 32, "f1": 84.06, "trial": "T249", "params": 2399234, "param_pct": 8.46,
+     "best_params": {"lr": 0.0038, "tlr": 0.095, "te": 1, "flr": 0.474}},
+    {"rank": 64, "f1": 84.49, "trial": "T292", "params": 4758530, "param_pct": 16.78,
+     "best_params": {"lr": 0.0038, "tlr": 0.095, "te": 1, "flr": 0.4}}
+  ]
+}

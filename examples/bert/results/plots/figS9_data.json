@@ -1,0 +1,34 @@
+{
+  "figure": "S9",
+  "title": "F1 by LoRA target — AF ratio = 1 (6T1C-gamma) condition",
+  "model": "BERT-base-uncased",
+  "task": "SQuAD v1.1",
+  "method": "LR-TT",
+  "device_condition": "AF ratio = 1 (constantstep6t1cgamma)",
+  "optimization": "per-target optimized via Optuna",
+  "common_params": {
+    "rank": 32,
+    "c_dw_min": 0.001953,
+    "ab_multilevel": false,
+    "w_max": 1.0,
+    "n_epochs": 5
+  },
+  "data": [
+    {
+      "target": "QKVO",
+      "f1": 84.61,
+      "trial": "T61",
+      "best_params": {"lr": 0.0038, "tlr": 0.095, "te": 1, "flr": 0.474, "ab_dw_min": 0.0007047}
+    },
+    {
+      "target": "FFN",
+      "f1": 82.04,
+      "best_params": {"lr": 0.0067, "tlr": 1.0, "te": 29, "flr": 0.15, "ab_dw_min": 0.0004883}
+    },
+    {
+      "target": "ALL",
+      "f1": 83.55,
+      "best_params": {"lr": 0.0033, "tlr": 0.3, "te": 2, "flr": 0.3, "ab_dw_min": 0.0004883}
+    }
+  ]
+}

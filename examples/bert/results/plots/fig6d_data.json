@@ -1,0 +1,31 @@
+{
+  "figure": "6(d)",
+  "title": "Effective rank of ΔC (C - C_init) — last tile, by LRTT rank",
+  "model": "BERT-base-uncased",
+  "task": "SQuAD v1.1",
+  "method": "LR-TT",
+  "target_layers": "QKVO (attention Q, K, V, output projections)",
+  "tile_plotted": "last_tile (encoder.layer.11.attention.output.dense)",
+  "metric": "erank(C - C_init): effective rank of weight change matrix relative to initialization",
+  "condition": {
+    "ab_device": "constantstepideal",
+    "ab_multilevel": true,
+    "ab_multilevel_count": 10,
+    "ab_dw_min": 1.211e-4,
+    "c_device": "constantstep",
+    "c_dw_min": 0.001953,
+    "c_bits": 10,
+    "transfer_method": "onehot",
+    "optimization": "per-rank optimized (each rank independently optimized via Optuna)"
+  },
+  "ranks": [
+    {"rank": 1, "f1": 82.46, "trial": "T366", "diagnostic": "squad_diagnostic_log_20260421_144225_diag_rank1_T366.json"},
+    {"rank": 2, "f1": 82.85, "trial": "T369", "diagnostic": "squad_diagnostic_log_20260421_144225_diag_rank2_T369.json"},
+    {"rank": 4, "f1": 83.31, "trial": "T374", "diagnostic": "squad_diagnostic_log_20260421_144225_diag_rank4_T374.json"},
+    {"rank": 8, "f1": 83.98, "trial": "T401", "diagnostic": "squad_diagnostic_log_20260421_144225_diag_rank8_T401.json"},
+    {"rank": 16, "f1": 84.31, "trial": "T426", "diagnostic": "squad_diagnostic_log_20260421_144225_diag_rank16_T426.json"},
+    {"rank": 32, "f1": 84.79, "trial": "T267", "diagnostic": "squad_diagnostic_log_te2_r32_onehot.json"},
+    {"rank": 64, "f1": 84.60, "trial": "T414", "diagnostic": "squad_diagnostic_log_20260421_144225_diag_rank64_T414.json"}
+  ],
+  "note": "erank(C - C_init) measures complexity of learned weight update. Higher effective rank indicates richer, more distributed learned representation."
+}

@@ -1,0 +1,99 @@
+{
+  "figure": "6(c)",
+  "title": "Noise ratio and asymmetry factor (AF/gamma) ratio sweeps",
+  "model": "BERT-base-uncased",
+  "task": "SQuAD v1.1",
+  "method": "LR-TT",
+  "target_layers": "QKVO (attention Q, K, V, output projections)",
+  "conditions": {
+    "6T1C-gamma (T249)": {
+      "study": "BERT_SQUAD_LRTT_FINE (constantstep6t1cgamma)",
+      "trial": "T249",
+      "rank": 32,
+      "transfer_method": "onehot",
+      "ab_device": "constantstep6t1cgamma",
+      "ab_multilevel": false,
+      "n_epochs": 5,
+      "learning_rate": 0.0038,
+      "transfer_lr": 0.095,
+      "transfer_every": 1,
+      "flr": 0.474,
+      "ab_dw_min": 0.0004883,
+      "c_device": "constantstepideal",
+      "baseline_f1": 84.06,
+      "sweep_source": "sweep_noise_gamma_t249_20260416_154800.json"
+    },
+    "Multi-level ideal (T267)": {
+      "study": "BERT_SQUAD_LRTT_FINE (constantstepideal + abml)",
+      "trial": "T267",
+      "rank": 32,
+      "transfer_method": "onehot",
+      "ab_device": "constantstepideal",
+      "ab_multilevel": true,
+      "ab_multilevel_count": 10,
+      "n_epochs": 5,
+      "learning_rate": 0.003277,
+      "transfer_lr": 0.25,
+      "scale_transfer_lr": true,
+      "flr": 0.3,
+      "ab_dw_min": 1.2109e-4,
+      "w_max": 0.0624,
+      "c_device": "constantstep",
+      "c_bits": 10,
+      "baseline_f1": 84.98,
+      "sweep_source": "sweep_noise_gamma_t267_20260420_080636.json"
+    }
+  },
+  "noise_sweep": {
+    "description": "Noise scaling ratio sweep. Each condition's gamma is held at its native value.",
+    "6T1C-gamma": {
+      "fixed_gamma_ratio": 1.0,
+      "data": [
+        {"noise_ratio": 0.0, "f1": 84.06},
+        {"noise_ratio": 0.1, "f1": 83.76},
+        {"noise_ratio": 0.3, "f1": 84.20},
+        {"noise_ratio": 0.5, "f1": 82.90},
+        {"noise_ratio": 0.7, "f1": 80.74},
+        {"noise_ratio": 1.0, "f1": 78.12}
+      ]
+    },
+    "multi-level": {
+      "fixed_gamma_ratio": 1.0,
+      "data": [
+        {"noise_ratio": 0.0, "f1": 78.91},
+        {"noise_ratio": 0.1, "f1": 79.08},
+        {"noise_ratio": 0.3, "f1": 78.79},
+        {"noise_ratio": 0.5, "f1": 78.83},
+        {"noise_ratio": 0.7, "f1": 78.71},
+        {"noise_ratio": 1.0, "f1": 79.11}
+      ]
+    }
+  },
+  "gamma_sweep": {
+    "description": "Asymmetry factor (AF/gamma) ratio sweep. Noise ratio fixed at 0.0.",
+    "6T1C-gamma": {
+      "fixed_noise_ratio": 0.0,
+      "data": [
+        {"gamma_ratio": 0.0, "f1": 7.27, "note": "Fails — device needs asymmetry to function"},
+        {"gamma_ratio": 0.5, "f1": 7.27, "note": "Fails — insufficient asymmetry"},
+        {"gamma_ratio": 1.0, "f1": 84.06, "note": "Native device gamma"},
+        {"gamma_ratio": 2.0, "f1": 82.11},
+        {"gamma_ratio": 3.0, "f1": 81.43},
+        {"gamma_ratio": 5.0, "f1": 80.26},
+        {"gamma_ratio": 10.0, "f1": 79.37}
+      ]
+    },
+    "multi-level": {
+      "fixed_noise_ratio": 0.0,
+      "data": [
+        {"gamma_ratio": 0.0, "f1": 84.98, "note": "Best — ideal symmetric updates"},
+        {"gamma_ratio": 0.5, "f1": 80.03},
+        {"gamma_ratio": 1.0, "f1": 78.91},
+        {"gamma_ratio": 2.0, "f1": 78.44},
+        {"gamma_ratio": 3.0, "f1": 78.51},
+        {"gamma_ratio": 5.0, "f1": 78.48},
+        {"gamma_ratio": 10.0, "f1": 78.36}
+      ]
+    }
+  }
+}

@@ -65,7 +65,28 @@
         "ab_bits_range": "4b-18b"
       }
     },
-    "description": "All bit levels share the same hyperparameters optimized at 12bit (T249: lr=0.0038, tlr=0.095, te=1, flr=0.474). Only ab_dw_min varies to change bit resolution."
+    "description": "All bit levels share the same hyperparameters optimized at 12bit (T249: lr=0.0038, tlr=0.095, te=1, flr=0.474). Only ab_dw_min varies to change bit resolution.",
+    "base_config": {
+      "trial": "T249",
+      "device": "constantstep6t1cgamma (gamma=1, noise=0)",
+      "lr": 0.0038,
+      "tlr": 0.095,
+      "te": 1,
+      "flr": 0.474,
+      "rank": 32,
+      "ab_dw_min": 0.0004883,
+      "c_dw_min": 0.001953,
+      "ab_multilevel": null,
+      "w_max": 1.0,
+      "reinit_mode": "decay",
+      "transfer_method": "onehot",
+      "c_device": "constantstepideal",
+      "is_perfect": true,
+      "batch_size": 48,
+      "warmup_steps": 365,
+      "seed": 42,
+      "epochs": 5
+    }
   },
   "noise_ratio_sweep": {
     "title": "Noise Ratio Sweep: F1 vs Noise Ratio",
@@ -101,7 +122,9 @@
     "source": {
       "base": "T249 (rank=32, F1=84.06)",
       "timestamp": "20260416_154800"
-    }
+    },
+    "description": "All trials share T249's optimized hyperparameters (lr, tlr, te, flr). Gamma fixed at 6T1C reference (gamma_ratio=1.0). Only 6T1C noise params (dw_min_dtod, dw_min_std, up_down_dtod, w_max_dtod, w_min_dtod, gamma_up_dtod, gamma_down_dtod, write_noise_std) scale with ratio. noise_ratio=0 = gamma=1.0 in gamma sweep (shared). NOT per-ratio optimized \u2014 same condition across all noise levels.",
+    "base_config": "T249 from 6t1cgamma qkvo study (constantstep6t1cgamma, F1=84.06). Fixed: rank=32, ab_dw_min=4.883e-4, c_dw_min=0.001953, ab_multilevel=None (w_max=1.0). Optimized at ~12bit: lr=0.0038, tlr=0.095, te=1, flr=0.474."
   },
   "asymmetry_ratio_sweep": {
     "title": "Asymmetry Ratio Sweep: F1 vs Gamma Ratio",
@@ -141,7 +164,9 @@
     "source": {
       "base": "T249 (rank=32, F1=84.06)",
       "timestamp": "20260416_154800"
-    }
+    },
+    "description": "All trials share T249's optimized hyperparameters (lr, tlr, te, flr). Only gamma_up/gamma_down scale with ratio. All noise params = 0. gamma=0 = constantstepideal equivalent (no asymmetry). gamma=1.0 = T249 baseline (6T1C gamma, no noise). NOT per-ratio optimized \u2014 same condition across all gamma levels.",
+    "base_config": "T249 from 6t1cgamma qkvo study (constantstep6t1cgamma, F1=84.06). Fixed: rank=32, ab_dw_min=4.883e-4, c_dw_min=0.001953, ab_multilevel=None (w_max=1.0). Optimized at ~12bit: lr=0.0038, tlr=0.095, te=1, flr=0.474."
   },
   "gamma_wmax_2d_sweep": {
     "title": "Gamma Ratio \u00d7 w_max 2D Sweep (T249 base, fixed bit count)",
@@ -470,7 +495,9 @@
     "source": {
       "base": "T249 (rank=32, F1=84.06)",
       "timestamp": "20260416_220600"
-    }
+    },
+    "description": "All trials share T249's optimized hyperparameters (lr=0.0038, tlr=0.095, te=1, flr=0.474). abml=12 fixed (bit count constant, 4096 levels). ab_dw_min varies to achieve target w_max. Gamma and w_max independently varied. Baseline: (gamma=1.0, w_max=1.0) = T249 (F1=84.06, injected). NOT per-cell optimized \u2014 same hyperparameters across all (gamma, w_max) combinations.",
+    "base_config": "T249 from 6t1cgamma qkvo study (constantstep6t1cgamma, F1=84.06). Fixed: rank=32, ab_dw_min=4.883e-4, c_dw_min=0.001953, ab_multilevel=None (w_max=1.0). Optimized at ~12bit: lr=0.0038, tlr=0.095, te=1, flr=0.474."
   },
   "fast_tile_bit_sweep_optimized": {
     "title": "A/B Bit Sweep \u2014 Per-Bit Optimized (constantstep6t1cgamma, rank=32, C=10b)",
@@ -540,6 +567,152 @@
       "ab_multilevel": "None (w_max=1.0)",
       "device": "constantstep6t1cgamma"
     },
-    "source": "optuna study: constantstep6t1cgamma qkvo, per-bit enqueue optimization"
+    "source": "optuna study: constantstep6t1cgamma qkvo, per-bit enqueue optimization",
+    "base_config": "Per-bit optimized from 6t1cgamma qkvo study. Fixed: rank=32, c_dw_min=0.001953, ab_multilevel=None (w_max=1.0). Each bit level has independently optimized lr, tlr, te, flr (see best_params per data point)."
+  },
+  "rank_sweep": {
+    "title": "Rank Sweep \u2014 Per-Rank Optimized (constantstep6t1cgamma, ab_dw_min\u22484.883e-4, C=10b)",
+    "description": "Each rank independently optimized for lr, tlr, te, flr via optuna. ab_dw_min\u22484.883e-4 (~12bit at w_max=1.0), c_dw_min=0.001953 fixed.",
+    "xlabel": "Rank",
+    "ylabel": "F1",
+    "data": [
+      {
+        "rank": 1,
+        "f1": 82.02,
+        "trial": "T256",
+        "best_params": {
+          "lr": 0.002,
+          "tlr": 1.0,
+          "te": 1,
+          "flr": 0.3,
+          "ab_dw_min": 0.0004883
+        },
+        "trials": 15
+      },
+      {
+        "rank": 2,
+        "f1": 81.97,
+        "trial": "T229",
+        "best_params": {
+          "lr": 0.002,
+          "tlr": 1.0,
+          "te": 1,
+          "flr": 0.3,
+          "ab_dw_min": 0.0004883
+        },
+        "trials": 13
+      },
+      {
+        "rank": 4,
+        "f1": 82.41,
+        "trial": "T284",
+        "best_params": {
+          "lr": 0.0033,
+          "tlr": 0.25,
+          "te": 1,
+          "flr": 0.3,
+          "ab_dw_min": 0.0004883
+        },
+        "trials": 8
+      },
+      {
+        "rank": 8,
+        "f1": 82.76,
+        "trial": "T316",
+        "best_params": {
+          "lr": 0.0033,
+          "tlr": 0.35,
+          "te": 1,
+          "flr": 0.3,
+          "ab_dw_min": 0.0004883
+        },
+        "trials": 10
+      },
+      {
+        "rank": 16,
+        "f1": 83.42,
+        "trial": "T289",
+        "best_params": {
+          "lr": 0.004,
+          "tlr": 0.25,
+          "te": 1,
+          "flr": 0.3,
+          "ab_dw_min": 0.0004883
+        },
+        "trials": 13
+      },
+      {
+        "rank": 32,
+        "f1": 84.06,
+        "trial": "T249",
+        "best_params": {
+          "lr": 0.0038,
+          "tlr": 0.095,
+          "te": 1,
+          "flr": 0.474,
+          "ab_dw_min": 0.0004883
+        },
+        "trials": 86
+      },
+      {
+        "rank": 64,
+        "f1": 84.49,
+        "trial": "T292",
+        "best_params": {
+          "lr": 0.0038,
+          "tlr": 0.095,
+          "te": 1,
+          "flr": 0.4,
+          "ab_dw_min": 0.0004883
+        },
+        "trials": 21
+      }
+    ],
+    "source": "optuna study: constantstep6t1cgamma qkvo, per-rank optimization at ab_dw_min\u22484.883e-4",
+    "base_config": "Per-rank optimized from 6t1cgamma qkvo study. Fixed: ab_dw_min\u22484.883e-4 (~12bit), c_dw_min=0.001953, ab_multilevel=None (w_max=1.0). Each rank has independently optimized lr, tlr, te, flr (see best_params per data point)."
+  },
+  "lora_target_comparison": {
+    "title": "Best F1 by LoRA Target \u2014 Per-Target Optimized (constantstep6t1cgamma, rank=32)",
+    "description": "Each target (QKVO, FFN, ALL) independently optimized for lr, tlr, te, flr via optuna. rank=32, c_dw_min=0.001953, ab_multilevel=None (w_max=1.0) fixed across all targets.",
+    "base_config": "Per-target optimized from 6t1cgamma studies. rank=32, c_dw_min=0.001953 fixed.",
+    "data": [
+      {
+        "target": "QKVO",
+        "f1": 84.61,
+        "trial": "T61",
+        "best_params": {
+          "lr": 0.0038,
+          "tlr": 0.095,
+          "te": 1,
+          "flr": 0.474,
+          "ab_dw_min": 0.0007047
+        }
+      },
+      {
+        "target": "FFN",
+        "f1": 82.04,
+        "trial": "best_params",
+        "best_params": {
+          "lr": 0.0067,
+          "tlr": 1.0,
+          "te": 29,
+          "flr": 0.15,
+          "ab_dw_min": 0.0004883
+        }
+      },
+      {
+        "target": "ALL",
+        "f1": 83.55,
+        "trial": "best_params",
+        "best_params": {
+          "lr": 0.0033,
+          "tlr": 0.3,
+          "te": 2,
+          "flr": 0.3,
+          "ab_dw_min": 0.0004883
+        }
+      }
+    ],
+    "source": "optuna studies: constantstep6t1cgamma qkvo/ffn/all"
   }
 }

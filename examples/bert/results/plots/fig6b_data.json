@@ -1,0 +1,214 @@
+{
+  "title": "Rank Sweep \u2014 onehot vs set transfer (constantstepideal)",
+  "description": "F1 vs rank for onehot (per-rank optimized) and set (same params, transfer method only changed). Upper x-axis shows trainable params as % of full-rank.",
+  "figure": "Figure 6(b)",
+  "config": {
+    "model": "bert-base-uncased",
+    "task": "SQuAD v1.1",
+    "device_type": {
+      "AB": "constantstepideal",
+      "C": "constantstepideal"
+    },
+    "lora_target": "qkvo",
+    "optimizer": "AnalogAdam",
+    "batch_size": 48,
+    "n_epochs": 5,
+    "warmup_steps": 365,
+    "weight_decay": 0.0,
+    "reinit_mode": "decay",
+    "ab_dw_min": 0.00012109,
+    "ab_multilevel": 10,
+    "c_dw_min": 0.001953,
+    "is_perfect": true,
+    "seed": 42,
+    "auto_scale_mode": "none"
+  },
+  "param_formula": {
+    "digital_params": "LayerNorm(38,400) + qa_outputs(1,538) = 39,938 (shared, always trainable)",
+    "lrtt_params_per_rank": "48 * 2 * 768 * r + 39,938",
+    "full_rank_params": "48 * 768 * 768 + 39,938 = 28,351,490",
+    "ratio": "(73,728*r + 39,938) / 28,351,490",
+    "note": "Only QKVO-targeted layers counted; embeddings and FFN frozen in QKVO setting"
+  },
+  "onehot": {
+    "description": "Per-rank optimized via Optuna (lr, tlr, te, flr independently tuned per rank)",
+    "source_log": "optuna_bert_squad_lrtt_bs48_adam_decay_nowd_nomom_nonest_onehot_constantstepideal_cconstantstepideal_perfect_noos_abml_qkvo_5ep.log",
+    "data": [
+      {
+        "rank": 1,
+        "f1": 82.76,
+        "trial": "T366",
+        "params": {
+          "lr": 0.002,
+          "tlr": 1.0,
+          "te": 2,
+          "flr": 0.3
+        },
+        "trainable_params": 113666,
+        "param_ratio_pct": 0.4
+      },
+      {
+        "rank": 2,
+        "f1": 82.92,
+        "trial": "T369",
+        "params": {
+          "lr": 0.002,
+          "tlr": 1.0,
+          "te": 1,
+          "flr": 0.5
+        },
+        "trainable_params": 187394,
+        "param_ratio_pct": 0.66
+      },
+      {
+        "rank": 4,
+        "f1": 83.81,
+        "trial": "T374",
+        "params": {
+          "lr": 0.002,
+          "tlr": 0.5,
+          "te": 2,
+          "flr": 0.3
+        },
+        "trainable_params": 334850,
+        "param_ratio_pct": 1.18
+      },
+      {
+        "rank": 8,
+        "f1": 84.19,
+        "trial": "T401",
+        "params": {
+          "lr": 0.0033,
+          "tlr": 0.35,
+          "te": 1,
+          "flr": 0.3
+        },
+        "trainable_params": 629762,
+        "param_ratio_pct": 2.22
+      },
+      {
+        "rank": 16,
+        "f1": 84.7,
+        "trial": "T426",
+        "params": {
+          "lr": 0.0033,
+          "tlr": 0.35,
+          "te": 2,
+          "flr": 0.3
+        },
+        "trainable_params": 1219586,
+        "param_ratio_pct": 4.3
+      },
+      {
+        "rank": 32,
+        "f1": 84.98,
+        "trial": "T267",
+        "params": {
+          "lr": 0.00328,
+          "tlr": 0.25,
+          "te": 2,
+          "flr": 0.3
+        },
+        "trainable_params": 2399234,
+        "param_ratio_pct": 8.46
+      },
+      {
+        "rank": 64,
+        "f1": 84.94,
+        "trial": "T414",
+        "params": {
+          "lr": 0.0038,
+          "tlr": 0.095,
+          "te": 1,
+          "flr": 0.4
+        },
+        "trainable_params": 4758530,
+        "param_ratio_pct": 16.78
+      }
+    ]
+  },
+  "set": {
+    "description": "Same per-rank optimized params as onehot, only transfer_method changed to 'set' (exact weight setting, no pulsed update)",
+    "source_log": "optuna_bert_squad_lrtt_bs48_adam_decay_nowd_nomom_nonest_set_constantstepideal_cconstantstepideal_perfect_noos_abml_qkvo_5ep.log",
+    "params_match_onehot": true,
+    "data": [
+      {
+        "rank": 1,
+        "f1": 82.39,
+        "trial": "T0",
+        "params": {
+          "lr": 0.002,
+          "tlr": 1.0,
+          "te": 2,
+          "flr": 0.3
+        }
+      },
+      {
+        "rank": 2,
+        "f1": 83.23,
+        "trial": "T1",
+        "params": {
+          "lr": 0.002,
+          "tlr": 1.0,
+          "te": 1,
+          "flr": 0.5
+        }
+      },
+      {
+        "rank": 4,
+        "f1": 83.45,
+        "trial": "T2",
+        "params": {
+          "lr": 0.002,
+          "tlr": 0.5,
+          "te": 2,
+          "flr": 0.3
+        }
+      },
+      {
+        "rank": 8,
+        "f1": 83.9,
+        "trial": "T3",
+        "params": {
+          "lr": 0.0033,
+          "tlr": 0.35,
+          "te": 1,
+          "flr": 0.3
+        }
+      },
+      {
+        "rank": 16,
+        "f1": 84.97,
+        "trial": "T4",
+        "params": {
+          "lr": 0.0033,
+          "tlr": 0.35,
+          "te": 2,
+          "flr": 0.3
+        }
+      },
+      {
+        "rank": 32,
+        "f1": 84.79,
+        "trial": "T5",
+        "params": {
+          "lr": 0.0033,
+          "tlr": 0.25,
+          "te": 2,
+          "flr": 0.3
+        }
+      },
+      {
+        "rank": 64,
+        "f1": 84.56,
+        "trial": "T6",
+        "params": {
+          "lr": 0.0038,
+          "tlr": 0.095,
+          "te": 1,
+          "flr": 0.4
+        }
+      }
+    ]
+  }
+}
