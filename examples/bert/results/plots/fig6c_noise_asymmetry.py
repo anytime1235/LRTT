@@ -8,40 +8,40 @@ import matplotlib.pyplot as plt
 
 # T267: constantstepideal + abml=10 (ideal symmetric, multi-level)
 noise_t267 = [
-    {'ratio': 0.0, 'f1': 78.91},
-    {'ratio': 0.1, 'f1': 79.08},
-    {'ratio': 0.3, 'f1': 78.79},
-    {'ratio': 0.5, 'f1': 78.83},
-    {'ratio': 0.7, 'f1': 78.71},
-    {'ratio': 1.0, 'f1': 79.11},
+    {'ratio': 0.0, 'f1': 78.9},
+    {'ratio': 0.1, 'f1': 79.1},
+    {'ratio': 0.3, 'f1': 78.8},
+    {'ratio': 0.5, 'f1': 78.8},
+    {'ratio': 0.7, 'f1': 78.7},
+    {'ratio': 1.0, 'f1': 79.1},
 ]
 gamma_t267 = [
-    {'ratio': 0.0, 'f1': 84.98},
-    {'ratio': 0.5, 'f1': 80.03},
-    {'ratio': 1.0, 'f1': 78.91},
-    {'ratio': 2.0, 'f1': 78.44},
-    {'ratio': 3.0, 'f1': 78.51},
-    {'ratio': 5.0, 'f1': 78.48},
-    {'ratio': 10.0, 'f1': 78.36},
+    {'ratio': 0.0, 'f1': 85.0},
+    {'ratio': 0.5, 'f1': 80.0},
+    {'ratio': 1.0, 'f1': 78.9},
+    {'ratio': 2.0, 'f1': 78.4},
+    {'ratio': 3.0, 'f1': 78.5},
+    {'ratio': 5.0, 'f1': 78.5},
+    {'ratio': 10.0, 'f1': 78.4},
 ]
 
 # T249: 6T1C-gamma device (inherent asymmetry, AF ratio=1 is native)
 noise_t249 = [
-    {'ratio': 0.0, 'f1': 84.06},
-    {'ratio': 0.1, 'f1': 83.76},
-    {'ratio': 0.3, 'f1': 84.20},
-    {'ratio': 0.5, 'f1': 82.90},
-    {'ratio': 0.7, 'f1': 80.74},
-    {'ratio': 1.0, 'f1': 78.12},
+    {'ratio': 0.0, 'f1': 84.1},
+    {'ratio': 0.1, 'f1': 83.8},
+    {'ratio': 0.3, 'f1': 84.2},
+    {'ratio': 0.5, 'f1': 82.9},
+    {'ratio': 0.7, 'f1': 80.7},
+    {'ratio': 1.0, 'f1': 78.1},
 ]
 gamma_t249 = [
-    {'ratio': 0.0, 'f1': 7.27},
-    {'ratio': 0.5, 'f1': 7.27},
-    {'ratio': 1.0, 'f1': 84.06},
-    {'ratio': 2.0, 'f1': 82.11},
-    {'ratio': 3.0, 'f1': 81.43},
-    {'ratio': 5.0, 'f1': 80.26},
-    {'ratio': 10.0, 'f1': 79.37},
+    {'ratio': 0.0, 'f1': 7.3},
+    {'ratio': 0.5, 'f1': 7.3},
+    {'ratio': 1.0, 'f1': 84.1},
+    {'ratio': 2.0, 'f1': 82.1},
+    {'ratio': 3.0, 'f1': 81.4},
+    {'ratio': 5.0, 'f1': 80.3},
+    {'ratio': 10.0, 'f1': 79.4},
 ]
 
 plt.rcParams.update({
@@ -58,7 +58,7 @@ nf = [d['f1'] for d in noise_t249]
 ax1.plot(nr, nf, 's-', color='#d62728', linewidth=1.6, markersize=6, zorder=3,
          label='LR-TT')
 for r, f in zip(nr, nf):
-    ax1.annotate(f'{f:.2f}', (r, f), textcoords='offset points', xytext=(0, 7),
+    ax1.annotate(f'{f:.1f}', (r, f), textcoords='offset points', xytext=(0, 7),
                  fontsize=7, ha='center', color='#d62728')
 
 ax1.set_xlabel('Noise scaling ratio')
@@ -86,7 +86,7 @@ for data, color, marker, label in [
             oy = 7 if label.endswith('ratio = 1)') else -12
             if label.endswith('ratio = 0)') and r == 0.5:
                 oy = 7
-            ax2.annotate(f'{f:.2f}', (r, f), textcoords='offset points', xytext=(0, oy),
+            ax2.annotate(f'{f:.1f}', (r, f), textcoords='offset points', xytext=(0, oy),
                          fontsize=7, ha='center', color=color)
 
 ax2.set_xlabel('Asymmetry factor (AF) ratio')

@@ -10,18 +10,13 @@ RESULTS = Path(__file__).resolve().parent.parent / "BERT_SQUAD_LRTT_FINE"
 
 RANK_FILES = {
     1:  RESULTS / "squad_diagnostic_log_20260421_144225_diag_rank1_T366.json",
-    2:  RESULTS / "squad_diagnostic_log_20260421_144225_diag_rank2_T369.json",
     4:  RESULTS / "squad_diagnostic_log_20260421_144225_diag_rank4_T374.json",
-    8:  RESULTS / "squad_diagnostic_log_20260421_144225_diag_rank8_T401.json",
     16: RESULTS / "squad_diagnostic_log_20260421_144225_diag_rank16_T426.json",
-    32: RESULTS / "squad_diagnostic_log_te2_r32_onehot.json",
     64: RESULTS / "squad_diagnostic_log_20260421_144225_diag_rank64_T414.json",
 }
 
-RANK_F1 = {1: 82.46, 2: 82.85, 4: 83.31, 8: 83.98, 16: 84.31, 32: 84.79, 64: 84.60}
-
-COLORS = {1: "#1f77b4", 2: "#ff7f0e", 4: "#2ca02c", 8: "#d62728",
-          16: "#9467bd", 32: "#e377c2", 64: "#7f7f7f"}
+COLORS = {1: "#1f77b4", 4: "#2ca02c",
+          16: "#9467bd", 64: "#7f7f7f"}
 
 plt.rcParams.update({
     'font.size': 9, 'axes.labelsize': 10,

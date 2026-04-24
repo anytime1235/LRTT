@@ -1,0 +1,105 @@
+"""Figure S7: AF ratio = 1 ablations — (a) bit sweeps, (b) target comparison, (c) rank sweep."""
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
+plt.rcParams.update({
+    'font.size': 9, 'axes.labelsize': 10,
+    'xtick.labelsize': 9, 'ytick.labelsize': 9,
+    'axes.linewidth': 0.8,
+})
+
+fig, axes = plt.subplots(1, 3, figsize=(14, 3.5))
+
+# --- (a) Bit sweeps: AB and C ---
+ax = axes[0]
+ab_data = [
+    {'bits': 6,  'f1': 78.0},
+    {'bits': 8,  'f1': 79.5},
+    {'bits': 10, 'f1': 83.2},
+    {'bits': 12, 'f1': 84.1},
+    {'bits': 14, 'f1': 84.1},
+]
+c_data = [
+    {'bits': 6,  'f1': 80.3},
+    {'bits': 7,  'f1': 80.8},
+    {'bits': 8,  'f1': 83.3},
+    {'bits': 9,  'f1': 83.5},
+    {'bits': 10, 'f1': 84.1},
+]
+
+ab_bits = [d['bits'] for d in ab_data]
+ab_f1 = [d['f1'] for d in ab_data]
+c_bits = [d['bits'] for d in c_data]
+c_f1 = [d['f1'] for d in c_data]
+
+ax.plot(ab_bits, ab_f1, 'o-', color='#1f77b4', linewidth=1.6, markersize=6, zorder=3,
+        label='Aux. tile sweep\n(core 10-bit fixed)')
+ax.plot(c_bits, c_f1, 's-', color='#ff7f0e', linewidth=1.6, markersize=6, zorder=3,
+        label='Core tile sweep\n(aux. 12-bit fixed)')
+
+for b, f in zip(ab_bits, ab_f1):
+    ax.annotate(f'{f:.1f}', (b, f), textcoords='offset points', xytext=(0, 7),
+                fontsize=7, ha='center', color='#1f77b4')
+for b, f in zip(c_bits, c_f1):
+    ax.annotate(f'{f:.1f}', (b, f), textcoords='offset points', xytext=(0, -12),
+                fontsize=7, ha='center', color='#ff7f0e')
+
+ax.set_xlabel('Weight bits')
+ax.set_ylabel('F1 score')
+ax.set_ylim(76, 87)
+ax.legend(fontsize=7, loc='lower right', framealpha=0.9, edgecolor='0.7')
+ax.grid(True, linestyle=':', linewidth=0.5, alpha=0.6)
+ax.set_title('(a) Bit sweep', fontsize=10)
+
+# --- (b) Target comparison ---
+ax = axes[1]
+targets = ['QKVO', 'FFN', 'ALL']
+f1_values = [84.6, 82.0, 83.6]
+colors_bar = ['#1f77b4', '#ff7f0e', '#2ca02c']
+bar_width = 0.22
+x = np.arange(1)
+
+for j, (target, color, f1) in enumerate(zip(targets, colors_bar, f1_values)):
+    offset = (j - 1) * bar_width
+    bars = ax.bar(x + offset, [f1], bar_width, label=target, color=color, zorder=3)
+    ax.text(bars[0].get_x() + bars[0].get_width() / 2, bars[0].get_height() + 0.3,
+            f'{f1:.1f}', ha='center', va='bottom', fontsize=7.5)
+
+ax.set_ylabel('F1 score')
+ax.set_xticks(x)
+ax.set_xticklabels(['LR-TT\n(opt. at AF ratio = 1)'])
+ax.set_ylim(76, 87)
+ax.legend(fontsize=8, framealpha=0.9, edgecolor='0.7')
+ax.grid(True, axis='y', linestyle=':', linewidth=0.5, alpha=0.6)
+ax.set_title('(b) Target comparison', fontsize=10)
+
+# --- (c) Rank sweep ---
+ax = axes[2]
+ranks = [1, 2, 4, 8, 16, 32, 64]
+rank_f1 = [82.0, 82.0, 82.4, 82.8, 83.4, 84.1, 84.5]
+
+ax.plot(ranks, rank_f1, 'o-', color='#1f77b4', linewidth=1.6, markersize=6, zorder=3,
+        label='LR-TT (opt. at AF ratio = 1, rank-wise)')
+for r, f in zip(ranks, rank_f1):
+    ax.annotate(f'{f:.1f}', (r, f), textcoords='offset points', xytext=(0, 7),
+                fontsize=7, ha='center')
+
+ax.set_xscale('log', base=2)
+ax.set_xticks(ranks)
+ax.set_xticklabels([str(r) for r in ranks])
+ax.minorticks_off()
+ax.set_xlabel('Rank')
+ax.set_ylabel('F1 score')
+ax.set_ylim(76, 87)
+ax.legend(fontsize=7, loc='lower right', framealpha=0.9, edgecolor='0.7')
+ax.grid(True, linestyle=':', linewidth=0.5, alpha=0.6)
+ax.set_title('(c) Rank sweep', fontsize=10)
+
+fig.tight_layout(pad=0.8)
+
+OUT = '/root/LRTT/examples/bert/results/plots/figS7_af1_ablations.png'
+fig.savefig(OUT, dpi=300, bbox_inches='tight')
+fig.savefig(OUT.replace('.png', '.svg'), bbox_inches='tight')
+print(f'Saved: {OUT}')

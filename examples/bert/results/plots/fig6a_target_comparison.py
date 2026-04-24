@@ -8,10 +8,10 @@ methods = ['Digital\ntraining', 'Digital\nLoRA', 'Tiki-Taka', 'LR-TT']
 
 # F1 scores: {method: [QKVO, FFN, ALL]}
 data = {
-    'Digital\ntraining': [88.07, 86.64, 87.43],
-    'Digital\nLoRA':     [88.12, 87.21, 88.26],
-    'Tiki-Taka':         [None, None, None],
-    'LR-TT':             [84.98, 84.12, 85.22],
+    'Digital\ntraining': [88.1, 86.6, 87.4],
+    'Digital\nLoRA':     [88.1, 87.2, 88.3],
+    'Tiki-Taka':         [86.9, 85.7, 87.0],
+    'LR-TT':             [85.0, 84.1, 85.2],
 }
 
 targets = ['QKVO', 'FFN', 'ALL']
@@ -38,7 +38,7 @@ for j, (target, color) in enumerate(zip(targets, colors)):
     for i, (bar, v) in enumerate(zip(bars, vals)):
         if v is not None:
             ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.3,
-                    f'{v:.2f}', ha='center', va='bottom', fontsize=7.5)
+                    f'{v:.1f}', ha='center', va='bottom', fontsize=7.5)
 
 ax.set_ylabel('F1 score')
 ax.set_xticks(x)

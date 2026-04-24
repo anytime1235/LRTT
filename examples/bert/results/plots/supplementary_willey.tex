@@ -163,7 +163,7 @@ Supplementary Figure~\ref{fig:si_hardware_regression_aux} shows that increasing 
 \noindent\textbf{Core-array convergence and TP dependence.}
 As shown in Supplementary Figure~\ref{fig:si_hardware_regression_core}, all TP settings drive $C$ toward $T$, including the negative second column of the target, confirming stable bidirectional operation in the hardware loop. The final residuals $\|T-C\|_F$ are $0.102$, $0.087$, $0.073$, and $0.143$ for TP $=1,4,10,20$, respectively, with corresponding element-wise MAE values of $0.030$, $0.025$, $0.023$, and $0.037$. Among the tested conditions, TP $=10$ gives the smallest final error. The same figure also shows that increasing TP makes the core evolution progressively more staircased, consistent with a larger accumulated correction being consolidated at each transfer.
 
-\begin{figure}[!htbp]
+\begin{figure}[H]
   \centering
   \includegraphics[width=0.98\textwidth]{sup_fig3a.png}
   \caption{\textbf{Hardware rank-1 regression: auxiliary trajectories under different transfer periods.}
@@ -173,7 +173,7 @@ As shown in Supplementary Figure~\ref{fig:si_hardware_regression_core}, all TP s
 \end{figure}
 \FloatBarrier
 
-\begin{figure}[t]
+\begin{figure}[H]
   \centering
   \includegraphics[width=0.98\textwidth]{sup_fig3b.png}
   \caption{\textbf{Hardware rank-1 regression: core trajectories under different transfer periods.}
@@ -200,7 +200,7 @@ Supplementary Figure~\ref{fig:si_asymmetry_trajectory}(b) shows the correspondin
 \noindent
 In both cases, hyperparameters were not re-tuned for each AF setting, so the observed degradation reflects the direct effect of device nonlinearity on an otherwise fixed optimization configuration \cite{lee2022tikitaka_asymmetry,wu2024exact}. Full experimental parameters are provided in Supplementary Section~\ref{sec:S8}.
 
-\begin{figure}[!htbp]
+\begin{figure}[H]
   \centering
   \includegraphics[width=0.98\textwidth]{sup_fig4.png}
   \caption{\textbf{Training trajectory under core-tile and auxiliary-tile asymmetry.}
@@ -293,7 +293,7 @@ This metric is scale-invariant and measures how evenly the transferred update en
 
 \noindent
 Supplementary Figure~\ref{fig:si_reset_aux_path} shows that the w/o reset mode yields higher MNIST accuracy in most rank--transfer-period cells, whereas the w/ reset mode often produces a larger \(\erank(\Delta C)\), indicating that task performance is not determined by the dimensionality of the cumulative update transferred to the core array alone. We interpret this as a stability--diversity trade-off: resetting the post-transfer \(B\) state broadens the subspace populated by successive transferred updates, but in the \(\gamma=0\) regime it also weakens the continuity of auxiliary-state accumulation across transfer windows, so retaining the transferred \(B\) state more often yields higher MNIST accuracy even when the resulting \(\erank(\Delta C)\) is lower.
-\begin{figure}[t]
+\begin{figure}[H]
   \centering
   \includegraphics[width=0.98\textwidth]{sup_fig5.png}
   \caption{\textbf{MNIST comparison of LR-TT training with and without post-transfer reset.}
@@ -302,37 +302,60 @@ Supplementary Figure~\ref{fig:si_reset_aux_path} shows that the w/o reset mode y
   (d) Paired accuracy difference, $\Delta\mathrm{Acc}=\mathrm{Acc}_{\mathrm{reset}}-\mathrm{Acc}_{\mathrm{nonreset}}$, at matched rank and $\tau$; negative values indicate that the without-reset mode gives higher accuracy.
   (e) Paired effective-rank difference, $\Delta\erank=\erank_{\mathrm{reset}}-\erank_{\mathrm{nonreset}}$, summarized along the $\tau$ and rank axes.
   (f) Epoch-wise evolution of $\erank(\Delta C)$ for the with-reset mode at rank $r=8$.}
-  \label{fig:si_reset_aux_path}
+  \label{fig:si_reset_aux_pat}
 \end{figure}
 
 \SIEndSection
 
 %====================================================
-\section{Transformer fine-tuning trajectories under LR-TT and direct update}
-\label{sec:S5}
+\section{Supplementary training analysis for BERT-base fine-tuning}
+\label{sec:S6}
 %====================================================
 
 \noindent
-The transformer results in the main manuscript indicate that fine-tuning operates deeply in the sub-pulse regime. In that regime, many useful corrections are too small to be written faithfully by direct low-bit update, but they can still be accumulated in a fast auxiliary state before transfer. The purpose of this section is therefore to show the training-step evolution of representative weight magnitudes under LR-TT-style fast/slow learning and under a matched direct-update baseline.
+This section presents additional diagnostics and ablations that complement the BERT-base fine-tuning results in the main text.
 
-\noindent
-This comparison is intended to visualize the role of the fast accumulation path rather than to provide another end-point benchmark. The most informative realization is obtained from a representative mapped layer or sublayer, for example FFN1 or a selected attention projection, using the same pretrained checkpoint, mapped-layer set, and optimizer configuration for both update rules.
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.98\textwidth]{figS6_abc_weight_dynamics.png}
+  \caption{\textbf{Per-cell weight dynamics of the auxiliary and core tiles during LR-TT fine-tuning (Figure~S6).}
+  The left column shows the Layer~0 query projection and the right column shows the Layer~11 attention-output projection. From top to bottom, the rows plot 10 randomly sampled cell trajectories from tile~$B$ (auxiliary), tile~$A$ (auxiliary), and tile~$C$ (core). The auxiliary tiles exhibit bounded excursions within the programmable range, while the core tile retains its pretrained weight structure with only small perturbations from periodic transfers. This figure complements Fig.~5(f) in the main text, which shows the layer-averaged weight statistics.}
+  \label{fig:S6}
+\end{figure}
 
-% \begin{figure}[H]
-%   \centering
-%   \begin{subfigure}{0.48\linewidth}
-%     \centering
-%     \SIfig[0.18\textheight]{FigS5a_transformer_tt.pdf}{Figure S5a placeholder. Training-step weight-magnitude evolution under LR-TT/Tiki-Taka-style fast--slow learning.}
-%     \caption{}
-%   \end{subfigure}\hfill
-%   \begin{subfigure}{0.48\linewidth}
-%     \centering
-%     \SIfig[0.18\textheight]{FigS5b_transformer_direct.pdf}{Figure S5b placeholder. Training-step weight-magnitude evolution for the matched direct-update baseline.}
-%     \caption{}
-%   \end{subfigure}
-%   \caption{\textbf{Transformer fine-tuning trajectories under LR-TT and direct update.} (a) Representative training-step weight-magnitude evolution when the update is first accumulated in the fast state and then transferred. (b) Matched direct-update baseline. The comparison highlights how the fast accumulation path preserves small corrections that direct low-precision writing fails to retain.}
-%   \label{fig:S5_transformer_traj}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.98\textwidth]{figS7_af1_ablations.png}
+  \caption{\textbf{AF ratio\,$=$\,1 ablations (Figure~S7).}
+  (a) Auxiliary-tile and core-tile bit sweeps under the AF ratio\,$=$\,1 (6T1C-gamma) condition.
+  (b) Target comparison (QKVO, FFN, ALL) under the same condition.
+  (c) Rank sweep with rank-wise transfer. These panels complement the AF ratio\,$=$\,0 results in Figs.~5(g,h) and 6(a,b) of the main text.}
+  \label{fig:S7}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.98\textwidth]{figS8_cosine_similarity_l0.png}
+  \caption{\textbf{Cosine similarity for Layer~0 query projection (Figure~S8).}
+  Same analysis as Fig.~5(i) in the main text, showing $\cos(\tau\!\cdot\!AB,\,-G)$ and $\cos(\Delta C,\,\tau\!\cdot\!AB)$ with training loss for the first mapped tile (Layer~0, query). The positive moving average of $\cos(\tau\!\cdot\!AB,\,-G)$ confirms that the gradient-alignment behavior observed in Layer~11 (main text) is also present in earlier layers.}
+  \label{fig:S8}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.98\textwidth]{figS9_gamma_wmax_2d.png}
+  \caption{\textbf{Gamma ratio\,$\times$\,$w_{\max}$ 2D sweep (Figure~S9).}
+  (a) AF ratio\,$=$\,0 condition (constantstepideal, 10 multi-level updates). (b) AF ratio\,$=$\,1 condition (6T1C-gamma, 12 analog levels). Blue boxes mark the optimized operating point of each condition. The AF ratio\,$=$\,0 condition achieves peak F1 at small $w_{\max}$ and zero asymmetry, whereas the AF ratio\,$=$\,1 condition requires both large $w_{\max}$ and the asymmetry-induced soft bound. This figure complements Fig.~6(c) in the main text.}
+  \label{fig:S9}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.98\textwidth]{figS10_erank_full.png}
+  \caption{\textbf{Full effective-rank comparison across tiles and metrics (Figure~S10).}
+  Rows: Layer~0 query (top) and Layer~11 attention output (bottom). Columns: $\erank(C)$ (left) and $\erank(C-C_{\mathrm{init}})$ (right). The dashed line in the right panels marks $\erank(C_{\mathrm{init}})$. This figure extends Fig.~6(d) of the main text by including both tiles and both erank metrics.}
+  \label{fig:S10}
+\end{figure}
 
 \SIEndSection
 
@@ -432,7 +455,7 @@ E_{\mathrm{other}}=O_{\mathrm{other}}\varepsilon_{\mathrm{dig}}.
 \end{equation}
 This decomposition keeps the core-array, auxiliary-array, and digital contributions explicit in both the latency and energy estimates.
 
-\begin{table*}[t]
+\begin{table*}[H]
 \centering
 \caption{\textbf{Component-level latency and energy decomposition at the nominal operating point.}
 All values are reported per token for the all-layer mapping at \(S=384\), \(r=32\), and \(BL=31\). The table lists the counting expression, operation count, latency, energy, and modelling basis for each component.}
@@ -506,7 +529,7 @@ The transfer contribution is below \(10^{-3}\) in the displayed units after amor
 \noindent\textbf{Component-level decomposition.}
 Supplementary Table~\ref{tab:supp_component_decomposition} gives the numerical decomposition for the nominal operating point shown in Supplementary Figure~\ref{fig:supp_system_dataflow}(b,c). The table separates the total latency and energy into core-array MVM, auxiliary projection read, auxiliary pulse update, auxiliary-to-core transfer, digital attention, and remaining digital operations. Each row lists the counting expression, per-token operation count, latency, energy, and modelling basis. The analog components are tied to the calibrated AIMC tile and HERMES-class core assumptions \cite{klein2023alpine,khaddam2022hermescore}, the auxiliary update uses pulsed-update primitives \cite{gokmen2016rpu,rasch2024fastrobust}, and the digital components use transformer operation counts and first-order digital reference parameters \cite{vaswani2017attention,horowitz2014computing}. This table provides a component-by-component check of the decompositions in Eqs.~\eqref{eq:supp_total_latency} and \eqref{eq:supp_total_energy}.
 
-\begin{figure}[t]
+\begin{figure}[H]
   \centering
   \includegraphics[width=0.98\textwidth]{sup_fig7.png}
   \caption{\textbf{System-level dataflow and latency--energy decomposition.}
@@ -810,17 +833,191 @@ Digital path &
 Attention-score computation, softmax, LayerNorm, GeLU, residual additions, embeddings, and the SQuAD task head are evaluated digitally. \\
 \midrule
 LR-TT configuration &
-Default operating point \(r=8\) and \(\tau=1000\), unless otherwise specified. Transformer fine-tuning uses auxiliary forward-path participation with \(\gamma=1\) and post-transfer \(B\)-array reset with \(\rho_{B,\ell}=1\). \\
+Default operating point: rank \(r=32\), transfer interval \(\tau=2\), rank-wise stochastic transfer with transfer learning rate scaled by the optimizer learning rate (\texttt{scale\_transfer\_lr=true}), auxiliary forward-path participation \(\gamma=0\), and post-transfer retention for both \(A\) and \(B\) tiles. The decay reinitialization mode is used. \\
 \midrule
 Training setting &
-All BERT-base comparisons use matched dataset preprocessing, initialization checkpoint, mapped-layer set, optimizer schedule, and validation protocol. Reported training runs use \(\mathrm{io\_perfect}=\mathrm{true}\); diagnostic precision studies use the I/O model in Table~\ref{tab:S8_hardware_simulator}. Sequence length \(S=384\) is used for the reported system-level estimates. \\
+AnalogAdam optimizer with batch size 48, 5 epochs, linear learning-rate warmup over 365 steps followed by linear decay, no weight decay, and maximum sequence length \(S=384\). All BERT-base comparisons use matched dataset preprocessing, initialization checkpoint, mapped-layer set, optimizer schedule, and validation protocol. Reported training runs use ideal I/O (\(\mathrm{io\_perfect}=\mathrm{true}\)); diagnostic precision studies use the I/O model in Table~\ref{tab:S8_hardware_simulator}. Per-configuration hyperparameter optimization was performed using Optuna with early stopping. \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
+\noindent\textbf{Per-figure experimental conditions for BERT-base fine-tuning.}
+Table~\ref{tab:S8_bert_perfig} lists the varying parameters for each data point in the main-text figures. All conditions share the common settings in Tables~\ref{tab:S8_hardware_simulator} and~\ref{tab:S8_bert_training} unless otherwise noted. The AF ratio\(=\)0 condition uses the constantstepideal device with 10-bit multi-level updates (\(w_{\max}=0.0624\), \(\Delta w_{\min}=1.21\times10^{-4}\)), and the AF ratio\(=\)1 condition uses the 6T1C-gamma device with 12-bit resolution (\(w_{\max}=1.0\), \(\Delta w_{\min}=4.88\times10^{-4}\)).
+
+{\small
+\renewcommand{\arraystretch}{1.10}
+\setlength{\tabcolsep}{3.0pt}
+\begin{longtable}{@{}l l l l r r r r r r r r r r r@{}}
+\caption{\textbf{Per-figure experimental parameters for BERT-base fine-tuning.} Common settings are given in Tables~\ref{tab:S8_hardware_simulator} and~\ref{tab:S8_bert_training}. \(\eta_{\mathrm{tr}}\) is the transfer learning rate; for LR-TT (with transfer-lr scaling enabled), the actual per-step transfer rate is \(\mathrm{lr}(t) \times \eta_{\mathrm{tr}}\), where \(\mathrm{lr}(t)\) follows the linear warmup/decay schedule, whereas for Tiki-Taka \(\eta_{\mathrm{tr}}\) is applied directly. ``lr'' denotes the peak learning rate (after warmup, before decay). RW = rank-wise stochastic transfer; Id = ideal transfer. ``---'' = not applicable or not used.}
+\label{tab:S8_bert_perfig} \\
+\toprule
+\textbf{Fig.} & \textbf{Condition} & \textbf{Target} & \textbf{Transfer} & \textbf{$r$} & \textbf{$\tau$} & \textbf{lr} & \textbf{$\eta_{\mathrm{aux}}$} & \textbf{$\eta_{\mathrm{tr}}$} & \textbf{AB bit} & \textbf{C bit} & \textbf{$w_{\max}$} & \textbf{AF} & \textbf{Noise} & \textbf{F1} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Fig.} & \textbf{Condition} & \textbf{Target} & \textbf{Transfer} & \textbf{$r$} & \textbf{$\tau$} & \textbf{lr} & \textbf{$\eta_{\mathrm{aux}}$} & \textbf{$\eta_{\mathrm{tr}}$} & \textbf{AB bit} & \textbf{C bit} & \textbf{$w_{\max}$} & \textbf{AF} & \textbf{Noise} & \textbf{F1} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{15}{r}{\emph{continued on next page}} \\
+\endfoot
+\bottomrule
+\endlastfoot
+
+\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~5(f): Auxiliary weight dynamics}} \\
+5(f) & LR-TT & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 85.0 \\
+\midrule
+
+\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~5(g): Core-tile bit sweep (fixed cond.)}} \\
+5(g) & LR-TT C 6b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 6 & .062 & 0 & 0 & 82.7 \\
+5(g) & LR-TT C 7b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 7 & .062 & 0 & 0 & 83.4 \\
+5(g) & LR-TT C 8b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 8 & .062 & 0 & 0 & 84.8 \\
+5(g) & LR-TT C 9b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 9 & .062 & 0 & 0 & 84.8 \\
+5(g) & LR-TT C 10b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 85.0 \\
+5(g) & Single RPU 6b & QKVO & --- & --- & --- & --- & --- & --- & --- & 6 & 1.0 & 0 & 0 & 11.6 \\
+5(g) & Single RPU 7b & QKVO & --- & --- & --- & --- & --- & --- & --- & 7 & 1.0 & 0 & 0 & 17.4 \\
+5(g) & Single RPU 8b & QKVO & --- & --- & --- & --- & --- & --- & --- & 8 & 1.0 & 0 & 0 & 58.2 \\
+5(g) & Single RPU 9b & QKVO & --- & --- & --- & --- & --- & --- & --- & 9 & 1.0 & 0 & 0 & 75.9 \\
+5(g) & Single RPU 10b & QKVO & --- & --- & --- & --- & --- & --- & --- & 10 & 1.0 & 0 & 0 & 82.6 \\
+5(g) & TT C 6b & QKVO & --- & --- & --- & --- & --- & --- & --- & 6 & --- & --- & --- & 85.2 \\
+5(g) & TT C 7b & QKVO & --- & --- & --- & --- & --- & --- & --- & 7 & --- & --- & --- & 85.9 \\
+5(g) & TT C 8b & QKVO & --- & --- & --- & --- & --- & --- & --- & 8 & --- & --- & --- & 86.3 \\
+5(g) & TT C 9b & QKVO & --- & --- & --- & --- & --- & --- & --- & 9 & --- & --- & --- & 87.0 \\
+5(g) & TT C 10b & QKVO & --- & --- & --- & --- & --- & --- & --- & 10 & --- & --- & --- & 86.9 \\
+\midrule
+
+\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~5(h): Aux-tile bit sweep (per-bit opt.)}} \\
+5(h) & LR-TT AB 6b & QKVO & RW & 32 & 1 & 3.28e-3 & 3.02 & 0.25 & 6 & 10 & .062 & 0 & 0 & 83.6 \\
+5(h) & LR-TT AB 8b & QKVO & RW & 32 & 2 & 3.28e-3 & 1.01 & 0.25 & 8 & 10 & .062 & 0 & 0 & 85.0 \\
+5(h) & LR-TT AB 10b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 85.0 \\
+5(h) & LR-TT AB 12b & QKVO & RW & 32 & 2 & 2.50e-3 & 0.12 & 0.25 & 12 & 10 & .062 & 0 & 0 & 82.2 \\
+5(h) & LR-TT AB 14b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.02 & 0.35 & 14 & 10 & .062 & 0 & 0 & 78.7 \\
+5(h) & TT AB 6b & QKVO & --- & --- & --- & --- & --- & --- & 6 & 10 & --- & --- & --- & 83.4 \\
+5(h) & TT AB 8b & QKVO & --- & --- & --- & --- & --- & --- & 8 & 10 & --- & --- & --- & 86.2 \\
+5(h) & TT AB 10b & QKVO & --- & --- & --- & --- & --- & --- & 10 & 10 & --- & --- & --- & 86.9 \\
+5(h) & TT AB 12b & QKVO & --- & --- & --- & --- & --- & --- & 12 & 10 & --- & --- & --- & 86.0 \\
+5(h) & TT AB 14b & QKVO & --- & --- & --- & --- & --- & --- & 14 & 10 & --- & --- & --- & 85.1 \\
+\midrule
+
+\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~5(i): Cosine similarity}} \\
+5(i) & LR-TT & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 85.0 \\
+\midrule
+
+\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~6(a): Mapped-layer comparison}} \\
+6(a) & LR-TT & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 85.0 \\
+6(a) & LR-TT & FFN & RW & 32 & 2 & 3.30e-3 & 0.20 & 0.20 & 10 & 10 & .062 & 0 & 0 & 84.1 \\
+6(a) & LR-TT & ALL & RW & 32 & 2 & 2.00e-3 & 0.35 & 0.15 & 10 & 10 & .062 & 0 & 0 & 85.2 \\
+6(a) & TT & QKVO & --- & --- & --- & --- & --- & --- & --- & --- & --- & --- & --- & 86.9 \\
+6(a) & TT & FFN & --- & --- & --- & --- & --- & --- & --- & --- & --- & --- & --- & 85.7 \\
+6(a) & TT & ALL & --- & --- & --- & --- & --- & --- & --- & --- & --- & --- & --- & 87.0 \\
+6(a) & Dig.\ LoRA & QKVO & --- & 32 & --- & 3.05e-4 & --- & --- & --- & --- & --- & --- & --- & 88.1 \\
+6(a) & Dig.\ LoRA & FFN & --- & 32 & --- & 4.20e-4 & --- & --- & --- & --- & --- & --- & --- & 87.2 \\
+6(a) & Dig.\ LoRA & ALL & --- & 32 & --- & 4.20e-4 & --- & --- & --- & --- & --- & --- & --- & 88.3 \\
+6(a) & Dig.\ FT & QKVO & --- & --- & --- & 1.51e-4 & --- & --- & --- & --- & --- & --- & --- & 88.1 \\
+6(a) & Dig.\ FT & FFN & --- & --- & --- & 1.58e-4 & --- & --- & --- & --- & --- & --- & --- & 86.6 \\
+6(a) & Dig.\ FT & ALL & --- & --- & --- & 5.61e-5 & --- & --- & --- & --- & --- & --- & --- & 87.4 \\
+\midrule
+
+\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~6(b): Rank sweep (per-rank opt.)}} \\
+6(b) & LR-TT $r$=1 & QKVO & RW & 1 & 2 & 2.00e-3 & 0.30 & 1.00 & 10 & 10 & .062 & 0 & 0 & 82.8 \\
+6(b) & LR-TT $r$=2 & QKVO & RW & 2 & 1 & 2.00e-3 & 0.50 & 1.00 & 10 & 10 & .062 & 0 & 0 & 82.9 \\
+6(b) & LR-TT $r$=4 & QKVO & RW & 4 & 2 & 2.00e-3 & 0.30 & 0.50 & 10 & 10 & .062 & 0 & 0 & 83.8 \\
+6(b) & LR-TT $r$=8 & QKVO & RW & 8 & 1 & 3.30e-3 & 0.30 & 0.35 & 10 & 10 & .062 & 0 & 0 & 84.2 \\
+6(b) & LR-TT $r$=16 & QKVO & RW & 16 & 2 & 3.30e-3 & 0.30 & 0.35 & 10 & 10 & .062 & 0 & 0 & 84.7 \\
+6(b) & LR-TT $r$=32 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 85.0 \\
+6(b) & LR-TT $r$=64 & QKVO & RW & 64 & 1 & 3.80e-3 & 0.40 & 0.095 & 10 & 10 & .062 & 0 & 0 & 84.9 \\
+6(b) & LR-TT $r$=1 & QKVO & Id & 1 & 2 & 2.00e-3 & 0.30 & 1.00 & 10 & 10 & .062 & 0 & 0 & 82.4 \\
+6(b) & LR-TT $r$=2 & QKVO & Id & 2 & 1 & 2.00e-3 & 0.50 & 1.00 & 10 & 10 & .062 & 0 & 0 & 83.2 \\
+6(b) & LR-TT $r$=4 & QKVO & Id & 4 & 2 & 2.00e-3 & 0.30 & 0.50 & 10 & 10 & .062 & 0 & 0 & 83.5 \\
+6(b) & LR-TT $r$=8 & QKVO & Id & 8 & 1 & 3.30e-3 & 0.30 & 0.35 & 10 & 10 & .062 & 0 & 0 & 83.9 \\
+6(b) & LR-TT $r$=16 & QKVO & Id & 16 & 2 & 3.30e-3 & 0.30 & 0.35 & 10 & 10 & .062 & 0 & 0 & 85.0 \\
+6(b) & LR-TT $r$=32 & QKVO & Id & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 84.8 \\
+6(b) & LR-TT $r$=64 & QKVO & Id & 64 & 1 & 3.80e-3 & 0.40 & 0.095 & 10 & 10 & .062 & 0 & 0 & 84.6 \\
+\midrule
+
+\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~6(c) left: Noise ratio sweep (AF=1)}} \\
+6(c) & LR-TT nr=0 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0 & 84.1 \\
+6(c) & LR-TT nr=0.1 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0.1 & 83.8 \\
+6(c) & LR-TT nr=0.3 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0.3 & 84.2 \\
+6(c) & LR-TT nr=0.5 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0.5 & 82.9 \\
+6(c) & LR-TT nr=0.7 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0.7 & 80.7 \\
+6(c) & LR-TT nr=1.0 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 1.0 & 78.1 \\
+\midrule
+
+\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~6(c) right: AF ratio sweep}} \\
+6(c) & AF=0 $\gamma$=0 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 85.0 \\
+6(c) & AF=0 $\gamma$=0.5 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0.5 & 0 & 80.0 \\
+6(c) & AF=0 $\gamma$=1 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 1 & 0 & 78.9 \\
+6(c) & AF=0 $\gamma$=2 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 2 & 0 & 78.4 \\
+6(c) & AF=0 $\gamma$=3 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 3 & 0 & 78.5 \\
+6(c) & AF=0 $\gamma$=5 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 5 & 0 & 78.5 \\
+6(c) & AF=0 $\gamma$=10 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 10 & 0 & 78.4 \\
+6(c) & AF=1 $\gamma$=0 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 0 & 0 & 7.3 \\
+6(c) & AF=1 $\gamma$=0.5 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 0.5 & 0 & 7.3 \\
+6(c) & AF=1 $\gamma$=1 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0 & 84.1 \\
+6(c) & AF=1 $\gamma$=2 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 2 & 0 & 82.1 \\
+6(c) & AF=1 $\gamma$=3 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 3 & 0 & 81.4 \\
+6(c) & AF=1 $\gamma$=5 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 5 & 0 & 80.3 \\
+6(c) & AF=1 $\gamma$=10 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 10 & 0 & 79.4 \\
+\midrule
+
+\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~6(d): Effective rank (per-rank opt.)}} \\
+6(d) & LR-TT $r$=1 & QKVO & RW & 1 & 2 & 2.00e-3 & 0.30 & 1.00 & 10 & 10 & .062 & 0 & 0 & 82.5 \\
+6(d) & LR-TT $r$=4 & QKVO & RW & 4 & 2 & 2.00e-3 & 0.30 & 0.50 & 10 & 10 & .062 & 0 & 0 & 83.3 \\
+6(d) & LR-TT $r$=16 & QKVO & RW & 16 & 2 & 3.30e-3 & 0.30 & 0.35 & 10 & 10 & .062 & 0 & 0 & 84.3 \\
+6(d) & LR-TT $r$=64 & QKVO & RW & 64 & 1 & 3.80e-3 & 0.40 & 0.095 & 10 & 10 & .062 & 0 & 0 & 84.6 \\
+\midrule
+
+\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~S6: Cell weight dynamics}} \\
+S6 & LR-TT & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 85.0 \\
+\midrule
+
+\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~S7(a): AF=1 bit sweeps (per-bit opt.)}} \\
+S7a & LR-TT AB 6b & QKVO & RW & 32 & 50 & 3.80e-3 & 3e-3 & 0.095 & 6 & 10 & 1.0 & 1 & 0 & 78.0 \\
+S7a & LR-TT AB 8b & QKVO & RW & 32 & 5 & 3.80e-3 & 0.05 & 0.095 & 8 & 10 & 1.0 & 1 & 0 & 79.5 \\
+S7a & LR-TT AB 10b & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 10 & 10 & 1.0 & 1 & 0 & 83.2 \\
+S7a & LR-TT AB 12b & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0 & 84.1 \\
+S7a & LR-TT AB 14b & QKVO & RW & 32 & 1 & 3.30e-3 & 0.15 & 0.25 & 14 & 10 & 1.0 & 1 & 0 & 84.1 \\
+S7a & LR-TT C 6b & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 6 & 1.0 & 1 & 0 & 80.3 \\
+S7a & LR-TT C 7b & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 7 & 1.0 & 1 & 0 & 80.8 \\
+S7a & LR-TT C 8b & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 8 & 1.0 & 1 & 0 & 83.3 \\
+S7a & LR-TT C 9b & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 9 & 1.0 & 1 & 0 & 83.5 \\
+S7a & LR-TT C 10b & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0 & 84.1 \\
+\midrule
+
+\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~S7(b): AF=1 target comparison}} \\
+S7b & LR-TT & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0 & 84.6 \\
+S7b & LR-TT & FFN & RW & 32 & --- & --- & --- & --- & 12 & 10 & 1.0 & 1 & 0 & 82.0 \\
+S7b & LR-TT & ALL & RW & 32 & --- & --- & --- & --- & 12 & 10 & 1.0 & 1 & 0 & 83.6 \\
+\midrule
+
+\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~S7(c): AF=1 rank sweep (per-rank opt.)}} \\
+S7c & LR-TT $r$=1 & QKVO & RW & 1 & 1 & 2.00e-3 & 0.30 & 1.00 & 12 & 10 & 1.0 & 1 & 0 & 82.0 \\
+S7c & LR-TT $r$=2 & QKVO & RW & 2 & 1 & 2.00e-3 & 0.30 & 1.00 & 12 & 10 & 1.0 & 1 & 0 & 82.0 \\
+S7c & LR-TT $r$=4 & QKVO & RW & 4 & 1 & 3.30e-3 & 0.30 & 0.25 & 12 & 10 & 1.0 & 1 & 0 & 82.4 \\
+S7c & LR-TT $r$=8 & QKVO & RW & 8 & 1 & 3.30e-3 & 0.30 & 0.35 & 12 & 10 & 1.0 & 1 & 0 & 82.8 \\
+S7c & LR-TT $r$=16 & QKVO & RW & 16 & 1 & 4.00e-3 & 0.30 & 0.50 & 12 & 10 & 1.0 & 1 & 0 & 83.4 \\
+S7c & LR-TT $r$=32 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0 & 84.1 \\
+S7c & LR-TT $r$=64 & QKVO & RW & 64 & 1 & 3.80e-3 & 0.40 & 0.095 & 12 & 10 & 1.0 & 1 & 0 & 84.5 \\
+\midrule
+
+\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~S8: Cosine similarity (L0 query)}} \\
+S8 & LR-TT & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 85.0 \\
+\midrule
+
+\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~S9: $\gamma \times w_{\max}$ 2D sweep}} \\
+S9a & AF=0 opt & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & var & 0--5 & 0 & see fig \\
+S9b & AF=1 opt & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & var & 0--5 & 0 & see fig \\
+\midrule
+
+\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~S10: Effective rank full 2$\times$2}} \\
+S10 & \multicolumn{14}{l}{Same conditions as Fig.~6(d); includes first tile and $\erank(C)$.} \\
+
+\end{longtable}
+}
+
 \SIEndSection
 %----------------------------------------------------
-]
 \renewcommand{\arraystretch}{1.10}
 
 \bibliography{reference}

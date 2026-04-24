@@ -1,6 +1,6 @@
 {
-  "title": "Auxiliary Tile (A/B) Bit Sweep \u2014 Per-Bit Optimized (constantstepideal)",
-  "description": "F1 vs auxiliary tile weight bits. Each bit level independently optimized for lr, tlr, te, flr via Optuna. C tile fixed at 10-bit.",
+  "title": "Core Tile (C) Bit Sweep \u2014 Fixed Condition (constantstepideal)",
+  "description": "F1 vs core tile weight bits. Fixed condition: all hyperparameters held at base values, only c_dw_min varies. NOT per-bit optimized.",
   "figure": "Figure 5(g)",
   "config": {
     "model": "bert-base-uncased",
@@ -11,6 +11,10 @@
     },
     "lora_target": "qkvo",
     "rank": 32,
+    "transfer_every": 2,
+    "transfer_lr": 0.25,
+    "fast_lr": 0.3,
+    "learning_rate": 0.00328,
     "optimizer": "AnalogAdam",
     "batch_size": 48,
     "grad_accum_steps": 3,
@@ -20,88 +24,139 @@
     "reinit_mode": "decay",
     "reinit_gain": 1.0,
     "transfer_method": "onehot",
-    "c_dw_min": 0.001953,
-    "c_desired_bl": 31,
+    "ab_dw_min": 0.00012109,
+    "ab_multilevel": 10,
+    "ab_w_max": 0.0624,
     "is_perfect": true,
     "seed": 42,
-    "auto_scale_mode": "none",
-    "ab_w_max": 0.0624,
-    "ab_dw_min_formula": "2 * 0.0624 / 2^ab_multilevel"
+    "auto_scale_mode": "none"
   },
   "fixed_params": {
-    "C_tile_bits": 10,
-    "c_dw_min": 0.001953,
+    "AB_tile_bits": 10,
+    "ab_dw_min": 0.00012109,
+    "ab_multilevel": 10,
     "rank": 32,
-    "w_max": 0.0624
+    "note": "All hyperparameters fixed at T267 base; only c_dw_min varies"
   },
-  "swept_param": "ab_multilevel (auxiliary tile bits)",
-  "optimization": "per-bit independent Optuna optimization of lr, tlr, te, flr",
+  "swept_param": "c_dw_min (core tile bits)",
+  "c_dw_min_formula": "c_dw_min = 2 / 2^c_bits (c_w_max = 1.0)",
+  "optimization": "fixed condition (T267 base, NOT per-bit optimized)",
   "source_log": "optuna_bert_squad_lrtt_bs48_adam_decay_nowd_nomom_nonest_onehot_constantstepideal_cconstantstepideal_perfect_noos_abml_qkvo_5ep.log",
   "data": [
     {
       "bits": 6,
-      "f1": 83.63,
-      "trial": "T322",
-      "best_params": {
-        "lr": 0.00328,
-        "tlr": 0.25,
-        "te": 1,
-        "flr": 3.024,
-        "ab_multilevel": 6,
-        "ab_dw_min": 0.001953125
-      }
-    },
-    {
-      "bits": 8,
-      "f1": 84.98,
-      "trial": "T290",
-      "best_params": {
-        "lr": 0.00328,
-        "tlr": 0.25,
-        "te": 2,
-        "flr": 1.008,
-        "ab_multilevel": 8,
-        "ab_dw_min": 0.00048828125
-      }
-    },
-    {
-      "bits": 10,
-      "f1": 84.98,
-      "trial": "T267",
-      "best_params": {
+      "f1": 82.7,
+      "trial": "T359",
+      "c_dw_min": 0.03125,
+      "params": {
         "lr": 0.00328,
         "tlr": 0.25,
         "te": 2,
         "flr": 0.3,
-        "ab_multilevel": 10,
-        "ab_dw_min": 0.00012109375
+        "ab_multilevel": 10
       }
     },
     {
-      "bits": 12,
-      "f1": 82.16,
-      "trial": "T242",
-      "best_params": {
-        "lr": 0.0025,
+      "bits": 7,
+      "f1": 83.4,
+      "trial": "T360",
+      "c_dw_min": 0.015625,
+      "params": {
+        "lr": 0.00328,
         "tlr": 0.25,
         "te": 2,
-        "flr": 0.116,
-        "ab_multilevel": 12,
-        "ab_dw_min": 3.02734375e-05
+        "flr": 0.3,
+        "ab_multilevel": 10
       }
     },
     {
-      "bits": 14,
-      "f1": 78.72,
-      "trial": "T347",
-      "best_params": {
+      "bits": 8,
+      "f1": 84.8,
+      "trial": "T474",
+      "c_dw_min": 0.0078125,
+      "params": {
         "lr": 0.00328,
-        "tlr": 0.35,
+        "tlr": 0.25,
         "te": 2,
-        "flr": 0.02,
-        "ab_multilevel": 14,
-        "ab_dw_min": 7.568359375e-06
+        "flr": 0.3,
+        "ab_multilevel": 10
+      }
+    },
+    {
+      "bits": 9,
+      "f1": 84.8,
+      "trial": "T475",
+      "c_dw_min": 0.00390625,
+      "params": {
+        "lr": 0.00328,
+        "tlr": 0.25,
+        "te": 2,
+        "flr": 0.3,
+        "ab_multilevel": 10
+      }
+    },
+    {
+      "bits": 10,
+      "f1": 85.0,
+      "trial": "T267",
+      "c_dw_min": 0.001953,
+      "params": {
+        "lr": 0.00328,
+        "tlr": 0.25,
+        "te": 2,
+        "flr": 0.3,
+        "ab_multilevel": 10
       }
     }
-  ]
+  ],
+  "single_rpu_baseline": {
+    "description": "Single RPU direct training baseline (no LR-TT, single tile with given bit resolution)",
+    "data": [
+      {
+        "bits": 6,
+        "f1": 11.6
+      },
+      {
+        "bits": 7,
+        "f1": 17.4
+      },
+      {
+        "bits": 8,
+        "f1": 58.2
+      },
+      {
+        "bits": 9,
+        "f1": 75.9
+      },
+      {
+        "bits": 10,
+        "f1": 82.6
+      }
+    ]
+  },
+  "tikitaka_baseline": {
+    "description": "Full-rank Tiki-Taka baseline at matched core tile bits",
+    "data": [
+      {
+        "bits": 6,
+        "f1": 85.2
+      },
+      {
+        "bits": 7,
+        "f1": 85.9
+      },
+      {
+        "bits": 8,
+        "f1": 86.3
+      },
+      {
+        "bits": 9,
+        "f1": 87.0
+      },
+      {
+        "bits": 10,
+        "f1": 86.9
+      }
+    ]
+  }
 }

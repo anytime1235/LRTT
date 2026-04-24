@@ -1,34 +1,122 @@
 {
   "figure": "S7",
-  "title": "Core tile (C) bit sweep — AF ratio = 1 (6T1C-gamma), fixed condition",
+  "title": "AF ratio = 1 ablations: bit sweep, target comparison, rank sweep",
   "model": "BERT-base-uncased",
   "task": "SQuAD v1.1",
   "method": "LR-TT",
-  "target_layers": "QKVO",
   "device_condition": "AF ratio = 1 (constantstep6t1cgamma)",
-  "optimization": "fixed condition (T249 base params, only c_dw_min varies)",
-  "common_params": {
-    "rank": 32,
-    "ab_dw_min": 0.000488281,
-    "ab_bits": 12,
-    "ab_multilevel": false,
-    "w_max": 1.0,
-    "n_epochs": 5,
-    "batch_size": 48,
-    "optimizer": "AnalogAdam",
-    "transfer_method": "onehot",
-    "learning_rate": 0.0038,
-    "transfer_lr": 0.095,
-    "transfer_every": 1,
-    "flr": 0.474
+  "panels": {
+    "(a) Bit sweep": {
+      "aux_tile_sweep": {
+        "description": "Per-bit optimized auxiliary tile sweep, core tile 10-bit fixed",
+        "data": [
+          {
+            "bits": 6,
+            "f1": 78.0,
+            "trial": "T588"
+          },
+          {
+            "bits": 8,
+            "f1": 79.5,
+            "trial": "T601"
+          },
+          {
+            "bits": 10,
+            "f1": 83.2,
+            "trial": "T419"
+          },
+          {
+            "bits": 12,
+            "f1": 84.1,
+            "trial": "T249"
+          },
+          {
+            "bits": 14,
+            "f1": 84.1,
+            "trial": "T638"
+          }
+        ]
+      },
+      "core_tile_sweep": {
+        "description": "Fixed condition core tile sweep, aux tile 12-bit fixed (T249 params)",
+        "data": [
+          {
+            "bits": 6,
+            "f1": 80.3,
+            "trial": "T436"
+          },
+          {
+            "bits": 7,
+            "f1": 80.8,
+            "trial": "T425"
+          },
+          {
+            "bits": 8,
+            "f1": 83.3,
+            "trial": "T426"
+          },
+          {
+            "bits": 9,
+            "f1": 83.5,
+            "trial": "T427"
+          },
+          {
+            "bits": 10,
+            "f1": 84.1,
+            "trial": "T249"
+          }
+        ]
+      }
+    },
+    "(b) Target comparison": {
+      "data": [
+        {
+          "target": "QKVO",
+          "f1": 84.6
+        },
+        {
+          "target": "FFN",
+          "f1": 82.0
+        },
+        {
+          "target": "ALL",
+          "f1": 83.6
+        }
+      ]
+    },
+    "(c) Rank sweep": {
+      "transfer_method": "onehot",
+      "data": [
+        {
+          "rank": 1,
+          "f1": 82.0
+        },
+        {
+          "rank": 2,
+          "f1": 82.0
+        },
+        {
+          "rank": 4,
+          "f1": 82.4
+        },
+        {
+          "rank": 8,
+          "f1": 82.8
+        },
+        {
+          "rank": 16,
+          "f1": 83.4
+        },
+        {
+          "rank": 32,
+          "f1": 84.1
+        },
+        {
+          "rank": 64,
+          "f1": 84.5
+        }
+      ]
+    }
   },
-  "c_dw_min_formula": "c_dw_min = 2 / 2^c_bits (c_w_max = 1.0)",
-  "data": [
-    {"bits": 6, "f1": 80.33, "c_dw_min": 0.03125, "trial": "T436"},
-    {"bits": 7, "f1": 80.78, "c_dw_min": 0.015625, "trial": "T425"},
-    {"bits": 8, "f1": 83.31, "c_dw_min": 0.0078125, "trial": "T426"},
-    {"bits": 9, "f1": 83.47, "c_dw_min": 0.00390625, "trial": "T427"},
-    {"bits": 10, "f1": 84.06, "c_dw_min": 0.001953, "trial": "T249", "note": "base condition (intersection with S6 at 12-bit AB)"}
-  ],
   "source_study": "optuna_bert_squad_lrtt_bs48_adam_decay_nowd_nomom_nonest_onehot_constantstep6t1cgamma_cconstantstepideal_perfect_noos_qkvo_5ep"
 }

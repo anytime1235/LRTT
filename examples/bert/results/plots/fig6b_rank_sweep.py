@@ -28,8 +28,8 @@ def lrtt_params(r):
 
 ranks = [1, 2, 4, 8, 16, 32, 64]
 
-onehot_f1 = {1: 82.76, 2: 82.92, 4: 83.81, 8: 84.19, 16: 84.70, 32: 84.98, 64: 84.94}
-set_f1 =    {1: 82.39, 2: 83.23, 4: 83.45, 8: 83.90, 16: 84.97, 32: 84.79, 64: 84.56}
+onehot_f1 = {1: 82.8, 2: 82.9, 4: 83.8, 8: 84.2, 16: 84.7, 32: 85.0, 64: 84.9}
+set_f1 =    {1: 82.4, 2: 83.2, 4: 83.5, 8: 83.9, 16: 85.0, 32: 84.8, 64: 84.6}
 param_ratio = {r: lrtt_params(r) / FULL_PARAMS * 100 for r in ranks}
 
 plt.rcParams.update({
@@ -41,9 +41,9 @@ plt.rcParams.update({
 fig, ax = plt.subplots(figsize=(5.5, 3.5))
 
 ax.plot(ranks, [onehot_f1[r] for r in ranks], 'o-', color='#1f77b4', linewidth=1.6,
-        markersize=6, label='LR-TT (onehot)', zorder=3)
+        markersize=6, label='LR-TT (rank-wise)', zorder=3)
 ax.plot(ranks, [set_f1[r] for r in ranks], 's--', color='#ff7f0e', linewidth=1.6,
-        markersize=6, label='LR-TT (set)', zorder=3)
+        markersize=6, label='LR-TT (ideal)', zorder=3)
 
 for r in ranks:
     ax.annotate(f'{onehot_f1[r]:.2f}', (r, onehot_f1[r]),
