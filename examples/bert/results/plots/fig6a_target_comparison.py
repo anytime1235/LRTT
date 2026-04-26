@@ -8,7 +8,7 @@ methods = ['Digital\ntraining', 'Digital\nLoRA', 'Tiki-Taka', 'LR-TT']
 
 # F1 scores: {method: [QKVO, FFN, ALL]}
 data = {
-    'Digital\ntraining': [88.1, 86.6, 87.4],
+    'Digital\ntraining': [88.1, 87.1, 87.6],
     'Digital\nLoRA':     [88.1, 87.2, 88.3],
     'Tiki-Taka':         [86.9, 85.7, 87.0],
     'LR-TT':             [85.0, 84.1, 85.2],

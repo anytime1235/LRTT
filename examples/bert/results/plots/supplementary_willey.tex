@@ -105,47 +105,32 @@
 
 %====================================================
 \clearpage
-\section{6T1C-array hardware platform and measurement setup}
+\section{Electrical Characteristics of the 6T1C Devices: Retention and Update Behavior Across the 5x5 Array}
 \label{sec:S1}
 %====================================================
 
-\noindent
-The fast tile used throughout this work is the IGZO-TFT/capacitor 6T1C synaptic platform described in the main manuscript. Device measurements were performed on a PCB-based setup controlled by an MCU, with the fabricated array accessed through a probe-card interface. The measurement loop combines write-pulse generation, array addressing, projected-signal readout, and digitization, allowing the fast accumulate--transfer behavior of LR-TT to be examined directly under physical programming.
-
-\noindent
-For the hardware-in-the-loop regression study, a 5\,$\times$\,5 array was partitioned so that 3\,$\times$\,1 and 1\,$\times$\,3 sub-arrays implemented the fast factors $A$ and $B$, respectively. The visible slow matrix $C$ was tracked separately, so that the hardware experiment directly isolates the role of the fast state without conflating it with slow-tile non-idealities.
-
-\noindent
-This section establishes the physical basis of the supplementary results. The regression, MNIST, and transformer analyses that follow all rely on the claim that the 6T1C device can act as a repeatedly written fast state with gradual update, usable symmetry, and retention on the transfer timescale.
-
-% \begin{figure}[H]
-%   \centering
-%   \SIfig[0.32\textheight]{FigS1_hardware_setup.pdf}{Figure S1 placeholder. Suggested content: (a) 6T1C synaptic-cell schematic; (b) PCB/MCU-based measurement platform; and (c) 5\,$\times$\,5 array allocation for the hardware-in-the-loop LR-TT experiment.}
-%   \caption{\textbf{Hardware setup for LR-TT fast-tile validation.} (a) Schematic of the 6T1C synaptic cell used as the fast accumulation element. (b) Board-level measurement path used for write, read, and projected-signal acquisition. (c) Allocation of the fabricated 5\,$\times$\,5 array into the sub-arrays used for the fast $A/B$ state in the hardware-in-the-loop regression experiment.}
-%   \label{fig:S1_hardware}
-% \end{figure}
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=0.98\textwidth]{sup_fig1.png}
+  \caption{\textbf{Electrical Characteristics of the 6T1C Devices.}
+  (a) Retention characteristics of the 6T1C device, demonstrating stable data retention. (b) Weight update characteristics of 25 cells in the fabricated 5x5 crossbar array. }
+  \label{sup_fig1}
+\end{figure}
+\FloatBarrier
 
 \SIEndSection
 
-\section{Hardware detail implementation and 6T1C device retention}
+\section{Hardware setup and measurement platform}
 \label{sec:S1}
 %====================================================
-
-\noindent
-The fast tile used throughout this work is the IGZO-TFT/capacitor 6T1C synaptic platform described in the main manuscript. Device measurements were performed on a PCB-based setup controlled by an MCU, with the fabricated array accessed through a probe-card interface. The measurement loop combines write-pulse generation, array addressing, projected-signal readout, and digitization, allowing the fast accumulate--transfer behavior of LR-TT to be examined directly under physical programming.
-
-\noindent
-For the hardware-in-the-loop regression study, a 5\,$\times$\,5 array was partitioned so that 3\,$\times$\,1 and 1\,$\times$\,3 sub-arrays implemented the fast factors $A$ and $B$, respectively. The visible slow matrix $C$ was tracked separately, so that the hardware experiment directly isolates the role of the fast state without conflating it with slow-tile non-idealities.
-
-\noindent
-This section establishes the physical basis of the supplementary results. The regression, MNIST, and transformer analyses that follow all rely on the claim that the 6T1C device can act as a repeatedly written fast state with gradual update, usable symmetry, and retention on the transfer timescale.
-
-% \begin{figure}[H]
-%   \centering
-%   \SIfig[0.32\textheight]{FigS1_hardware_setup.pdf}{Figure S1 placeholder. Suggested content: (a) 6T1C synaptic-cell schematic; (b) PCB/MCU-based measurement platform; and (c) 5\,$\times$\,5 array allocation for the hardware-in-the-loop LR-TT experiment.}
-%   \caption{\textbf{Hardware setup for LR-TT fast-tile validation.} (a) Schematic of the 6T1C synaptic cell used as the fast accumulation element. (b) Board-level measurement path used for write, read, and projected-signal acquisition. (c) Allocation of the fabricated 5\,$\times$\,5 array into the sub-arrays used for the fast $A/B$ state in the hardware-in-the-loop regression experiment.}
-%   \label{fig:S1_hardware}
-% \end{figure}
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=0.98\textwidth]{sup_fig2.png}
+  \caption{\textbf{}
+(a) Overview of the measurement and hardware setup, including the auto-prober (Eg4090) with an 8-inch wafer loaded and a mounted probe card, a custom PCB connected to the probe card, a DC power supply for biasing, and associated cables and breadboards for signal routing and distribution. (b) Enlarged view of the probe card and custom PCB within the overall setup. (c) Photograph of the custom PCB used to apply update and read pulses to the synaptic devices, comprising multiplexers, analog switches, D filp-flops, operational amplifiers, and integration capacitors; measurement and hardware demonstration sequences are programmed via the MCU, with generated pulses delivered through I/O pins to the wafer. }
+  \label{sup_fig2}
+\end{figure}
+\FloatBarrier
 
 \SIEndSection
 %====================================================
@@ -163,7 +148,7 @@ Supplementary Figure~\ref{fig:si_hardware_regression_aux} shows that increasing 
 \noindent\textbf{Core-array convergence and TP dependence.}
 As shown in Supplementary Figure~\ref{fig:si_hardware_regression_core}, all TP settings drive $C$ toward $T$, including the negative second column of the target, confirming stable bidirectional operation in the hardware loop. The final residuals $\|T-C\|_F$ are $0.102$, $0.087$, $0.073$, and $0.143$ for TP $=1,4,10,20$, respectively, with corresponding element-wise MAE values of $0.030$, $0.025$, $0.023$, and $0.037$. Among the tested conditions, TP $=10$ gives the smallest final error. The same figure also shows that increasing TP makes the core evolution progressively more staircased, consistent with a larger accumulated correction being consolidated at each transfer.
 
-\begin{figure}[H]
+\begin{figure}[!htbp]
   \centering
   \includegraphics[width=0.98\textwidth]{sup_fig3a.png}
   \caption{\textbf{Hardware rank-1 regression: auxiliary trajectories under different transfer periods.}
@@ -173,7 +158,7 @@ As shown in Supplementary Figure~\ref{fig:si_hardware_regression_core}, all TP s
 \end{figure}
 \FloatBarrier
 
-\begin{figure}[H]
+\begin{figure}[t]
   \centering
   \includegraphics[width=0.98\textwidth]{sup_fig3b.png}
   \caption{\textbf{Hardware rank-1 regression: core trajectories under different transfer periods.}
@@ -200,7 +185,7 @@ Supplementary Figure~\ref{fig:si_asymmetry_trajectory}(b) shows the correspondin
 \noindent
 In both cases, hyperparameters were not re-tuned for each AF setting, so the observed degradation reflects the direct effect of device nonlinearity on an otherwise fixed optimization configuration \cite{lee2022tikitaka_asymmetry,wu2024exact}. Full experimental parameters are provided in Supplementary Section~\ref{sec:S8}.
 
-\begin{figure}[H]
+\begin{figure}[!htbp]
   \centering
   \includegraphics[width=0.98\textwidth]{sup_fig4.png}
   \caption{\textbf{Training trajectory under core-tile and auxiliary-tile asymmetry.}
@@ -293,16 +278,16 @@ This metric is scale-invariant and measures how evenly the transferred update en
 
 \noindent
 Supplementary Figure~\ref{fig:si_reset_aux_path} shows that the w/o reset mode yields higher MNIST accuracy in most rank--transfer-period cells, whereas the w/ reset mode often produces a larger \(\erank(\Delta C)\), indicating that task performance is not determined by the dimensionality of the cumulative update transferred to the core array alone. We interpret this as a stability--diversity trade-off: resetting the post-transfer \(B\) state broadens the subspace populated by successive transferred updates, but in the \(\gamma=0\) regime it also weakens the continuity of auxiliary-state accumulation across transfer windows, so retaining the transferred \(B\) state more often yields higher MNIST accuracy even when the resulting \(\erank(\Delta C)\) is lower.
-\begin{figure}[H]
+
+\begin{figure}[!t]
   \centering
   \includegraphics[width=0.98\textwidth]{sup_fig5.png}
   \caption{\textbf{MNIST comparison of LR-TT training with and without post-transfer reset.}
   (a) Test error of the with-reset mode as a function of LoRA rank and transfer period $\tau$.
   (b) Effective rank of the cumulative core-array update, $\erank(\Delta C)$, for the with-reset mode, summarized by $\tau$-marginal and rank-marginal distributions. (c) Epoch-wise evolution of $\erank(\Delta C)$ for the without-reset mode at rank $r=8$.
   (d) Paired accuracy difference, $\Delta\mathrm{Acc}=\mathrm{Acc}_{\mathrm{reset}}-\mathrm{Acc}_{\mathrm{nonreset}}$, at matched rank and $\tau$; negative values indicate that the without-reset mode gives higher accuracy.
-  (e) Paired effective-rank difference, $\Delta\erank=\erank_{\mathrm{reset}}-\erank_{\mathrm{nonreset}}$, summarized along the $\tau$ and rank axes.
-  (f) Epoch-wise evolution of $\erank(\Delta C)$ for the with-reset mode at rank $r=8$.}
-  \label{fig:si_reset_aux_pat}
+  (e) Paired effective-rank difference, $\Delta\erank=\erank_{\mathrm{reset}}-\erank_{\mathrm{nonreset}}$, summarized along the $\tau$ and rank axes.Hard-Reset Operation of the 6T1C Synaptic Device. In the 6T1C, the weight is encoded in the capacitor voltage (Vcap), which is inherently bounded within a range of -VDD/2 to VDD/2. Accordingly, Vcap = 0 corresponds to a zero-weight state. As illustrated, simultaneous pulses applied to S1 and S3 set both the CP and CN nodes to VDD/2, enabling a straightforward and reliable reset to the zero-weight condition.}
+  \label{fig:si_reset_aux_path}
 \end{figure}
 
 \SIEndSection
@@ -315,47 +300,133 @@ Supplementary Figure~\ref{fig:si_reset_aux_path} shows that the w/o reset mode y
 \noindent
 This section presents additional diagnostics and ablations that complement the BERT-base fine-tuning results in the main text.
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.98\textwidth]{figS6_abc_weight_dynamics.png}
-  \caption{\textbf{Per-cell weight dynamics of the auxiliary and core tiles during LR-TT fine-tuning (Figure~S6).}
-  The left column shows the Layer~0 query projection and the right column shows the Layer~11 attention-output projection. From top to bottom, the rows plot 10 randomly sampled cell trajectories from tile~$B$ (auxiliary), tile~$A$ (auxiliary), and tile~$C$ (core). The auxiliary tiles exhibit bounded excursions within the programmable range, while the core tile retains its pretrained weight structure with only small perturbations from periodic transfers. This figure complements Fig.~5(f) in the main text, which shows the layer-averaged weight statistics.}
-  \label{fig:S6}
-\end{figure}
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.98\textwidth]{figS7_af1_ablations.png}
-  \caption{\textbf{AF ratio\,$=$\,1 ablations (Figure~S7).}
-  (a) Auxiliary-tile and core-tile bit sweeps under the AF ratio\,$=$\,1 (6T1C-gamma) condition.
-  (b) Target comparison (QKVO, FFN, ALL) under the same condition.
-  (c) Rank sweep with rank-wise transfer. These panels complement the AF ratio\,$=$\,0 results in Figs.~5(g,h) and 6(a,b) of the main text.}
-  \label{fig:S7}
-\end{figure}
+  \begin{figure}[t]                                                                                         
+    \centering                                                                                              
+    \includegraphics[width=0.98\textwidth]{sup_fig6_1.png}                                                  
+    \caption{\textbf{Per-cell weight dynamics of the auxiliary ($A$, $B$)                                   
+    and core ($C$) tiles during LR-TT fine-tuning of BERT-base on                                           
+    SQuAD~v1.1 (rank $r=32$, rank-wise stochastic transfer).}                                                            
+    The \emph{left column} shows the Layer~0 query projection and the                                       
+    \emph{right column} shows the Layer~11 attention-output projection.                                     
+    From top to bottom, the rows plot the trajectories of 10 randomly                                       
+    sampled cells from tile~$B$ (auxiliary), tile~$A$ (auxiliary), and                                      
+    tile~$C$ (core), respectively. The auxiliary tiles (top and middle)                                     
+    exhibit random-walk-like excursions bounded by the device range
+    $|w|_{\max}^{A,B}\!\approx\!6.2\times10^{-2}$, reflecting the auxiliary low-rank
+    accumulation that is periodically reset by rank-wise stochastic transfer, whereas                                    
+    the core tile (bottom) evolves on a much slower timescale, with each                                    
+    cell holding a nearly constant level that drifts only marginally as                                     
+    transfers accumulate. Conditions: analog $A$/$B$ with a 10-level                                        
+    constant-step-ideal response                                                                            
+    ($\Delta w_{\min}\!=\!1.21\!\times\!10^{-4}$), 10-bit constant-step                                     
+    $C$ ($\Delta w_{\min}\!=\!1.95\!\times\!10^{-3}$), transfer learning                                    
+    rate $0.25$, auxiliary learning rate $0.003277$.}                                                            
+    \label{sub_fig6_1}                                                                                      
+  \end{figure}     
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.98\textwidth]{figS8_cosine_similarity_l0.png}
-  \caption{\textbf{Cosine similarity for Layer~0 query projection (Figure~S8).}
-  Same analysis as Fig.~5(i) in the main text, showing $\cos(\tau\!\cdot\!AB,\,-G)$ and $\cos(\Delta C,\,\tau\!\cdot\!AB)$ with training loss for the first mapped tile (Layer~0, query). The positive moving average of $\cos(\tau\!\cdot\!AB,\,-G)$ confirms that the gradient-alignment behavior observed in Layer~11 (main text) is also present in earlier layers.}
-  \label{fig:S8}
-\end{figure}
+    \begin{figure}[t]                                                                                         
+    \centering                                                                                              
+    \includegraphics[width=0.98\textwidth]{sup_fig6_2.png}                                                  
+    \caption{\textbf{Hyperparameter and device ablations for LR-TT                                          
+    fine-tuning of BERT-base on SQuAD v1.1.}                                                                
+    (a)dev-F1 versus weight precision at rank~$r\!=\!32$                                      
+    (per-bit Optuna-optimized); the bottom axis sweeps the auxiliary                                        
+    ($A$/$B$) tile bit width ($F_1\!=\!78.00/75.88/83.21/84.06/83.63$                                       
+    for $6/8/10/12/14$~bits) and the top axis sweeps the core ($C$)                                         
+    tile bit width ($F_1\!=\!80.33/80.78/83.31/83.47/84.06$ for                                             
+    $6/7/8/9/10$~bits), indicating saturation at $\geq\!12$~bits ($A$/$B$)                                  
+    and $\geq\!8$~bits ($C$).                                                                               
+   (b)rank sweep (per-rank optimized); F1 rises                                         
+    monotonically from $82.02$ at $r\!=\!1$ (0.40\% of full-FT                                              
+    parameters) to $84.49$ at $r\!=\!64$ (16.78\%) and saturates beyond                                     
+    $r\!=\!32$.     
+   (c)LoRA target selection; adapting only the
+    attention projections (QKVO, $F_1\!=\!84.61$) outperforms FFN-only                                      
+    ($82.04$) and ALL-modules ($83.55$).     
+}                                                                     
+    \label{sub_fig6_2}                                                                                      
+  \end{figure}                                                                                              
+                   
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.98\textwidth]{figS9_gamma_wmax_2d.png}
-  \caption{\textbf{Gamma ratio\,$\times$\,$w_{\max}$ 2D sweep (Figure~S9).}
-  (a) AF ratio\,$=$\,0 condition (constantstepideal, 10 multi-level updates). (b) AF ratio\,$=$\,1 condition (6T1C-gamma, 12 analog levels). Blue boxes mark the optimized operating point of each condition. The AF ratio\,$=$\,0 condition achieves peak F1 at small $w_{\max}$ and zero asymmetry, whereas the AF ratio\,$=$\,1 condition requires both large $w_{\max}$ and the asymmetry-induced soft bound. This figure complements Fig.~6(c) in the main text.}
-  \label{fig:S9}
-\end{figure}
+  \begin{figure}[t]                                                                                         
+    \centering
+    \includegraphics[width=0.98\textwidth]{sup_fig6_3.png}                                                  
+    \caption{\textbf{Heatmap of AF ratio versus $|w|_{\max}^{A,B}$.}                                                                       (a) 2D heatmaps of F1 over the auxiliary-tile
+    weight bound $|w|_{\max}^{A,B}$ and the asymmetry-factor (AF) ratio $\gamma$
+    at $r\!=\!32$, with $\Delta w_{\min}$ scaled to hold the bit count
+    fixed; the red box marks each panel's optimized operating point.
+    (b) heatmap uses the constant-step-ideal device
+    with 10 analog levels (AF-ratio~0) and attains $F_1\!=\!85.0$ at
+    $(|w|_{\max}^{A,B},\gamma)=(0.062,0)$, whereas the \emph{bottom-right}
+    heatmap uses the 6T1C-$\gamma$ device with 12 analog levels
+    (AF-ratio~1) and attains $F_1\!=\!84.1$ at
+    $(|w|_{\max}^{A,B},\gamma)=(1.0,1.0)$; both maps collapse to near-random
+    F1 ($\sim\!7$) once $|w|_{\max}^{A,B}$ exceeds the usable device range,
+    highlighting the narrow $(|w|_{\max}^{A,B},\gamma)$ window for stable
+    LR-TT training on analog hardware.}                                                  
+    \label{sub_fig6_3}                                                                                      
+  \end{figure}                    
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.98\textwidth]{figS10_erank_full.png}
-  \caption{\textbf{Full effective-rank comparison across tiles and metrics (Figure~S10).}
-  Rows: Layer~0 query (top) and Layer~11 attention output (bottom). Columns: $\erank(C)$ (left) and $\erank(C-C_{\mathrm{init}})$ (right). The dashed line in the right panels marks $\erank(C_{\mathrm{init}})$. This figure extends Fig.~6(d) of the main text by including both tiles and both erank metrics.}
-  \label{fig:S10}
-\end{figure}
+    \begin{figure}[t]                                                                                         
+    \centering
+    \includegraphics[width=0.98\textwidth]{sup_fig6_4.png}                                                  
+    \caption{\textbf{Cosine similarty across training step.}                                                                      \emph{top row} shows the Layer~0 query projection and the                                           
+    \emph{bottom row} shows the Layer~11 attention-output projection.                                       
+    In each row, the \emph{left panel} plots the effective rank of the                                      
+    full weight matrix $\mathrm{erank}(C)$, and the \emph{right panel}                                      
+    plots the effective rank of the LR-TT update                                                            
+    $\mathrm{erank}(C-C_{\mathrm{init}})$; the gray dashed line in the                                      
+    right panels marks $\mathrm{erank}(C_{\mathrm{init}})$                                                  
+    ($543.18$ for Layer~0 query, $599.26$ for Layer~11 attention output).
+    All runs use analog A/B with a 10-level constant-step-ideal pulse                                       
+    response ($\Delta w_{\min}=1.21\times10^{-4}$) and a 10-bit
+    constant-step C-matrix ($\Delta w_{\min}=1.95\times10^{-3}$) with                                       
+    rank-wise stochastic transfer and per-rank optimized hyperparameters. For every
+    rank, $\mathrm{erank}(C)$ in the left panels stays close to its                                         
+    initial value throughout training, confirming that LR-TT updates do
+    not erode the expressivity of the underlying weight matrix, while                                       
+    $\mathrm{erank}(C-C_{\mathrm{init}})$ in the right panels grows
+    monotonically with $r$ yet remains strictly below                                                       
+    $\mathrm{erank}(C_{\mathrm{init}})$, consistent with the low-rank
+    structure of the injected perturbation. The dev-F1 scores                                               
+    corresponding to these trajectories are                 
+    $82.46 / 82.85 / 83.31 / 83.98 / 84.31 / 84.79 / 84.60$ for                                             
+    $r=1,2,4,8,16,32,64$, showing that accuracy gains saturate beyond                                       
+    $r=32$ even though the update rank continues to rise.}                                                  
+    \label{sub_fig6_4}                                                                                      
+  \end{figure}          
+  
+    \begin{figure}[t]                                                                                         
+    \centering
+    \includegraphics[width=0.98\textwidth]{sup_fig6_5.png}                                                  
+    \caption{\textbf{Effective-rank trajectories of LR-TT across ranks.}                                                                      \emph{top row} shows the Layer~0 query projection and the                                           
+    \emph{bottom row} shows the Layer~11 attention-output projection.                                       
+    In each row, the \emph{left panel} plots the effective rank of the                                      
+    full weight matrix $\mathrm{erank}(C)$, and the \emph{right panel}                                      
+    plots the effective rank of the LR-TT update                                                            
+    $\mathrm{erank}(C-C_{\mathrm{init}})$; the gray dashed line in the                                      
+    right panels marks $\mathrm{erank}(C_{\mathrm{init}})$                                                  
+    ($543.18$ for Layer~0 query, $599.26$ for Layer~11 attention output).
+    All runs use analog A/B with a 10-level constant-step-ideal pulse                                       
+    response ($\Delta w_{\min}=1.21\times10^{-4}$) and a 10-bit
+    constant-step C-matrix ($\Delta w_{\min}=1.95\times10^{-3}$) with                                       
+    rank-wise stochastic transfer and per-rank optimized hyperparameters. For every
+    rank, $\mathrm{erank}(C)$ in the left panels stays close to its                                         
+    initial value throughout training, confirming that LR-TT updates do
+    not erode the expressivity of the underlying weight matrix, while                                       
+    $\mathrm{erank}(C-C_{\mathrm{init}})$ in the right panels grows
+    monotonically with $r$ yet remains strictly below                                                       
+    $\mathrm{erank}(C_{\mathrm{init}})$, consistent with the low-rank
+    structure of the injected perturbation. The dev-F1 scores                                               
+    corresponding to these trajectories are                 
+    $82.46 / 82.85 / 83.31 / 83.98 / 84.31 / 84.79 / 84.60$ for                                             
+    $r=1,2,4,8,16,32,64$, showing that accuracy gains saturate beyond                                       
+    $r=32$ even though the update rank continues to rise.}                                                  
+    \label{sub_fig6_5}                                                                                      
+  \end{figure}          
+
+
 
 \SIEndSection
 
@@ -455,7 +526,7 @@ E_{\mathrm{other}}=O_{\mathrm{other}}\varepsilon_{\mathrm{dig}}.
 \end{equation}
 This decomposition keeps the core-array, auxiliary-array, and digital contributions explicit in both the latency and energy estimates.
 
-\begin{table*}[H]
+\begin{table*}[t]
 \centering
 \caption{\textbf{Component-level latency and energy decomposition at the nominal operating point.}
 All values are reported per token for the all-layer mapping at \(S=384\), \(r=32\), and \(BL=31\). The table lists the counting expression, operation count, latency, energy, and modelling basis for each component.}
@@ -529,7 +600,7 @@ The transfer contribution is below \(10^{-3}\) in the displayed units after amor
 \noindent\textbf{Component-level decomposition.}
 Supplementary Table~\ref{tab:supp_component_decomposition} gives the numerical decomposition for the nominal operating point shown in Supplementary Figure~\ref{fig:supp_system_dataflow}(b,c). The table separates the total latency and energy into core-array MVM, auxiliary projection read, auxiliary pulse update, auxiliary-to-core transfer, digital attention, and remaining digital operations. Each row lists the counting expression, per-token operation count, latency, energy, and modelling basis. The analog components are tied to the calibrated AIMC tile and HERMES-class core assumptions \cite{klein2023alpine,khaddam2022hermescore}, the auxiliary update uses pulsed-update primitives \cite{gokmen2016rpu,rasch2024fastrobust}, and the digital components use transformer operation counts and first-order digital reference parameters \cite{vaswani2017attention,horowitz2014computing}. This table provides a component-by-component check of the decompositions in Eqs.~\eqref{eq:supp_total_latency} and \eqref{eq:supp_total_energy}.
 
-\begin{figure}[H]
+\begin{figure}[t]
   \centering
   \includegraphics[width=0.98\textwidth]{sup_fig7.png}
   \caption{\textbf{System-level dataflow and latency--energy decomposition.}
@@ -728,7 +799,7 @@ For an outer-product update with input component \(x_j\), error component \(d_i\
 Stochastic pulse trains are generated with probabilities proportional to the scaled input and error magnitudes, and an update pulse is applied when the two streams coincide. This preserves the expected outer-product update while using bounded pulse length.
 
 \noindent\textbf{Common simulator configuration.}
-Table~\ref{tab:S8_hardware_simulator} summarizes the common AIHWKIT configuration used for LR-TT simulations. The listed 6T1C-calibrated auxiliary-array parameters define the baseline device used across the MNIST and BERT-base studies. BERT-base diagnostic studies use an 8-bit DAC/ADC setting as the default I/O condition and additionally sweep the DAC/ADC precision from 4 to 8 bits; the reported BERT-base training runs use ideal I/O, denoted by \(\mathrm{io\_perfect}=\mathrm{true}\). For the BERT-base auxiliary-device study, the auxiliary weight range is swept over \(|w_{\min}|=|w_{\max}|\in[0.01,1.0]\), with \(\Delta w_{\min}\) adjusted according to the target weight precision using Eq.~\eqref{eq:S8_weight_bit}. For the MNIST core-array study, the core precision sweep uses \(b_w\in\{5,6,7,8,9,10\}\), and the core nonlinearity sweep uses \(\mathrm{AF}^{C}\in\{0,0.5,1,2,5,10\}\). The BERT-base AF-ratio and noise-ratio studies scale the auxiliary-array baseline slopes and noise/variation amplitudes defined in Table~\ref{tab:S8_hardware_simulator} according to Eqs.~\eqref{eq:S8_af_ratio} and~\eqref{eq:S8_noise_ratio}.
+Table~\ref{tab:S8_hardware_simulator} summarizes the common AIHWKIT configuration used for LR-TT simulations. The listed 6T1C-calibrated auxiliary-array parameters define the baseline device used across the MNIST and BERT-base studies. BERT-base diagnostic studies use an 8-bit DAC/ADC setting as the default I/O condition and additionally sweep the DAC/ADC precision from 4 to 8 bits; the reported BERT-base training runs use ideal I/O, denoted by \(\mathrm{io\_perfect}=\mathrm{true}\). For the BERT-base auxiliary-device study, the auxiliary weight range is swept over \(|w|_{\max}^{A,B}\in[0.01,1.0]\), with \(\Delta w_{\min}\) adjusted according to the target weight precision using Eq.~\eqref{eq:S8_weight_bit}. For the MNIST core-array study, the core precision sweep uses \(b_w\in\{5,6,7,8,9,10\}\), and the core nonlinearity sweep uses \(\mathrm{AF}^{C}\in\{0,0.5,1,2,5,10\}\). The BERT-base AF-ratio and noise-ratio studies scale the auxiliary-array baseline slopes and noise/variation amplitudes defined in Table~\ref{tab:S8_hardware_simulator} according to Eqs.~\eqref{eq:S8_af_ratio} and~\eqref{eq:S8_noise_ratio}.
 
 %----------------------------------------------------
 \begin{table}[H]
@@ -748,13 +819,13 @@ Simulation framework &
 AIHWKIT v0.9.0 with a custom LR-TT RPU configuration. Mapped linear layers use array MVM and pulsed auxiliary-array update; non-matrix operations are evaluated digitally. \\
 \midrule
 Auxiliary-array device &
-Baseline 6T1C-calibrated linear-step device: \(w_{\min}=-1\), \(w_{\max}=1\), \(\Delta w_{\min}=0.001981\), \(\bar{\gamma}^{+}=0.1678\), \(\bar{\gamma}^{-}=0.1410\), and \(\bar{\sigma}_{\mathrm{pulse}}=0.3\). BERT auxiliary-range sweeps use \(|w_{\min}|=|w_{\max}|\in[0.01,1.0]\) with \(\Delta w_{\min}\) set by Eq.~\eqref{eq:S8_weight_bit}. \\
+Baseline 6T1C-calibrated linear-step device: \(|w|_{\max}^{A,B}=1\), \(\Delta w_{\min}=0.001981\), \(\bar{\gamma}^{+}=0.1678\), \(\bar{\gamma}^{-}=0.1410\), and \(\bar{\sigma}_{\mathrm{pulse}}=0.3\). BERT auxiliary-range sweeps use \(|w|_{\max}^{A,B}\in[0.01,1.0]\) with \(\Delta w_{\min}\) set by Eq.~\eqref{eq:S8_weight_bit}. \\
 \midrule
 Auxiliary-array variation &
 \(\sigma_{\Delta}^{\mathrm{d2d}}=0.1\), \(\sigma_{\mathrm{ud}}^{\mathrm{d2d}}=0.01\), \(\sigma_{b^{\max}}=\sigma_{b^{\min}}=0.05\), \(\sigma_{\gamma^{+}}=\sigma_{\gamma^{-}}=0.05\), and \(\sigma_{\mathrm{wn}}=0\). BERT noise-ratio sweeps multiply these baseline amplitudes by \(r_{\mathrm{noise}}\). \\
 \midrule
 Core-array device &
-Baseline core array: \(w_{\min}=-1\), \(w_{\max}=1\), \(\Delta w_{\min}=0.001\), \(\bar{\gamma}^{+}=\bar{\gamma}^{-}=0\), \(\sigma_{\Delta}^{\mathrm{d2d}}=0\), \(\sigma_{\mathrm{pulse}}=0\), and \(\sigma_{\mathrm{wn}}=0\). MNIST core sweeps use \(b_w\in\{5,6,7,8,9,10\}\), \(\Delta w_{\min}^{C}=2/2^{b_w}\), and \(\mathrm{AF}^{C}\in\{0,0.5,1,2,5,10\}\). \\
+Baseline core array: \(|w|_{\max}^{C}=1\), \(\Delta w_{\min}=0.001\), \(\bar{\gamma}^{+}=\bar{\gamma}^{-}=0\), \(\sigma_{\Delta}^{\mathrm{d2d}}=0\), \(\sigma_{\mathrm{pulse}}=0\), and \(\sigma_{\mathrm{wn}}=0\). MNIST core sweeps use \(b_w\in\{5,6,7,8,9,10\}\), \(\Delta w_{\min}^{C}=2/2^{b_w}\), and \(\mathrm{AF}^{C}\in\{0,0.5,1,2,5,10\}\). \\
 \midrule
 I/O parameter &
 Default training I/O: \(b_{\mathrm{DAC}}=7\), \(b_{\mathrm{ADC}}=9\), \(B_{\mathrm{DAC}}=1.0\), \(B_{\mathrm{ADC}}=12.0\), and \(\sigma_{\mathrm{out}}=0\). Forward MVM uses absolute-maximum scaling with iterative bound rescaling; backward MVM uses the same precision without iterative bound rescaling. BERT diagnostic studies use \(b_{\mathrm{DAC}}=b_{\mathrm{ADC}}=8\) by default and sweep \(b_{\mathrm{DAC}},b_{\mathrm{ADC}}\in\{4,5,6,7,8\}\); BERT training uses \(\mathrm{io\_perfect}=\mathrm{true}\). \\
@@ -833,7 +904,7 @@ Digital path &
 Attention-score computation, softmax, LayerNorm, GeLU, residual additions, embeddings, and the SQuAD task head are evaluated digitally. \\
 \midrule
 LR-TT configuration &
-Default operating point: rank \(r=32\), transfer interval \(\tau=2\), rank-wise stochastic transfer with transfer learning rate scaled by the optimizer learning rate (\texttt{scale\_transfer\_lr=true}), auxiliary forward-path participation \(\gamma=0\), and post-transfer retention for both \(A\) and \(B\) tiles. The decay reinitialization mode is used. \\
+Default operating point: rank \(r=32\), transfer interval \(\tau=2\), rank-wise stochastic transfer with transfer learning rate scaled by the optimizer learning rate (\texttt{scale\_transfer\_lr=true}), auxiliary forward-path participation \(\gamma=0\), and post-transfer retention for both \(A\) and \(B\) tiles. The decay reinitialization mode is used. The core ($C$) tile uses $|w|_{\max}^{C}=1.0$ across all reported conditions; only the auxiliary-tile bound $|w|_{\max}^{A,B}$ varies and is listed in Table~\ref{tab:S8_bert_perfig}. \\
 \midrule
 Training setting &
 AnalogAdam optimizer with batch size 48, 5 epochs, linear learning-rate warmup over 365 steps followed by linear decay, no weight decay, and maximum sequence length \(S=384\). All BERT-base comparisons use matched dataset preprocessing, initialization checkpoint, mapped-layer set, optimizer schedule, and validation protocol. Reported training runs use ideal I/O (\(\mathrm{io\_perfect}=\mathrm{true}\)); diagnostic precision studies use the I/O model in Table~\ref{tab:S8_hardware_simulator}. Per-configuration hyperparameter optimization was performed using Optuna with early stopping. \\
@@ -842,7 +913,7 @@ AnalogAdam optimizer with batch size 48, 5 epochs, linear learning-rate warmup o
 \end{table}
 
 \noindent\textbf{Per-figure experimental conditions for BERT-base fine-tuning.}
-Table~\ref{tab:S8_bert_perfig} lists the varying parameters for each data point in the main-text figures. All conditions share the common settings in Tables~\ref{tab:S8_hardware_simulator} and~\ref{tab:S8_bert_training} unless otherwise noted. The AF ratio\(=\)0 condition uses the constantstepideal device with 10-bit multi-level updates (\(w_{\max}=0.0624\), \(\Delta w_{\min}=1.21\times10^{-4}\)), and the AF ratio\(=\)1 condition uses the 6T1C-gamma device with 12-bit resolution (\(w_{\max}=1.0\), \(\Delta w_{\min}=4.88\times10^{-4}\)).
+Table~\ref{tab:S8_bert_perfig} lists the varying parameters for each data point in the main-text figures. All conditions share the common settings in Tables~\ref{tab:S8_hardware_simulator} and~\ref{tab:S8_bert_training} unless otherwise noted. The AF ratio\(=\)0 condition uses the constantstepideal device with 10-bit multi-level updates (\(|w|_{\max}^{A,B}=0.0624\), \(\Delta w_{\min}=1.21\times10^{-4}\)), and the AF ratio\(=\)1 condition uses the 6T1C-gamma device with 12-bit resolution (\(|w|_{\max}^{A,B}=1.0\), \(\Delta w_{\min}=4.88\times10^{-4}\)).
 
 {\small
 \renewcommand{\arraystretch}{1.10}
@@ -851,11 +922,11 @@ Table~\ref{tab:S8_bert_perfig} lists the varying parameters for each data point 
 \caption{\textbf{Per-figure experimental parameters for BERT-base fine-tuning.} Common settings are given in Tables~\ref{tab:S8_hardware_simulator} and~\ref{tab:S8_bert_training}. \(\eta_{\mathrm{tr}}\) is the transfer learning rate; for LR-TT (with transfer-lr scaling enabled), the actual per-step transfer rate is \(\mathrm{lr}(t) \times \eta_{\mathrm{tr}}\), where \(\mathrm{lr}(t)\) follows the linear warmup/decay schedule, whereas for Tiki-Taka \(\eta_{\mathrm{tr}}\) is applied directly. ``lr'' denotes the peak learning rate (after warmup, before decay). RW = rank-wise stochastic transfer; Id = ideal transfer. ``---'' = not applicable or not used.}
 \label{tab:S8_bert_perfig} \\
 \toprule
-\textbf{Fig.} & \textbf{Condition} & \textbf{Target} & \textbf{Transfer} & \textbf{$r$} & \textbf{$\tau$} & \textbf{lr} & \textbf{$\eta_{\mathrm{aux}}$} & \textbf{$\eta_{\mathrm{tr}}$} & \textbf{AB bit} & \textbf{C bit} & \textbf{$w_{\max}$} & \textbf{AF} & \textbf{Noise} & \textbf{F1} \\
+\textbf{Fig.} & \textbf{Condition} & \textbf{Target} & \textbf{Transfer} & \textbf{$r$} & \textbf{$\tau$} & \textbf{lr} & \textbf{$\eta_{\mathrm{aux}}$} & \textbf{$\eta_{\mathrm{tr}}$} & \textbf{AB bit} & \textbf{C bit} & \textbf{$|w|_{\max}^{A,B}$} & \textbf{AF} & \textbf{Noise} & \textbf{F1} \\
 \midrule
 \endfirsthead
 \toprule
-\textbf{Fig.} & \textbf{Condition} & \textbf{Target} & \textbf{Transfer} & \textbf{$r$} & \textbf{$\tau$} & \textbf{lr} & \textbf{$\eta_{\mathrm{aux}}$} & \textbf{$\eta_{\mathrm{tr}}$} & \textbf{AB bit} & \textbf{C bit} & \textbf{$w_{\max}$} & \textbf{AF} & \textbf{Noise} & \textbf{F1} \\
+\textbf{Fig.} & \textbf{Condition} & \textbf{Target} & \textbf{Transfer} & \textbf{$r$} & \textbf{$\tau$} & \textbf{lr} & \textbf{$\eta_{\mathrm{aux}}$} & \textbf{$\eta_{\mathrm{tr}}$} & \textbf{AB bit} & \textbf{C bit} & \textbf{$|w|_{\max}^{A,B}$} & \textbf{AF} & \textbf{Noise} & \textbf{F1} \\
 \midrule
 \endhead
 \midrule
@@ -874,11 +945,11 @@ Table~\ref{tab:S8_bert_perfig} lists the varying parameters for each data point 
 5(g) & LR-TT C 8b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 8 & .062 & 0 & 0 & 84.8 \\
 5(g) & LR-TT C 9b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 9 & .062 & 0 & 0 & 84.8 \\
 5(g) & LR-TT C 10b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 85.0 \\
-5(g) & Single RPU 6b & QKVO & --- & --- & --- & --- & --- & --- & --- & 6 & 1.0 & 0 & 0 & 11.6 \\
-5(g) & Single RPU 7b & QKVO & --- & --- & --- & --- & --- & --- & --- & 7 & 1.0 & 0 & 0 & 17.4 \\
-5(g) & Single RPU 8b & QKVO & --- & --- & --- & --- & --- & --- & --- & 8 & 1.0 & 0 & 0 & 58.2 \\
-5(g) & Single RPU 9b & QKVO & --- & --- & --- & --- & --- & --- & --- & 9 & 1.0 & 0 & 0 & 75.9 \\
-5(g) & Single RPU 10b & QKVO & --- & --- & --- & --- & --- & --- & --- & 10 & 1.0 & 0 & 0 & 82.6 \\
+5(g) & Single RPU 6b & QKVO & --- & --- & --- & --- & --- & --- & --- & 6 & --- & 0 & 0 & 11.6 \\
+5(g) & Single RPU 7b & QKVO & --- & --- & --- & --- & --- & --- & --- & 7 & --- & 0 & 0 & 17.4 \\
+5(g) & Single RPU 8b & QKVO & --- & --- & --- & --- & --- & --- & --- & 8 & --- & 0 & 0 & 58.2 \\
+5(g) & Single RPU 9b & QKVO & --- & --- & --- & --- & --- & --- & --- & 9 & --- & 0 & 0 & 75.9 \\
+5(g) & Single RPU 10b & QKVO & --- & --- & --- & --- & --- & --- & --- & 10 & --- & 0 & 0 & 82.6 \\
 5(g) & TT C 6b & QKVO & --- & --- & --- & --- & --- & --- & --- & 6 & --- & --- & --- & 85.2 \\
 5(g) & TT C 7b & QKVO & --- & --- & --- & --- & --- & --- & --- & 7 & --- & --- & --- & 85.9 \\
 5(g) & TT C 8b & QKVO & --- & --- & --- & --- & --- & --- & --- & 8 & --- & --- & --- & 86.3 \\
@@ -914,8 +985,8 @@ Table~\ref{tab:S8_bert_perfig} lists the varying parameters for each data point 
 6(a) & Dig.\ LoRA & FFN & --- & 32 & --- & 4.20e-4 & --- & --- & --- & --- & --- & --- & --- & 87.2 \\
 6(a) & Dig.\ LoRA & ALL & --- & 32 & --- & 4.20e-4 & --- & --- & --- & --- & --- & --- & --- & 88.3 \\
 6(a) & Dig.\ FT & QKVO & --- & --- & --- & 1.51e-4 & --- & --- & --- & --- & --- & --- & --- & 88.1 \\
-6(a) & Dig.\ FT & FFN & --- & --- & --- & 1.58e-4 & --- & --- & --- & --- & --- & --- & --- & 86.6 \\
-6(a) & Dig.\ FT & ALL & --- & --- & --- & 5.61e-5 & --- & --- & --- & --- & --- & --- & --- & 87.4 \\
+6(a) & Dig.\ FT & FFN & --- & --- & --- & 8.50e-5 & --- & --- & --- & --- & --- & --- & --- & 87.1 \\
+6(a) & Dig.\ FT & ALL & --- & --- & --- & 5.09e-5 & --- & --- & --- & --- & --- & --- & --- & 87.6 \\
 \midrule
 
 \multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~6(b): Rank sweep (per-rank opt.)}} \\
@@ -1005,7 +1076,7 @@ S7c & LR-TT $r$=64 & QKVO & RW & 64 & 1 & 3.80e-3 & 0.40 & 0.095 & 12 & 10 & 1.0
 S8 & LR-TT & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 85.0 \\
 \midrule
 
-\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~S9: $\gamma \times w_{\max}$ 2D sweep}} \\
+\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~S9: $\gamma \times |w|_{\max}^{A,B}$ 2D sweep}} \\
 S9a & AF=0 opt & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & var & 0--5 & 0 & see fig \\
 S9b & AF=1 opt & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & var & 0--5 & 0 & see fig \\
 \midrule
