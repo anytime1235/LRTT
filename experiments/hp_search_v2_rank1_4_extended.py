@@ -52,8 +52,8 @@ N_TRIALS = 12         # 30 → 12: 4 lifetime-baseline enqueues + 8 TPE explorat
 SEED = 42
 HIDDEN = 256
 OUT = 10
-RANKS = [1, 4]
-TES = [1, 10, 100, 500]
+RANKS_DEFAULT = [1, 4]
+TES_DEFAULT = [1, 10, 100, 500]
 # Categorical lifetime sweep — physical retention τ in seconds
 # 6T1C nominal = 46505 (matches published baseline)
 LIFETIME_GRID = [10, 100, 1000, 46505]
@@ -61,11 +61,21 @@ TAU_SEC = 46505.0
 
 
 # Reuse v-1 best HP cells as Optuna seeds where the cell exists.
+# Sources: hp_search_full_grid_no_multnoise.py (rank 1,4,8,16,32,64), and
+# lrtt_sweep_best_configs.json (rank=8 published best at te=10).
 SEED_HPS = {
     (1, 10): (0.1908, 0.04726), (1, 100): (0.1218, 0.04350),
     (1, 500): (0.2560, 0.06478),
     (4, 10): (0.3890, 0.001048), (4, 100): (0.3418, 0.003911),
     (4, 500): (0.2412, 0.04950),
+    (8, 10): (0.5604, 0.000657),    # published best at rank=8 te=10
+    (8, 100): (0.1719, 0.002665), (8, 500): (0.1502, 0.02262),
+    (16, 10): (0.1407, 0.08573), (16, 100): (0.1872, 0.002161),
+    (16, 500): (0.2335, 0.004402),
+    (32, 10): (0.1699, 0.001749), (32, 100): (0.9934, 0.001219),
+    (32, 500): (0.6024, 0.001898),
+    (64, 10): (0.5644, 0.000082),  # published best at rank=64 te=10
+    (64, 100): (0.2520, 0.001336), (64, 500): (0.2520, 0.001336),
 }
 
 
@@ -247,7 +257,18 @@ def main():
                         help="Capacitor leakage factor; 1.0 = no controller leak.")
     parser.add_argument("--smoke", action="store_true")
     parser.add_argument("--out", default="results/hp_search_v2_rank1_4")
+    parser.add_argument("--ranks", default=",".join(str(r) for r in RANKS_DEFAULT),
+                        help="Comma-separated ranks to sweep (default: 1,4). "
+                             "Examples: --ranks 8  or  --ranks 8,16")
+    parser.add_argument("--tes", default=",".join(str(t) for t in TES_DEFAULT),
+                        help="Comma-separated TEs to sweep (default: 1,10,100,500)")
+    parser.add_argument("--n_trials", type=int, default=N_TRIALS,
+                        help=f"Trials per cell (default: {N_TRIALS}). "
+                             "First 4 are lifetime baselines.")
     args = parser.parse_args()
+    RANKS = [int(r) for r in args.ranks.split(",") if r.strip()]
+    TES = [int(t) for t in args.tes.split(",") if t.strip()]
+    n_trials_per_cell = args.n_trials
 
     if args.smoke:
         rank, te = 1, 10
@@ -324,7 +345,7 @@ def main():
                 )
                 return acc
 
-            study.optimize(objective, n_trials=N_TRIALS)
+            study.optimize(objective, n_trials=n_trials_per_cell)
 
             best = study.best_trial
             print(f"  Best: {best.value:.2f}% lr={best.params['lr']:.4f} "
@@ -337,7 +358,7 @@ def main():
                 "best_lr": best.params["lr"],
                 "best_tlr": best.params["tlr"],
                 "best_lifetime_phys": best.params["lifetime_phys"],
-                "n_trials": N_TRIALS,
+                "n_trials": n_trials_per_cell,
                 # Per-lifetime best for honest ablation
                 "best_per_lifetime": {},
                 "all_trials": [],
