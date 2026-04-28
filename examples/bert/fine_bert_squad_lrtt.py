@@ -136,6 +136,8 @@ AB_MULTILEVEL = 10        # T267: w_max = 2^10 * 1.2109e-4 / 2 = 0.0624
 
 # Device selection
 AB_DEVICE = "constantstepideal"  # "6t1c", "linearstep", "linearstepideal", "constantstep", "constantstepideal", "constantstep6t1cgamma", "fp", "ideal"
+A_DEVICE = None  # Optional override for A tile device. None → use AB_DEVICE for both A and B (backward compatible).
+B_DEVICE = None  # Optional override for B tile device. None → use AB_DEVICE for both A and B (backward compatible).
 C_DEVICE = "constantstepideal"   # "softboundsideal", "linearstepideal", "constantstep", "constantstepideal", "constantstep6t1cgamma", "ideal"
 
 # IO / noise options
@@ -211,7 +213,7 @@ os.environ["WANDB_MODE"] = "offline"
 # LRTT Device Functions
 # =============================================================================
 
-def _create_ab_device(tau_sec=None, dw_min=None, multilevel=None):
+def _create_ab_device(tau_sec=None, dw_min=None, multilevel=None, device_name=None):
     """Create A/B tile device based on AB_DEVICE setting.
 
     Options:
@@ -249,13 +251,14 @@ def _create_ab_device(tau_sec=None, dw_min=None, multilevel=None):
         w_max = 1.0
     w_min = -w_max
 
-    if AB_DEVICE == "fp":
+    name = device_name if device_name is not None else AB_DEVICE
+    if name == "fp":
         return FloatingPointDevice()
-    if AB_DEVICE == "ideal":
+    if name == "ideal":
         return IdealDevice()
-    if AB_DEVICE == "linearstep":
+    if name == "linearstep":
         return LinearStepDevice(dw_min=dw_min, lifetime=lifetime)
-    if AB_DEVICE == "linearstepideal":
+    if name == "linearstepideal":
         return LinearStepDevice(
             dw_min=dw_min,
             w_max=w_max, w_min=w_min,
@@ -266,9 +269,9 @@ def _create_ab_device(tau_sec=None, dw_min=None, multilevel=None):
             up_down=0.0, mult_noise=False,
             lifetime=lifetime,
         )
-    if AB_DEVICE == "constantstep":
+    if name == "constantstep":
         return ConstantStepDevice(dw_min=dw_min, lifetime=lifetime)
-    if AB_DEVICE == "constantstepideal":
+    if name == "constantstepideal":
         return ConstantStepDevice(
             dw_min=dw_min,
             w_max=w_max, w_min=w_min,
@@ -277,7 +280,7 @@ def _create_ab_device(tau_sec=None, dw_min=None, multilevel=None):
             reset_std=0.0, up_down=0.0,
             lifetime=lifetime,
         )
-    if AB_DEVICE == "constantstep6t1cgamma":
+    if name == "constantstep6t1cgamma":
         return LinearStepDevice(
             dw_min=dw_min,
             w_max=w_max,
@@ -409,7 +412,10 @@ def create_frozen_analog_config(lrtt_config=None, out_noise=0.0):
 
 def create_lrtt_config():
     """Create LRTT RPU configuration for analog layers."""
-    ab_device = _create_ab_device()
+    # A and B tile devices: independently overridable via A_DEVICE / B_DEVICE.
+    # When both are None, both A and B use AB_DEVICE (legacy behavior preserved).
+    a_device = _create_ab_device(device_name=A_DEVICE)
+    b_device = _create_ab_device(device_name=B_DEVICE)
     c_device = _create_c_device()
 
     # Scale B init if multilevel is set (B init scales with new w_max/w_min).
@@ -427,7 +433,7 @@ def create_lrtt_config():
         fast_lr=FAST_LR,
         reinit_gain=b_reinit_gain,
         reinit_mode=REINIT_MODE,
-        unit_cell_devices=[ab_device, ab_device, c_device],
+        unit_cell_devices=[a_device, b_device, c_device],
         train_c_bias=False,
         mapping_ab=MappingParameter(
             weight_scaling_omega=AB_WEIGHT_SCALING_OMEGA,

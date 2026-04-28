@@ -240,6 +240,8 @@ TE_WARMUP_SCHEDULE = []
 REINIT_GAIN = 1.0
 TRANSFER_METHOD = "onehot"  # "onehot", "direct", or "set"
 AB_DEVICE = "6t1c"  # "6t1c", "linearstep", "linearstepideal", "constantstep", "constantstepideal", "constantstep6t1cgamma", "fp", or "ideal"
+A_DEVICE = None  # Optional override for A tile device. None → use AB_DEVICE for both A and B (backward compatible).
+B_DEVICE = None  # Optional override for B tile device. None → use AB_DEVICE for both A and B (backward compatible).
 C_DEVICE = "softboundsideal"  # "softboundsideal", "linearstepideal", "constantstep", "constantstepideal", "constantstep6t1cgamma", or "ideal"
 IO_NOISE = True  # If False, disable out_noise (resolution kept)
 FORWARD_INJECT = False  # If True, enable forward noise injection
@@ -313,7 +315,13 @@ def get_study_name_suffix():
     # Always add transfer method
     suffix += f"_{TRANSFER_METHOD}"
 
-    if AB_DEVICE != "6t1c":
+    # If A and B devices are explicitly split, encode both; otherwise keep the
+    # legacy `_{AB_DEVICE}` suffix so existing log files remain comparable.
+    if (A_DEVICE is not None or B_DEVICE is not None) and (A_DEVICE != B_DEVICE or (A_DEVICE or B_DEVICE) != AB_DEVICE):
+        a_dev = (A_DEVICE if A_DEVICE is not None else AB_DEVICE).replace('-', '')
+        b_dev = (B_DEVICE if B_DEVICE is not None else AB_DEVICE).replace('-', '')
+        suffix += f"_a{a_dev}_b{b_dev}"
+    elif AB_DEVICE != "6t1c":
         suffix += f"_{AB_DEVICE.replace('-', '')}"
 
     if C_DEVICE != "softboundsideal":
@@ -382,7 +390,7 @@ os.environ["WANDB_MODE"] = "offline"
 # LRTT Device Functions
 # =============================================================================
 
-def _create_ab_device(tau_sec=0.0, dw_min=0.001981, multilevel=None):
+def _create_ab_device(tau_sec=0.0, dw_min=0.001981, multilevel=None, device_name=None):
     """Create A/B tile device based on AB_DEVICE setting.
 
     Options:
@@ -400,7 +408,12 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981, multilevel=None):
         dw_min: Minimum weight update step size for the device.
         multilevel: If set, w_max - w_min = (2 ** multilevel) * dw_min (symmetric).
                     Default (None) keeps w_max=1, w_min=-1.
+        device_name: Optional override for the device type. None → use AB_DEVICE.
+                     Used to instantiate A and B tiles independently when A_DEVICE
+                     or B_DEVICE differs from AB_DEVICE.
     """
+    name = device_name if device_name is not None else AB_DEVICE
+
     # Compute retention lifetime from tau_sec
     if tau_sec > 0:
         dt_batch_sec = 1.0
@@ -416,13 +429,13 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981, multilevel=None):
         w_max = 1.0
     w_min = -w_max
 
-    if AB_DEVICE == "fp":
+    if name == "fp":
         return FloatingPointDevice()
-    if AB_DEVICE == "ideal":
+    if name == "ideal":
         return IdealDevice()
-    if AB_DEVICE == "linearstep":
+    if name == "linearstep":
         return LinearStepDevice(dw_min=dw_min, lifetime=lifetime)
-    if AB_DEVICE == "linearstepideal":
+    if name == "linearstepideal":
         return LinearStepDevice(
             dw_min=dw_min,
             w_max=w_max,
@@ -440,9 +453,9 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981, multilevel=None):
             mult_noise=False,
             lifetime=lifetime,
         )
-    if AB_DEVICE == "constantstep":
+    if name == "constantstep":
         return ConstantStepDevice(dw_min=dw_min, lifetime=lifetime)
-    if AB_DEVICE == "constantstepideal":
+    if name == "constantstepideal":
         return ConstantStepDevice(
             dw_min=dw_min,
             w_max=w_max,
@@ -456,7 +469,7 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981, multilevel=None):
             up_down=0.0,
             lifetime=lifetime,
         )
-    if AB_DEVICE == "constantstep6t1cgamma":
+    if name == "constantstep6t1cgamma":
         return LinearStepDevice(
             dw_min=dw_min,
             w_max=w_max,
@@ -620,7 +633,12 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, 
                        ab_multilevel=None,
                        lora_alpha=1.0):
     """Create LRTT RPU configuration for analog layers."""
-    ab_device = _create_ab_device(tau_sec=tau_sec, dw_min=ab_dw_min, multilevel=ab_multilevel)
+    # A and B tile devices: independently overridable via A_DEVICE / B_DEVICE.
+    # When both are None, both A and B use AB_DEVICE (legacy behavior preserved).
+    a_device = _create_ab_device(tau_sec=tau_sec, dw_min=ab_dw_min, multilevel=ab_multilevel,
+                                 device_name=A_DEVICE)
+    b_device = _create_ab_device(tau_sec=tau_sec, dw_min=ab_dw_min, multilevel=ab_multilevel,
+                                 device_name=B_DEVICE)
     c_device = _create_c_device(dw_min=c_dw_min)
 
     # Scale B initialization to match new w_max/w_min bounds.
@@ -640,7 +658,7 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, 
         fast_lr=fast_lr,
         reinit_gain=b_reinit_gain,
         reinit_mode=reinit_mode,
-        unit_cell_devices=[ab_device, ab_device, c_device],
+        unit_cell_devices=[a_device, b_device, c_device],
         train_c_bias=False,        # C tile bias frozen
         mapping_ab=MappingParameter(
             weight_scaling_omega=ab_weight_scaling_omega,
@@ -1611,7 +1629,7 @@ def print_study_summary(study):
 # =============================================================================
 
 def main():
-    global BATCH_SIZE, GRAD_ACCUM_STEPS, N_EPOCHS, WARMUP_STEPS, TRANSFER_METHOD, AB_DEVICE, C_DEVICE, IO_NOISE, FORWARD_INJECT, IS_PERFECT, NO_QUANT, LORA_TARGET, HEAD_LAYER, ENCODER_ANALOG, HEAD_ANALOG, BACKWARD_OUT_BOUND, _oom_retry_pending
+    global BATCH_SIZE, GRAD_ACCUM_STEPS, N_EPOCHS, WARMUP_STEPS, TRANSFER_METHOD, AB_DEVICE, A_DEVICE, B_DEVICE, C_DEVICE, IO_NOISE, FORWARD_INJECT, IS_PERFECT, NO_QUANT, LORA_TARGET, HEAD_LAYER, ENCODER_ANALOG, HEAD_ANALOG, BACKWARD_OUT_BOUND, _oom_retry_pending
 
     parser = argparse.ArgumentParser(description="Optuna sweep for BERT SQuAD LRTT")
     parser.add_argument('--study-name', type=str, default=None,
@@ -1643,7 +1661,13 @@ def main():
                         help=f'Transfer method (default: {TRANSFER_METHOD})')
     parser.add_argument('--ab-device', type=str, default=AB_DEVICE,
                         choices=['6t1c', 'linearstep', 'linearstepideal', 'constantstep', 'constantstepideal', 'constantstep6t1cgamma', 'fp', 'ideal'],
-                        help=f'A/B tile device type (default: {AB_DEVICE})')
+                        help=f'A/B tile device type (default: {AB_DEVICE}). Used for both A and B unless --a-device or --b-device overrides.')
+    parser.add_argument('--a-device', type=str, default=None,
+                        choices=['6t1c', 'linearstep', 'linearstepideal', 'constantstep', 'constantstepideal', 'constantstep6t1cgamma', 'fp', 'ideal'],
+                        help='Override A tile device only (default: same as --ab-device)')
+    parser.add_argument('--b-device', type=str, default=None,
+                        choices=['6t1c', 'linearstep', 'linearstepideal', 'constantstep', 'constantstepideal', 'constantstep6t1cgamma', 'fp', 'ideal'],
+                        help='Override B tile device only (default: same as --ab-device)')
     parser.add_argument('--c-device', type=str, default=C_DEVICE,
                         choices=['softboundsideal', 'linearstepideal', 'constantstep', 'constantstepideal', 'constantstep6t1cgamma', 'ideal'],
                         help=f'C tile device type (default: {C_DEVICE})')
@@ -1701,6 +1725,8 @@ def main():
     WARMUP_STEPS = args.warmup_steps
     TRANSFER_METHOD = args.transfer_method
     AB_DEVICE = args.ab_device
+    A_DEVICE = args.a_device
+    B_DEVICE = args.b_device
     C_DEVICE = args.c_device
     IO_NOISE = not args.no_io_noise
     FORWARD_INJECT = args.forward_inject
