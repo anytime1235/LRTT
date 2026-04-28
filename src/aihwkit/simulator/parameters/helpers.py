@@ -117,7 +117,19 @@ def parameters_to_bindings(params: Any, data_type: RPUDataType, check_fields: bo
                 ):
                     raise ConfigError(f"Expected type {expected_type} for field {field}")
 
-            setattr(result, field, value)
+            try:
+                setattr(result, field, value)
+            except AttributeError:
+                # The C++ binding may be older than the Python dataclass (e.g. when
+                # using a pip-installed aihwkit wheel against LRTT's extended
+                # parameter classes). Silently skip fields the binding doesn't have
+                # — they remain accessible as Python attributes for code that reads
+                # them directly. To debug, enable LRTT_BINDINGS_DEBUG=1.
+                import os as _os
+                if _os.environ.get("LRTT_BINDINGS_DEBUG"):
+                    import sys as _sys
+                    print(f"[bindings] skip missing C++ attr: "
+                          f"{type(result).__name__}.{field}", file=_sys.stderr)
 
     return result
 

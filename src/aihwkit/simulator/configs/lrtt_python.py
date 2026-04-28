@@ -154,6 +154,10 @@ class PythonLRTTDevice(_PrintableMixin):
     """A/B update mode:
     - 'lora': LoRA chain rule (original LRTT, requires forward_inject=True)
     - 'reconstruction': TikiTaka-style gradient reconstruction (for forward_inject=False)
+    - 'selector_reconstruction' (alias 'selector_v2'): LRTT-v2 row-coordinate selector
+      reconstruction. tile_a is unused; B accumulates only the selected row block of the
+      gradient via a fixed one-hot row selector S_R (non-trainable). Pair with
+      transfer_method='blockwise'.
     Default is 'lora'."""
 
     # === Reconstruction Update Parameters (for update_mode='reconstruction') ===
@@ -192,7 +196,81 @@ class PythonLRTTDevice(_PrintableMixin):
     - "onehot": One-hot transfer (rank-by-rank differential read, pulsed update)
     - "direct": Direct transfer (matrix multiply A @ B, pulsed update)
     - "set": Exact transfer (set_weights directly, no pulsed update noise)
+    - "blockwise": LRTT-v2 blockwise transfer. Updates only the selected C row block
+      via a single pulsed outer product C[R, :] += transfer_lr * B, then resets B and
+      advances the selector. Pair with update_mode='selector_reconstruction'.
     Default is "onehot"."""
+
+    # === LRTT-v2 Selector Settings ===
+    selector_axis: str = "row"
+    """Selector axis. Currently only 'row' is implemented (S_R selects d_size rows)."""
+
+    selector_policy: str = "shuffled_cycle"
+    """Selector schedule:
+    - 'cyclic': sequential row blocks 0..b-1, b..2b-1, ...
+    - 'shuffled_cycle': random permutation of rows, advance one block at a time, reshuffle
+      after a full cycle.
+    - 'random': independent random sample of b rows per transfer (requires
+      selector_random_unbiased_scale=True for an unbiased estimator).
+    Default 'shuffled_cycle' guarantees full coverage with low variance."""
+
+    selector_block_size: Optional[int] = None
+    """Selector block size b. None defaults to rank. Must equal tile_b's rank dimension
+    because tile_b is allocated as [rank, x_size]."""
+
+    selector_seed: int = 0
+    """Seed for the selector RNG (CPU torch.Generator)."""
+
+    selector_allow_partial_block: bool = False
+    """If True, the final block of a cycle may be smaller than block_size; remaining
+    slots are masked out via selector_valid_mask. If False, d_size must be divisible by
+    block_size."""
+
+    selector_random_unbiased_scale: bool = False
+    """When selector_policy='random', multiply transfer magnitude by d_size/active_b
+    to obtain an unbiased estimator of the full gradient. Off by default (cyclic
+    schedules already guarantee full coverage)."""
+
+    selector_reset_b_on_advance: bool = True
+    """If True, B is zeroed via _reset_b_buffer() after each blockwise transfer. Required
+    for coordinate consistency: B[k] is the residual for the current row i_k, and after
+    selector advance the new row j_k must start from a clean state."""
+
+    # === LRTT-v2 Capacitor Stabilizer Settings ===
+    cap_stabilizer_enabled: bool = True
+    """Enable capacitor-leak/range stabilizer for the B buffer in LRTT-v2."""
+
+    cap_rho: float = 1.0
+    """B leakage factor per update step: B <- cap_rho * B (then accumulate). 1.0 disables
+    leakage. 0.99~0.999 model 6T1C capacitor retention within a transfer window."""
+
+    cap_compensate_transfer: bool = True
+    """If True, multiply transfer magnitude by kappa_rho(tau) = tau*(1-rho)/(1-rho^tau) to
+    compensate for the geometric attenuation of B under leakage. Recovers unbiased
+    full-gradient transfer for constant-gradient windows."""
+
+    cap_compensation_max: float = 4.0
+    """Safety clamp for kappa_rho. Prevents runaway compensation when tau is large."""
+
+    cap_monitor_every: int = 0
+    """Run RMS monitor + soft-clip every N B-updates. 0 disables monitoring (rely on
+    natural leakage)."""
+
+    cap_target_rms: Optional[float] = None
+    """Target RMS for B (informational only). If None, no target tracking."""
+
+    cap_max_rms: Optional[float] = None
+    """If set, applies soft-clipping when measured B RMS exceeds this threshold."""
+
+    cap_soft_clip: bool = True
+    """If True, soft-clip via a multiplicative scale on persistent weights. If False, the
+    monitor only logs RMS (no action)."""
+
+    cap_reset_mode: str = "set_zero"
+    """B reset semantics:
+    - 'set_zero': tile_b.set_weights(zeros) (correct for simulator/FloatingPoint).
+    - 'hard_reset': reserved for future hardware backend hard-reset primitive.
+    - 'none': skip B reset (NOT recommended; only for ablations)."""
 
     # === Advanced Parameters ===
     units_in_mbatch: bool = False
@@ -308,9 +386,34 @@ class PythonLRTTDevice(_PrintableMixin):
             raise ValueError(f"two_amp_ratio must be in (0, 1), got {self.two_amp_ratio}")
 
         # Validate update_mode
-        valid_update_modes = ["lora", "reconstruction"]
+        valid_update_modes = ["lora", "reconstruction", "selector_reconstruction", "selector_v2"]
         if self.update_mode not in valid_update_modes:
             raise ValueError(f"update_mode must be one of {valid_update_modes}, got '{self.update_mode}'")
+
+        # Validate transfer_method
+        valid_transfer_methods = ["onehot", "direct", "set", "blockwise"]
+        if self.transfer_method not in valid_transfer_methods:
+            raise ValueError(f"transfer_method must be one of {valid_transfer_methods}, got '{self.transfer_method}'")
+
+        # Validate LRTT-v2 selector parameters
+        if self.selector_axis != "row":
+            raise ValueError(f"selector_axis must be 'row' (only row selector supported), got '{self.selector_axis}'")
+        valid_selector_policies = ["cyclic", "shuffled_cycle", "random"]
+        if self.selector_policy not in valid_selector_policies:
+            raise ValueError(f"selector_policy must be one of {valid_selector_policies}, got '{self.selector_policy}'")
+        if self.selector_block_size is not None and self.selector_block_size <= 0:
+            raise ValueError(f"selector_block_size must be positive or None, got {self.selector_block_size}")
+
+        # Validate LRTT-v2 capacitor parameters
+        if not (0 < self.cap_rho <= 1):
+            raise ValueError(f"cap_rho must be in (0, 1], got {self.cap_rho}")
+        if self.cap_compensation_max < 1.0:
+            raise ValueError(f"cap_compensation_max must be >= 1.0, got {self.cap_compensation_max}")
+        if self.cap_monitor_every < 0:
+            raise ValueError(f"cap_monitor_every must be >= 0, got {self.cap_monitor_every}")
+        valid_cap_reset_modes = ["set_zero", "hard_reset", "none"]
+        if self.cap_reset_mode not in valid_cap_reset_modes:
+            raise ValueError(f"cap_reset_mode must be one of {valid_cap_reset_modes}, got '{self.cap_reset_mode}'")
 
         # Validate reconstruction parameters
         if self.recon_lambda_a < 0:
@@ -352,7 +455,16 @@ class PythonLRTTDevice(_PrintableMixin):
         # Set default rank_chunk
         if self.rank_chunk is None:
             self.rank_chunk = self.rank
-            
+
+        # Default selector_block_size = rank (LRTT-v2 invariant: block_size == tile_b rank dim)
+        if self.selector_block_size is None:
+            self.selector_block_size = self.rank
+        if self.selector_block_size != self.rank:
+            raise ValueError(
+                f"selector_block_size ({self.selector_block_size}) must equal rank ({self.rank}); "
+                "tile_b is allocated as [rank, x_size] and the selector block must match."
+            )
+
         # Initialize BL management if not provided
         if self.ab_bl_mgmt is None:
             self.ab_bl_mgmt = {}
@@ -398,6 +510,17 @@ class PythonLRTTDevice(_PrintableMixin):
             'multi_read_mode': self.multi_read_mode,
             'update_mode': self.update_mode,
             'transfer_method': self.transfer_method,
+            # LRTT-v2 selector (direct kwargs: needed at __init__ for selector state setup)
+            'selector_axis': self.selector_axis,
+            'selector_policy': self.selector_policy,
+            'selector_block_size': self.selector_block_size,
+            'selector_seed': self.selector_seed,
+            'selector_allow_partial_block': self.selector_allow_partial_block,
+            'selector_random_unbiased_scale': self.selector_random_unbiased_scale,
+            'selector_reset_b_on_advance': self.selector_reset_b_on_advance,
+            # LRTT-v2 capacitor toggles (direct kwargs: gate update behavior)
+            'cap_stabilizer_enabled': self.cap_stabilizer_enabled,
+            'cap_compensate_transfer': self.cap_compensate_transfer,
         }
         # Post-init settings (set on controller after creation)
         kwargs['_post_init'] = {
@@ -436,6 +559,14 @@ class PythonLRTTDevice(_PrintableMixin):
             'log_ab_scaling_every': self.log_ab_scaling_every,
             # Separate BL for C tile
             'c_desired_bl': self.c_desired_bl,
+            # LRTT-v2 capacitor tuning (post_init: tunable knobs, mirror recon_*)
+            'cap_rho': self.cap_rho,
+            'cap_compensation_max': self.cap_compensation_max,
+            'cap_monitor_every': self.cap_monitor_every,
+            'cap_target_rms': self.cap_target_rms,
+            'cap_max_rms': self.cap_max_rms,
+            'cap_soft_clip': self.cap_soft_clip,
+            'cap_reset_mode': self.cap_reset_mode,
         }
         return kwargs
     

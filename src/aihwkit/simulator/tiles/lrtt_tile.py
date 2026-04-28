@@ -253,6 +253,25 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             multi_read_mode=getattr(self.lrtt_config, "multi_read_mode", "average"),
             update_mode=getattr(self.lrtt_config, "update_mode", "lora"),
             transfer_method=getattr(self.lrtt_config, "transfer_method", "onehot"),
+            # LRTT-v2 selector (must be set at controller __init__ for state setup)
+            selector_axis=getattr(self.lrtt_config, "selector_axis", "row"),
+            selector_policy=getattr(self.lrtt_config, "selector_policy", "shuffled_cycle"),
+            selector_block_size=getattr(self.lrtt_config, "selector_block_size", None),
+            selector_seed=getattr(self.lrtt_config, "selector_seed", 0),
+            selector_allow_partial_block=getattr(
+                self.lrtt_config, "selector_allow_partial_block", False
+            ),
+            selector_random_unbiased_scale=getattr(
+                self.lrtt_config, "selector_random_unbiased_scale", False
+            ),
+            selector_reset_b_on_advance=getattr(
+                self.lrtt_config, "selector_reset_b_on_advance", True
+            ),
+            # LRTT-v2 capacitor toggles (gate update behavior; finer knobs go via _post_init)
+            cap_stabilizer_enabled=getattr(self.lrtt_config, "cap_stabilizer_enabled", True),
+            cap_compensate_transfer=getattr(
+                self.lrtt_config, "cap_compensate_transfer", True
+            ),
         )
 
         # Apply post-init settings from config._post_init
@@ -303,8 +322,32 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         self.controller.log_ab_scaling = post_init.get("log_ab_scaling", False)
         self.controller.log_ab_scaling_every = post_init.get("log_ab_scaling_every", 10)
 
+        # LRTT-v2 capacitor stabilizer (post_init: tunable knobs, mirrors recon_*)
+        self.controller.cap_rho = post_init.get("cap_rho", 1.0)
+        self.controller.cap_compensation_max = post_init.get("cap_compensation_max", 4.0)
+        self.controller.cap_monitor_every = post_init.get("cap_monitor_every", 0)
+        self.controller.cap_target_rms = post_init.get("cap_target_rms", None)
+        self.controller.cap_max_rms = post_init.get("cap_max_rms", None)
+        self.controller.cap_soft_clip = post_init.get("cap_soft_clip", True)
+        self.controller.cap_reset_mode = post_init.get("cap_reset_mode", "set_zero")
+
+        # LRTT-v2 invariant: tile_b is allocated [rank, x_size], so the selector
+        # block_size must equal rank when v2 mode is active. The config layer
+        # already enforces this; the assert below is a defensive guard.
+        if self.controller._is_selector_v2():
+            assert self.controller.selector_block_size == self.rank, (
+                f"LRTT-v2 requires selector_block_size ({self.controller.selector_block_size}) "
+                f"== rank ({self.rank}); tile_b is [rank, x_size]."
+            )
+
         # Initialize LRTT weights
         self.controller.reinit()
+
+        # LRTT-v2: regardless of b_init_mode, the residual buffer B must start
+        # at exactly zero (B accumulates -lr * S_R^T D X^T from a clean state).
+        # tile_a is unused in v2 so its initialization is irrelevant.
+        if self.controller._is_selector_v2():
+            self.controller._reset_b_buffer()
 
         # Hook individual tile updates to route through controller
         self._hook_tile_updates()

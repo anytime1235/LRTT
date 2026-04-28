@@ -64,8 +64,19 @@ class LRTTController:
         forward_inject: bool = False,
         num_reads: int = 1,
         multi_read_mode: str = "average",
-        update_mode: str = "lora",  # "lora" or "reconstruction"
-        transfer_method: str = "onehot",  # "onehot", "direct", or "set"
+        update_mode: str = "lora",  # "lora", "reconstruction", "selector_reconstruction" (alias "selector_v2")
+        transfer_method: str = "onehot",  # "onehot", "direct", "set", or "blockwise"
+        # === LRTT-v2 Selector parameters ===
+        selector_axis: str = "row",
+        selector_policy: str = "shuffled_cycle",
+        selector_block_size: Optional[int] = None,
+        selector_seed: int = 0,
+        selector_allow_partial_block: bool = False,
+        selector_random_unbiased_scale: bool = False,
+        selector_reset_b_on_advance: bool = True,
+        # === LRTT-v2 Capacitor stabilizer parameters ===
+        cap_stabilizer_enabled: bool = True,
+        cap_compensate_transfer: bool = True,
         device: Optional[torch.device] = None,  # Explicit device to avoid get_weights()
         dtype: torch.dtype = torch.float32      # Explicit dtype
     ):
@@ -99,8 +110,22 @@ class LRTTController:
             forward_inject: Enable forward injection optimization
             num_reads: Number of reads per rank during one-hot transfer (default 1)
             multi_read_mode: How to handle multiple reads: 'average' or 'per_read'
-            update_mode: A/B update mode: 'lora' (chain rule) or 'reconstruction' (TikiTaka-style)
-            transfer_method: Transfer method: "onehot", "direct", or "set" (exact weight setting)
+            update_mode: A/B update mode: 'lora' (chain rule), 'reconstruction' (TikiTaka-style),
+                or 'selector_reconstruction' (LRTT-v2 row-coordinate selector; alias 'selector_v2')
+            transfer_method: Transfer method: "onehot", "direct", "set", or "blockwise" (LRTT-v2)
+            selector_axis: LRTT-v2 selector axis. Only "row" is implemented
+            selector_policy: LRTT-v2 selector schedule: "cyclic", "shuffled_cycle", or "random"
+            selector_block_size: LRTT-v2 selector block size b. None defaults to rank.
+                Must equal rank because tile_b is allocated as [rank, x_size]
+            selector_seed: Seed for the selector RNG (deterministic at __init__ time)
+            selector_allow_partial_block: If True, the last block of a cycle may be smaller
+                than block_size; remaining slots are masked out via selector_valid_mask
+            selector_random_unbiased_scale: When selector_policy='random', multiply transfer
+                magnitude by d_size/active_b for unbiased estimation
+            selector_reset_b_on_advance: If True, B is zeroed via _reset_b_buffer() after each
+                blockwise transfer (required for coordinate consistency)
+            cap_stabilizer_enabled: Enable LRTT-v2 capacitor stabilizer for B
+            cap_compensate_transfer: If True, compensate transfer magnitude for capacitor leakage
             device: Explicit device (if None, safely inferred from tiles using tiny dummy forward)
                    Strongly recommended to pass the tile device explicitly for best performance
             dtype: Explicit dtype for tensors
@@ -136,6 +161,39 @@ class LRTTController:
         self.multi_read_mode = multi_read_mode
         self.update_mode = update_mode
         self.transfer_method = transfer_method
+
+        # === LRTT-v2 Selector state ===
+        self.selector_axis = selector_axis
+        self.selector_policy = selector_policy
+        self.selector_block_size = selector_block_size if selector_block_size is not None else rank
+        self.selector_seed = selector_seed
+        self.selector_allow_partial_block = selector_allow_partial_block
+        self.selector_random_unbiased_scale = selector_random_unbiased_scale
+        self.selector_reset_b_on_advance = selector_reset_b_on_advance
+
+        # Selector runtime state (lazily populated by _init_selector_state)
+        self.selector_ptr: int = 0
+        self.selector_cycle: int = 0
+        self.selector_indices: Optional[Tensor] = None
+        self.selector_valid_mask: Optional[Tensor] = None
+        self._selector_perm: Optional[Tensor] = None
+        self._selector_gen = torch.Generator(device='cpu')
+        self._selector_gen.manual_seed(int(selector_seed))
+
+        # === LRTT-v2 Capacitor stabilizer state ===
+        self.cap_stabilizer_enabled = cap_stabilizer_enabled
+        self.cap_compensate_transfer = cap_compensate_transfer
+        # The remaining cap_* tunables are populated via _post_init from lrtt_python config
+        self.cap_rho: float = 1.0
+        self.cap_compensation_max: float = 4.0
+        self.cap_monitor_every: int = 0
+        self.cap_target_rms: Optional[float] = None
+        self.cap_max_rms: Optional[float] = None
+        self.cap_soft_clip: bool = True
+        self.cap_reset_mode: str = "set_zero"
+        self._cap_rms_ema: float = 0.0
+        self._cap_rms_initialized: bool = False
+        self._cap_step_counter: int = 0  # counts B updates for cap_monitor_every
 
         # BL management settings
         self.ab_bl_mgmt = ab_bl_mgmt or {}
@@ -225,6 +283,16 @@ class LRTTController:
         # === Hardware Mode Flag ===
         self._hardware_mode: Optional[bool] = None
         """Cache for hardware mode detection (use_manual_scaling=True)."""
+
+        # LRTT-v2: initialize selector state eagerly when in selector mode so the
+        # first update/transfer can proceed without surprises. For other modes the
+        # selector state remains None and is harmless.
+        if self._is_selector_v2():
+            self._init_selector_state()
+
+    def _is_selector_v2(self) -> bool:
+        """Return True when running in LRTT-v2 selector reconstruction mode."""
+        return self.update_mode in ("selector_reconstruction", "selector_v2")
 
     def _is_hardware_mode(self) -> bool:
         """Check if tiles are in hardware mode (use_manual_scaling=True).
@@ -486,6 +554,227 @@ class LRTTController:
         self._decay_persistent_weights(self.tile_a, self.decay_factor)
         self._decay_persistent_weights(self.tile_b, self.decay_factor)
 
+    # ========================================================================
+    # LRTT-v2 selector reconstruction
+    #
+    # The selector S_R is NOT a trainable analog state. It is a digital
+    # row-routing signal whose entries are fixed 0/1. B stores the residual
+    # gradient for the currently selected rows only. Therefore B must be reset
+    # whenever the selector advances; otherwise B[k, :] would be transferred
+    # to the wrong C row in the next selector window.
+    # ========================================================================
+
+    def _init_selector_state(self) -> None:
+        """Initialize selector permutation and the first selector window.
+
+        Validates block_size, samples or arranges the row permutation, and
+        materializes selector_indices/selector_valid_mask for the first block.
+        """
+        if self.selector_axis != "row":
+            raise NotImplementedError("LRTT-v2 currently supports row selector only.")
+
+        b = self.selector_block_size
+        if b <= 0 or b > self.d_size:
+            raise ValueError(f"Invalid selector block size {b} for d_size={self.d_size}")
+
+        if (self.d_size % b) != 0 and not self.selector_allow_partial_block:
+            raise ValueError(
+                f"d_size={self.d_size} must be divisible by selector_block_size={b}. "
+                "Set selector_allow_partial_block=True to use masked partial blocks."
+            )
+
+        self.selector_ptr = 0
+        self.selector_cycle = 0
+        self._refresh_selector_permutation()
+        self._set_selector_from_ptr()
+
+    def _refresh_selector_permutation(self) -> None:
+        """Sample (shuffled_cycle) or build (cyclic) the row permutation."""
+        if self.selector_policy == "shuffled_cycle":
+            perm = torch.randperm(self.d_size, generator=self._selector_gen)
+        else:
+            perm = torch.arange(self.d_size)
+        self._selector_perm = perm.to(device=self.device)
+
+    def _set_selector_from_ptr(self) -> None:
+        """Materialize selector_indices and selector_valid_mask from the current ptr.
+
+        Random policy: each call samples b fresh row indices with no ptr semantics.
+        Cyclic / shuffled_cycle: take perm[ptr : ptr + b]; pad-and-mask if partial.
+        """
+        b = self.selector_block_size
+        start = self.selector_ptr
+        end = start + b
+
+        if self.selector_policy == "random":
+            idx = torch.randperm(self.d_size, generator=self._selector_gen)[:b]
+            mask = torch.ones(b, dtype=self.dtype)
+        else:
+            if end <= self.d_size:
+                idx = self._selector_perm[start:end]
+                mask = torch.ones(idx.numel(), dtype=self.dtype)
+            else:
+                idx = self._selector_perm[start:self.d_size]
+                valid = idx.numel()
+                pad = b - valid
+                if not self.selector_allow_partial_block:
+                    raise RuntimeError("Partial selector block encountered while disabled.")
+                idx = torch.cat(
+                    [idx, torch.zeros(pad, dtype=idx.dtype, device=idx.device)], dim=0
+                )
+                mask = torch.cat(
+                    [
+                        torch.ones(valid, dtype=self.dtype),
+                        torch.zeros(pad, dtype=self.dtype),
+                    ],
+                    dim=0,
+                )
+
+        self.selector_indices = idx.to(device=self.device, dtype=torch.long)
+        self.selector_valid_mask = mask.to(device=self.device, dtype=self.dtype)
+
+    def _advance_selector(self) -> None:
+        """Move to the next row block. Reshuffle the permutation at cycle end."""
+        if self.selector_policy == "random":
+            # Random policy resamples each call; pointer is meaningless.
+            self._set_selector_from_ptr()
+            return
+
+        self.selector_ptr += self.selector_block_size
+        if self.selector_ptr >= self.d_size:
+            self.selector_ptr = 0
+            self.selector_cycle += 1
+            if self.selector_policy == "shuffled_cycle":
+                self._refresh_selector_permutation()
+
+        self._set_selector_from_ptr()
+
+    def _make_selector_onehot(self, sign: float = 1.0) -> Tensor:
+        """Reconstruct S_R^T as a digital routing matrix.
+
+        Returns a [block_size, d_size] tensor whose row k is the sign-scaled
+        one-hot indicator of selector_indices[k]. Masked-out slots remain zero.
+
+        aihwkit update sign convention:
+            tile.update(X, D) applies W += -lr * D.T @ X. For blockwise transfer
+            we want C += +transfer_lr * S_R @ B. Therefore, with positive
+            transfer_lr we pass D = -S_R.T (sign=-1.0) and X = B.
+        """
+        b = self.selector_block_size
+        D = torch.zeros(b, self.d_size, device=self.device, dtype=self.dtype)
+        rows = torch.arange(b, device=self.device)
+        D[rows, self.selector_indices] = sign
+        if self.selector_valid_mask is not None:
+            D = D * self.selector_valid_mask.view(-1, 1)
+        return D
+
+    def _read_b_buffer(self) -> Tensor:
+        """Read the full B buffer using a one-hot backward read.
+
+        tile_b is allocated as [rank, x_size]. backward(I_rank) returns
+        [rank, x_size] = B itself. Used by transfer (full read) and capacitor
+        monitoring.
+        """
+        I = torch.eye(self.selector_block_size, device=self.device, dtype=self.dtype)
+        return self.tile_b.backward(I)
+
+    def _apply_capacitor_leak_before_b_update(self) -> None:
+        """Apply leakage to B BEFORE the next gradient is added.
+
+        Implements the recursion B_{t+1} = rho * B_t - eta * G_t exactly
+        (md guide §1.4): we leak the previous state first, then the subsequent
+        tile_b.update() adds -eta * G_t. cap_rho == 1.0 short-circuits.
+        """
+        if not self.cap_stabilizer_enabled:
+            return
+        if self.cap_rho < 1.0:
+            self._decay_persistent_weights(self.tile_b, self.cap_rho)
+
+    def _apply_capacitor_monitor_after_b_update(self) -> None:
+        """Optional RMS monitoring + soft-clip, run AFTER the update.
+
+        Kept separate from the leak step so the recursion math is unaffected.
+        cap_monitor_every == 0 disables this entirely.
+        """
+        if not self.cap_stabilizer_enabled:
+            return
+        self._cap_step_counter += 1
+        if self.cap_monitor_every and self.cap_monitor_every > 0:
+            if (self._cap_step_counter % self.cap_monitor_every) == 0:
+                self._cap_monitor_and_soft_clip()
+
+    def _cap_monitor_and_soft_clip(self) -> None:
+        """Track B RMS via EMA and soft-clip when it exceeds cap_max_rms."""
+        with torch.no_grad():
+            B = self._read_b_buffer()
+            if self.selector_valid_mask is not None:
+                B = B * self.selector_valid_mask.view(-1, 1)
+
+            rms = float(torch.sqrt(torch.mean(B * B) + 1e-12).item())
+
+            if not self._cap_rms_initialized:
+                self._cap_rms_ema = rms
+                self._cap_rms_initialized = True
+            else:
+                beta = 0.95
+                self._cap_rms_ema = beta * self._cap_rms_ema + (1.0 - beta) * rms
+
+            if self.cap_max_rms is not None and rms > self.cap_max_rms:
+                if self.cap_soft_clip:
+                    scale = float(self.cap_max_rms / (rms + 1e-12))
+                    self._decay_persistent_weights(self.tile_b, scale)
+                # else: monitor-only mode (logging would go here)
+
+    def _cap_transfer_gain(self) -> float:
+        """Compute kappa_rho(tau) compensation gain for capacitor leakage.
+
+        kappa_rho(tau) = tau * (1 - rho) / (1 - rho^tau).
+        For constant gradient over a tau-step transfer window the geometric
+        attenuation in B reduces effective accumulation by 1/kappa; multiplying
+        the transfer magnitude by kappa restores the unbiased sum.
+        """
+        if not self.cap_stabilizer_enabled or not self.cap_compensate_transfer:
+            return 1.0
+        rho = float(self.cap_rho)
+        if rho >= 0.999999:
+            return 1.0
+        # Use transfer_every (steps per transfer) as the canonical window length.
+        # For units_in_mbatch=True, the per-mini-batch window is the same since
+        # cap_rho is applied once per B update.
+        tau = max(1, int(self.transfer_every))
+        denom = 1.0 - (rho ** tau)
+        if abs(denom) < 1e-12:
+            return 1.0
+        kappa = tau * (1.0 - rho) / denom
+        return float(min(kappa, self.cap_compensation_max))
+
+    def _reset_b_buffer(self) -> None:
+        """Reset B to zero (or skip on cap_reset_mode='none' for ablations).
+
+        For simulator/FloatingPoint backends, set_weights(zeros) is exact.
+        A future hardware backend may swap in a hard-reset primitive while
+        keeping this method name stable.
+        """
+        if self.cap_reset_mode == "none":
+            return
+
+        zeros = torch.zeros(
+            self.selector_block_size,
+            self.x_size,
+            device=self.device,
+            dtype=self.dtype,
+        )
+        self.tile_b.set_weights(zeros)
+
+        # Reset capacitor monitoring state alongside the buffer.
+        self._cap_rms_ema = 0.0
+        self._cap_rms_initialized = False
+        self._cap_step_counter = 0
+
+    # ========================================================================
+    # End LRTT-v2 helpers
+    # ========================================================================
+
     def reinit(self) -> None:
         """Reinit A,B matrices based on reinit_mode, a_init_mode, and b_init_mode.
 
@@ -636,6 +925,9 @@ class LRTTController:
 
         When update_mode='lora': Uses LoRA chain rule (original LRTT behavior).
         When update_mode='reconstruction': Uses gradient reconstruction (TikiTaka-style).
+        When update_mode='selector_reconstruction' (alias 'selector_v2'): LRTT-v2
+        row-coordinate selector reconstruction. tile_a is unused; only B accumulates
+        the gradient projected through a fixed one-hot row selector S_R.
 
         Args:
             x: Input tensor
@@ -645,10 +937,11 @@ class LRTTController:
             out_trans: Whether d is transposed
         """
         # Branch based on update_mode
+        if self._is_selector_v2():
+            return self._ab_weight_update_selector_reconstruction(x, d, lr, in_trans, out_trans)
         if self.update_mode == "reconstruction":
             return self._ab_weight_update_reconstruction(x, d, lr, in_trans, out_trans)
-        else:
-            return self._ab_weight_update_lora(x, d, lr, in_trans, out_trans)
+        return self._ab_weight_update_lora(x, d, lr, in_trans, out_trans)
 
     def _ab_weight_update_lora(
         self,
@@ -805,6 +1098,73 @@ class LRTTController:
         # 6) Counter
         self.transfer_counter += (x.shape[0] if self.units_in_mbatch else 1)
 
+    def _ab_weight_update_selector_reconstruction(
+        self,
+        x: Tensor,
+        d: Tensor,
+        lr: float,
+        in_trans: bool = False,
+        out_trans: bool = False,
+    ) -> None:
+        """LRTT-v2 row-coordinate gradient accumulation into B (tile_a is unused).
+
+        Mathematical update (per md guide §6):
+            B_{t+1} = rho_B * B_t  -  lr_eff * S_R^T * D_t * X_t^T
+
+        Implementation:
+            d_sel = d[:, selector_indices]              [batch, b]
+            tile_b.update(x, d_sel)  =>  B += -lr_eff * d_sel.T @ x
+
+        After accumulation B already carries the descent sign, so a positive
+        transfer_lr in blockwise transfer adds B to the selected rows of C.
+        """
+        # 0) Normalize to [batch, feat] format
+        if in_trans:
+            x = x.t()
+        if out_trans:
+            d = d.t()
+
+        # Lazy selector init (e.g., when v2 mode was switched on after construction)
+        if self.selector_indices is None:
+            self._init_selector_state()
+
+        # 1) Gather the selected row block of d as the projected error.
+        d_sel = d.index_select(dim=1, index=self.selector_indices)  # [batch, b]
+        if self.selector_valid_mask is not None:
+            d_sel = d_sel * self.selector_valid_mask.view(1, -1)
+
+        # 2) Effective learning rate. recon_lr_scale is shared with v1 reconstruction
+        # to keep tuned values portable. correct_gradient_magnitudes retains the
+        # /sqrt(rank) semantics (block_size == rank in v2, so values match exactly).
+        lr_eff = lr * self.recon_lr_scale
+        if self.correct_gradient_magnitudes:
+            lr_eff = lr_eff / math.sqrt(self.selector_block_size)
+        if self._is_hardware_mode():
+            lr_eff = 1.0
+
+        # 3) Capacitor leakage applied to the OLD B *before* adding new gradient.
+        # This realizes B_{t+1} = rho * B_t - lr_eff * d_sel.T @ x exactly.
+        self._apply_capacitor_leak_before_b_update()
+
+        # 4) Apply the analog pulsed update on tile_b only. tile_a is never touched.
+        lr_b_old = self.tile_b.get_learning_rate()
+        self.tile_b.set_learning_rate(lr_eff)
+        try:
+            if hasattr(self.tile_b, '_orig_update'):
+                self.tile_b._orig_update(x, d_sel)
+            else:
+                self.tile_b.update(x, d_sel)
+        finally:
+            self.tile_b.set_learning_rate(lr_b_old)
+
+        self.num_b_updates += 1
+
+        # 5) Optional RMS monitor / soft-clip (no-op when cap_monitor_every == 0).
+        self._apply_capacitor_monitor_after_b_update()
+
+        # 5) Counter (matches v1 reconstruction convention).
+        self.transfer_counter += (x.shape[0] if self.units_in_mbatch else 1)
+
     def _apply_reconstruction_stabilizer(self, lr_rec: float) -> None:
         """Apply stabilizer terms for reconstruction update.
 
@@ -936,47 +1296,112 @@ class LRTTController:
     def ab_weight_transfer(self, method: Optional[str] = None) -> None:
         """Memory-optimized A⊗B -> visible transfer, then reinit.
 
-        Transfer: C += transfer_lr * (A @ B)
+        Transfer: C += transfer_lr * (A @ B)  (v1 modes)
+        Transfer: C[R, :] += transfer_lr * B  (v2 blockwise)
 
         Args:
             method: Transfer method override.
-                   "onehot" - One-hot reading (analog-realistic pulsed update)
-                   "direct" - Direct weight access (pulsed update)
-                   "set" - Exact weight setting (no pulsed update, precise)
+                   "onehot"    - One-hot reading (analog-realistic pulsed update, v1)
+                   "direct"    - Direct weight access (pulsed update, v1)
+                   "set"       - Exact weight setting (no pulsed update noise, v1)
+                   "blockwise" - LRTT-v2 blockwise transfer of selected row block;
+                                 followed by B reset and selector advance (NOT reinit())
                    If None, use self.transfer_method setting.
 
-        Direct mode:
-        1. Get weights to CPU first to avoid GPU memory spike
-        2. For chunks of rank: pack D_chunk = A[:, off:off+cur], X_chunk = B[off:off+cur, :]
-        3. Move only chunks to GPU for update
-        4. Call visible pulsed updater: C.update(X_chunk^T, D_chunk, lr=|transfer_lr|)
-        5. Handle sign rule: negate D when transfer_lr > 0
-        6. Unconditionally call reinit() after transfer
+        v1 modes (onehot/direct/set) all unconditionally call reinit() at the end,
+        which reinitializes A and B according to reinit_mode.
 
-        One-hot mode:
-        1. Read A columns using forward pass with one-hot vectors
-        2. Read B rows using backward pass with one-hot vectors
-        3. Accumulate outer products into C (pulsed)
-        4. Unconditionally call reinit() after transfer
-
-        Set mode:
-        1. Compute delta = transfer_lr * (A @ B)
-        2. C_new = C + delta (exact, no pulsed update)
-        3. set_weights(C_new) directly
-        4. Unconditionally call reinit() after transfer
+        v2 blockwise must NEVER call reinit(). Its post-transfer cleanup is:
+            1. _reset_b_buffer()   (B <- 0)
+            2. _advance_selector() (advance to next row block)
         """
         # Use instance setting if not specified
         if method is None:
             method = self.transfer_method
 
-        if method == "onehot":
+        if method == "blockwise":
+            self._ab_weight_transfer_blockwise()
+        elif method == "onehot":
             self._ab_weight_transfer_onehot()
         elif method == "direct":
             self._ab_weight_transfer_direct()
         elif method == "set":
             self._ab_weight_transfer_set()
         else:
-            raise ValueError(f"Unknown transfer method: {method}. Use 'onehot', 'direct', or 'set'.")
+            raise ValueError(
+                f"Unknown transfer method: {method}. "
+                "Use 'onehot', 'direct', 'set', or 'blockwise'."
+            )
+
+    def _ab_weight_transfer_blockwise(self) -> None:
+        """LRTT-v2 blockwise transfer.
+
+        Mathematical update:
+            C[R, :] <- C[R, :] + transfer_lr * B
+
+        aihwkit update sign convention:
+            tile_c.update(X, D) implements C += -lr * D.T @ X.
+
+        To realize C += +lr * S_R @ B we pass:
+            X = B_rows                     # [b, x_size]
+            D = -S_R^T  (sign=-1.0)         # [b, d_size] when transfer_lr > 0
+
+        After the pulsed update we MUST NOT call reinit(); v2 cleanup is:
+            1. _reset_b_buffer()    (B <- 0)
+            2. _advance_selector()  (next row block)
+        """
+        # Lazy selector init guard
+        if self.selector_indices is None:
+            self._init_selector_state()
+
+        with torch.no_grad():
+            old_lr_c = self.tile_c.get_learning_rate()
+
+            # 1) Read current B buffer.
+            B_rows = self._read_b_buffer()  # [b, x_size]
+            if self.selector_valid_mask is not None:
+                B_rows = B_rows * self.selector_valid_mask.view(-1, 1)
+
+            # 2) Reconstruct selector as one-hot routing matrix.
+            sign = -1.0 if self.transfer_lr > 0 else 1.0
+            D_selector = self._make_selector_onehot(sign=sign)  # [b, d_size]
+
+            # 3) Random-selector unbiased rescale (only when explicitly enabled).
+            scale = 1.0
+            if self.selector_policy == "random" and self.selector_random_unbiased_scale:
+                if self.selector_valid_mask is not None:
+                    active = float(self.selector_valid_mask.sum().item())
+                else:
+                    active = float(self.selector_block_size)
+                scale = float(self.d_size) / max(active, 1.0)
+
+            # 4) Capacitor leakage compensation.
+            cap_gain = self._cap_transfer_gain()
+
+            # 5) Micro-transfer. NB: self.transfer_lr is already
+            # transfer_lr_base * transfer_lr_scale (set in __init__).
+            M = max(1, int(getattr(self, "transfer_micro_steps", 1)))
+            lr_abs = abs(self.transfer_lr) * scale * cap_gain
+            lr_step = lr_abs / M
+            self.tile_c.set_learning_rate(lr_step if lr_step > 0 else 1e-12)
+
+            try:
+                for _ in range(M):
+                    if hasattr(self.tile_c, '_orig_update'):
+                        self.tile_c._orig_update(B_rows, D_selector)
+                    else:
+                        self.tile_c.update(B_rows, D_selector)
+            finally:
+                self.tile_c.set_learning_rate(old_lr_c)
+
+        self.num_transfers += 1
+        self.transfer_counter = 0
+
+        # CRITICAL: do NOT call self.reinit() in selector-v2.
+        # Cleanup is B reset + selector advance (md guide §1.3, §9, §14).
+        if self.selector_reset_b_on_advance:
+            self._reset_b_buffer()
+        self._advance_selector()
 
     def _ab_weight_transfer_direct(self) -> None:
         """Original transfer implementation using direct weight access."""
@@ -1731,7 +2156,7 @@ class LRTTController:
 
     def get_state_dict(self) -> Dict[str, Any]:
         """Get controller state for serialization."""
-        return {
+        state = {
             'transfer_counter': self.transfer_counter,
             'num_a_updates': self.num_a_updates,
             'num_b_updates': self.num_b_updates,
@@ -1746,8 +2171,29 @@ class LRTTController:
             'reinit_gain': self.reinit_gain,
             'reinit_mode': self.reinit_mode,
             'decay_factor': self.decay_factor,
-            'forward_inject_enabled': self.forward_inject_enabled
+            'forward_inject_enabled': self.forward_inject_enabled,
+            # LRTT-v2 selector state
+            'update_mode': self.update_mode,
+            'transfer_method': self.transfer_method,
+            'selector_policy': self.selector_policy,
+            'selector_block_size': self.selector_block_size,
+            'selector_ptr': self.selector_ptr,
+            'selector_cycle': self.selector_cycle,
+            'selector_indices': (
+                self.selector_indices.detach().cpu()
+                if self.selector_indices is not None else None
+            ),
+            'selector_perm': (
+                self._selector_perm.detach().cpu()
+                if self._selector_perm is not None else None
+            ),
+            # LRTT-v2 capacitor state
+            'cap_rho': self.cap_rho,
+            'cap_rms_ema': self._cap_rms_ema,
+            'cap_rms_initialized': self._cap_rms_initialized,
+            'cap_step_counter': self._cap_step_counter,
         }
+        return state
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         """Load controller state from serialization."""
@@ -1755,9 +2201,33 @@ class LRTTController:
         if 'forward_inject' in state_dict and 'forward_inject_enabled' not in state_dict:
             state_dict['forward_inject_enabled'] = state_dict.pop('forward_inject')
 
+        # Selector tensors require explicit device migration; remap aliases.
+        sel_indices = state_dict.pop('selector_indices', None)
+        sel_perm = state_dict.pop('selector_perm', None)
+        cap_rms_ema = state_dict.pop('cap_rms_ema', None)
+        cap_rms_init = state_dict.pop('cap_rms_initialized', None)
+        cap_step_counter = state_dict.pop('cap_step_counter', None)
+
         for key, value in state_dict.items():
             if hasattr(self, key):
                 setattr(self, key, value)
+
+        if sel_indices is not None:
+            self.selector_indices = sel_indices.to(device=self.device, dtype=torch.long)
+        if sel_perm is not None:
+            self._selector_perm = sel_perm.to(device=self.device)
+        if cap_rms_ema is not None:
+            self._cap_rms_ema = float(cap_rms_ema)
+        if cap_rms_init is not None:
+            self._cap_rms_initialized = bool(cap_rms_init)
+        if cap_step_counter is not None:
+            self._cap_step_counter = int(cap_step_counter)
+
+        # Rebuild selector_valid_mask from indices (mask is derived state).
+        if self.selector_indices is not None and self.selector_valid_mask is None:
+            self.selector_valid_mask = torch.ones(
+                self.selector_indices.numel(), device=self.device, dtype=self.dtype
+            )
 
     def set_device(self, device: torch.device) -> None:
         """Set device and clear buffers for reallocation.
@@ -1773,3 +2243,10 @@ class LRTTController:
         self._d_pad = None
         # Clear transfer vectors (one-hot reading)
         self._transfer_vec_a = None
+        # LRTT-v2 selector tensors must follow the device.
+        if self.selector_indices is not None:
+            self.selector_indices = self.selector_indices.to(self.device)
+        if self.selector_valid_mask is not None:
+            self.selector_valid_mask = self.selector_valid_mask.to(self.device)
+        if self._selector_perm is not None:
+            self._selector_perm = self._selector_perm.to(self.device)
