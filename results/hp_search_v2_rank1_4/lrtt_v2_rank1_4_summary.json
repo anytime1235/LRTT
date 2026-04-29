@@ -1,0 +1,539 @@
+{
+  "experiment_name": "hp_search_v2_rank1_4",
+  "model": "LRTT-v2 / MDMLP on MNIST",
+  "completed_at": "2026-04-28T20:15:00",
+  "summary_generated_at": "2026-04-29T14:28:06.644016Z",
+  "source_results": "results/hp_search_v2_rank1_4/results_final.json",
+  "source_log": "logs/hp_search_v2_rank1_4/run_20260428_180513.log",
+  "config": {
+    "ranks": [
+      1,
+      4
+    ],
+    "TE_values": [
+      1,
+      10,
+      100,
+      500
+    ],
+    "lifetime_phys_values": [
+      10,
+      100,
+      1000,
+      46505
+    ],
+    "policy": "shuffled_cycle",
+    "cap_rho": 1.0,
+    "search_space": {
+      "lr": {
+        "distribution": "log-uniform",
+        "range": [
+          0.05,
+          10.0
+        ]
+      },
+      "tlr": {
+        "distribution": "log-uniform",
+        "range": [
+          0.0001,
+          10.0
+        ]
+      },
+      "lifetime_phys": {
+        "distribution": "categorical",
+        "values": [
+          10,
+          100,
+          1000,
+          46505
+        ]
+      }
+    },
+    "n_cells": 8,
+    "trials_per_cell": 12,
+    "total_trials": 96
+  },
+  "overall_best": {
+    "rank": 4,
+    "te": 10,
+    "best_acc": 96.02,
+    "best_lr": 0.5602743212524077,
+    "best_tlr": 0.8431013932082461,
+    "best_lifetime_phys": 1000,
+    "policy": "shuffled_cycle",
+    "cap_rho": 1.0
+  },
+  "best_per_rank": {
+    "rank1": {
+      "rank": 1,
+      "te": 1,
+      "best_acc": 94.49,
+      "best_lr": 7.477519299296108,
+      "best_tlr": 0.23658398318708626,
+      "best_lifetime_phys": 1000,
+      "policy": "shuffled_cycle",
+      "cap_rho": 1.0
+    },
+    "rank4": {
+      "rank": 4,
+      "te": 10,
+      "best_acc": 96.02,
+      "best_lr": 0.5602743212524077,
+      "best_tlr": 0.8431013932082461,
+      "best_lifetime_phys": 1000,
+      "policy": "shuffled_cycle",
+      "cap_rho": 1.0
+    }
+  },
+  "best_per_te": {
+    "TE1": {
+      "rank": 4,
+      "te": 1,
+      "best_acc": 95.09,
+      "best_lr": 0.5602743212524077,
+      "best_tlr": 0.8431013932082461,
+      "best_lifetime_phys": 1000,
+      "policy": "shuffled_cycle",
+      "cap_rho": 1.0
+    },
+    "TE10": {
+      "rank": 4,
+      "te": 10,
+      "best_acc": 96.02,
+      "best_lr": 0.5602743212524077,
+      "best_tlr": 0.8431013932082461,
+      "best_lifetime_phys": 1000,
+      "policy": "shuffled_cycle",
+      "cap_rho": 1.0
+    },
+    "TE100": {
+      "rank": 4,
+      "te": 100,
+      "best_acc": 95.03,
+      "best_lr": 0.5602743212524077,
+      "best_tlr": 0.8431013932082461,
+      "best_lifetime_phys": 1000,
+      "policy": "shuffled_cycle",
+      "cap_rho": 1.0
+    },
+    "TE500": {
+      "rank": 4,
+      "te": 500,
+      "best_acc": 93.77,
+      "best_lr": 0.5602743212524077,
+      "best_tlr": 0.8431013932082461,
+      "best_lifetime_phys": 1000,
+      "policy": "shuffled_cycle",
+      "cap_rho": 1.0
+    }
+  },
+  "per_cell_best": [
+    {
+      "rank": 1,
+      "te": 1,
+      "best_acc": 94.49,
+      "best_lr": 7.477519299296108,
+      "best_tlr": 0.23658398318708626,
+      "best_lifetime_phys": 1000,
+      "best_per_lifetime": {
+        "10": {
+          "acc": 93.16,
+          "lr": 0.36374585440139057,
+          "tlr": 5.669849511478847
+        },
+        "100": {
+          "acc": 92.16,
+          "lr": 0.1,
+          "tlr": 0.001
+        },
+        "1000": {
+          "acc": 94.49,
+          "lr": 7.477519299296108,
+          "tlr": 0.23658398318708626
+        },
+        "46505": {
+          "acc": 91.24,
+          "lr": 0.0680177306805904,
+          "tlr": 2.1423021757741068
+        }
+      },
+      "n_trials": 12
+    },
+    {
+      "rank": 1,
+      "te": 10,
+      "best_acc": 94.41,
+      "best_lr": 0.7494817342832615,
+      "best_tlr": 8.919442323672547,
+      "best_lifetime_phys": 10,
+      "best_per_lifetime": {
+        "10": {
+          "acc": 94.41,
+          "lr": 0.7494817342832615,
+          "tlr": 8.919442323672547
+        },
+        "100": {
+          "acc": 93.01,
+          "lr": 0.1908,
+          "tlr": 0.04726
+        },
+        "1000": {
+          "acc": 94.35,
+          "lr": 0.5602743212524077,
+          "tlr": 0.8431013932082461
+        },
+        "46505": {
+          "acc": 91.96,
+          "lr": 0.0680177306805904,
+          "tlr": 2.1423021757741068
+        }
+      },
+      "n_trials": 12
+    },
+    {
+      "rank": 1,
+      "te": 100,
+      "best_acc": 93.51,
+      "best_lr": 0.5602743212524077,
+      "best_tlr": 0.8431013932082461,
+      "best_lifetime_phys": 1000,
+      "best_per_lifetime": {
+        "10": {
+          "acc": 92.74,
+          "lr": 0.36374585440139057,
+          "tlr": 5.669849511478847
+        },
+        "100": {
+          "acc": 92.73,
+          "lr": 0.1218,
+          "tlr": 0.0435
+        },
+        "1000": {
+          "acc": 93.51,
+          "lr": 0.5602743212524077,
+          "tlr": 0.8431013932082461
+        },
+        "46505": {
+          "acc": 92.38,
+          "lr": 0.0680177306805904,
+          "tlr": 2.1423021757741068
+        }
+      },
+      "n_trials": 12
+    },
+    {
+      "rank": 1,
+      "te": 500,
+      "best_acc": 92.82,
+      "best_lr": 0.5602743212524077,
+      "best_tlr": 0.8431013932082461,
+      "best_lifetime_phys": 1000,
+      "best_per_lifetime": {
+        "10": {
+          "acc": 92.52,
+          "lr": 0.256,
+          "tlr": 0.06478
+        },
+        "100": {
+          "acc": 92.66,
+          "lr": 0.256,
+          "tlr": 0.06478
+        },
+        "1000": {
+          "acc": 92.82,
+          "lr": 0.5602743212524077,
+          "tlr": 0.8431013932082461
+        },
+        "46505": {
+          "acc": 92.72,
+          "lr": 0.256,
+          "tlr": 0.06478
+        }
+      },
+      "n_trials": 12
+    },
+    {
+      "rank": 4,
+      "te": 1,
+      "best_acc": 95.09,
+      "best_lr": 0.5602743212524077,
+      "best_tlr": 0.8431013932082461,
+      "best_lifetime_phys": 1000,
+      "best_per_lifetime": {
+        "10": {
+          "acc": 94.03,
+          "lr": 0.36374585440139057,
+          "tlr": 5.669849511478847
+        },
+        "100": {
+          "acc": 92.16,
+          "lr": 0.1,
+          "tlr": 0.001
+        },
+        "1000": {
+          "acc": 95.09,
+          "lr": 0.5602743212524077,
+          "tlr": 0.8431013932082461
+        },
+        "46505": {
+          "acc": 94.49,
+          "lr": 4.115716865497774,
+          "tlr": 0.0011526449540315614
+        }
+      },
+      "n_trials": 12
+    },
+    {
+      "rank": 4,
+      "te": 10,
+      "best_acc": 96.02,
+      "best_lr": 0.5602743212524077,
+      "best_tlr": 0.8431013932082461,
+      "best_lifetime_phys": 1000,
+      "best_per_lifetime": {
+        "10": {
+          "acc": 95.84,
+          "lr": 1.4830808865379357,
+          "tlr": 8.919442323672547
+        },
+        "100": {
+          "acc": 92.75,
+          "lr": 0.389,
+          "tlr": 0.001048
+        },
+        "1000": {
+          "acc": 96.02,
+          "lr": 0.5602743212524077,
+          "tlr": 0.8431013932082461
+        },
+        "46505": {
+          "acc": 92.92,
+          "lr": 0.389,
+          "tlr": 0.001048
+        }
+      },
+      "n_trials": 12
+    },
+    {
+      "rank": 4,
+      "te": 100,
+      "best_acc": 95.03,
+      "best_lr": 0.5602743212524077,
+      "best_tlr": 0.8431013932082461,
+      "best_lifetime_phys": 1000,
+      "best_per_lifetime": {
+        "10": {
+          "acc": 92.63,
+          "lr": 0.36374585440139057,
+          "tlr": 5.669849511478847
+        },
+        "100": {
+          "acc": 93.36,
+          "lr": 0.3418,
+          "tlr": 0.003911
+        },
+        "1000": {
+          "acc": 95.03,
+          "lr": 0.5602743212524077,
+          "tlr": 0.8431013932082461
+        },
+        "46505": {
+          "acc": 93.66,
+          "lr": 0.3418,
+          "tlr": 0.003911
+        }
+      },
+      "n_trials": 12
+    },
+    {
+      "rank": 4,
+      "te": 500,
+      "best_acc": 93.77,
+      "best_lr": 0.5602743212524077,
+      "best_tlr": 0.8431013932082461,
+      "best_lifetime_phys": 1000,
+      "best_per_lifetime": {
+        "10": {
+          "acc": 92.62,
+          "lr": 0.2412,
+          "tlr": 0.0495
+        },
+        "100": {
+          "acc": 93.17,
+          "lr": 0.2412,
+          "tlr": 0.0495
+        },
+        "1000": {
+          "acc": 93.77,
+          "lr": 0.5602743212524077,
+          "tlr": 0.8431013932082461
+        },
+        "46505": {
+          "acc": 93.53,
+          "lr": 0.2412,
+          "tlr": 0.0495
+        }
+      },
+      "n_trials": 12
+    }
+  ],
+  "accuracy_matrix": {
+    "rank1": {
+      "TE1": 94.49,
+      "TE10": 94.41,
+      "TE100": 93.51,
+      "TE500": 92.82
+    },
+    "rank4": {
+      "TE1": 95.09,
+      "TE10": 96.02,
+      "TE100": 95.03,
+      "TE500": 93.77
+    }
+  },
+  "recommended_hyperparameters": {
+    "lr": 0.5603,
+    "tlr": 0.8431,
+    "lifetime_phys": 1000,
+    "policy": "shuffled_cycle",
+    "cap_rho": 1.0,
+    "wins_in_n_cells": 6,
+    "total_cells": 8,
+    "note": "Dominant combo across (rank, TE) cells. Use as default; only deviate when lifetime_phys is constrained.",
+    "per_rank_recommendation": {
+      "rank1": {
+        "lr": 0.5602743212524077,
+        "tlr": 0.8431013932082461,
+        "lifetime_phys": 1000,
+        "expected_acc_range": [
+          92.82,
+          94.35
+        ]
+      },
+      "rank4": {
+        "lr": 0.5602743212524077,
+        "tlr": 0.8431013932082461,
+        "lifetime_phys": 1000,
+        "expected_acc_range": [
+          93.77,
+          96.02
+        ]
+      }
+    }
+  },
+  "trends": {
+    "lifetime": {
+      "description": "Non-monotonic / U-shaped: too short (10, 100) underfits; too long (46505, ≈full epoch) underperforms. Sweet spot at 1000.",
+      "best_lifetime_overall": 1000,
+      "win_count_by_lifetime": {
+        "10": 1,
+        "1000": 7
+      },
+      "best_acc_by_lifetime": {
+        "10": {
+          "mean_best_acc": 93.49,
+          "max_best_acc": 95.84,
+          "min_best_acc": 92.52,
+          "n_cells": 8
+        },
+        "100": {
+          "mean_best_acc": 92.75,
+          "max_best_acc": 93.36,
+          "min_best_acc": 92.16,
+          "n_cells": 8
+        },
+        "1000": {
+          "mean_best_acc": 94.38,
+          "max_best_acc": 96.02,
+          "min_best_acc": 92.82,
+          "n_cells": 8
+        },
+        "46505": {
+          "mean_best_acc": 92.86,
+          "max_best_acc": 94.49,
+          "min_best_acc": 91.24,
+          "n_cells": 8
+        }
+      }
+    },
+    "tlr": {
+      "description": "Top accuracies concentrated in tlr ∈ [0.1, 10]. tlr is coupled to lifetime: small lifetime → large tlr, large lifetime → small tlr (transfer mass conservation).",
+      "best_tlr_overall": 0.8431013932082461,
+      "tlr_lifetime_coupling": {
+        "lifetime_10": {
+          "typical_tlr_range": [
+            5.67,
+            8.92
+          ],
+          "tlr_lr_ratio": "6 ~ 16"
+        },
+        "lifetime_1000": {
+          "typical_tlr_range": [
+            0.24,
+            0.84
+          ],
+          "tlr_lr_ratio": "≈ 1.5"
+        },
+        "lifetime_46505": {
+          "typical_tlr_range": [
+            0.001,
+            0.05
+          ],
+          "tlr_lr_ratio": "≈ 0.0003 ~ 0.05"
+        }
+      },
+      "acc_by_tlr_bin": {
+        "[1e-04, 1e-03)": {
+          "n": 8,
+          "mean_acc": 92.15,
+          "median_acc": 92.21,
+          "max_acc": 92.88,
+          "min_acc": 91.8
+        },
+        "[1e-03, 1e-02)": {
+          "n": 32,
+          "mean_acc": 92.04,
+          "median_acc": 92.29,
+          "max_acc": 94.49,
+          "min_acc": 87.15
+        },
+        "[1e-02, 1e-01)": {
+          "n": 17,
+          "mean_acc": 92.8,
+          "median_acc": 92.66,
+          "max_acc": 94.91,
+          "min_acc": 91.41
+        },
+        "[1e-01, 1e+00)": {
+          "n": 21,
+          "mean_acc": 91.45,
+          "median_acc": 92.1,
+          "max_acc": 96.02,
+          "min_acc": 80.54
+        },
+        "[1e+00, 1e+01)": {
+          "n": 18,
+          "mean_acc": 92.58,
+          "median_acc": 92.38,
+          "max_acc": 95.84,
+          "min_acc": 90.03
+        }
+      }
+    },
+    "rank": {
+      "description": "rank=4 dominates rank=1 across all TE values. Average gap ≈ +1.4 pp.",
+      "rank1_mean_best_acc": 93.81,
+      "rank4_mean_best_acc": 94.98,
+      "max_gap_cell": "rank=4, TE=10: 96.02 vs rank=1, TE=10: 94.41 (+1.61 pp)"
+    },
+    "TE": {
+      "description": "Performance generally degrades as TE grows (especially TE=500). TE=10 is best on rank=4. Best-tlr/lr is largely insensitive to TE when lifetime=1000.",
+      "mean_best_acc_by_TE": {
+        "1": 94.79,
+        "10": 95.22,
+        "100": 94.27,
+        "500": 93.29
+      }
+    }
+  }
+}
