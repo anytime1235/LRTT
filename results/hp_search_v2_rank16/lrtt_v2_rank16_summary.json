@@ -1,0 +1,414 @@
+{
+  "experiment_name": "hp_search_v2_rank16",
+  "model": "LRTT-v2 / MDMLP on MNIST",
+  "completed_at": "2026-04-28T22:31:00",
+  "summary_generated_at": "2026-04-29T14:46:30.908414Z",
+  "source_results": "results/hp_search_v2_rank16/results_final.json",
+  "source_log": "logs/hp_search_v2_rank16.log",
+  "config": {
+    "ranks": [
+      16
+    ],
+    "TE_values": [
+      1,
+      10,
+      100,
+      500
+    ],
+    "lifetime_phys_values": [
+      10,
+      100,
+      1000,
+      46505
+    ],
+    "policy": "shuffled_cycle",
+    "cap_rho": 1.0,
+    "search_space": {
+      "lr": {
+        "distribution": "log-uniform",
+        "range": [
+          0.05,
+          10.0
+        ]
+      },
+      "tlr": {
+        "distribution": "log-uniform",
+        "range": [
+          0.0001,
+          10.0
+        ]
+      },
+      "lifetime_phys": {
+        "distribution": "categorical",
+        "values": [
+          10,
+          100,
+          1000,
+          46505
+        ]
+      }
+    },
+    "n_cells": 4,
+    "trials_per_cell": 48,
+    "total_trials": 192
+  },
+  "overall_best": {
+    "rank": 16,
+    "te": 10,
+    "best_acc": 97.21,
+    "best_lr": 2.185737000031922,
+    "best_tlr": 1.9733212840076468,
+    "best_lifetime_phys": 1000,
+    "policy": "shuffled_cycle",
+    "cap_rho": 1.0
+  },
+  "best_per_rank": {
+    "rank16": {
+      "rank": 16,
+      "te": 10,
+      "best_acc": 97.21,
+      "best_lr": 2.185737000031922,
+      "best_tlr": 1.9733212840076468,
+      "best_lifetime_phys": 1000,
+      "policy": "shuffled_cycle",
+      "cap_rho": 1.0
+    }
+  },
+  "best_per_te": {
+    "TE1": {
+      "rank": 16,
+      "te": 1,
+      "best_acc": 97.08,
+      "best_lr": 5.1335660088122985,
+      "best_tlr": 0.003643993678362012,
+      "best_lifetime_phys": 1000,
+      "policy": "shuffled_cycle",
+      "cap_rho": 1.0
+    },
+    "TE10": {
+      "rank": 16,
+      "te": 10,
+      "best_acc": 97.21,
+      "best_lr": 2.185737000031922,
+      "best_tlr": 1.9733212840076468,
+      "best_lifetime_phys": 1000,
+      "policy": "shuffled_cycle",
+      "cap_rho": 1.0
+    },
+    "TE100": {
+      "rank": 16,
+      "te": 100,
+      "best_acc": 96.83,
+      "best_lr": 0.75789850524107,
+      "best_tlr": 0.022055966549515135,
+      "best_lifetime_phys": 1000,
+      "policy": "shuffled_cycle",
+      "cap_rho": 1.0
+    },
+    "TE500": {
+      "rank": 16,
+      "te": 500,
+      "best_acc": 95.58,
+      "best_lr": 1.354061310466189,
+      "best_tlr": 0.06730780896119949,
+      "best_lifetime_phys": 46505,
+      "policy": "shuffled_cycle",
+      "cap_rho": 1.0
+    }
+  },
+  "per_cell_best": [
+    {
+      "rank": 16,
+      "te": 1,
+      "best_acc": 97.08,
+      "best_lr": 5.1335660088122985,
+      "best_tlr": 0.003643993678362012,
+      "best_lifetime_phys": 1000,
+      "best_per_lifetime": {
+        "10": {
+          "acc": 95.54,
+          "lr": 0.5078824329921793,
+          "tlr": 0.31731771651777774
+        },
+        "100": {
+          "acc": 96.71,
+          "lr": 1.340136877575163,
+          "tlr": 0.028346962803954903
+        },
+        "1000": {
+          "acc": 97.08,
+          "lr": 5.1335660088122985,
+          "tlr": 0.003643993678362012
+        },
+        "46505": {
+          "acc": 96.73,
+          "lr": 1.1354798749657182,
+          "tlr": 0.011409344852712769
+        }
+      },
+      "n_trials": 48
+    },
+    {
+      "rank": 16,
+      "te": 10,
+      "best_acc": 97.21,
+      "best_lr": 2.185737000031922,
+      "best_tlr": 1.9733212840076468,
+      "best_lifetime_phys": 1000,
+      "best_per_lifetime": {
+        "10": {
+          "acc": 96.95,
+          "lr": 0.6892336365374546,
+          "tlr": 8.919442323672547
+        },
+        "100": {
+          "acc": 97.11,
+          "lr": 1.5228655867348575,
+          "tlr": 0.016977013289135295
+        },
+        "1000": {
+          "acc": 97.21,
+          "lr": 2.185737000031922,
+          "tlr": 1.9733212840076468
+        },
+        "46505": {
+          "acc": 94.96,
+          "lr": 0.9457030701811385,
+          "tlr": 0.023320001889478748
+        }
+      },
+      "n_trials": 48
+    },
+    {
+      "rank": 16,
+      "te": 100,
+      "best_acc": 96.83,
+      "best_lr": 0.75789850524107,
+      "best_tlr": 0.022055966549515135,
+      "best_lifetime_phys": 1000,
+      "best_per_lifetime": {
+        "10": {
+          "acc": 94.27,
+          "lr": 0.36374585440139057,
+          "tlr": 5.669849511478847
+        },
+        "100": {
+          "acc": 96.43,
+          "lr": 1.8323069675144448,
+          "tlr": 0.08985058955211371
+        },
+        "1000": {
+          "acc": 96.83,
+          "lr": 0.75789850524107,
+          "tlr": 0.022055966549515135
+        },
+        "46505": {
+          "acc": 94.32,
+          "lr": 0.0680177306805904,
+          "tlr": 2.1423021757741068
+        }
+      },
+      "n_trials": 48
+    },
+    {
+      "rank": 16,
+      "te": 500,
+      "best_acc": 95.58,
+      "best_lr": 1.354061310466189,
+      "best_tlr": 0.06730780896119949,
+      "best_lifetime_phys": 46505,
+      "best_per_lifetime": {
+        "10": {
+          "acc": 93.11,
+          "lr": 0.36374585440139057,
+          "tlr": 5.669849511478847
+        },
+        "100": {
+          "acc": 94.94,
+          "lr": 0.8192285297769226,
+          "tlr": 0.021091077721841198
+        },
+        "1000": {
+          "acc": 95.54,
+          "lr": 0.6237494690440762,
+          "tlr": 1.0893874032956055
+        },
+        "46505": {
+          "acc": 95.58,
+          "lr": 1.354061310466189,
+          "tlr": 0.06730780896119949
+        }
+      },
+      "n_trials": 48
+    }
+  ],
+  "accuracy_matrix": {
+    "rank16": {
+      "TE1": 97.08,
+      "TE10": 97.21,
+      "TE100": 96.83,
+      "TE500": 95.58
+    }
+  },
+  "recommended_hyperparameters": {
+    "lr": 2.185737000031922,
+    "tlr": 1.9733212840076468,
+    "lifetime_phys": 1000,
+    "policy": "shuffled_cycle",
+    "cap_rho": 1.0,
+    "wins_in_n_cells": 1,
+    "total_cells": 4,
+    "note": "Single-rank sweep (rank=16) over TE ∈ {1,10,100,500}. Per-cell winners are all unique — no single (lr,tlr,lifetime) combo dominates. Listed combo is the global best (TE=10). For best per-cell accuracy use per_cell_best; lifetime=1000 wins 3/4 cells and is the modal default. tlr regime shifts strongly with TE: small TE tolerates larger tlr (TE=10 best at tlr≈1.97), large TE prefers small tlr.",
+    "per_rank_recommendation": {
+      "rank16": {
+        "lr": 2.185737000031922,
+        "tlr": 1.9733212840076468,
+        "lifetime_phys": 1000,
+        "expected_acc_range": [
+          95.58,
+          97.21
+        ]
+      }
+    },
+    "fallback_default": {
+      "lr": 2.19,
+      "tlr": 1.973,
+      "lifetime_phys": 1000,
+      "rationale": "Global best HPs at rank=16, TE=10; lifetime=1000 wins 3/4 cells and is the modal sweet spot."
+    }
+  },
+  "trends": {
+    "lifetime": {
+      "description": "lifetime=1000 wins 3/4 cells (TE=1, 10, 100); lifetime=46505 only wins at TE=500. lifetime=10 and 100 never win, but lifetime=100 is highly competitive (mean_best_acc within 0.4 pp of 1000). U-shape less pronounced than at rank ∈ {1,4}: at rank=16 the model has enough capacity to tolerate longer lifetimes.",
+      "best_lifetime_overall": 1000,
+      "win_count_by_lifetime": {
+        "10": 0,
+        "100": 0,
+        "1000": 3,
+        "46505": 1
+      },
+      "best_acc_by_lifetime": {
+        "10": {
+          "mean_best_acc": 94.97,
+          "max_best_acc": 96.95,
+          "min_best_acc": 93.11,
+          "n_cells": 4
+        },
+        "100": {
+          "mean_best_acc": 96.3,
+          "max_best_acc": 97.11,
+          "min_best_acc": 94.94,
+          "n_cells": 4
+        },
+        "1000": {
+          "mean_best_acc": 96.67,
+          "max_best_acc": 97.21,
+          "min_best_acc": 95.54,
+          "n_cells": 4
+        },
+        "46505": {
+          "mean_best_acc": 95.4,
+          "max_best_acc": 96.73,
+          "min_best_acc": 94.32,
+          "n_cells": 4
+        }
+      }
+    },
+    "tlr": {
+      "description": "Coupled to lifetime + TE: short lifetime → larger tlr; large TE → smaller tlr (transfer mass conservation). Pearson r(log10 tlr, acc) = +0.217 across all 192 trials — weak relationship, since the best tlr migrates over 3 decades depending on the cell.",
+      "best_tlr_overall": 1.9733212840076468,
+      "tlr_lifetime_coupling": {
+        "lifetime_10": {
+          "typical_tlr_range": [
+            0.3173,
+            8.9194
+          ],
+          "tlr_lr_ratio_range": [
+            0.6248,
+            15.5874
+          ]
+        },
+        "lifetime_100": {
+          "typical_tlr_range": [
+            0.017,
+            0.7847
+          ],
+          "tlr_lr_ratio_range": [
+            0.0111,
+            0.5616
+          ]
+        },
+        "lifetime_1000": {
+          "typical_tlr_range": [
+            0.0036,
+            9.5373
+          ],
+          "tlr_lr_ratio_range": [
+            0.0007,
+            10.2552
+          ]
+        },
+        "lifetime_46505": {
+          "typical_tlr_range": [
+            0.0012,
+            2.1423
+          ],
+          "tlr_lr_ratio_range": [
+            0.0003,
+            31.4962
+          ]
+        }
+      },
+      "acc_by_tlr_bin": {
+        "[1e-4, 1e-3)": {
+          "n": 12,
+          "mean_acc": 91.67,
+          "median_acc": 92.23,
+          "max_acc": 95.01,
+          "min_acc": 84.0
+        },
+        "[1e-3, 1e-2)": {
+          "n": 41,
+          "mean_acc": 93.42,
+          "median_acc": 93.15,
+          "max_acc": 97.08,
+          "min_acc": 89.42
+        },
+        "[1e-2, 1e-1)": {
+          "n": 57,
+          "mean_acc": 94.49,
+          "median_acc": 95.07,
+          "max_acc": 97.11,
+          "min_acc": 79.33
+        },
+        "[1e-1, 1e+0)": {
+          "n": 45,
+          "mean_acc": 93.92,
+          "median_acc": 95.11,
+          "max_acc": 97.09,
+          "min_acc": 80.84
+        },
+        "[1e+0, 1e+1)": {
+          "n": 37,
+          "mean_acc": 94.59,
+          "median_acc": 94.64,
+          "max_acc": 97.21,
+          "min_acc": 90.26
+        }
+      }
+    },
+    "rank": {
+      "description": "Single-rank sweep (rank=16). Comparison with rank ∈ {1,4} (mean 93.81/94.98) and {32,64} (mean 97.05/97.51) sweeps: rank=16 mean across cells = 96.67 — between rank=4 and rank=32, consistent with monotonic gain in capacity but with diminishing returns approaching rank=32.",
+      "rank16_mean_best_acc": 96.67
+    },
+    "TE": {
+      "description": "TE=10 is the sweet spot (97.21, global best); TE=1 close behind (97.08). TE=500 degrades by ~1.6 pp from peak — a steeper drop than seen at rank ∈ {32,64} (~0.9 pp), suggesting rank=16 has less headroom for very long TE schedules. Best-tlr varies widely with TE (0.0036 → 1.97 → 0.022 → 0.067), so HPs cannot be transferred across TE values.",
+      "mean_best_acc_by_TE": {
+        "1": 97.08,
+        "10": 97.21,
+        "100": 96.83,
+        "500": 95.58
+      }
+    }
+  }
+}
