@@ -1,4 +1,4 @@
-"""Figure S6: A, B, C tile individual cell weight dynamics (10 cells each).
+"""Figure S7: A, B, C tile individual cell weight dynamics (10 cells each).
 
 From T267 diagnostic (constantstepideal, abml=10, rank=32).
 First tile = Layer 0, query. Last tile = Layer 11, attention output.
@@ -61,7 +61,7 @@ for col, (tile_key, tile_label) in enumerate(tile_configs):
 
 fig.tight_layout(pad=0.8)
 
-OUT = '/root/LRTT/examples/bert/results/plots/figS6_abc_weight_dynamics.png'
+OUT = '/root/LRTT/examples/bert/results/plots/figS7_abc_weight_dynamics.png'
 fig.savefig(OUT, dpi=300, bbox_inches='tight')
 fig.savefig(OUT.replace('.png', '.svg'), bbox_inches='tight')
 print(f'Saved: {OUT}')

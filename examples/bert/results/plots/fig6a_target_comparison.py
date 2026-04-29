@@ -8,10 +8,10 @@ methods = ['Digital\ntraining', 'Digital\nLoRA', 'Tiki-Taka', 'LR-TT']
 
 # F1 scores: {method: [QKVO, FFN, ALL]}
 data = {
-    'Digital\ntraining': [88.1, 87.1, 87.6],
-    'Digital\nLoRA':     [88.1, 87.2, 88.3],
+    'Digital\ntraining': [88.07, 87.07, 87.61],
+    'Digital\nLoRA':     [88.12, 87.21, 88.26],
     'Tiki-Taka':         [86.9, 85.7, 87.0],
-    'LR-TT':             [85.0, 84.1, 85.2],
+    'LR-TT':             [84.98, 84.12, 85.22],
 }
 
 targets = ['QKVO', 'FFN', 'ALL']

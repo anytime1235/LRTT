@@ -1,4 +1,4 @@
-"""Figure S10: Effective rank — full 2x2 (first/last tile × erank(C)/erank(ΔC))."""
+"""Figure S11: Effective rank — full 2x2 (first/last tile × erank(C)/erank(ΔC))."""
 import json
 import numpy as np
 import matplotlib
@@ -78,7 +78,7 @@ for row, (tile_key, tile_label) in enumerate(tile_configs):
 
 fig.tight_layout(pad=0.8)
 
-OUT = '/root/LRTT/examples/bert/results/plots/figS10_erank_full.png'
+OUT = '/root/LRTT/examples/bert/results/plots/figS11_erank_full.png'
 fig.savefig(OUT, dpi=300, bbox_inches='tight')
 fig.savefig(OUT.replace('.png', '.svg'), bbox_inches='tight')
 print(f'Saved: {OUT}')

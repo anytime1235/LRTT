@@ -13,8 +13,8 @@
       "description": "Standard digital fine-tuning (full-precision, GPU-based, full-rank)",
       "data": {
         "QKVO": 88.07,
-        "FFN": 86.64,
-        "ALL": 87.43
+        "FFN": 87.07,
+        "ALL": 87.61
       },
       "conditions": {
         "QKVO": {

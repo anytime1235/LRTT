@@ -1,4 +1,4 @@
-"""Figure S8: Cosine similarity — Layer 0 query (supplementary)."""
+"""Figure S10: Cosine similarity — Layer 0 query (supplementary)."""
 import json
 import numpy as np
 import matplotlib
@@ -80,7 +80,7 @@ axes[0].legend(handles, labels, fontsize=7.5, loc='upper right', framealpha=0.9,
 
 fig.tight_layout(pad=0.5)
 
-OUT = '/root/LRTT/examples/bert/results/plots/figS8_cosine_similarity_l0.png'
+OUT = '/root/LRTT/examples/bert/results/plots/figS10_cosine_similarity_l0.png'
 fig.savefig(OUT, dpi=300, bbox_inches='tight')
 fig.savefig(OUT.replace('.png', '.svg'), bbox_inches='tight')
 print(f'Saved: {OUT}')

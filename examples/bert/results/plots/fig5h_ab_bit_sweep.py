@@ -5,11 +5,11 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 data = [
-    {'bits': 6,  'f1': 83.6, 'trial': 'T322'},
-    {'bits': 8,  'f1': 85.0, 'trial': 'T290'},
-    {'bits': 10, 'f1': 85.0, 'trial': 'T267'},
-    {'bits': 12, 'f1': 82.2, 'trial': 'T242'},
-    {'bits': 14, 'f1': 78.7, 'trial': 'T347'},
+    {'bits': 6,  'f1': 83.63, 'trial': 'T322'},
+    {'bits': 8,  'f1': 84.98, 'trial': 'T290'},
+    {'bits': 10, 'f1': 84.98, 'trial': 'T267'},
+    {'bits': 12, 'f1': 82.16, 'trial': 'T242'},
+    {'bits': 14, 'f1': 78.72, 'trial': 'T347'},
 ]
 
 tikitaka = [

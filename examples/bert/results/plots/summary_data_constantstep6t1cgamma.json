@@ -117,6 +117,22 @@
       {
         "noise_ratio": 1.0,
         "f1": 78.12
+      },
+      {
+        "noise_ratio": 2.0,
+        "f1": 7.27
+      },
+      {
+        "noise_ratio": 3.0,
+        "f1": 7.27
+      },
+      {
+        "noise_ratio": 5.0,
+        "f1": 7.27
+      },
+      {
+        "noise_ratio": 10.0,
+        "f1": 7.27
       }
     ],
     "source": {
@@ -714,5 +730,78 @@
       }
     ],
     "source": "optuna studies: constantstep6t1cgamma qkvo/ffn/all"
+  },
+  "noise_ratio_sweep_t98_opt": {
+    "title": "Noise Ratio Sweep (T98 base, optimized at noise=1)",
+    "xlabel": "Noise Ratio",
+    "ylabel": "F1",
+    "data": [
+      {
+        "noise_ratio": 0.0,
+        "f1": 82.13
+      },
+      {
+        "noise_ratio": 0.1,
+        "f1": 81.93
+      },
+      {
+        "noise_ratio": 0.3,
+        "f1": 81.87
+      },
+      {
+        "noise_ratio": 0.5,
+        "f1": 82.26
+      },
+      {
+        "noise_ratio": 0.7,
+        "f1": 82.25
+      },
+      {
+        "noise_ratio": 1.0,
+        "f1": 82.24,
+        "note": "native training condition"
+      },
+      {
+        "noise_ratio": 2.0,
+        "f1": 76.82
+      },
+      {
+        "noise_ratio": 3.0,
+        "f1": 73.44
+      },
+      {
+        "noise_ratio": 5.0,
+        "f1": 9.5
+      },
+      {
+        "noise_ratio": 10.0,
+        "f1": 7.27
+      }
+    ],
+    "source": {
+      "base": "T98 (rank=32, F1=82.24, noise=1+AF=1 optimized)",
+      "timestamp": "20260428_055236"
+    },
+    "description": "T98 hyperparams (lr=0.0019, tlr=0.2, te=4, flr=0.092) re-tuned at full 6T1C noise. AB device=6t1c, gamma fixed at 6T1C reference (gamma_ratio=1).",
+    "base_config": {
+      "trial": "T98",
+      "lr": 0.0019,
+      "tlr": 0.2,
+      "te": 4,
+      "flr": 0.092,
+      "rank": 32,
+      "ab_dw_min": 0.0004883,
+      "c_dw_min": 0.001953,
+      "ab_multilevel": null,
+      "reinit_mode": "decay",
+      "transfer_method": "onehot",
+      "ab_device": "6t1c",
+      "c_device": "constantstepideal",
+      "is_perfect": true,
+      "batch_size": 48,
+      "warmup_steps": 365,
+      "seed": 42,
+      "epochs": 5
+    }
   }
 }

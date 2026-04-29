@@ -91,7 +91,7 @@ REF_WRITE_NOISE_STD = 0.0
 # ── Sweep points ──
 # noise_ratio=0.0 and gamma_ratio=1.0 omitted because they both equal T249's
 # exact config (constantstep6t1cgamma, no noise) → reuse T249_BASELINE_F1.
-NOISE_RATIOS = [0.1, 0.3, 0.5, 0.7, 1.0]
+NOISE_RATIOS = [2.0, 3.0, 5.0, 10.0]
 GAMMA_RATIOS = [0.0, 0.5, 2.0, 3.0, 5.0, 10.0]
 
 # T249 baseline F1 (qkvo study, optuna trial T249, F1=84.06)
@@ -161,7 +161,7 @@ def _build_linearstep_block(ratio, gamma_ratio=None):
     gamma_down_dtod = _nz(REF_GAMMA_DOWN_DTOD * ratio)
     write_noise_std = _nz(REF_WRITE_NOISE_STD * ratio)
     mult_noise = 'False'
-    return f"""    if AB_DEVICE == "linearstepideal":
+    return f"""    if name == "linearstepideal":
         return LinearStepDevice(
             dw_min=dw_min,
             w_max=w_max, w_min=w_min,
@@ -176,7 +176,7 @@ def _build_linearstep_block(ratio, gamma_ratio=None):
 
 
 # Original linearstepideal block in fine_bert_squad_lrtt.py (for string replacement)
-ORIG_LINEARSTEPIDEAL = """    if AB_DEVICE == "linearstepideal":
+ORIG_LINEARSTEPIDEAL = """    if name == "linearstepideal":
         return LinearStepDevice(
             dw_min=dw_min,
             w_max=w_max, w_min=w_min,

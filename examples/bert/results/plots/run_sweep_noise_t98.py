@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""Noise ratio & Gamma ratio sweep based on T267 (constantstepideal, rank=32, F1=84.98).
+"""Noise ratio sweep based on T98 (rank=32, F1=82.24, noise=1 + AF=1 optimized).
 
-T267 base config (qkvo abml study, constantstepideal device):
-  lr=0.00328, tlr=0.25, te=2, flr=0.3
-  ab_dw_min=1.2109e-4, c_dw_min=0.001953
-  abml=10 (w_max=0.0624), rank=32, lora_target=qkvo
+T249 base config (qkvo study with constantstep6t1cgamma device):
+  flr=0.474, te=1, tlr=0.095, lr=0.0038
+  ab_dw_min=0.0004883, c_dw_min=0.001953
+  rank=32, no ab_multilevel, lora_target=qkvo
+
+Generates patched copies of fine_bert_squad_lrtt.py and runs them in parallel
+across GPUs. Each run produces F1; results saved to a JSON file for plotting.
 
 6T1C reference values (ratio=1.0):
   Device noise (dtod, std):
@@ -17,24 +20,31 @@ T267 base config (qkvo abml study, constantstepideal device):
     gamma_up=-0.1678, gamma_down=0.1410
 
 Noise ratio sweep:
-  Gamma FIXED at 6T1C (gamma_ratio=1.0). Only noise params scale with ratio.
-  noise_ratio=0 → gamma=6T1C, no noise (= gamma_ratio=1.0 point in gamma sweep)
+  Gamma is FIXED at T249's baseline (gamma_ratio=1.0, full 6T1C asymmetry).
+  Only noise params (dtod, std) scale with ratio.
+  Uses linearstepideal device (string-replaced).
+  ratio=0.0 → T249 baseline = constantstep6t1cgamma equivalent (gamma=1.0, no noise)
+  ratio=1.0 → T249 baseline + full 6T1C noise on top
+  → measures how device noise degrades T249's F1
 
 Gamma ratio sweep:
-  Only gamma scaled. All noise params = 0.
-  gamma_ratio=0 → constantstepideal baseline = T267 (F1=84.98)
-  gamma_ratio=1.0 → 6T1C gamma, no noise (= noise_ratio=0 point)
-
-Cross-reuse:
-  gamma_sweep[gamma=0] = T267 baseline (F1=84.98, injected)
-  gamma_sweep[gamma=1.0] = noise_sweep[noise=0] (run once, shared)
+  Only gamma_up/gamma_down scaled by ratio. All noise params = 0.
+  Uses linearstepideal device (string-replaced).
+  ratio=0.0 → symmetric (no asymmetry, equivalent to constantstepideal)
+  ratio=1.0 → T249 baseline (6T1C asymmetry, no noise)
+  ratio>1.0 → larger asymmetry than 6T1C
+  → measures how asymmetry magnitude affects F1
 
 Usage:
-  python run_sweep_noise_gamma_t267.py --parallel --num-gpus 4
-  python run_sweep_noise_gamma_t267.py --noise-only --parallel
-  python run_sweep_noise_gamma_t267.py --gamma-only --parallel
+  # Sequential (one GPU at a time)
+  CUDA_VISIBLE_DEVICES=0 python run_sweep_noise_gamma_t249.py [--noise-only] [--gamma-only]
 
-Output: sweep_noise_gamma_t267_{TIMESTAMP}.json
+  # Parallel across GPUs (async task queue)
+  python run_sweep_noise_gamma_t249.py --parallel [--num-gpus 4]
+  python run_sweep_noise_gamma_t249.py --parallel --noise-only --num-gpus 4
+  python run_sweep_noise_gamma_t249.py --parallel --gamma-only --num-gpus 4
+
+Output: sweep_noise_t98_{TIMESTAMP}.json
 """
 import argparse
 import datetime
@@ -50,11 +60,20 @@ SRC = REPO / "examples/bert/fine_bert_squad_lrtt.py"
 RESULTS_DIR = REPO / "examples/bert/results/BERT_SQUAD_LRTT_FINE"
 RUN_STAMP = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
-# ── T267 base config (abml qkvo study, constantstepideal, F1=84.98) ──
-T267 = dict(
-    lr=0.00328, tlr=0.25, te=2, rank=32,
-    fast_lr=0.3, ab_dw_min=0.0001210937, c_dw_min=0.001953,
-    abml=10, warmup_steps=365, batch_size=48,
+# ── T98 base config (qkvo study at full 6T1C noise, rank=32, F1=82.24) ──
+# Source: optuna_bert_squad_lrtt_bs48_adam_decay_nowd_nomom_nonest_onehot_cconstantstepideal_perfect_noos_qkvo_5ep.log
+# Source command: --batch-size 48 --epochs 5 --warmup-steps 365 --transfer-method onehot
+#                 --ab-device 6t1c --c-device constantstepideal
+#                 --is-perfect --no-learn-out-scaling --lora-target qkvo
+#                 --optimizer AnalogAdam --reinit-mode decay
+#                 --no-wd --no-momentum --no-nesterov
+# Trial params: flr=0.092, te=4, tlr=0.2, lr=0.0019
+#               ab_dw_min=0.0004883, c_dw_min=0.001953
+#               (no --ab-multilevel; AB_MULTILEVEL=None)
+T98 = dict(
+    lr=0.0019, tlr=0.2, te=4, rank=32,
+    fast_lr=0.092, ab_dw_min=0.0004883, c_dw_min=0.001953,
+    abml=None, warmup_steps=365, batch_size=48,
     seed=42,
 )
 
@@ -71,12 +90,14 @@ REF_GAMMA_DOWN_DTOD = 0.05
 REF_WRITE_NOISE_STD = 0.0
 
 # ── Sweep points ──
-NOISE_RATIOS = [0.1, 0.3, 0.5, 0.7, 1.0]
-# gamma=0 → T267 baseline (injected), gamma=1.0 → shared with noise_ratio=0 (run in gamma sweep)
-GAMMA_RATIOS = [0.5, 1.0, 2.0, 3.0, 5.0, 10.0]
+# noise_ratio=1.0 omitted because it equals T98's exact training condition
+# (full 6T1C, ratio=1.0) → reuse T98_BASELINE_F1.
+NOISE_RATIOS = [0.0, 0.1, 0.3, 0.5, 0.7, 2.0, 3.0, 5.0, 10.0]
+GAMMA_RATIOS = []  # not used for T98 sweep
 
-T267_BASELINE_F1 = 84.98
-T267_BASELINE_TRIAL = "abml_qkvo_T267"
+# T98 baseline F1 (qkvo study at full 6T1C, optuna trial T98, F1=82.24)
+T98_BASELINE_F1 = 82.24
+T98_BASELINE_TRIAL = "qkvo_T98"
 
 
 def patch(content: str, key: str, new_value: str) -> str:
@@ -87,8 +108,9 @@ def patch(content: str, key: str, new_value: str) -> str:
     return out
 
 
-def apply_t267_base(src: str) -> str:
-    cfg = T267
+def apply_t98_base(src: str) -> str:
+    """Apply T98 base params to script source — exactly matches qkvo trial T98."""
+    cfg = T98
     src = patch(src, "N_EPOCHS", "5")
     src = patch(src, "SCHEDULE_EPOCHS", "5")
     src = patch(src, "BATCH_SIZE", str(cfg["batch_size"]))
@@ -101,7 +123,7 @@ def apply_t267_base(src: str) -> str:
     src = patch(src, "FAST_LR", repr(cfg["fast_lr"]))
     src = patch(src, "AB_DW_MIN", repr(cfg["ab_dw_min"]))
     src = patch(src, "C_DW_MIN", repr(cfg["c_dw_min"]))
-    src = patch(src, "AB_MULTILEVEL", str(cfg["abml"]))
+    src = patch(src, "AB_MULTILEVEL", str(cfg["abml"]))  # None
     src = patch(src, "REINIT_MODE", '"decay"')
     src = patch(src, "TRANSFER_METHOD", '"onehot"')
     src = patch(src, "C_DEVICE", '"constantstepideal"')
@@ -118,10 +140,16 @@ def apply_t267_base(src: str) -> str:
 
 
 def _nz(v):
+    """Normalize -0.0 to 0.0 for clean output."""
     return 0.0 if v == 0.0 else v
 
 
 def _build_linearstep_block(ratio, gamma_ratio=None):
+    """Build a LinearStepDevice constructor string with scaled 6T1C params.
+
+    If gamma_ratio is provided, use it for gamma scaling (independent of ratio).
+    Otherwise gamma scales with ratio like everything else.
+    """
     gr = gamma_ratio if gamma_ratio is not None else ratio
     dw_min_dtod = _nz(REF_DW_MIN_DTOD * ratio)
     dw_min_std = _nz(REF_DW_MIN_STD * ratio)
@@ -148,6 +176,7 @@ def _build_linearstep_block(ratio, gamma_ratio=None):
         )"""
 
 
+# Original linearstepideal block in fine_bert_squad_lrtt.py (for string replacement)
 ORIG_LINEARSTEPIDEAL = """    if name == "linearstepideal":
         return LinearStepDevice(
             dw_min=dw_min,
@@ -162,6 +191,7 @@ ORIG_LINEARSTEPIDEAL = """    if name == "linearstepideal":
 
 
 def _parse_f1(log_path: Path):
+    """Parse best F1 from a run log file."""
     f1 = None
     log_text = log_path.read_text(errors="replace")
     for line in reversed(log_text.split("\n")):
@@ -181,6 +211,7 @@ def _parse_f1(log_path: Path):
 
 
 def _prepare_trial(tag: str, src_patched: str):
+    """Write patched script and return (tag, tmp_path, log_path)."""
     unique_stamp = f"{RUN_STAMP}_{tag}"
     src_patched = src_patched.replace(
         'stamp = f"te{TRANSFER_EVERY}_r{LRTT_RANK}_{TRANSFER_METHOD}"',
@@ -188,29 +219,49 @@ def _prepare_trial(tag: str, src_patched: str):
     )
     if unique_stamp not in src_patched:
         raise RuntimeError("Failed to patch stamp")
+
     tmp = SRC.parent / f"_tmp_sweep_{tag}.py"
     tmp.write_text(src_patched)
+
     log_path = RESULTS_DIR / f"runlog_sweep_{unique_stamp}.txt"
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     return tag, tmp, log_path
 
 
 def run_one(tag: str, src_patched: str) -> dict:
+    """Write patched script, run it synchronously, parse F1 from output."""
     tag, tmp, log_path = _prepare_trial(tag, src_patched)
-    print(f"\n{'='*60}\nRunning: {tag}  (log -> {log_path})\n{'='*60}")
+
+    print(f"\n{'='*60}")
+    print(f"Running: {tag}  (log -> {log_path})")
+    print(f"{'='*60}")
+
     with open(log_path, "wb") as logf:
-        ret = subprocess.run([sys.executable, str(tmp)], cwd=SRC.parent,
-                             stdout=logf, stderr=subprocess.STDOUT)
+        ret = subprocess.run(
+            [sys.executable, str(tmp)], cwd=SRC.parent,
+            stdout=logf, stderr=subprocess.STDOUT
+        )
+
     f1 = _parse_f1(log_path)
     tmp.unlink(missing_ok=True)
     print(f"  exit={ret.returncode}, F1={f1}")
     return {"tag": tag, "f1": f1, "exit_code": ret.returncode}
 
 
-def run_parallel(trials, num_gpus=4):
+def run_parallel(trials: list[tuple[str, str]], num_gpus: int = 4) -> list[dict]:
+    """Run trials in parallel across GPUs with async task queue.
+
+    Args:
+        trials: list of (tag, src_patched) tuples
+        num_gpus: number of GPUs to use (0..num_gpus-1)
+
+    Returns:
+        list of result dicts with tag, f1, exit_code
+    """
     import time
-    queue = list(trials)
-    active = {}
+
+    queue = list(trials)  # remaining trials
+    active = {}  # gpu_id -> (tag, proc, log_path, tmp_path, logf)
     results = []
 
     def _launch(gpu_id, tag, src_patched):
@@ -218,9 +269,11 @@ def run_parallel(trials, num_gpus=4):
         env = os.environ.copy()
         env["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
         logf = open(log_path, "wb")
-        proc = subprocess.Popen([sys.executable, str(tmp)], cwd=SRC.parent,
-                                stdout=logf, stderr=subprocess.STDOUT, env=env)
-        print(f"  [GPU {gpu_id}] Started: {tag}  (pid={proc.pid})")
+        proc = subprocess.Popen(
+            [sys.executable, str(tmp)], cwd=SRC.parent,
+            stdout=logf, stderr=subprocess.STDOUT, env=env
+        )
+        print(f"  [GPU {gpu_id}] Started: {tag}  (pid={proc.pid}, log={log_path})")
         active[gpu_id] = (tag, proc, log_path, tmp, logf)
 
     def _collect(gpu_id):
@@ -231,70 +284,127 @@ def run_parallel(trials, num_gpus=4):
         print(f"  [GPU {gpu_id}] Done: {tag}  exit={proc.returncode}, F1={f1}")
         return {"tag": tag, "f1": f1, "exit_code": proc.returncode}
 
+    # Fill initial GPU slots
     for gpu_id in range(min(num_gpus, len(queue))):
-        _launch(gpu_id, *queue.pop(0))
+        tag, src = queue.pop(0)
+        _launch(gpu_id, tag, src)
 
+    # Poll and refill
     while active:
         time.sleep(5)
-        for gpu_id in list(active):
+        for gpu_id in list(active.keys()):
             tag, proc, log_path, tmp, logf = active[gpu_id]
             if proc.poll() is not None:
                 results.append(_collect(gpu_id))
                 if queue:
-                    _launch(gpu_id, *queue.pop(0))
+                    next_tag, next_src = queue.pop(0)
+                    _launch(gpu_id, next_tag, next_src)
+
     return results
 
 
 def _build_noise_trials():
+    """Build (tag, src) pairs for noise ratio sweep.
+
+    Gamma is FIXED at T98's baseline (gamma_ratio=1.0, full 6T1C asymmetry).
+    Only noise params (dtod, std) scale with ratio.
+    ratio=1.0 corresponds to full 6T1C (= T98's training condition).
+    """
     trials = []
-    base_src = apply_t267_base(SRC.read_text())
+    base_src = apply_t98_base(SRC.read_text())
     base_src = patch(base_src, "AB_DEVICE", '"linearstepideal"')
+
     for ratio in NOISE_RATIOS:
         tag = f"noise_r{ratio:.1f}".replace(".", "p")
+        # gamma_ratio=1.0 fixed (T249 baseline gamma) — only noise scales
         src = base_src.replace(ORIG_LINEARSTEPIDEAL, _build_linearstep_block(ratio, gamma_ratio=1.0))
         if f"dw_min_dtod={_nz(REF_DW_MIN_DTOD * ratio)}" not in src:
-            raise RuntimeError(f"Failed to patch for noise ratio={ratio}")
+            raise RuntimeError(f"Failed to patch linearstepideal for noise ratio={ratio}")
         trials.append((tag, src))
     return trials
 
 
 def _build_gamma_trials():
+    """Build (tag, src) pairs for gamma ratio sweep (unused for T98 sweep)."""
     trials = []
-    base_src = apply_t267_base(SRC.read_text())
+    base_src = apply_t98_base(SRC.read_text())
     base_src = patch(base_src, "AB_DEVICE", '"linearstepideal"')
+
     for ratio in GAMMA_RATIOS:
         tag = f"gamma_r{ratio:.1f}".replace(".", "p")
-        src = base_src.replace(ORIG_LINEARSTEPIDEAL, _build_linearstep_block(ratio=0.0, gamma_ratio=ratio))
+        new_block = _build_linearstep_block(ratio=0.0, gamma_ratio=ratio)
+        src = base_src.replace(ORIG_LINEARSTEPIDEAL, new_block)
         if f"gamma_up={_nz(REF_GAMMA_UP * ratio)}" not in src:
             raise RuntimeError(f"Failed to patch gamma for ratio={ratio}")
         trials.append((tag, src))
     return trials
 
 
+def noise_sweep(parallel=False, num_gpus=4):
+    """Sweep noise params by ratio (gamma fixed at T98's 1.0)."""
+    trials = _build_noise_trials()
+
+    if parallel:
+        raw = run_parallel(trials, num_gpus=num_gpus)
+    else:
+        raw = [run_one(tag, src) for tag, src in trials]
+
+    for r in raw:
+        ratio = float(r["tag"].replace("noise_r", "").replace("p", "."))
+        r["noise_ratio"] = ratio
+        print(f"  noise_ratio={ratio}, F1={r['f1']}")
+    return raw
+
+
+def gamma_sweep(parallel=False, num_gpus=4):
+    """Sweep gamma_up/gamma_down only. All noise params = 0."""
+    trials = _build_gamma_trials()
+
+    if parallel:
+        raw = run_parallel(trials, num_gpus=num_gpus)
+    else:
+        raw = [run_one(tag, src) for tag, src in trials]
+
+    for r in raw:
+        ratio = float(r["tag"].replace("gamma_r", "").replace("p", "."))
+        r["gamma_ratio"] = ratio
+        r["gamma_up"] = REF_GAMMA_UP * ratio
+        r["gamma_down"] = REF_GAMMA_DOWN * ratio
+        print(f"  gamma_ratio={ratio}, gamma_up={REF_GAMMA_UP * ratio:.4f}, gamma_down={REF_GAMMA_DOWN * ratio:.4f}, F1={r['f1']}")
+    return raw
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Noise & Gamma sweep (T267 constantstepideal base)")
-    parser.add_argument("--noise-only", action="store_true")
-    parser.add_argument("--gamma-only", action="store_true")
-    parser.add_argument("--parallel", action="store_true")
-    parser.add_argument("--num-gpus", type=int, default=4)
+    parser = argparse.ArgumentParser(description="Noise ratio sweep (T98 base, noise=1 + AF=1 optimized)")
+    parser.add_argument("--noise-only", action="store_true", help="Run noise sweep only")
+    parser.add_argument("--gamma-only", action="store_true", help="Run gamma sweep only")
+    parser.add_argument("--parallel", action="store_true", help="Run trials in parallel across GPUs")
+    parser.add_argument("--num-gpus", type=int, default=4, help="Number of GPUs for parallel mode (default: 4)")
     args = parser.parse_args()
 
     do_noise = not args.gamma_only
-    do_gamma = not args.noise_only
+    do_gamma = False  # T98 sweep: noise only
 
     if args.parallel:
+        # Parallel mode: collect all trials and run them together
+        # Gamma first, then noise
         all_trials = []
         if do_gamma:
             all_trials.extend(_build_gamma_trials())
         if do_noise:
             all_trials.extend(_build_noise_trials())
-        print(f"\nParallel: {len(all_trials)} trials on {args.num_gpus} GPUs")
+
+        print(f"\nParallel mode: {len(all_trials)} trials on {args.num_gpus} GPUs")
+        print(f"Trials: {[t[0] for t in all_trials]}")
         raw = run_parallel(all_trials, num_gpus=args.num_gpus)
+
+        # Split results back into noise/gamma
         noise_results = []
         gamma_results = []
         for r in raw:
             if r["tag"].startswith("noise_"):
-                r["noise_ratio"] = float(r["tag"].replace("noise_r", "").replace("p", "."))
+                ratio = float(r["tag"].replace("noise_r", "").replace("p", "."))
+                r["noise_ratio"] = ratio
                 noise_results.append(r)
             elif r["tag"].startswith("gamma_"):
                 ratio = float(r["tag"].replace("gamma_r", "").replace("p", "."))
@@ -303,33 +413,28 @@ def main():
                 r["gamma_down"] = REF_GAMMA_DOWN * ratio
                 gamma_results.append(r)
     else:
+        # Sequential mode (original behavior) — gamma first
         noise_results = []
         gamma_results = []
-        if do_gamma:
-            gamma_results = [run_one(t, s) for t, s in _build_gamma_trials()]
-            for r in gamma_results:
-                ratio = float(r["tag"].replace("gamma_r", "").replace("p", "."))
-                r["gamma_ratio"] = ratio
-                r["gamma_up"] = REF_GAMMA_UP * ratio
-                r["gamma_down"] = REF_GAMMA_DOWN * ratio
-        if do_noise:
-            noise_results = [run_one(t, s) for t, s in _build_noise_trials()]
-            for r in noise_results:
-                r["noise_ratio"] = float(r["tag"].replace("noise_r", "").replace("p", "."))
 
-    # Find gamma=1.0 result (shared with noise_ratio=0)
-    gamma1_f1 = None
-    for r in gamma_results:
-        if abs(r["gamma_ratio"] - 1.0) < 1e-9:
-            gamma1_f1 = r["f1"]
-            break
+        if do_gamma:
+            print("\n" + "=" * 70)
+            print("GAMMA (ASYMMETRY) RATIO SWEEP")
+            print(f"Ratios: {GAMMA_RATIOS}")
+            print("=" * 70)
+            gamma_results = gamma_sweep()
+
+        if do_noise:
+            print("\n" + "=" * 70)
+            print("NOISE RATIO SWEEP")
+            print(f"Ratios: {NOISE_RATIOS}")
+            print("=" * 70)
+            noise_results = noise_sweep()
 
     all_results = {}
-    if noise_results or gamma1_f1 is not None:
-        # noise_ratio=0 = gamma=1.0 (reuse from gamma sweep)
-        data = []
-        if gamma1_f1 is not None:
-            data.append({"noise_ratio": 0.0, "f1": gamma1_f1, "source": "gamma_r1.0 (shared)"})
+    if noise_results:
+        # Inject T249 baseline at noise_ratio=0.0 (= constantstep6t1cgamma equivalent)
+        data = [{"noise_ratio": 0.0, "f1": T98_BASELINE_F1, "source": T98_BASELINE_TRIAL}]
         data += [{"noise_ratio": r["noise_ratio"], "f1": r["f1"]} for r in noise_results]
         data.sort(key=lambda x: x["noise_ratio"])
         all_results["noise_ratio_sweep"] = {
@@ -337,11 +442,11 @@ def main():
             "xlabel": "Noise Ratio",
             "ylabel": "F1",
             "data": data,
-            "source": {"base": f"T267 (rank=32, abml=10, F1={T267_BASELINE_F1})", "timestamp": RUN_STAMP}
+            "source": {"base": "T98 (rank=32, F1=82.24, noise=1+AF=1 optimized)", "timestamp": RUN_STAMP}
         }
     if gamma_results:
-        # gamma=0 = T267 baseline (constantstepideal, injected)
-        data = [{"gamma_ratio": 0.0, "f1": T267_BASELINE_F1, "source": T267_BASELINE_TRIAL}]
+        # Inject T249 baseline at gamma_ratio=1.0 (= constantstep6t1cgamma exact)
+        data = [{"gamma_ratio": 1.0, "f1": T98_BASELINE_F1, "source": T98_BASELINE_TRIAL}]
         data += [{"gamma_ratio": r["gamma_ratio"], "f1": r["f1"]} for r in gamma_results]
         data.sort(key=lambda x: x["gamma_ratio"])
         all_results["asymmetry_ratio_sweep"] = {
@@ -349,28 +454,27 @@ def main():
             "xlabel": "Gamma Ratio",
             "ylabel": "F1",
             "data": data,
-            "source": {"base": f"T267 (rank=32, abml=10, F1={T267_BASELINE_F1})", "timestamp": RUN_STAMP}
+            "source": {"base": "T98 (rank=32, F1=82.24, noise=1+AF=1 optimized)", "timestamp": RUN_STAMP}
         }
 
-    out_path = RESULTS_DIR / f"sweep_noise_gamma_t267_{RUN_STAMP}.json"
+    # Save results
+    out_path = RESULTS_DIR / f"sweep_noise_t98_{RUN_STAMP}.json"
     with open(out_path, "w") as f:
         json.dump(all_results, f, indent=2)
     print(f"\nResults saved: {out_path}")
 
+    # Print summary table
     print("\n" + "=" * 70)
     print("SUMMARY")
     print("=" * 70)
-    if gamma1_f1 is not None:
-        print(f"\nnoise_ratio=0 (= gamma=1.0): F1={gamma1_f1}")
     if noise_results:
-        print("\nNoise Ratio Sweep:")
+        print("\nNoise Ratio Sweep (all 6T1C params scaled):")
         for r in sorted(noise_results, key=lambda x: x["noise_ratio"]):
             print(f"  ratio={r['noise_ratio']:.1f}  F1={r['f1']}")
     if gamma_results:
-        print(f"\ngamma_ratio=0 (= T267 baseline): F1={T267_BASELINE_F1}")
-        print("\nGamma Ratio Sweep:")
+        print("\nGamma Ratio Sweep (gamma only, no noise):")
         for r in sorted(gamma_results, key=lambda x: x["gamma_ratio"]):
-            print(f"  ratio={r['gamma_ratio']:.1f}  F1={r['f1']}")
+            print(f"  ratio={r['gamma_ratio']:.1f}  gamma_up={r['gamma_up']:.4f}  gamma_down={r['gamma_down']:.4f}  F1={r['f1']}")
 
 
 if __name__ == "__main__":

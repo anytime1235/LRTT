@@ -330,20 +330,19 @@ This section presents additional diagnostics and ablations that complement the B
     \includegraphics[width=0.98\textwidth]{sup_fig6_2.png}                                                  
     \caption{\textbf{Hyperparameter and device ablations for LR-TT                                          
     fine-tuning of BERT-base on SQuAD v1.1.}                                                                
-    (a)dev-F1 versus weight precision at rank~$r\!=\!32$                                      
-    (per-bit Optuna-optimized); the bottom axis sweeps the auxiliary                                        
-    ($A$/$B$) tile bit width ($F_1\!=\!78.00/75.88/83.21/84.06/83.63$                                       
-    for $6/8/10/12/14$~bits) and the top axis sweeps the core ($C$)                                         
-    tile bit width ($F_1\!=\!80.33/80.78/83.31/83.47/84.06$ for                                             
-    $6/7/8/9/10$~bits), indicating saturation at $\geq\!12$~bits ($A$/$B$)                                  
-    and $\geq\!8$~bits ($C$).                                                                               
-   (b)rank sweep (per-rank optimized); F1 rises                                         
-    monotonically from $82.02$ at $r\!=\!1$ (0.40\% of full-FT                                              
-    parameters) to $84.49$ at $r\!=\!64$ (16.78\%) and saturates beyond                                     
-    $r\!=\!32$.     
+    (a)dev-F1 versus weight precision at rank~$r\!=\!32$
+    (per-bit Optuna-optimized); the bottom axis sweeps the auxiliary
+    ($A$/$B$) tile bit width ($F_1\!=\!78.0/79.5/83.2/84.1/84.1$
+    for $6/8/10/12/14$~bits) and the top axis sweeps the core ($C$)
+    tile bit width ($F_1\!=\!80.3/80.8/83.3/83.5/84.1$ for
+    $6/7/8/9/10$~bits).
+   (b)rank sweep (per-rank optimized); F1 rises
+    monotonically from $82.0$ at $r\!=\!1$ (0.40\% of full-FT
+    parameters) to $84.5$ at $r\!=\!64$ (16.78\%) and saturates beyond
+    $r\!=\!32$.
    (c)LoRA target selection; adapting only the
-    attention projections (QKVO, $F_1\!=\!84.61$) outperforms FFN-only                                      
-    ($82.04$) and ALL-modules ($83.55$).     
+    attention projections (QKVO, $F_1\!=\!84.6$) outperforms FFN-only
+    ($82.5$) and ALL-modules ($83.6$).
 }                                                                     
     \label{sub_fig6_2}                                                                                      
   \end{figure}                                                                                              
@@ -391,7 +390,7 @@ This section presents additional diagnostics and ablations that complement the B
     $\mathrm{erank}(C_{\mathrm{init}})$, consistent with the low-rank
     structure of the injected perturbation. The dev-F1 scores                                               
     corresponding to these trajectories are                 
-    $82.46 / 82.85 / 83.31 / 83.98 / 84.31 / 84.79 / 84.60$ for                                             
+    $82.5 / 82.9 / 83.3 / 84.0 / 84.3 / 84.8 / 84.6$ for
     $r=1,2,4,8,16,32,64$, showing that accuracy gains saturate beyond                                       
     $r=32$ even though the update rank continues to rise.}                                                  
     \label{sub_fig6_4}                                                                                      
@@ -420,7 +419,7 @@ This section presents additional diagnostics and ablations that complement the B
     $\mathrm{erank}(C_{\mathrm{init}})$, consistent with the low-rank
     structure of the injected perturbation. The dev-F1 scores                                               
     corresponding to these trajectories are                 
-    $82.46 / 82.85 / 83.31 / 83.98 / 84.31 / 84.79 / 84.60$ for                                             
+    $82.5 / 82.9 / 83.3 / 84.0 / 84.3 / 84.8 / 84.6$ for
     $r=1,2,4,8,16,32,64$, showing that accuracy gains saturate beyond                                       
     $r=32$ even though the update rank continues to rise.}                                                  
     \label{sub_fig6_5}                                                                                      
@@ -526,7 +525,7 @@ E_{\mathrm{other}}=O_{\mathrm{other}}\varepsilon_{\mathrm{dig}}.
 \end{equation}
 This decomposition keeps the core-array, auxiliary-array, and digital contributions explicit in both the latency and energy estimates.
 
-\begin{table*}[t]
+\begin{table}[!htbp]
 \centering
 \caption{\textbf{Component-level latency and energy decomposition at the nominal operating point.}
 All values are reported per token for the all-layer mapping at \(S=384\), \(r=32\), and \(BL=31\). The table lists the counting expression, operation count, latency, energy, and modelling basis for each component.}
@@ -595,7 +594,8 @@ The digital terms use \(P_{\mathrm{dig}}\) for latency conversion and \(\varepsi
 The auxiliary-update energy uses the nominal update-to-MVM energy ratio.
 The transfer contribution is below \(10^{-3}\) in the displayed units after amortization.
 \end{minipage}
-\end{table*}
+\end{table}
+\FloatBarrier
 
 \noindent\textbf{Component-level decomposition.}
 Supplementary Table~\ref{tab:supp_component_decomposition} gives the numerical decomposition for the nominal operating point shown in Supplementary Figure~\ref{fig:supp_system_dataflow}(b,c). The table separates the total latency and energy into core-array MVM, auxiliary projection read, auxiliary pulse update, auxiliary-to-core transfer, digital attention, and remaining digital operations. Each row lists the counting expression, per-token operation count, latency, energy, and modelling basis. The analog components are tied to the calibrated AIMC tile and HERMES-class core assumptions \cite{klein2023alpine,khaddam2022hermescore}, the auxiliary update uses pulsed-update primitives \cite{gokmen2016rpu,rasch2024fastrobust}, and the digital components use transformer operation counts and first-order digital reference parameters \cite{vaswani2017attention,horowitz2014computing}. This table provides a component-by-component check of the decompositions in Eqs.~\eqref{eq:supp_total_latency} and \eqref{eq:supp_total_energy}.
@@ -835,6 +835,7 @@ Pulsed-update parameter &
 \bottomrule
 \end{tabularx}
 \end{table}
+\FloatBarrier
 
 \noindent\textbf{MNIST model and training setting.}
 Table~\ref{tab:S8_mnist_training} lists the task, network architecture, mapped-layer partition, LR-TT configuration, and training setting used for the MNIST scratch-training experiments. The table is limited to model and training hyperparameters; reset/retention analysis is provided in Supplementary Section~\ref{sec:S4}.
@@ -873,6 +874,7 @@ Analog SGD with negative log-likelihood loss, batch size 64, 30 epochs, learning
 \bottomrule
 \end{tabularx}
 \end{table}
+\FloatBarrier
 
 \noindent\textbf{BERT-base SQuAD model and training setting.}
 Table~\ref{tab:S8_bert_training} lists the BERT-base SQuAD task setup using the same component structure as Table~\ref{tab:S8_mnist_training}. This presentation separates model/training hyperparameters from the shared simulator/device settings in Table~\ref{tab:S8_hardware_simulator} and keeps the MNIST and transformer configurations directly comparable.
@@ -911,6 +913,7 @@ AnalogAdam optimizer with batch size 48, 5 epochs, linear learning-rate warmup o
 \bottomrule
 \end{tabularx}
 \end{table}
+\FloatBarrier
 
 \noindent\textbf{Per-figure experimental conditions for BERT-base fine-tuning.}
 Table~\ref{tab:S8_bert_perfig} lists the varying parameters for each data point in the main-text figures. All conditions share the common settings in Tables~\ref{tab:S8_hardware_simulator} and~\ref{tab:S8_bert_training} unless otherwise noted. The AF ratio\(=\)0 condition uses the constantstepideal device with 10-bit multi-level updates (\(|w|_{\max}^{A,B}=0.0624\), \(\Delta w_{\min}=1.21\times10^{-4}\)), and the AF ratio\(=\)1 condition uses the 6T1C-gamma device with 12-bit resolution (\(|w|_{\max}^{A,B}=1.0\), \(\Delta w_{\min}=4.88\times10^{-4}\)).
@@ -936,15 +939,15 @@ Table~\ref{tab:S8_bert_perfig} lists the varying parameters for each data point 
 \endlastfoot
 
 \multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~5(f): Auxiliary weight dynamics}} \\
-5(f) & LR-TT & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 85.0 \\
+5(f) & LR-TT & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 84.98 \\
 \midrule
 
 \multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~5(g): Core-tile bit sweep (fixed cond.)}} \\
-5(g) & LR-TT C 6b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 6 & .062 & 0 & 0 & 82.7 \\
-5(g) & LR-TT C 7b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 7 & .062 & 0 & 0 & 83.4 \\
-5(g) & LR-TT C 8b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 8 & .062 & 0 & 0 & 84.8 \\
-5(g) & LR-TT C 9b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 9 & .062 & 0 & 0 & 84.8 \\
-5(g) & LR-TT C 10b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 85.0 \\
+5(g) & LR-TT C 6b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 6 & .062 & 0 & 0 & 82.67 \\
+5(g) & LR-TT C 7b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 7 & .062 & 0 & 0 & 83.43 \\
+5(g) & LR-TT C 8b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 8 & .062 & 0 & 0 & 84.76 \\
+5(g) & LR-TT C 9b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 9 & .062 & 0 & 0 & 84.81 \\
+5(g) & LR-TT C 10b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 84.98 \\
 5(g) & Single RPU 6b & QKVO & --- & --- & --- & --- & --- & --- & --- & 6 & --- & 0 & 0 & 11.6 \\
 5(g) & Single RPU 7b & QKVO & --- & --- & --- & --- & --- & --- & --- & 7 & --- & 0 & 0 & 17.4 \\
 5(g) & Single RPU 8b & QKVO & --- & --- & --- & --- & --- & --- & --- & 8 & --- & 0 & 0 & 58.2 \\
@@ -958,11 +961,11 @@ Table~\ref{tab:S8_bert_perfig} lists the varying parameters for each data point 
 \midrule
 
 \multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~5(h): Aux-tile bit sweep (per-bit opt.)}} \\
-5(h) & LR-TT AB 6b & QKVO & RW & 32 & 1 & 3.28e-3 & 3.02 & 0.25 & 6 & 10 & .062 & 0 & 0 & 83.6 \\
-5(h) & LR-TT AB 8b & QKVO & RW & 32 & 2 & 3.28e-3 & 1.01 & 0.25 & 8 & 10 & .062 & 0 & 0 & 85.0 \\
-5(h) & LR-TT AB 10b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 85.0 \\
-5(h) & LR-TT AB 12b & QKVO & RW & 32 & 2 & 2.50e-3 & 0.12 & 0.25 & 12 & 10 & .062 & 0 & 0 & 82.2 \\
-5(h) & LR-TT AB 14b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.02 & 0.35 & 14 & 10 & .062 & 0 & 0 & 78.7 \\
+5(h) & LR-TT AB 6b & QKVO & RW & 32 & 1 & 3.28e-3 & 3.02 & 0.25 & 6 & 10 & .062 & 0 & 0 & 83.63 \\
+5(h) & LR-TT AB 8b & QKVO & RW & 32 & 2 & 3.28e-3 & 1.01 & 0.25 & 8 & 10 & .062 & 0 & 0 & 84.98 \\
+5(h) & LR-TT AB 10b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 84.98 \\
+5(h) & LR-TT AB 12b & QKVO & RW & 32 & 2 & 2.50e-3 & 0.12 & 0.25 & 12 & 10 & .062 & 0 & 0 & 82.16 \\
+5(h) & LR-TT AB 14b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.02 & 0.35 & 14 & 10 & .062 & 0 & 0 & 78.72 \\
 5(h) & TT AB 6b & QKVO & --- & --- & --- & --- & --- & --- & 6 & 10 & --- & --- & --- & 83.4 \\
 5(h) & TT AB 8b & QKVO & --- & --- & --- & --- & --- & --- & 8 & 10 & --- & --- & --- & 86.2 \\
 5(h) & TT AB 10b & QKVO & --- & --- & --- & --- & --- & --- & 10 & 10 & --- & --- & --- & 86.9 \\
@@ -971,109 +974,122 @@ Table~\ref{tab:S8_bert_perfig} lists the varying parameters for each data point 
 \midrule
 
 \multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~5(i): Cosine similarity}} \\
-5(i) & LR-TT & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 85.0 \\
+5(i) & LR-TT & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 84.98 \\
 \midrule
 
 \multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~6(a): Mapped-layer comparison}} \\
-6(a) & LR-TT & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 85.0 \\
-6(a) & LR-TT & FFN & RW & 32 & 2 & 3.30e-3 & 0.20 & 0.20 & 10 & 10 & .062 & 0 & 0 & 84.1 \\
-6(a) & LR-TT & ALL & RW & 32 & 2 & 2.00e-3 & 0.35 & 0.15 & 10 & 10 & .062 & 0 & 0 & 85.2 \\
+6(a) & LR-TT & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 84.98 \\
+6(a) & LR-TT & FFN & RW & 32 & 2 & 3.30e-3 & 0.20 & 0.20 & 10 & 10 & .062 & 0 & 0 & 84.12 \\
+6(a) & LR-TT & ALL & RW & 32 & 2 & 2.00e-3 & 0.35 & 0.15 & 10 & 10 & .062 & 0 & 0 & 85.22 \\
 6(a) & TT & QKVO & --- & --- & --- & --- & --- & --- & --- & --- & --- & --- & --- & 86.9 \\
 6(a) & TT & FFN & --- & --- & --- & --- & --- & --- & --- & --- & --- & --- & --- & 85.7 \\
 6(a) & TT & ALL & --- & --- & --- & --- & --- & --- & --- & --- & --- & --- & --- & 87.0 \\
-6(a) & Dig.\ LoRA & QKVO & --- & 32 & --- & 3.05e-4 & --- & --- & --- & --- & --- & --- & --- & 88.1 \\
-6(a) & Dig.\ LoRA & FFN & --- & 32 & --- & 4.20e-4 & --- & --- & --- & --- & --- & --- & --- & 87.2 \\
-6(a) & Dig.\ LoRA & ALL & --- & 32 & --- & 4.20e-4 & --- & --- & --- & --- & --- & --- & --- & 88.3 \\
-6(a) & Dig.\ FT & QKVO & --- & --- & --- & 1.51e-4 & --- & --- & --- & --- & --- & --- & --- & 88.1 \\
-6(a) & Dig.\ FT & FFN & --- & --- & --- & 8.50e-5 & --- & --- & --- & --- & --- & --- & --- & 87.1 \\
-6(a) & Dig.\ FT & ALL & --- & --- & --- & 5.09e-5 & --- & --- & --- & --- & --- & --- & --- & 87.6 \\
+6(a) & Dig.\ LoRA & QKVO & --- & 32 & --- & 3.05e-4 & --- & --- & --- & --- & --- & --- & --- & 88.12 \\
+6(a) & Dig.\ LoRA & FFN & --- & 32 & --- & 4.20e-4 & --- & --- & --- & --- & --- & --- & --- & 87.21 \\
+6(a) & Dig.\ LoRA & ALL & --- & 32 & --- & 4.20e-4 & --- & --- & --- & --- & --- & --- & --- & 88.26 \\
+6(a) & Dig.\ FT & QKVO & --- & --- & --- & 1.51e-4 & --- & --- & --- & --- & --- & --- & --- & 88.07 \\
+6(a) & Dig.\ FT & FFN & --- & --- & --- & 8.50e-5 & --- & --- & --- & --- & --- & --- & --- & 87.07 \\
+6(a) & Dig.\ FT & ALL & --- & --- & --- & 5.09e-5 & --- & --- & --- & --- & --- & --- & --- & 87.61 \\
 \midrule
 
 \multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~6(b): Rank sweep (per-rank opt.)}} \\
-6(b) & LR-TT $r$=1 & QKVO & RW & 1 & 2 & 2.00e-3 & 0.30 & 1.00 & 10 & 10 & .062 & 0 & 0 & 82.8 \\
-6(b) & LR-TT $r$=2 & QKVO & RW & 2 & 1 & 2.00e-3 & 0.50 & 1.00 & 10 & 10 & .062 & 0 & 0 & 82.9 \\
-6(b) & LR-TT $r$=4 & QKVO & RW & 4 & 2 & 2.00e-3 & 0.30 & 0.50 & 10 & 10 & .062 & 0 & 0 & 83.8 \\
-6(b) & LR-TT $r$=8 & QKVO & RW & 8 & 1 & 3.30e-3 & 0.30 & 0.35 & 10 & 10 & .062 & 0 & 0 & 84.2 \\
-6(b) & LR-TT $r$=16 & QKVO & RW & 16 & 2 & 3.30e-3 & 0.30 & 0.35 & 10 & 10 & .062 & 0 & 0 & 84.7 \\
-6(b) & LR-TT $r$=32 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 85.0 \\
-6(b) & LR-TT $r$=64 & QKVO & RW & 64 & 1 & 3.80e-3 & 0.40 & 0.095 & 10 & 10 & .062 & 0 & 0 & 84.9 \\
-6(b) & LR-TT $r$=1 & QKVO & Id & 1 & 2 & 2.00e-3 & 0.30 & 1.00 & 10 & 10 & .062 & 0 & 0 & 82.4 \\
-6(b) & LR-TT $r$=2 & QKVO & Id & 2 & 1 & 2.00e-3 & 0.50 & 1.00 & 10 & 10 & .062 & 0 & 0 & 83.2 \\
-6(b) & LR-TT $r$=4 & QKVO & Id & 4 & 2 & 2.00e-3 & 0.30 & 0.50 & 10 & 10 & .062 & 0 & 0 & 83.5 \\
-6(b) & LR-TT $r$=8 & QKVO & Id & 8 & 1 & 3.30e-3 & 0.30 & 0.35 & 10 & 10 & .062 & 0 & 0 & 83.9 \\
-6(b) & LR-TT $r$=16 & QKVO & Id & 16 & 2 & 3.30e-3 & 0.30 & 0.35 & 10 & 10 & .062 & 0 & 0 & 85.0 \\
-6(b) & LR-TT $r$=32 & QKVO & Id & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 84.8 \\
-6(b) & LR-TT $r$=64 & QKVO & Id & 64 & 1 & 3.80e-3 & 0.40 & 0.095 & 10 & 10 & .062 & 0 & 0 & 84.6 \\
+6(b) & LR-TT $r$=1 & QKVO & RW & 1 & 2 & 2.00e-3 & 0.30 & 1.00 & 10 & 10 & .062 & 0 & 0 & 82.76 \\
+6(b) & LR-TT $r$=2 & QKVO & RW & 2 & 1 & 2.00e-3 & 0.50 & 1.00 & 10 & 10 & .062 & 0 & 0 & 82.92 \\
+6(b) & LR-TT $r$=4 & QKVO & RW & 4 & 2 & 2.00e-3 & 0.30 & 0.50 & 10 & 10 & .062 & 0 & 0 & 83.81 \\
+6(b) & LR-TT $r$=8 & QKVO & RW & 8 & 1 & 3.30e-3 & 0.30 & 0.35 & 10 & 10 & .062 & 0 & 0 & 84.19 \\
+6(b) & LR-TT $r$=16 & QKVO & RW & 16 & 2 & 3.30e-3 & 0.30 & 0.35 & 10 & 10 & .062 & 0 & 0 & 84.70 \\
+6(b) & LR-TT $r$=32 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 84.98 \\
+6(b) & LR-TT $r$=64 & QKVO & RW & 64 & 1 & 3.80e-3 & 0.40 & 0.095 & 10 & 10 & .062 & 0 & 0 & 84.94 \\
+6(b) & LR-TT $r$=1 & QKVO & Id & 1 & 2 & 2.00e-3 & 0.30 & 1.00 & 10 & 10 & .062 & 0 & 0 & 82.39 \\
+6(b) & LR-TT $r$=2 & QKVO & Id & 2 & 1 & 2.00e-3 & 0.50 & 1.00 & 10 & 10 & .062 & 0 & 0 & 83.23 \\
+6(b) & LR-TT $r$=4 & QKVO & Id & 4 & 2 & 2.00e-3 & 0.30 & 0.50 & 10 & 10 & .062 & 0 & 0 & 83.45 \\
+6(b) & LR-TT $r$=8 & QKVO & Id & 8 & 1 & 3.30e-3 & 0.30 & 0.35 & 10 & 10 & .062 & 0 & 0 & 83.90 \\
+6(b) & LR-TT $r$=16 & QKVO & Id & 16 & 2 & 3.30e-3 & 0.30 & 0.35 & 10 & 10 & .062 & 0 & 0 & 84.97 \\
+6(b) & LR-TT $r$=32 & QKVO & Id & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 84.79 \\
+6(b) & LR-TT $r$=64 & QKVO & Id & 64 & 1 & 3.80e-3 & 0.40 & 0.095 & 10 & 10 & .062 & 0 & 0 & 84.56 \\
 \midrule
 
-\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~6(c) left: Noise ratio sweep (AF=1)}} \\
-6(c) & LR-TT nr=0 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0 & 84.1 \\
-6(c) & LR-TT nr=0.1 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0.1 & 83.8 \\
-6(c) & LR-TT nr=0.3 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0.3 & 84.2 \\
-6(c) & LR-TT nr=0.5 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0.5 & 82.9 \\
-6(c) & LR-TT nr=0.7 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0.7 & 80.7 \\
-6(c) & LR-TT nr=1.0 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 1.0 & 78.1 \\
+\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~6(c) left: Noise ratio sweep (AF=1, opt. at noise ratio = 0; T249 base)}} \\
+6(c) & LR-TT (T249) nr=0 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0 & 84.06 \\
+6(c) & LR-TT (T249) nr=0.1 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0.1 & 83.76 \\
+6(c) & LR-TT (T249) nr=0.3 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0.3 & 84.20 \\
+6(c) & LR-TT (T249) nr=0.5 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0.5 & 82.90 \\
+6(c) & LR-TT (T249) nr=0.7 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0.7 & 80.74 \\
+6(c) & LR-TT (T249) nr=1.0 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 1.0 & 78.12 \\
+6(c) & LR-TT (T249) nr=2.0 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 2.0 & 7.27 \\
+6(c) & LR-TT (T249) nr=3.0 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 3.0 & 7.27 \\
+6(c) & LR-TT (T249) nr=5.0 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 5.0 & 7.27 \\
+6(c) & LR-TT (T249) nr=10.0 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 10.0 & 7.27 \\
+\midrule
+
+\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~6(c) left: Noise ratio sweep (AF=1, opt. at noise ratio = 1; T98 base)}} \\
+6(c) & LR-TT (T98) nr=0 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 0 & 82.13 \\
+6(c) & LR-TT (T98) nr=0.1 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 0.1 & 81.93 \\
+6(c) & LR-TT (T98) nr=0.3 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 0.3 & 81.87 \\
+6(c) & LR-TT (T98) nr=0.5 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 0.5 & 82.26 \\
+6(c) & LR-TT (T98) nr=0.7 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 0.7 & 82.25 \\
+6(c) & LR-TT (T98) nr=1.0 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 1.0 & 82.24 \\
+6(c) & LR-TT (T98) nr=2.0 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 2.0 & 76.82 \\
+6(c) & LR-TT (T98) nr=3.0 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 3.0 & 73.44 \\
+6(c) & LR-TT (T98) nr=5.0 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 5.0 & 9.50 \\
+6(c) & LR-TT (T98) nr=10.0 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 10.0 & 7.27 \\
 \midrule
 
 \multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~6(c) right: AF ratio sweep}} \\
-6(c) & AF=0 $\gamma$=0 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 85.0 \\
-6(c) & AF=0 $\gamma$=0.5 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0.5 & 0 & 80.0 \\
-6(c) & AF=0 $\gamma$=1 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 1 & 0 & 78.9 \\
-6(c) & AF=0 $\gamma$=2 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 2 & 0 & 78.4 \\
-6(c) & AF=0 $\gamma$=3 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 3 & 0 & 78.5 \\
-6(c) & AF=0 $\gamma$=5 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 5 & 0 & 78.5 \\
-6(c) & AF=0 $\gamma$=10 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 10 & 0 & 78.4 \\
-6(c) & AF=1 $\gamma$=0 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 0 & 0 & 7.3 \\
-6(c) & AF=1 $\gamma$=0.5 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 0.5 & 0 & 7.3 \\
-6(c) & AF=1 $\gamma$=1 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0 & 84.1 \\
-6(c) & AF=1 $\gamma$=2 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 2 & 0 & 82.1 \\
-6(c) & AF=1 $\gamma$=3 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 3 & 0 & 81.4 \\
-6(c) & AF=1 $\gamma$=5 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 5 & 0 & 80.3 \\
-6(c) & AF=1 $\gamma$=10 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 10 & 0 & 79.4 \\
+6(c) & AF=0 $\gamma$=0 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 84.98 \\
+6(c) & AF=0 $\gamma$=0.5 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0.5 & 0 & 80.03 \\
+6(c) & AF=0 $\gamma$=1 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 1 & 0 & 78.91 \\
+6(c) & AF=0 $\gamma$=2 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 2 & 0 & 78.44 \\
+6(c) & AF=0 $\gamma$=3 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 3 & 0 & 78.51 \\
+6(c) & AF=0 $\gamma$=5 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 5 & 0 & 78.48 \\
+6(c) & AF=0 $\gamma$=10 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 10 & 0 & 78.36 \\
+6(c) & AF=1 $\gamma$=0 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 0 & 0 & 7.27 \\
+6(c) & AF=1 $\gamma$=0.5 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 0.5 & 0 & 7.27 \\
+6(c) & AF=1 $\gamma$=1 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0 & 84.06 \\
+6(c) & AF=1 $\gamma$=2 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 2 & 0 & 82.11 \\
+6(c) & AF=1 $\gamma$=3 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 3 & 0 & 81.43 \\
+6(c) & AF=1 $\gamma$=5 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 5 & 0 & 80.26 \\
+6(c) & AF=1 $\gamma$=10 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 10 & 0 & 79.37 \\
 \midrule
 
 \multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~6(d): Effective rank (per-rank opt.)}} \\
-6(d) & LR-TT $r$=1 & QKVO & RW & 1 & 2 & 2.00e-3 & 0.30 & 1.00 & 10 & 10 & .062 & 0 & 0 & 82.5 \\
-6(d) & LR-TT $r$=4 & QKVO & RW & 4 & 2 & 2.00e-3 & 0.30 & 0.50 & 10 & 10 & .062 & 0 & 0 & 83.3 \\
-6(d) & LR-TT $r$=16 & QKVO & RW & 16 & 2 & 3.30e-3 & 0.30 & 0.35 & 10 & 10 & .062 & 0 & 0 & 84.3 \\
-6(d) & LR-TT $r$=64 & QKVO & RW & 64 & 1 & 3.80e-3 & 0.40 & 0.095 & 10 & 10 & .062 & 0 & 0 & 84.6 \\
+6(d) & LR-TT $r$=1 & QKVO & RW & 1 & 2 & 2.00e-3 & 0.30 & 1.00 & 10 & 10 & .062 & 0 & 0 & 82.46 \\
+6(d) & LR-TT $r$=4 & QKVO & RW & 4 & 2 & 2.00e-3 & 0.30 & 0.50 & 10 & 10 & .062 & 0 & 0 & 83.31 \\
+6(d) & LR-TT $r$=16 & QKVO & RW & 16 & 2 & 3.30e-3 & 0.30 & 0.35 & 10 & 10 & .062 & 0 & 0 & 84.31 \\
+6(d) & LR-TT $r$=64 & QKVO & RW & 64 & 1 & 3.80e-3 & 0.40 & 0.095 & 10 & 10 & .062 & 0 & 0 & 84.60 \\
 \midrule
 
-\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~S6: Cell weight dynamics}} \\
-S6 & LR-TT & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 85.0 \\
+\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~S7: Cell weight dynamics}} \\
+S7 & LR-TT & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 84.98 \\
 \midrule
 
-\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~S7(a): AF=1 bit sweeps (per-bit opt.)}} \\
-S7a & LR-TT AB 6b & QKVO & RW & 32 & 50 & 3.80e-3 & 3e-3 & 0.095 & 6 & 10 & 1.0 & 1 & 0 & 78.0 \\
-S7a & LR-TT AB 8b & QKVO & RW & 32 & 5 & 3.80e-3 & 0.05 & 0.095 & 8 & 10 & 1.0 & 1 & 0 & 79.5 \\
-S7a & LR-TT AB 10b & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 10 & 10 & 1.0 & 1 & 0 & 83.2 \\
-S7a & LR-TT AB 12b & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0 & 84.1 \\
-S7a & LR-TT AB 14b & QKVO & RW & 32 & 1 & 3.30e-3 & 0.15 & 0.25 & 14 & 10 & 1.0 & 1 & 0 & 84.1 \\
-S7a & LR-TT C 6b & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 6 & 1.0 & 1 & 0 & 80.3 \\
-S7a & LR-TT C 7b & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 7 & 1.0 & 1 & 0 & 80.8 \\
-S7a & LR-TT C 8b & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 8 & 1.0 & 1 & 0 & 83.3 \\
-S7a & LR-TT C 9b & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 9 & 1.0 & 1 & 0 & 83.5 \\
-S7a & LR-TT C 10b & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0 & 84.1 \\
+\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~S8(a): AF=1 bit sweeps (per-bit opt.)}} \\
+S8a & LR-TT AB 6b & QKVO & RW & 32 & 50 & 3.80e-3 & 3e-3 & 0.095 & 6 & 10 & 1.0 & 1 & 0 & 78.00 \\
+S8a & LR-TT AB 8b & QKVO & RW & 32 & 5 & 3.80e-3 & 0.05 & 0.095 & 8 & 10 & 1.0 & 1 & 0 & 79.50 \\
+S8a & LR-TT AB 10b & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 10 & 10 & 1.0 & 1 & 0 & 83.21 \\
+S8a & LR-TT AB 12b & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0 & 84.06 \\
+S8a & LR-TT AB 14b & QKVO & RW & 32 & 1 & 3.30e-3 & 0.15 & 0.25 & 14 & 10 & 1.0 & 1 & 0 & 84.11 \\
+S8a & LR-TT C 6b & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 6 & 1.0 & 1 & 0 & 80.33 \\
+S8a & LR-TT C 7b & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 7 & 1.0 & 1 & 0 & 80.78 \\
+S8a & LR-TT C 8b & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 8 & 1.0 & 1 & 0 & 83.31 \\
+S8a & LR-TT C 9b & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 9 & 1.0 & 1 & 0 & 83.47 \\
+S8a & LR-TT C 10b & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0 & 84.06 \\
 \midrule
 
-\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~S7(b): AF=1 target comparison}} \\
-S7b & LR-TT & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0 & 84.6 \\
-S7b & LR-TT & FFN & RW & 32 & --- & --- & --- & --- & 12 & 10 & 1.0 & 1 & 0 & 82.0 \\
-S7b & LR-TT & ALL & RW & 32 & --- & --- & --- & --- & 12 & 10 & 1.0 & 1 & 0 & 83.6 \\
+\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~S8(b): AF=1 rank sweep (per-rank opt.)}} \\
+S8b & LR-TT $r$=1 & QKVO & RW & 1 & 1 & 2.00e-3 & 0.30 & 1.00 & 12 & 10 & 1.0 & 1 & 0 & 82.02 \\
+S8b & LR-TT $r$=2 & QKVO & RW & 2 & 1 & 2.00e-3 & 0.30 & 1.00 & 12 & 10 & 1.0 & 1 & 0 & 81.97 \\
+S8b & LR-TT $r$=4 & QKVO & RW & 4 & 1 & 3.30e-3 & 0.30 & 0.25 & 12 & 10 & 1.0 & 1 & 0 & 82.42 \\
+S8b & LR-TT $r$=8 & QKVO & RW & 8 & 1 & 3.30e-3 & 0.30 & 0.35 & 12 & 10 & 1.0 & 1 & 0 & 82.76 \\
+S8b & LR-TT $r$=16 & QKVO & RW & 16 & 1 & 4.00e-3 & 0.30 & 0.50 & 12 & 10 & 1.0 & 1 & 0 & 83.42 \\
+S8b & LR-TT $r$=32 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0 & 84.06 \\
+S8b & LR-TT $r$=64 & QKVO & RW & 64 & 1 & 3.80e-3 & 0.40 & 0.095 & 12 & 10 & 1.0 & 1 & 0 & 84.49 \\
 \midrule
 
-\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~S7(c): AF=1 rank sweep (per-rank opt.)}} \\
-S7c & LR-TT $r$=1 & QKVO & RW & 1 & 1 & 2.00e-3 & 0.30 & 1.00 & 12 & 10 & 1.0 & 1 & 0 & 82.0 \\
-S7c & LR-TT $r$=2 & QKVO & RW & 2 & 1 & 2.00e-3 & 0.30 & 1.00 & 12 & 10 & 1.0 & 1 & 0 & 82.0 \\
-S7c & LR-TT $r$=4 & QKVO & RW & 4 & 1 & 3.30e-3 & 0.30 & 0.25 & 12 & 10 & 1.0 & 1 & 0 & 82.4 \\
-S7c & LR-TT $r$=8 & QKVO & RW & 8 & 1 & 3.30e-3 & 0.30 & 0.35 & 12 & 10 & 1.0 & 1 & 0 & 82.8 \\
-S7c & LR-TT $r$=16 & QKVO & RW & 16 & 1 & 4.00e-3 & 0.30 & 0.50 & 12 & 10 & 1.0 & 1 & 0 & 83.4 \\
-S7c & LR-TT $r$=32 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0 & 84.1 \\
-S7c & LR-TT $r$=64 & QKVO & RW & 64 & 1 & 3.80e-3 & 0.40 & 0.095 & 12 & 10 & 1.0 & 1 & 0 & 84.5 \\
-\midrule
-
-\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~S8: Cosine similarity (L0 query)}} \\
-S8 & LR-TT & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 85.0 \\
+\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~S8(c): AF=1 target comparison}} \\
+S8c & LR-TT & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0 & 84.61 \\
+S8c & LR-TT & FFN & RW & 32 & 29 & 6.70e-3 & 0.15 & 1.50 & 12 & 10 & 1.0 & 1 & 0 & 82.51 \\
+S8c & LR-TT & ALL & RW & 32 & 2 & 3.30e-3 & 0.30 & 0.30 & 12 & 10 & 1.0 & 1 & 0 & 83.55 \\
 \midrule
 
 \multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~S9: $\gamma \times |w|_{\max}^{A,B}$ 2D sweep}} \\
@@ -1081,8 +1097,18 @@ S9a & AF=0 opt & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & var & 0-
 S9b & AF=1 opt & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & var & 0--5 & 0 & see fig \\
 \midrule
 
-\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~S10: Effective rank full 2$\times$2}} \\
-S10 & \multicolumn{14}{l}{Same conditions as Fig.~6(d); includes first tile and $\erank(C)$.} \\
+\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~S10: Cosine similarity (L0 query)}} \\
+S10 & LR-TT & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 84.98 \\
+\midrule
+
+\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~S11: Effective rank full 2$\times$2 (per-rank opt.)}} \\
+S11 & LR-TT $r$=1 & QKVO & RW & 1 & 2 & 2.00e-3 & 0.30 & 1.00 & 10 & 10 & .062 & 0 & 0 & 82.46 \\
+S11 & LR-TT $r$=2 & QKVO & RW & 2 & 1 & 2.00e-3 & 0.50 & 1.00 & 10 & 10 & .062 & 0 & 0 & 82.85 \\
+S11 & LR-TT $r$=4 & QKVO & RW & 4 & 2 & 2.00e-3 & 0.30 & 0.50 & 10 & 10 & .062 & 0 & 0 & 83.31 \\
+S11 & LR-TT $r$=8 & QKVO & RW & 8 & 1 & 3.30e-3 & 0.30 & 0.35 & 10 & 10 & .062 & 0 & 0 & 83.98 \\
+S11 & LR-TT $r$=16 & QKVO & RW & 16 & 2 & 3.30e-3 & 0.30 & 0.35 & 10 & 10 & .062 & 0 & 0 & 84.31 \\
+S11 & LR-TT $r$=32 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 84.79 \\
+S11 & LR-TT $r$=64 & QKVO & RW & 64 & 1 & 3.80e-3 & 0.40 & 0.095 & 10 & 10 & .062 & 0 & 0 & 84.60 \\
 
 \end{longtable}
 }

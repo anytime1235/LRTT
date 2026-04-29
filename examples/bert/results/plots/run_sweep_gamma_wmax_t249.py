@@ -134,7 +134,7 @@ def _build_linearstep_block(gamma_ratio: float):
     w_max comes from caller (controlled via AB_MULTILEVEL)."""
     gamma_up = _nz(REF_GAMMA_UP * gamma_ratio)
     gamma_down = _nz(REF_GAMMA_DOWN * gamma_ratio)
-    return f"""    if AB_DEVICE == "linearstepideal":
+    return f"""    if name == "linearstepideal":
         return LinearStepDevice(
             dw_min=dw_min,
             w_max=w_max, w_min=w_min,
@@ -148,7 +148,7 @@ def _build_linearstep_block(gamma_ratio: float):
         )"""
 
 
-ORIG_LINEARSTEPIDEAL = """    if AB_DEVICE == "linearstepideal":
+ORIG_LINEARSTEPIDEAL = """    if name == "linearstepideal":
         return LinearStepDevice(
             dw_min=dw_min,
             w_max=w_max, w_min=w_min,
