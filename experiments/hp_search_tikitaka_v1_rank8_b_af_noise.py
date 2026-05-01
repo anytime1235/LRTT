@@ -7,7 +7,9 @@ as the v1/v2 LRTT sweeps, so the heatmap can be overlaid.
 
 Architecture (2-tile, NOT 3-tile like LRTT):
   - Fast tile (A) = 6T1C LinearStepDevice  → analog hardware (sweep target)
-  - Slow tile (B) = SoftBoundsDevice noise=0  → idealized (no sweep)
+  - Slow tile (B) = LinearStepDevice idealized (gamma=0, up_down=0, noise=0)
+                    → matches LRTT v1/v2 C-tile convention for unified comparison
+                    (deviates from optuna_bert_squad_tiki SoftBoundsDevice slow)
 
 Hyperparameters are FIXED per the user's spec — no HP search:
   - lr        = 0.1
@@ -60,7 +62,7 @@ from aihwkit.simulator.configs import (
     FloatingPointRPUConfig, UnitCellRPUConfig,
 )
 from aihwkit.simulator.configs.compounds import ChoppedTransferCompound
-from aihwkit.simulator.configs.devices import LinearStepDevice, SoftBoundsDevice
+from aihwkit.simulator.configs.devices import LinearStepDevice
 from aihwkit.simulator.parameters.enums import NoiseManagementType, BoundManagementType
 from aihwkit.simulator.parameters.io import IOParameters
 from aihwkit.simulator.parameters.training import UpdateParameters
@@ -167,15 +169,16 @@ def _make_fast_device(lifetime_param, ab_up_down, ab_noise_ratio):
 
 
 def _make_slow_device():
-    """Slow tile: noise-free SoftBoundsDevice (matches optuna_bert_squad_tiki)."""
-    return SoftBoundsDevice(
-        dw_min=0.001,
-        w_max=1.0, w_min=-1.0,
-        dw_min_dtod=0.0, dw_min_std=0.0,
+    """Slow tile: idealized 8-bit LinearStepDevice (dw_min = 2/256 = 0.0078125,
+    256 states across w∈[-1,1]). Matches LRTT v1/v2 C-tile convention for
+    unified comparison across all 4 methods."""
+    return LinearStepDevice(
+        dw_min=2.0/256.0, w_max=1.0, w_min=-1.0,   # 8-bit: 256 states
+        gamma_up=0.0, gamma_down=0.0,
         up_down=0.0, up_down_dtod=0.0,
-        w_max_dtod=0.0, w_min_dtod=0.0,
-        write_noise_std=0.0,
-        mult_noise=False,
+        mult_noise=False, mean_bound_reference=True,
+        dw_min_std=0.0, dw_min_dtod=0.0,
+        w_max_dtod=0.0, w_min_dtod=0.0, write_noise_std=0.0,
     )
 
 

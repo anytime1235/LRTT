@@ -161,8 +161,10 @@ def _make_ab_device(ab_lifetime_param, up_down, noise_ratio):
 
 
 def _make_c_device():
+    """C-tile: idealized 8-bit LinearStepDevice (dw_min = 2/256 = 0.0078125,
+    256 states across w∈[-1,1])."""
     return LinearStepDevice(
-        dw_min=0.001, w_max=1.0, w_min=-1.0,
+        dw_min=2.0/256.0, w_max=1.0, w_min=-1.0,   # 8-bit: 256 states
         gamma_up=0.0, gamma_down=0.0,
         up_down=0.0, up_down_dtod=0.0,
         mult_noise=False, mean_bound_reference=True,
