@@ -817,6 +817,28 @@ class LRTTController:
     # SRA-LRTT-v2 (Stochastic Reset-Anchor) helpers
     # ========================================================================
 
+    def _sra_active_device(self) -> torch.device:
+        """Resolve the actual current device of the SRA tiles at runtime.
+
+        Critical: aihwkit's `tile.get_weights()` returns a CPU COPY of the
+        weights regardless of where the underlying CUDA tile actually lives,
+        so we cannot use it to detect the active device. Instead we inspect
+        the inner rpu_base tile's class name — CUDA-backed tiles have 'Cuda'
+        / 'CUDA' in their class name (matching the controller's existing
+        `_infer_device_from_tile` heuristic).
+
+        After `model.to('cuda')` aihwkit replaces tile.tile with a CUDA-class
+        instance; this probe will pick that up. Falls back to CPU if no tile
+        appears to be CUDA-backed.
+        """
+        for tile in (self.tile_b, self.tile_a, self.tile_c):
+            inner = getattr(tile, 'tile', None)
+            if inner is not None:
+                cls = type(inner).__name__
+                if 'Cuda' in cls or 'CUDA' in cls:
+                    return torch.device('cuda')
+        return torch.device('cpu')
+
     def _sra_target_rms(self) -> float:
         """Target RMS of the scaled anchor A_q. Default 1/sqrt(rank) gives E[A A^T] ≈ I."""
         if self.sra_anchor_target_rms is not None:
@@ -830,7 +852,9 @@ class LRTTController:
         and stores both A_raw and A_scaled = A_raw * g_q on the controller for use by
         update and transfer within the same window.
         """
-        A_raw = A_raw[:, : self.rank].detach().to(device=self.device, dtype=self.dtype).contiguous()
+        A_raw = A_raw[:, : self.rank].detach().to(
+            device=self._sra_active_device(), dtype=self.dtype
+        ).contiguous()
         rms = float(torch.sqrt(torch.mean(A_raw * A_raw)).item())
         target = self._sra_target_rms()
 
@@ -878,8 +902,9 @@ class LRTTController:
                 A_raw = self.tile_a.get_weights()[0][:, : self.rank]
 
             elif source == "set_zero_write_noise":
+                tile_dev = self._sra_active_device()
                 zeros = torch.zeros(
-                    self.d_size, self.rank, device=self.device, dtype=self.dtype
+                    self.d_size, self.rank, device=tile_dev, dtype=self.dtype
                 )
                 self.tile_a.set_weights(zeros)
                 # When apply_write_noise_on_set=True and write_noise_std>0, get_weights()
@@ -897,16 +922,17 @@ class LRTTController:
                         device="cpu",
                         dtype=torch.float32,
                     )
-                ).to(device=self.device, dtype=self.dtype)
+                ).to(device=self._sra_active_device(), dtype=self.dtype)
                 self.tile_a.set_weights(A_raw)
 
             elif source == "pulse_scramble":
+                tile_dev = self._sra_active_device()
                 # 1) Reset to zero-centered device state first.
                 if hasattr(self.tile_a, "reset_columns"):
                     self.tile_a.reset_columns(0, self.rank, 1.0)
                 else:
                     zeros = torch.zeros(
-                        self.d_size, self.rank, device=self.device, dtype=self.dtype
+                        self.d_size, self.rank, device=tile_dev, dtype=self.dtype
                     )
                     self.tile_a.set_weights(zeros)
 
@@ -934,13 +960,13 @@ class LRTTController:
                                     device="cpu",
                                     dtype=torch.float32,
                                 )
-                            ).to(device=self.device, dtype=self.dtype)
+                            ).to(device=tile_dev, dtype=self.dtype)
                             d_onehot = torch.zeros(
-                                bsz, self.d_size, device=self.device, dtype=self.dtype
+                                bsz, self.d_size, device=tile_dev, dtype=self.dtype
                             )
-                            rows = torch.arange(start, end, device=self.device)
+                            rows = torch.arange(start, end, device=tile_dev)
                             d_onehot[
-                                torch.arange(bsz, device=self.device), rows
+                                torch.arange(bsz, device=tile_dev), rows
                             ] = -1.0
                             # tile.update(x, d) implements W += -lr * d.T @ x.
                             # With d=-onehot we get A[rows] += +lr * x_rand.
@@ -967,7 +993,8 @@ class LRTTController:
             self.tile_b.reset_columns(0, self.x_size, 1.0)
         elif self.sra_b_reset_mode == "set_zero":
             zeros = torch.zeros(
-                self.rank, self.x_size, device=self.device, dtype=self.dtype
+                self.rank, self.x_size,
+                device=self._sra_active_device(), dtype=self.dtype,
             )
             self.tile_b.set_weights(zeros)
         else:
@@ -990,14 +1017,8 @@ class LRTTController:
         self.transfer_counter = 0
 
     def _read_sra_b_buffer(self) -> Tensor:
-        """Read B [rank, x_size] via tile_b.backward(I_rank). Mirrors selector-v2 path.
-
-        Builds I on the actual storage device of tile_b (probed via get_weights),
-        since the analog simulator tile may live on CPU even when ctrl.device is
-        cached as CUDA for hardware-mode plans.
-        """
-        b_dev = self.tile_b.get_weights()[0].device
-        I = torch.eye(self.rank, device=b_dev, dtype=self.dtype)
+        """Read B [rank, x_size] via tile_b.backward(I_rank). Mirrors selector-v2 path."""
+        I = torch.eye(self.rank, device=self._sra_active_device(), dtype=self.dtype)
         return self.tile_b.backward(I)
 
     # ========================================================================
@@ -1420,6 +1441,16 @@ class LRTTController:
         if out_trans:
             d = d.t()
 
+        # Defensive device alignment: x/d may arrive on a device different from
+        # the analog tile (especially under CUDA aihwkit where some autograd
+        # pathways pass CPU intermediates). Move both onto the tile's actual
+        # device so tile_b._orig_update() never sees a CPU/CUDA mismatch.
+        tile_dev = self._sra_active_device()
+        if x.device != tile_dev:
+            x = x.to(tile_dev)
+        if d.device != tile_dev:
+            d = d.to(tile_dev)
+
         # Lazy initialization: if the anchor has not been generated yet (e.g. when
         # the mode is switched on after construction), generate one now.
         if self.sra_anchor_scaled is None:
@@ -1443,13 +1474,12 @@ class LRTTController:
                 # tile_a.backward(d) returns d @ tile_a.weights. Multiply by the
                 # cached gain to obtain d @ A_scaled (with read-path noise).
                 d_proj = self.tile_a.backward(d) * float(self.sra_anchor_gain)
+                if d_proj.device != tile_dev:
+                    d_proj = d_proj.to(tile_dev)
             else:
                 # Mathematically clean self-correlated anchor (default).
-                # Move anchor to d's device — controller.device may differ from the
-                # underlying simulator-tile device (controller stores anchor on its
-                # own device for hardware-mode plans, but tile_b update requires
-                # tensors on the tile's device).
-                A = self.sra_anchor_scaled.to(d.device)
+                # Move anchor to the tile's device explicitly.
+                A = self.sra_anchor_scaled.to(tile_dev)
                 d_proj = d @ A  # [batch, rank]
 
         # 4) Apply the analog pulsed update on tile_b: B += -lr_eff * d_proj.T @ x.
@@ -1725,10 +1755,13 @@ class LRTTController:
             self.reset_sra_state(force_new_anchor=True)
 
         with torch.no_grad():
-            # Read B from the simulator tile (lives on tile_b's device, e.g. CPU).
+            # Read B from the simulator tile (its actual current device).
+            tile_dev = self._sra_active_device()
             B = self._read_sra_b_buffer()              # [rank, x_size]
-            # Move the anchor to B's device for the chunked matmul / pulsed update.
-            A = self.sra_anchor_scaled.to(B.device)    # [d_size, rank]
+            if B.device != tile_dev:
+                B = B.to(tile_dev)
+            # Anchor must be aligned with tile_c's update path.
+            A = self.sra_anchor_scaled.to(tile_dev)    # [d_size, rank]
 
             old_lr_c = self.tile_c.get_learning_rate()
             cap_gain = self._cap_transfer_gain()
