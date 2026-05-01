@@ -233,7 +233,7 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             x_size=x_size,
             rank=self.rank,
             transfer_lr=self.transfer_lr,
-            transfer_lr_scale=getattr(self.lrtt_config, "transfer_lr_scale", "none"),
+            transfer_lr_scale=getattr(self.lrtt_config, "transfer_lr_scale", 1.0),
             transfer_every=self.transfer_every,
             units_in_mbatch=self.units_in_mbatch,
             lora_alpha=self.lora_alpha,
@@ -279,7 +279,7 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         post_init = kwargs.get("_post_init", {})
 
         # Transfer mode & calibration
-        self.controller.transfer_mode = post_init.get("transfer_mode", "pilot")
+        self.controller.transfer_mode = post_init.get("transfer_mode", "off")
         self.controller.transfer_micro_steps = post_init.get("transfer_micro_steps", 1)
         self.controller.transfer_pilot_frac = post_init.get(
             "transfer_pilot_frac", 1.0 / 16.0
@@ -331,6 +331,30 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         self.controller.cap_soft_clip = post_init.get("cap_soft_clip", True)
         self.controller.cap_reset_mode = post_init.get("cap_reset_mode", "set_zero")
 
+        # SRA-LRTT-v2 (Stochastic Reset-Anchor) settings (post_init knobs)
+        self.controller.sra_anchor_source = post_init.get("sra_anchor_source", "reset_columns")
+        self.controller.sra_anchor_target_rms = post_init.get("sra_anchor_target_rms", None)
+        self.controller.sra_anchor_gain_max = post_init.get("sra_anchor_gain_max", 1.0e3)
+        self.controller.sra_anchor_min_rms = post_init.get("sra_anchor_min_rms", 1.0e-12)
+        self.controller.sra_use_cached_anchor = post_init.get("sra_use_cached_anchor", True)
+        self.controller.sra_use_analog_projection = post_init.get(
+            "sra_use_analog_projection", False
+        )
+        self.controller.sra_resample_on_transfer = post_init.get(
+            "sra_resample_on_transfer", True
+        )
+        self.controller.sra_reset_b_on_transfer = post_init.get(
+            "sra_reset_b_on_transfer", True
+        )
+        self.controller.sra_b_reset_mode = post_init.get("sra_b_reset_mode", "set_zero")
+        self.controller.sra_pulse_scramble_steps = post_init.get(
+            "sra_pulse_scramble_steps", 0
+        )
+        self.controller.sra_pulse_scramble_lr = post_init.get("sra_pulse_scramble_lr", 1.0)
+        self.controller.sra_seed = post_init.get("sra_seed", 0)
+        # Re-seed the controller's CPU generator to reflect the post-init seed.
+        self.controller._sra_gen.manual_seed(int(self.controller.sra_seed))
+
         # LRTT-v2 invariant: tile_b is allocated [rank, x_size], so the selector
         # block_size must equal rank when v2 mode is active. The config layer
         # already enforces this; the assert below is a defensive guard.
@@ -348,6 +372,11 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         # tile_a is unused in v2 so its initialization is irrelevant.
         if self.controller._is_selector_v2():
             self.controller._reset_b_buffer()
+
+        # SRA-LRTT-v2: generate the first stochastic anchor and zero B buffer so
+        # the first call to ab_weight_update has a valid A_q immediately.
+        if self.controller._is_sra_v2():
+            self.controller.reset_sra_state(force_new_anchor=True)
 
         # Hook individual tile updates to route through controller
         self._hook_tile_updates()

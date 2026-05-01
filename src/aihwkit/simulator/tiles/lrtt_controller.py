@@ -280,6 +280,30 @@ class LRTTController:
         self._ab_update_step: int = 0
         """Internal counter for A/B update logging."""
 
+        # === SRA-LRTT-v2 (Stochastic Reset-Anchor) state ===
+        # Anchor source / normalization knobs (overridden via _post_init).
+        self.sra_anchor_source: str = "reset_columns"
+        self.sra_anchor_target_rms: Optional[float] = None
+        self.sra_anchor_gain_max: float = 1.0e3
+        self.sra_anchor_min_rms: float = 1.0e-12
+        self.sra_use_cached_anchor: bool = True
+        self.sra_use_analog_projection: bool = False
+        self.sra_resample_on_transfer: bool = True
+        self.sra_reset_b_on_transfer: bool = True
+        self.sra_b_reset_mode: str = "set_zero"
+        self.sra_pulse_scramble_steps: int = 0
+        self.sra_pulse_scramble_lr: float = 1.0
+        self.sra_seed: int = 0
+        # Cached anchor state (populated by _reset_sra_anchor()).
+        self.sra_anchor_raw: Optional[Tensor] = None
+        self.sra_anchor_scaled: Optional[Tensor] = None
+        self.sra_anchor_gain: float = 1.0
+        self.sra_anchor_rms_raw: float = 0.0
+        self.sra_cycle: int = 0
+        # CPU RNG for deterministic explicit_gaussian / pulse_scramble sources.
+        self._sra_gen = torch.Generator(device="cpu")
+        self._sra_gen.manual_seed(int(self.sra_seed))
+
         # === Hardware Mode Flag ===
         self._hardware_mode: Optional[bool] = None
         """Cache for hardware mode detection (use_manual_scaling=True)."""
@@ -293,6 +317,20 @@ class LRTTController:
     def _is_selector_v2(self) -> bool:
         """Return True when running in LRTT-v2 selector reconstruction mode."""
         return self.update_mode in ("selector_reconstruction", "selector_v2")
+
+    def _is_sra_v2(self) -> bool:
+        """Return True when running in SRA-LRTT-v2 (Stochastic Reset-Anchor) mode.
+
+        Aliases all map to the same implementation:
+        - 'stochastic_reset_anchor' (canonical)
+        - 'sra_v2'
+        - 'sra_reconstruction'
+        - 'random_anchor_reconstruction'
+        """
+        return self.update_mode in (
+            "stochastic_reset_anchor", "sra_reconstruction",
+            "random_anchor_reconstruction", "sra_v2",
+        )
 
     def _is_hardware_mode(self) -> bool:
         """Check if tiles are in hardware mode (use_manual_scaling=True).
@@ -775,6 +813,197 @@ class LRTTController:
     # End LRTT-v2 helpers
     # ========================================================================
 
+    # ========================================================================
+    # SRA-LRTT-v2 (Stochastic Reset-Anchor) helpers
+    # ========================================================================
+
+    def _sra_target_rms(self) -> float:
+        """Target RMS of the scaled anchor A_q. Default 1/sqrt(rank) gives E[A A^T] ≈ I."""
+        if self.sra_anchor_target_rms is not None:
+            return float(self.sra_anchor_target_rms)
+        return 1.0 / math.sqrt(float(self.rank))
+
+    def _sra_cache_anchor(self, A_raw: Tensor) -> None:
+        """Cache raw and scaled A anchor. A_raw shape: [d_size, rank].
+
+        Computes scalar gain g_q = target_rms / max(rms_raw, eps), clamped to gain_max,
+        and stores both A_raw and A_scaled = A_raw * g_q on the controller for use by
+        update and transfer within the same window.
+        """
+        A_raw = A_raw[:, : self.rank].detach().to(device=self.device, dtype=self.dtype).contiguous()
+        rms = float(torch.sqrt(torch.mean(A_raw * A_raw)).item())
+        target = self._sra_target_rms()
+
+        # σ_A=0 negative control: target_rms == 0 forces A_scaled = 0 directly,
+        # producing A_q^T G = 0 and a true "no anchor" baseline.
+        if target <= 0.0:
+            gain = 0.0
+        elif rms < float(self.sra_anchor_min_rms):
+            gain = 0.0
+        else:
+            gain = target / rms
+            gain = min(gain, float(self.sra_anchor_gain_max))
+
+        self.sra_anchor_raw = A_raw
+        self.sra_anchor_gain = float(gain)
+        self.sra_anchor_rms_raw = float(rms)
+        self.sra_anchor_scaled = (A_raw * gain).contiguous()
+
+    def _reset_sra_anchor(self) -> None:
+        """Generate a fresh stochastic anchor A_q and cache it.
+
+        Sources:
+        - 'reset_columns' (main): tile_a.reset_columns(0, rank, 1.0). Uses
+          LinearStepDevice(reset, reset_std) to draw a zero-centered random state.
+        - 'set_zero_write_noise': set_weights(zeros) and rely on
+          apply_write_noise_on_set=True to expose a stochastic apparent state.
+        - 'explicit_gaussian': sample A_raw ~ N(0, target_rms^2) on CPU with the
+          dedicated _sra_gen, then push it onto tile_a via set_weights().
+        - 'pulse_scramble': reset to zero state then apply controlled pulse updates
+          using row-wise one-hot D and random X to seed independent randomness.
+
+        After A_raw is acquired, _sra_cache_anchor() normalizes via RMS and stores
+        sra_anchor_raw / sra_anchor_scaled / sra_anchor_gain.
+        """
+        with torch.no_grad():
+            source = str(self.sra_anchor_source)
+
+            if source == "reset_columns":
+                if not hasattr(self.tile_a, "reset_columns"):
+                    raise RuntimeError(
+                        "tile_a does not support reset_columns(); use anchor_source"
+                        "='explicit_gaussian' or 'set_zero_write_noise' instead."
+                    )
+                self.tile_a.reset_columns(0, self.rank, 1.0)
+                A_raw = self.tile_a.get_weights()[0][:, : self.rank]
+
+            elif source == "set_zero_write_noise":
+                zeros = torch.zeros(
+                    self.d_size, self.rank, device=self.device, dtype=self.dtype
+                )
+                self.tile_a.set_weights(zeros)
+                # When apply_write_noise_on_set=True and write_noise_std>0, get_weights()
+                # exposes the post-set apparent state with the write-side noise applied.
+                A_raw = self.tile_a.get_weights()[0][:, : self.rank]
+
+            elif source == "explicit_gaussian":
+                target = self._sra_target_rms()
+                A_raw = (
+                    target
+                    * torch.randn(
+                        self.d_size,
+                        self.rank,
+                        generator=self._sra_gen,
+                        device="cpu",
+                        dtype=torch.float32,
+                    )
+                ).to(device=self.device, dtype=self.dtype)
+                self.tile_a.set_weights(A_raw)
+
+            elif source == "pulse_scramble":
+                # 1) Reset to zero-centered device state first.
+                if hasattr(self.tile_a, "reset_columns"):
+                    self.tile_a.reset_columns(0, self.rank, 1.0)
+                else:
+                    zeros = torch.zeros(
+                        self.d_size, self.rank, device=self.device, dtype=self.dtype
+                    )
+                    self.tile_a.set_weights(zeros)
+
+                # 2) Run K passes of controlled pulse updates with row-wise one-hot D
+                # and random X. Each pass writes an independent random delta per A row.
+                # Chunk over d_size to bound the identity allocation.
+                # K=0 means "reset only, no scrambling" — the anchor falls back to
+                # whatever the prior reset_columns / set_zeros call produced. This
+                # is the expected behavior when sra_pulse_scramble_steps is set
+                # to 0 explicitly (e.g., for the negative control).
+                K = int(self.sra_pulse_scramble_steps)
+                lr_old = self.tile_a.get_learning_rate()
+                self.tile_a.set_learning_rate(float(self.sra_pulse_scramble_lr))
+                try:
+                    chunk = 256
+                    for _ in range(K):
+                        for start in range(0, self.d_size, chunk):
+                            end = min(start + chunk, self.d_size)
+                            bsz = end - start
+                            x_rand = (
+                                torch.randn(
+                                    bsz,
+                                    self.rank,
+                                    generator=self._sra_gen,
+                                    device="cpu",
+                                    dtype=torch.float32,
+                                )
+                            ).to(device=self.device, dtype=self.dtype)
+                            d_onehot = torch.zeros(
+                                bsz, self.d_size, device=self.device, dtype=self.dtype
+                            )
+                            rows = torch.arange(start, end, device=self.device)
+                            d_onehot[
+                                torch.arange(bsz, device=self.device), rows
+                            ] = -1.0
+                            # tile.update(x, d) implements W += -lr * d.T @ x.
+                            # With d=-onehot we get A[rows] += +lr * x_rand.
+                            if hasattr(self.tile_a, "_orig_update"):
+                                self.tile_a._orig_update(x_rand, d_onehot)
+                            else:
+                                self.tile_a.update(x_rand, d_onehot)
+                finally:
+                    self.tile_a.set_learning_rate(lr_old)
+
+                A_raw = self.tile_a.get_weights()[0][:, : self.rank]
+
+            else:
+                raise ValueError(f"Unknown sra_anchor_source: {source}")
+
+            self._sra_cache_anchor(A_raw)
+            self.sra_cycle += 1
+
+    def _reset_sra_b_buffer(self) -> None:
+        """Reset B residual buffer to zero (or the configured B-reset distribution)."""
+        if self.sra_b_reset_mode == "none":
+            return
+        if self.sra_b_reset_mode == "reset_columns":
+            self.tile_b.reset_columns(0, self.x_size, 1.0)
+        elif self.sra_b_reset_mode == "set_zero":
+            zeros = torch.zeros(
+                self.rank, self.x_size, device=self.device, dtype=self.dtype
+            )
+            self.tile_b.set_weights(zeros)
+        else:
+            raise ValueError(f"Unknown sra_b_reset_mode: {self.sra_b_reset_mode}")
+
+        # Reset capacitor monitor state alongside the buffer.
+        self._cap_rms_ema = 0.0
+        self._cap_rms_initialized = False
+        self._cap_step_counter = 0
+
+    def reset_sra_state(self, *, force_new_anchor: bool = True) -> None:
+        """Initialize / reset SRA state: B <- 0, A <- new stochastic anchor.
+
+        Called once at LRTTSimulatorTile post-init time (after controller.reinit()),
+        and at the end of every transfer (when sra_resample_on_transfer=True).
+        """
+        self._reset_sra_b_buffer()
+        if force_new_anchor or self.sra_anchor_scaled is None:
+            self._reset_sra_anchor()
+        self.transfer_counter = 0
+
+    def _read_sra_b_buffer(self) -> Tensor:
+        """Read B [rank, x_size] via tile_b.backward(I_rank). Mirrors selector-v2 path.
+
+        Builds I on the actual storage device of tile_b (probed via get_weights),
+        since the analog simulator tile may live on CPU even when ctrl.device is
+        cached as CUDA for hardware-mode plans.
+        """
+        b_dev = self.tile_b.get_weights()[0].device
+        I = torch.eye(self.rank, device=b_dev, dtype=self.dtype)
+        return self.tile_b.backward(I)
+
+    # ========================================================================
+    # End SRA-LRTT-v2 helpers
+    # ========================================================================
+
     def reinit(self) -> None:
         """Reinit A,B matrices based on reinit_mode, a_init_mode, and b_init_mode.
 
@@ -937,6 +1166,8 @@ class LRTTController:
             out_trans: Whether d is transposed
         """
         # Branch based on update_mode
+        if self._is_sra_v2():
+            return self._ab_weight_update_stochastic_reset_anchor(x, d, lr, in_trans, out_trans)
         if self._is_selector_v2():
             return self._ab_weight_update_selector_reconstruction(x, d, lr, in_trans, out_trans)
         if self.update_mode == "reconstruction":
@@ -1165,6 +1396,81 @@ class LRTTController:
         # 5) Counter (matches v1 reconstruction convention).
         self.transfer_counter += (x.shape[0] if self.units_in_mbatch else 1)
 
+    def _ab_weight_update_stochastic_reset_anchor(
+        self,
+        x: Tensor,
+        d: Tensor,
+        lr: float,
+        in_trans: bool = False,
+        out_trans: bool = False,
+    ) -> None:
+        """SRA-LRTT-v2 update: B <- rho_B * B  -  lr_eff * A_q^T * D * X^T.
+
+        A_q is a frozen stochastic reset anchor cached on the controller for the
+        entire transfer window. tile_a is NOT trained by gradient descent in this
+        mode; it only serves as the storage backing the anchor between resets.
+
+        Selection between cached anchor and analog projection is gated by
+        sra_use_analog_projection (False -> mathematically clean d @ A_scaled;
+        True -> tile_a.backward(d) * sra_anchor_gain to inject A read-path noise).
+        """
+        # 0) Normalize to [batch, feat] format.
+        if in_trans:
+            x = x.t()
+        if out_trans:
+            d = d.t()
+
+        # Lazy initialization: if the anchor has not been generated yet (e.g. when
+        # the mode is switched on after construction), generate one now.
+        if self.sra_anchor_scaled is None:
+            self.reset_sra_state(force_new_anchor=True)
+
+        # 1) Effective learning rate. recon_lr_scale is shared with v1/v2-selector
+        # to keep tuned values portable. correct_gradient_magnitudes retains the
+        # /sqrt(rank) convention.
+        lr_eff = lr * self.recon_lr_scale
+        if self.correct_gradient_magnitudes:
+            lr_eff = lr_eff / math.sqrt(self.rank)
+        if self._is_hardware_mode():
+            lr_eff = 1.0
+
+        # 2) Apply B leakage before adding the new projected gradient.
+        self._apply_capacitor_leak_before_b_update()
+
+        # 3) Project the gradient through A_q.
+        with torch.no_grad():
+            if self.sra_use_analog_projection:
+                # tile_a.backward(d) returns d @ tile_a.weights. Multiply by the
+                # cached gain to obtain d @ A_scaled (with read-path noise).
+                d_proj = self.tile_a.backward(d) * float(self.sra_anchor_gain)
+            else:
+                # Mathematically clean self-correlated anchor (default).
+                # Move anchor to d's device — controller.device may differ from the
+                # underlying simulator-tile device (controller stores anchor on its
+                # own device for hardware-mode plans, but tile_b update requires
+                # tensors on the tile's device).
+                A = self.sra_anchor_scaled.to(d.device)
+                d_proj = d @ A  # [batch, rank]
+
+        # 4) Apply the analog pulsed update on tile_b: B += -lr_eff * d_proj.T @ x.
+        lr_b_old = self.tile_b.get_learning_rate()
+        self.tile_b.set_learning_rate(lr_eff)
+        try:
+            if hasattr(self.tile_b, "_orig_update"):
+                self.tile_b._orig_update(x, d_proj)
+            else:
+                self.tile_b.update(x, d_proj)
+        finally:
+            self.tile_b.set_learning_rate(lr_b_old)
+
+        self.num_b_updates += 1
+
+        # 5) Optional RMS monitor / soft-clip (no-op when cap_monitor_every == 0).
+        self._apply_capacitor_monitor_after_b_update()
+
+        # 6) Counter (matches v2 selector convention).
+        self.transfer_counter += (x.shape[0] if self.units_in_mbatch else 1)
+
     def _apply_reconstruction_stabilizer(self, lr_rec: float) -> None:
         """Apply stabilizer terms for reconstruction update.
 
@@ -1327,10 +1633,12 @@ class LRTTController:
             self._ab_weight_transfer_direct()
         elif method == "set":
             self._ab_weight_transfer_set()
+        elif method in ("stochastic_anchor", "sra"):
+            self._ab_weight_transfer_stochastic_anchor()
         else:
             raise ValueError(
                 f"Unknown transfer method: {method}. "
-                "Use 'onehot', 'direct', 'set', or 'blockwise'."
+                "Use 'onehot', 'direct', 'set', 'blockwise', or 'stochastic_anchor'."
             )
 
     def _ab_weight_transfer_blockwise(self) -> None:
@@ -1402,6 +1710,66 @@ class LRTTController:
         if self.selector_reset_b_on_advance:
             self._reset_b_buffer()
         self._advance_selector()
+
+    def _ab_weight_transfer_stochastic_anchor(self) -> None:
+        """SRA-LRTT-v2 transfer: C <- C + transfer_lr * kappa_rho * A_q @ B.
+
+        Uses tile_c pulsed update so LinearStepDevice nonidealities are active.
+        After transfer:
+          - B is reset (when sra_reset_b_on_transfer).
+          - A is re-sampled to a fresh stochastic anchor (when sra_resample_on_transfer).
+
+        CRITICAL: must NOT call self.reinit(); SRA cleanup is B reset + A resample only.
+        """
+        if self.sra_anchor_scaled is None:
+            self.reset_sra_state(force_new_anchor=True)
+
+        with torch.no_grad():
+            # Read B from the simulator tile (lives on tile_b's device, e.g. CPU).
+            B = self._read_sra_b_buffer()              # [rank, x_size]
+            # Move the anchor to B's device for the chunked matmul / pulsed update.
+            A = self.sra_anchor_scaled.to(B.device)    # [d_size, rank]
+
+            old_lr_c = self.tile_c.get_learning_rate()
+            cap_gain = self._cap_transfer_gain()
+            M = max(1, int(getattr(self, "transfer_micro_steps", 1)))
+            lr_abs = abs(self.transfer_lr) * cap_gain
+            lr_step = lr_abs / M
+            self.tile_c.set_learning_rate(lr_step if lr_step > 0 else 1e-12)
+
+            try:
+                # Chunk over rank to bound transient memory; mirrors v1 transfer paths.
+                chunk_size = max(1, int(self.rank_chunk))
+                for off in range(0, self.rank, chunk_size):
+                    end = min(off + chunk_size, self.rank)
+                    A_chunk = A[:, off:end].contiguous()      # [d_size, cur]
+                    B_chunk = B[off:end, :].contiguous()      # [cur, x_size]
+
+                    # tile_c.update(X, D) implements C += -lr * D.T @ X.
+                    # We want C += +transfer_lr * A_chunk @ B_chunk.
+                    # Set D = -A_chunk.T (when transfer_lr > 0) and X = B_chunk.
+                    if self.transfer_lr > 0:
+                        D_chunk = (-A_chunk.t()).contiguous()
+                    else:
+                        D_chunk = A_chunk.t().contiguous()
+                    X_chunk = B_chunk
+
+                    for _ in range(M):
+                        if hasattr(self.tile_c, "_orig_update"):
+                            self.tile_c._orig_update(X_chunk, D_chunk)
+                        else:
+                            self.tile_c.update(X_chunk, D_chunk)
+            finally:
+                self.tile_c.set_learning_rate(old_lr_c)
+
+        self.num_transfers += 1
+        self.transfer_counter = 0
+
+        # CRITICAL: do NOT call self.reinit() in SRA mode (mirrors selector-v2 cleanup).
+        if self.sra_reset_b_on_transfer:
+            self._reset_sra_b_buffer()
+        if self.sra_resample_on_transfer:
+            self._reset_sra_anchor()
 
     def _ab_weight_transfer_direct(self) -> None:
         """Original transfer implementation using direct weight access."""
@@ -2054,6 +2422,16 @@ class LRTTController:
         Returns:
             Output tensor [d_size, m] or [batch, d_size]
         """
+        # SRA-LRTT-v2 invariant: A/B are optimizer state only, never forward-visible.
+        # Static config validation in PythonLRTTDevice.__post_init__ already rejects this
+        # combination, but we re-check here as a defense against post-construction
+        # mutation of forward_inject_enabled.
+        if self._is_sra_v2() and self.forward_inject_enabled:
+            raise ValueError(
+                "SRA-LRTT-v2 requires forward_inject=False; A/B are optimizer states only "
+                "and must not be visible in the forward path."
+            )
+
         # Initialize tiles on first forward if needed
         if not self._tiles_initialized:
             self.reinit()

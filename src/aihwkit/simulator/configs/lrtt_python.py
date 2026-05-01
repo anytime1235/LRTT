@@ -272,6 +272,58 @@ class PythonLRTTDevice(_PrintableMixin):
     - 'hard_reset': reserved for future hardware backend hard-reset primitive.
     - 'none': skip B reset (NOT recommended; only for ablations)."""
 
+    # === SRA-LRTT-v2 (Stochastic Reset-Anchor) Settings ===
+    sra_anchor_source: str = "reset_columns"
+    """Anchor generation source for A_q within each transfer window:
+    - 'reset_columns': call tile_a.reset_columns(0, rank, 1.0) and read the resulting
+      device state (main hardware-native source; uses LinearStepDevice reset/reset_std).
+    - 'set_zero_write_noise': set_weights(zeros) and rely on apply_write_noise_on_set=True
+      to produce a stochastic apparent state (ablation; usually too small in 6T1C).
+    - 'explicit_gaussian': sample A_raw ~ N(0, target_rms^2) directly (sanity check / FP).
+    - 'pulse_scramble': reset to zero-centered state then apply controlled pulse updates
+      to seed independent randomness via dw_min_std (alternative source)."""
+
+    sra_anchor_target_rms: Optional[float] = None
+    """Target RMS of the scaled anchor A_q. None -> 1/sqrt(rank), giving E[A A^T] ≈ I."""
+
+    sra_anchor_gain_max: float = 1.0e3
+    """Clamp for the scalar gain g_q after RMS normalization. Prevents runaway when
+    raw RMS is near the floor."""
+
+    sra_anchor_min_rms: float = 1.0e-12
+    """Minimum raw RMS before declaring the generated anchor degenerate (gain=0)."""
+
+    sra_use_cached_anchor: bool = True
+    """If True, cache A_raw and A_scaled on the controller after each reset so the
+    SAME A_q is used for both B accumulation and C transfer within a window. This
+    self-correlated anchor is what makes SRA an unbiased TT estimator."""
+
+    sra_use_analog_projection: bool = False
+    """If True, use tile_a.backward(d) * sra_anchor_gain to compute d_proj (with A
+    read-path nonidealities). If False (default), use cached d @ A_scaled (clean)."""
+
+    sra_resample_on_transfer: bool = True
+    """Re-sample A_q after every transfer (the typical SRA behavior)."""
+
+    sra_reset_b_on_transfer: bool = True
+    """Reset B to zero after every transfer (residual buffer cleanup)."""
+
+    sra_b_reset_mode: str = "set_zero"
+    """B reset semantics under SRA: 'set_zero' | 'reset_columns' | 'none'.
+    Default 'set_zero' achieves exact zero on FP/simulator. 'reset_columns' uses the
+    device reset distribution. 'none' is for ablations only."""
+
+    sra_pulse_scramble_steps: int = 0
+    """Number of controlled random-pulse-scramble passes after reset. 0 disables.
+    Used only when sra_anchor_source == 'pulse_scramble'."""
+
+    sra_pulse_scramble_lr: float = 1.0
+    """Learning-rate scalar applied during pulse-scramble anchor generation."""
+
+    sra_seed: int = 0
+    """CPU torch.Generator seed for deterministic 'explicit_gaussian' and
+    'pulse_scramble' anchor sources."""
+
     # === Advanced Parameters ===
     units_in_mbatch: bool = False
     """If True, transfer_every counts samples; if False, counts steps."""
@@ -386,12 +438,16 @@ class PythonLRTTDevice(_PrintableMixin):
             raise ValueError(f"two_amp_ratio must be in (0, 1), got {self.two_amp_ratio}")
 
         # Validate update_mode
-        valid_update_modes = ["lora", "reconstruction", "selector_reconstruction", "selector_v2"]
+        valid_update_modes = [
+            "lora", "reconstruction", "selector_reconstruction", "selector_v2",
+            "stochastic_reset_anchor", "sra_reconstruction",
+            "random_anchor_reconstruction", "sra_v2",
+        ]
         if self.update_mode not in valid_update_modes:
             raise ValueError(f"update_mode must be one of {valid_update_modes}, got '{self.update_mode}'")
 
         # Validate transfer_method
-        valid_transfer_methods = ["onehot", "direct", "set", "blockwise"]
+        valid_transfer_methods = ["onehot", "direct", "set", "blockwise", "stochastic_anchor", "sra"]
         if self.transfer_method not in valid_transfer_methods:
             raise ValueError(f"transfer_method must be one of {valid_transfer_methods}, got '{self.transfer_method}'")
 
@@ -414,6 +470,55 @@ class PythonLRTTDevice(_PrintableMixin):
         valid_cap_reset_modes = ["set_zero", "hard_reset", "none"]
         if self.cap_reset_mode not in valid_cap_reset_modes:
             raise ValueError(f"cap_reset_mode must be one of {valid_cap_reset_modes}, got '{self.cap_reset_mode}'")
+
+        # Validate SRA-LRTT-v2 parameters
+        valid_sra_sources = ["reset_columns", "set_zero_write_noise", "explicit_gaussian", "pulse_scramble"]
+        if self.sra_anchor_source not in valid_sra_sources:
+            raise ValueError(
+                f"sra_anchor_source must be one of {valid_sra_sources}, got '{self.sra_anchor_source}'"
+            )
+        valid_sra_b_reset = ["set_zero", "reset_columns", "none"]
+        if self.sra_b_reset_mode not in valid_sra_b_reset:
+            raise ValueError(
+                f"sra_b_reset_mode must be one of {valid_sra_b_reset}, got '{self.sra_b_reset_mode}'"
+            )
+        # sra_anchor_target_rms == 0 IS allowed: it is the σ_A=0 negative control
+        # (A_q := 0  ⇒  A_q^T G = 0  ⇒  B does not accumulate). Only strictly
+        # negative values are rejected.
+        if self.sra_anchor_target_rms is not None and self.sra_anchor_target_rms < 0:
+            raise ValueError(
+                f"sra_anchor_target_rms must be >= 0 or None "
+                f"(0 = negative control), got {self.sra_anchor_target_rms}"
+            )
+        if self.sra_anchor_gain_max <= 0:
+            raise ValueError(f"sra_anchor_gain_max must be positive, got {self.sra_anchor_gain_max}")
+        if self.sra_anchor_min_rms <= 0:
+            raise ValueError(f"sra_anchor_min_rms must be positive, got {self.sra_anchor_min_rms}")
+        if self.sra_pulse_scramble_steps < 0:
+            raise ValueError(
+                f"sra_pulse_scramble_steps must be >= 0, got {self.sra_pulse_scramble_steps}"
+            )
+        if self.sra_pulse_scramble_lr <= 0:
+            raise ValueError(
+                f"sra_pulse_scramble_lr must be positive, got {self.sra_pulse_scramble_lr}"
+            )
+
+        # SRA-LRTT-v2 cross-validation: A/B are optimizer state only, not forward-visible.
+        sra_update_modes = (
+            "stochastic_reset_anchor", "sra_reconstruction",
+            "random_anchor_reconstruction", "sra_v2",
+        )
+        if self.update_mode in sra_update_modes:
+            if self.forward_inject:
+                raise ValueError(
+                    "SRA-LRTT-v2 requires forward_inject=False; A/B are optimizer states only "
+                    "and must not be visible in the forward path."
+                )
+            if self.transfer_method not in ("stochastic_anchor", "sra"):
+                raise ValueError(
+                    f"SRA update_mode '{self.update_mode}' requires transfer_method "
+                    f"in ('stochastic_anchor', 'sra'), got '{self.transfer_method}'."
+                )
 
         # Validate reconstruction parameters
         if self.recon_lambda_a < 0:
@@ -567,6 +672,19 @@ class PythonLRTTDevice(_PrintableMixin):
             'cap_max_rms': self.cap_max_rms,
             'cap_soft_clip': self.cap_soft_clip,
             'cap_reset_mode': self.cap_reset_mode,
+            # SRA-LRTT-v2 (Stochastic Reset-Anchor) settings
+            'sra_anchor_source': self.sra_anchor_source,
+            'sra_anchor_target_rms': self.sra_anchor_target_rms,
+            'sra_anchor_gain_max': self.sra_anchor_gain_max,
+            'sra_anchor_min_rms': self.sra_anchor_min_rms,
+            'sra_use_cached_anchor': self.sra_use_cached_anchor,
+            'sra_use_analog_projection': self.sra_use_analog_projection,
+            'sra_resample_on_transfer': self.sra_resample_on_transfer,
+            'sra_reset_b_on_transfer': self.sra_reset_b_on_transfer,
+            'sra_b_reset_mode': self.sra_b_reset_mode,
+            'sra_pulse_scramble_steps': self.sra_pulse_scramble_steps,
+            'sra_pulse_scramble_lr': self.sra_pulse_scramble_lr,
+            'sra_seed': self.sra_seed,
         }
         return kwargs
     
@@ -1055,6 +1173,97 @@ class PythonLRTTPreset(_PrintableMixin):
             reinit_gain=0.1,
             forward_inject=False,
             unit_cell_devices=[sixt1c_device, sixt1c_device, sixt1c_device]
+        )
+
+    @staticmethod
+    def sixt1c_sra_all(
+        rank: int = 4,
+        transfer_every: int = 32,
+        dt_batch_sec: float = 1.0,
+        include_retention: bool = True,
+        anchor_source: str = "reset_columns",
+        reset_std: float = 0.01,
+        c_dw_min: float = 0.001981,
+    ) -> 'PythonLRTTDevice':
+        """SRA-LRTT-v2 with LinearStepDevice 6T1C-like A/B/C tiles.
+
+        Constructs SEPARATE A/B/C device instances (not aliased) so that A may
+        carry apply_write_noise_on_set=True (for the set_zero_write_noise anchor
+        ablation) while B and C keep apply_write_noise_on_set=False (so that
+        B reset and C pretrained-init are exact / noise-free).
+
+        Args:
+            rank: LoRA rank.
+            transfer_every: Transfer frequency.
+            dt_batch_sec: Per-batch wall-clock seconds (for retention model).
+            include_retention: If True, model 6T1C lifetime decay.
+            anchor_source: SRA anchor source. 'reset_columns' is the main hardware
+                source; 'set_zero_write_noise' / 'pulse_scramble' / 'explicit_gaussian'
+                are alternates / ablations.
+            reset_std: stddev of LinearStepDevice reset distribution (used by
+                'reset_columns' source).
+            c_dw_min: dw_min for C tile (transfer pulses).
+        """
+        import math
+        TAU_SEC = 46505.0
+        if include_retention and dt_batch_sec > 0:
+            delta = 1 - math.exp(-dt_batch_sec / TAU_SEC)
+            lifetime = 1.0 / delta
+        else:
+            lifetime = 0.0
+
+        def make_dev(apply_noise_on_set: bool, dw_min: float = 0.001981):
+            return LinearStepDevice(
+                dw_min=dw_min,
+                up_down=0.0,
+                w_max=1.0,
+                w_min=-1.0,
+                gamma_up=-0.1678,
+                gamma_down=0.1410,
+                mult_noise=True,
+                dw_min_dtod=0.1,
+                up_down_dtod=0.01,
+                w_max_dtod=0.05,
+                w_min_dtod=0.05,
+                gamma_up_dtod=0.05,
+                gamma_down_dtod=0.05,
+                dw_min_std=0.3,
+                write_noise_std=0.0182,
+                apply_write_noise_on_set=apply_noise_on_set,
+                mean_bound_reference=True,
+                lifetime=lifetime,
+                lifetime_dtod=0.1 if include_retention else 0.0,
+                reset=0.0,
+                reset_std=reset_std,
+                reset_dtod=0.0,
+            )
+
+        # A: may use set_zero_write_noise → allow write noise on set.
+        a_dev = make_dev(apply_noise_on_set=(anchor_source == "set_zero_write_noise"))
+        # B: reset must be as close to exact zero as possible.
+        b_dev = make_dev(apply_noise_on_set=False)
+        # C: core transfer is pulsed via update(); set_weights() at init must not add noise.
+        c_dev = make_dev(apply_noise_on_set=False, dw_min=c_dw_min)
+
+        return PythonLRTTDevice(
+            rank=rank,
+            transfer_every=transfer_every,
+            transfer_lr=1.0,
+            lora_alpha=1.0,
+            reinit_gain=0.0,
+            reinit_mode="standard",
+            a_init_mode="zero",
+            b_init_mode="zero",
+            forward_inject=False,
+            update_mode="stochastic_reset_anchor",
+            transfer_method="stochastic_anchor",
+            cap_stabilizer_enabled=True,
+            cap_rho=1.0,
+            cap_compensate_transfer=True,
+            sra_anchor_source=anchor_source,
+            sra_anchor_target_rms=None,
+            sra_b_reset_mode="set_zero",
+            unit_cell_devices=[a_dev, b_dev, c_dev],
         )
 
 
