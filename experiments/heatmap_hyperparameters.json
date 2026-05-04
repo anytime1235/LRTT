@@ -1,0 +1,190 @@
+{
+  "_comment": "Hyperparameter combinations used to produce fig_heatmaps_only.png — 5x5 (AF, UNR) sweep with fixed best HP per method. Source data: results/sweep_5x5_fixed_hp/.",
+  "experiment": {
+    "name": "fig_heatmaps_only",
+    "task": "MNIST classification, 1-hidden-layer MLP",
+    "model": "AnalogLinear(784,256) -> ReLU -> AnalogLinear(256,10) [FP] -> LogSoftmax",
+    "training": {
+      "epochs": 30,
+      "batch_size": 64,
+      "early_stop_patience": 5,
+      "seed": 42,
+      "lr_schedule": "StepLR(step_size=10, gamma=0.5)",
+      "loss": "NLLLoss"
+    },
+    "tile_settings": {
+      "rank": 8,
+      "transfer_every": 10,
+      "lifetime_phys": 1000,
+      "weight_scaling_omega": 0.6,
+      "forward_out_noise": 0.0,
+      "backward_out_noise": 0.0
+    }
+  },
+  "grid": {
+    "af_ratio": [0.0, 1.0, 2.0, 5.0, 10.0],
+    "update_noise_ratio": [0.0, 1.0, 3.0, 5.0, 10.0],
+    "n_cells": 25,
+    "trials_per_cell": 1
+  },
+  "ab_device": {
+    "type": "LinearStepDevice",
+    "settings": {
+      "dw_min": 0.001981,
+      "up_down": 0.0,
+      "w_max": 1.0,
+      "w_min": -1.0,
+      "gamma_up": "= af_ratio (swept)",
+      "gamma_down": "= af_ratio (swept)",
+      "dw_min_std": "= 0.3 * update_noise_ratio (swept)",
+      "mult_noise": false,
+      "dw_min_dtod": 0.1,
+      "up_down_dtod": 0.01,
+      "w_max_dtod": 0.05,
+      "w_min_dtod": 0.05,
+      "gamma_up_dtod": 0.05,
+      "gamma_down_dtod": 0.05,
+      "lifetime": "_ab_lifetime_param(1000)",
+      "lifetime_dtod": 0.1
+    },
+    "comment": "AF (AsymmetricForward) is swept as gamma_up = gamma_down = af_ratio with up_down=0; UNR scales dw_min_std."
+  },
+  "c_device": {
+    "type": "LinearStepDevice (10-bit ideal)",
+    "settings": {
+      "dw_min": "2.0 / 1024.0",
+      "w_max": 1.0, "w_min": -1.0,
+      "gamma_up": 0.0, "gamma_down": 0.0,
+      "up_down": 0.0,
+      "dw_min_std": 0.0, "dw_min_dtod": 0.0,
+      "w_max_dtod": 0.0, "w_min_dtod": 0.0
+    },
+    "comment": "C tile is gamma=0 (ideal LinearStep); AF is applied only on AB tiles."
+  },
+  "methods": {
+    "direct": {
+      "label": "Direct",
+      "rpu": "SingleRPUConfig with one LinearStepDevice (the AB device)",
+      "best_hp": {"lr": 0.1},
+      "fixed_in_script": {"lr": 0.1, "desired_bl": 31},
+      "hp_search": {"n_cells": 0, "n_trials": 0, "method": "fixed (no HP search)"},
+      "source_script": "experiments/hp_search_direct_gamma_af.py",
+      "result_file": "results/sweep_5x5_fixed_hp/direct.json"
+    },
+    "tikitaka_v1": {
+      "label": "TikiTaka v1 (3-HP best)",
+      "rpu": "UnitCellRPUConfig(device=ChoppedTransferCompound([fast=AB, slow=C]))",
+      "compound_settings": {
+        "transfer_every": 10,
+        "units_in_mbatch": true,
+        "n_reads_per_transfer": 1,
+        "transfer_columns": true,
+        "with_reset_prob": 0.0,
+        "no_buffer": true,
+        "in_chop_prob": 0.0, "out_chop_prob": 0.0,
+        "auto_scale": false,
+        "scale_transfer_lr": false,
+        "transfer_forward": "noise_management=NONE, bound_management=NONE",
+        "transfer_update": "desired_bl=31, update_bl_management=true, update_management=true"
+      },
+      "best_hp": {"lr": 0.1, "transfer_lr": 1.0, "fast_lr": 0.3, "classifier_lr": 1.0},
+      "hp_search": {
+        "type": "grid",
+        "grid": {"transfer_lr": [1.0, 3.0], "fast_lr": [0.3, 1.0], "classifier_lr": [0.1, 0.3, 1.0]},
+        "lr_fixed": 0.1,
+        "screening_grid": {"af": [0.0, 1.0, 5.0], "unr": [0.0, 1.0, 3.0]},
+        "n_cells": 12,
+        "n_trials": 108,
+        "wall_seconds_total": 16836.4,
+        "selection_metric": "best mean acc across 9 screening cells"
+      },
+      "source_script": "experiments/hp_search_tikitaka_3hp_gamma_af.py",
+      "result_file": "results/sweep_5x5_fixed_hp/tikitaka_bestHP.json"
+    },
+    "lrtt_v1": {
+      "label": "LRTT-v1 (decay/lora/onehot)",
+      "rpu": "PythonLRTTRPUConfig(device=PythonLRTTDevice([A=AB, B=AB, C=ideal-10bit]))",
+      "device_settings": {
+        "rank": 8,
+        "transfer_every": 10,
+        "lora_alpha": 1.0,
+        "reinit_gain": 1.0,
+        "reinit_mode": "decay",
+        "decay_factor": 1.0,
+        "update_mode": "lora",
+        "transfer_method": "onehot",
+        "transfer_mode": "off",
+        "forward_inject": false
+      },
+      "best_hp": {"lr": 0.1, "transfer_lr": 0.001, "classifier_lr": 0.3},
+      "hp_search": {
+        "type": "2-stage grid",
+        "stage1_grid": {"lr": [1.0, 0.3, 0.1], "transfer_lr": [0.01, 0.001, 0.0001], "classifier_lr": [1.0, 0.3, 0.1]},
+        "stage1_screening": {"af": [0.0, 1.0, 5.0], "unr": [0.0, 1.0, 3.0]},
+        "n_cells": 27,
+        "n_trials_stage1": 243,
+        "n_trials_stage2_new": 0,
+        "wall_seconds_total": 24492.8,
+        "selection_metric": "best mean acc across 9 screening cells"
+      },
+      "source_script": "experiments/hp_search_v1_decay_gamma_af_2stage.py",
+      "result_file": "results/sweep_5x5_fixed_hp/lrtt_v1.json"
+    },
+    "lrtt_v2": {
+      "label": "LRTT-v2 (selector_reconstruction/blockwise)",
+      "rpu": "PythonLRTTRPUConfig(device=PythonLRTTDevice([A=AB(unused), B=AB, C=ideal-10bit]))",
+      "device_settings": {
+        "rank": 8,
+        "transfer_every": 10,
+        "lora_alpha": 1.0,
+        "reinit_gain": 1.0,
+        "reinit_mode": "standard",
+        "decay_factor": 1.0,
+        "b_init_mode": "zero",
+        "update_mode": "selector_reconstruction",
+        "transfer_method": "blockwise",
+        "transfer_mode": "off",
+        "forward_inject": false,
+        "selector_axis": "row",
+        "selector_policy": "shuffled_cycle",
+        "selector_seed": 42,
+        "selector_reset_b_on_advance": true,
+        "cap_stabilizer_enabled": true,
+        "cap_rho": 1.0,
+        "cap_compensate_transfer": true
+      },
+      "best_hp": {"lr": 1.0, "transfer_lr": 0.1, "classifier_lr": 1.0},
+      "hp_search": {
+        "type": "2-stage grid",
+        "stage1_grid": {"lr": [3.0, 1.0, 0.3], "transfer_lr": [10.0, 1.0, 0.1], "classifier_lr": [1.0, 0.3, 0.1]},
+        "stage1_screening": {"af": [0.0, 1.0, 5.0], "unr": [0.0, 1.0, 3.0]},
+        "n_cells": 27,
+        "n_trials_stage1": 243,
+        "n_trials_stage2_new": 0,
+        "wall_seconds_total": 21822.6,
+        "selection_metric": "best mean acc across 9 screening cells"
+      },
+      "source_script": "experiments/hp_search_v2_rank8_gamma_af_2stage.py",
+      "result_file": "results/sweep_5x5_fixed_hp/lrtt_v2.json"
+    }
+  },
+  "reset_ablation_methods": {
+    "_comment": "Variants that flip the reset-mode while keeping all other settings (and best HP) identical to the heatmap baseline. Used to test whether AF insensitivity in v2 is due to per-transfer reset.",
+    "tikitaka_reset": {
+      "label": "TikiTaka v1 + with_reset_prob=1.0",
+      "base": "tikitaka_v1",
+      "diff": {"compound_settings.with_reset_prob": "0.0 -> 1.0"},
+      "best_hp": {"lr": 0.1, "transfer_lr": 1.0, "fast_lr": 0.3, "classifier_lr": 1.0},
+      "source_script": "experiments/sweep_5x5_reset_modes.py",
+      "result_file": "results/sweep_5x5_reset_modes/tikitaka_reset.json"
+    },
+    "lrtt_v1_reset": {
+      "label": "LRTT-v1 + reinit_mode='standard' (hard reset of A,B every transfer)",
+      "base": "lrtt_v1",
+      "diff": {"device_settings.reinit_mode": "decay -> standard"},
+      "best_hp": {"lr": 0.1, "transfer_lr": 0.001, "classifier_lr": 0.3},
+      "source_script": "experiments/sweep_5x5_reset_modes.py",
+      "result_file": "results/sweep_5x5_reset_modes/lrtt_v1_reset.json"
+    }
+  }
+}
