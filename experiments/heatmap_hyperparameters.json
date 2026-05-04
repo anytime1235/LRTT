@@ -201,6 +201,25 @@
         "clr": {"low": 0.03, "high": 3.0, "log": true}
       },
       "result_file": "results/per_cell_tpe_30/lrtt_v1_reset/af{a:g}_unr{u:g}.json"
+    },
+    "lrtt_v2_noreset": {
+      "label": "LRTT-v2 - selector_reset_b_on_advance=False (no per-transfer B reset)",
+      "base": "lrtt_v2",
+      "diff": {"device_settings.selector_reset_b_on_advance": "true -> false"},
+      "best_hp_warm_start": {"lr": 1.0, "transfer_lr": 0.1, "classifier_lr": 1.0},
+      "search_space": {
+        "lr":  {"low": 0.1, "high": 10.0, "log": true},
+        "tlr": {"low": 0.01, "high": 1.0, "log": true},
+        "clr": {"low": 0.1, "high": 10.0, "log": true}
+      },
+      "result_file": "results/per_cell_tpe_30/lrtt_v2_noreset/af{a:g}_unr{u:g}.json",
+      "smoke_results_default_hp_1trial": {
+        "_comment": "Single-trial sanity check (TPE search will refine these).",
+        "af0_unr0": 93.85,
+        "af10_unr0": 95.98,
+        "vs_baseline_v2": "AF=0: -3.02 pp, AF=10: -0.72 pp",
+        "interpretation": "v2 still trains without reset; AF insensitivity is preserved (delta(AF=0->10) = +2.13 pp), so reset is not the dominant cause of v2's flat AF curve - the selector + single-tile-update path is."
+      }
     }
   }
 }

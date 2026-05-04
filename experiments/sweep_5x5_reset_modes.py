@@ -1,21 +1,28 @@
 #!/usr/bin/env python3
 """Reset-mode ablation sweep, 5x5 (AF, UNR) grid, fixed best HP.
 
-Adds two new method variants on top of the existing sweep_5x5_fixed_hp.py:
+Adds three new method variants on top of the existing sweep_5x5_fixed_hp.py:
 
-  - tikitaka_reset:  TikiTaka v1 with ChoppedTransferCompound(with_reset_prob=1.0)
-                     → transferred columns of the fast tile are zeroed each
-                     transfer (TikiTaka-native hard reset).
-  - lrtt_v1_reset:   LRTT v1 with reinit_mode="standard" (instead of "decay")
-                     → A and B are reinitialized (A=Kaiming, B=Kaiming) every
-                     transfer, wiping accumulated AF-biased state.
+  - tikitaka_reset:    TikiTaka v1 with ChoppedTransferCompound(with_reset_prob=1.0)
+                       → transferred columns of the fast tile are zeroed each
+                       transfer (TikiTaka-native hard reset).
+  - lrtt_v1_reset:     LRTT v1 with reinit_mode="standard" (instead of "decay")
+                       → A and B are reinitialized (A=Kaiming, B=Kaiming) every
+                       transfer, wiping accumulated AF-biased state.
+  - lrtt_v2_noreset:   LRTT v2 with selector_reset_b_on_advance=False
+                       → B is NOT zeroed when the row selector advances.
+                       The PythonLRTTDevice docstring marks this as "Required
+                       for coordinate consistency" — this variant tests
+                       empirically whether v2 can still train without reset.
 
 Best HPs are reused from sweep_5x5_fixed_hp.py. The intent is to test whether
-adding a hard-reset to v1 / TikiTaka closes the AF-sensitivity gap with v2.
+adding a hard-reset to v1 / TikiTaka closes the AF-sensitivity gap with v2,
+and whether removing reset from v2 breaks training entirely.
 
 Output: /root/LRTT/results/sweep_5x5_reset_modes/
   tikitaka_reset.json
   lrtt_v1_reset.json
+  lrtt_v2_noreset.json
 
 Run:
   PYTHONPATH=/root/LRTT/src \
@@ -54,14 +61,16 @@ from aihwkit.simulator.configs.utils import (
 # Reuse data loader / hyperparams from existing modules
 import hp_search_tikitaka_3hp_gamma_af as tt3_mod
 import hp_search_v1_decay_gamma_af_2stage as v1_mod
+import hp_search_v2_rank8_gamma_af_2stage as v2_mod
 
 
 AF_GRID  = [0.0, 1.0, 2.0, 5.0, 10.0]
 UNR_GRID = [0.0, 1.0, 3.0, 5.0, 10.0]
 
 BEST_HP = {
-    "tikitaka_reset": {"transfer_lr": 1.0, "fast_lr": 0.3, "classifier_lr": 1.0},
-    "lrtt_v1_reset":  {"lr": 0.1, "tlr": 0.001, "clr": 0.3},
+    "tikitaka_reset":  {"transfer_lr": 1.0, "fast_lr": 0.3, "classifier_lr": 1.0},
+    "lrtt_v1_reset":   {"lr": 0.1, "tlr": 0.001, "clr": 0.3},
+    "lrtt_v2_noreset": {"lr": 1.0, "tlr": 0.1, "clr": 1.0},
 }
 
 OUT_DIR = "/root/LRTT/results/sweep_5x5_reset_modes"
@@ -243,6 +252,94 @@ def run_lrtt_v1_reset(lr, tlr, clr, af_ratio, unr):
 
 
 # ---------------------------------------------------------------------------
+# LRTT v2 WITHOUT reset (selector_reset_b_on_advance=False)
+# ---------------------------------------------------------------------------
+def _create_model_v2_noreset(tlr, af_ratio, unr):
+    lt_param = v2_mod._ab_lifetime_param(v2_mod.LIFETIME_PHYS)
+    a = v2_mod._make_ab_device(lt_param, af_ratio, unr)
+    b = v2_mod._make_ab_device(lt_param, af_ratio, unr)
+    c = v2_mod._make_c_device()
+    dev = PythonLRTTDevice(
+        rank=v2_mod.RANK, transfer_every=v2_mod.TE,
+        lora_alpha=1.0, reinit_gain=1.0,
+        reinit_mode="standard", decay_factor=1.0,
+        b_init_mode="zero",
+        update_mode="selector_reconstruction",
+        transfer_method="blockwise",
+        forward_inject=False,
+        selector_axis="row", selector_policy="shuffled_cycle",
+        selector_seed=v2_mod.SEED,
+        selector_reset_b_on_advance=False,       # ← ablation: no reset
+        cap_stabilizer_enabled=True, cap_rho=1.0,
+        cap_compensate_transfer=True,
+        unit_cell_devices=[a, b, c],
+    )
+    dev.transfer_lr = tlr
+    dev.transfer_mode = "off"
+
+    rpu = PythonLRTTRPUConfig(device=dev)
+    rpu.forward.out_noise = 0.0
+    rpu.backward.out_noise = 0.0
+    rpu.mapping.weight_scaling_omega = 0.6
+
+    return AnalogSequential(
+        AnalogLinear(784, v2_mod.HIDDEN, bias=True, rpu_config=rpu),
+        nn.ReLU(),
+        AnalogLinear(v2_mod.HIDDEN, v2_mod.OUT, bias=True,
+                     rpu_config=FloatingPointRPUConfig()),
+        nn.LogSoftmax(dim=1),
+    ).to(DEVICE)
+
+
+def run_lrtt_v2_noreset(lr, tlr, classifier_lr, af_ratio, update_noise_ratio):
+    torch.manual_seed(v2_mod.SEED)
+    train_loader, val_loader = v2_mod.build_loaders(smoke=False)
+    model = _create_model_v2_noreset(tlr, af_ratio, update_noise_ratio)
+    optimizer = AnalogSGD(model.parameters(), lr=lr)
+    optimizer.regroup_param_groups(model)
+    for pg in optimizer.param_groups:
+        if not pg.get("analog", False):
+            pg["lr"] = classifier_lr
+    scheduler = StepLR(optimizer, step_size=10, gamma=0.5)
+    criterion = nn.NLLLoss()
+
+    best_acc = 0.0
+    patience = 0
+    for epoch in range(1, v2_mod.EPOCHS + 1):
+        model.train()
+        for d, t in train_loader:
+            d = d.to(DEVICE, non_blocking=True).view(d.shape[0], -1)
+            t = t.to(DEVICE, non_blocking=True)
+            optimizer.zero_grad(set_to_none=True)
+            loss = criterion(model(d), t)
+            loss.backward()
+            optimizer.step()
+        model.eval()
+        correct = total = 0
+        with torch.no_grad():
+            for d, t in val_loader:
+                d = d.to(DEVICE, non_blocking=True).view(d.shape[0], -1)
+                t = t.to(DEVICE, non_blocking=True)
+                correct += model(d).argmax(dim=1).eq(t).sum().item()
+                total += t.size(0)
+        acc = 100.0 * correct / total
+        scheduler.step()
+        if acc > best_acc:
+            best_acc = acc; patience = 0
+        else:
+            patience += 1
+        if epoch >= 5 and best_acc < 50.0:
+            break
+        if patience >= v2_mod.EARLY_STOP_PATIENCE:
+            break
+
+    del model
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    return best_acc
+
+
+# ---------------------------------------------------------------------------
 # Sweep driver (mirrors sweep_5x5_fixed_hp.run_method)
 # ---------------------------------------------------------------------------
 def run_one(method, hp, af, unr):
@@ -251,6 +348,8 @@ def run_one(method, hp, af, unr):
                                   hp["classifier_lr"], af, unr)
     if method == "lrtt_v1_reset":
         return run_lrtt_v1_reset(hp["lr"], hp["tlr"], hp["clr"], af, unr)
+    if method == "lrtt_v2_noreset":
+        return run_lrtt_v2_noreset(hp["lr"], hp["tlr"], hp["clr"], af, unr)
     raise ValueError(method)
 
 
@@ -311,8 +410,11 @@ def run_method(method, out_dir):
 def parse_args():
     import argparse
     p = argparse.ArgumentParser()
-    p.add_argument("--methods", nargs="+",
-                    default=["tikitaka_reset", "lrtt_v1_reset"])
+    p.add_argument(
+        "--methods", nargs="+",
+        default=["tikitaka_reset", "lrtt_v1_reset", "lrtt_v2_noreset"],
+        choices=["tikitaka_reset", "lrtt_v1_reset", "lrtt_v2_noreset"],
+    )
     return p.parse_args()
 
 

@@ -50,13 +50,14 @@ N_TRIALS = 30
 SEED = 42
 
 BEST_HP = {
-    "tikitaka_v1":    {"transfer_lr": 1.0, "fast_lr": 0.3, "classifier_lr": 1.0},
-    "lrtt_v1":        {"lr": 0.1, "tlr": 0.001, "clr": 0.3},
-    "lrtt_v2":        {"lr": 1.0, "tlr": 0.1, "clr": 1.0},
+    "tikitaka_v1":     {"transfer_lr": 1.0, "fast_lr": 0.3, "classifier_lr": 1.0},
+    "lrtt_v1":         {"lr": 0.1, "tlr": 0.001, "clr": 0.3},
+    "lrtt_v2":         {"lr": 1.0, "tlr": 0.1, "clr": 1.0},
     # Reset-mode ablations reuse the baseline best HP as the warm-start point
     # (no prior fixed-HP sweep exists yet).
-    "tikitaka_reset": {"transfer_lr": 1.0, "fast_lr": 0.3, "classifier_lr": 1.0},
-    "lrtt_v1_reset":  {"lr": 0.1, "tlr": 0.001, "clr": 0.3},
+    "tikitaka_reset":  {"transfer_lr": 1.0, "fast_lr": 0.3, "classifier_lr": 1.0},
+    "lrtt_v1_reset":   {"lr": 0.1, "tlr": 0.001, "clr": 0.3},
+    "lrtt_v2_noreset": {"lr": 1.0, "tlr": 0.1, "clr": 1.0},
 }
 
 # Search space mirrors the corresponding baseline so the ablation is
@@ -77,22 +78,24 @@ _SS_LRTT_V2 = {
     "clr": FloatDistribution(0.1, 10.0, log=True),
 }
 SEARCH_SPACE = {
-    "tikitaka_v1":    _SS_TIKITAKA,
-    "lrtt_v1":        _SS_LRTT_V1,
-    "lrtt_v2":        _SS_LRTT_V2,
-    "tikitaka_reset": _SS_TIKITAKA,
-    "lrtt_v1_reset":  _SS_LRTT_V1,
+    "tikitaka_v1":     _SS_TIKITAKA,
+    "lrtt_v1":         _SS_LRTT_V1,
+    "lrtt_v2":         _SS_LRTT_V2,
+    "tikitaka_reset":  _SS_TIKITAKA,
+    "lrtt_v1_reset":   _SS_LRTT_V1,
+    "lrtt_v2_noreset": _SS_LRTT_V2,
 }
 
 OUT_ROOT = "/root/LRTT/results/per_cell_tpe_30"
 # When a SWEEP_FILE entry is None the warm-start has no prior acc; the script
 # enqueues the HP via study.enqueue_trial so it gets evaluated as trial 1.
 SWEEP_FILES = {
-    "tikitaka_v1":    "/root/LRTT/results/sweep_5x5_fixed_hp/tikitaka_bestHP.json",
-    "lrtt_v1":        "/root/LRTT/results/sweep_5x5_fixed_hp/lrtt_v1.json",
-    "lrtt_v2":        "/root/LRTT/results/sweep_5x5_fixed_hp/lrtt_v2.json",
-    "tikitaka_reset": None,
-    "lrtt_v1_reset":  None,
+    "tikitaka_v1":     "/root/LRTT/results/sweep_5x5_fixed_hp/tikitaka_bestHP.json",
+    "lrtt_v1":         "/root/LRTT/results/sweep_5x5_fixed_hp/lrtt_v1.json",
+    "lrtt_v2":         "/root/LRTT/results/sweep_5x5_fixed_hp/lrtt_v2.json",
+    "tikitaka_reset":  None,
+    "lrtt_v1_reset":   None,
+    "lrtt_v2_noreset": None,
 }
 
 
@@ -129,6 +132,10 @@ def run_one(method: str, hp: dict, af: float, unr: float) -> float:
         )
     if method == "lrtt_v1_reset":
         return reset_mod.run_lrtt_v1_reset(
+            hp["lr"], hp["tlr"], hp["clr"], af, unr,
+        )
+    if method == "lrtt_v2_noreset":
+        return reset_mod.run_lrtt_v2_noreset(
             hp["lr"], hp["tlr"], hp["clr"], af, unr,
         )
     raise ValueError(method)
@@ -245,7 +252,7 @@ def parse_args():
         "--methods", nargs="+",
         default=["tikitaka_v1", "lrtt_v1", "lrtt_v2"],
         choices=["tikitaka_v1", "lrtt_v1", "lrtt_v2",
-                  "tikitaka_reset", "lrtt_v1_reset"],
+                  "tikitaka_reset", "lrtt_v1_reset", "lrtt_v2_noreset"],
     )
     p.add_argument("--n_trials", type=int, default=N_TRIALS)
     p.add_argument("--single_cell", nargs=2, type=float, default=None,
