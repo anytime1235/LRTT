@@ -169,22 +169,38 @@
     }
   },
   "reset_ablation_methods": {
-    "_comment": "Variants that flip the reset-mode while keeping all other settings (and best HP) identical to the heatmap baseline. Used to test whether AF insensitivity in v2 is due to per-transfer reset.",
+    "_comment": "Variants that flip the reset-mode while keeping all other settings identical to the heatmap baseline. Same per-cell Optuna TPE setup as the running baseline sweep (30 trials/cell, 25 cells, log-uniform search box mirroring the baseline). Test: whether AF insensitivity in v2 is due to per-transfer reset.",
+    "search_setup": {
+      "trials_per_cell": 30,
+      "sampler": "Optuna TPESampler(seed=42, n_startup_trials=5)",
+      "warm_start": "study.enqueue_trial(baseline_best_hp) — first trial of each cell evaluates the baseline HP for real (no prior fixed-HP eval exists)",
+      "primary_script": "experiments/per_cell_tpe_30.py",
+      "primary_output_dir": "results/per_cell_tpe_30/<method>/af{a:g}_unr{u:g}.json",
+      "fast_alternative_script": "experiments/sweep_5x5_reset_modes.py (1 trial/cell at fixed best HP, ~1.5h total)"
+    },
     "tikitaka_reset": {
       "label": "TikiTaka v1 + with_reset_prob=1.0",
       "base": "tikitaka_v1",
       "diff": {"compound_settings.with_reset_prob": "0.0 -> 1.0"},
-      "best_hp": {"lr": 0.1, "transfer_lr": 1.0, "fast_lr": 0.3, "classifier_lr": 1.0},
-      "source_script": "experiments/sweep_5x5_reset_modes.py",
-      "result_file": "results/sweep_5x5_reset_modes/tikitaka_reset.json"
+      "best_hp_warm_start": {"lr": 0.1, "transfer_lr": 1.0, "fast_lr": 0.3, "classifier_lr": 1.0},
+      "search_space": {
+        "transfer_lr":   {"low": 0.1, "high": 10.0, "log": true},
+        "fast_lr":       {"low": 0.03, "high": 3.0, "log": true},
+        "classifier_lr": {"low": 0.1, "high": 10.0, "log": true}
+      },
+      "result_file": "results/per_cell_tpe_30/tikitaka_reset/af{a:g}_unr{u:g}.json"
     },
     "lrtt_v1_reset": {
       "label": "LRTT-v1 + reinit_mode='standard' (hard reset of A,B every transfer)",
       "base": "lrtt_v1",
       "diff": {"device_settings.reinit_mode": "decay -> standard"},
-      "best_hp": {"lr": 0.1, "transfer_lr": 0.001, "classifier_lr": 0.3},
-      "source_script": "experiments/sweep_5x5_reset_modes.py",
-      "result_file": "results/sweep_5x5_reset_modes/lrtt_v1_reset.json"
+      "best_hp_warm_start": {"lr": 0.1, "transfer_lr": 0.001, "classifier_lr": 0.3},
+      "search_space": {
+        "lr":  {"low": 0.01, "high": 1.0, "log": true},
+        "tlr": {"low": 1e-4, "high": 1e-2, "log": true},
+        "clr": {"low": 0.03, "high": 3.0, "log": true}
+      },
+      "result_file": "results/per_cell_tpe_30/lrtt_v1_reset/af{a:g}_unr{u:g}.json"
     }
   }
 }
