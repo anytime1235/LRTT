@@ -101,8 +101,11 @@ SWEEP_FILES = {
 
 def warm_start_acc(method: str, af: float, unr: float):
     p = SWEEP_FILES.get(method)
-    if p is None:
-        return None  # caller will enqueue_trial instead of add_trial
+    if p is None or not os.path.exists(p):
+        # Either the method has no prior fixed-HP eval (ablations) or the
+        # baseline JSON hasn't been computed in this checkout. Caller falls
+        # back to enqueue_trial so the warm-start HP is evaluated for real.
+        return None
     with open(p) as f:
         d = json.load(f)
     for r in d["grid"]:
