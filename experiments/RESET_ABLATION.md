@@ -17,12 +17,27 @@ also contribute.
 
 | Method | Baseline | Diff |
 |---|---|---|
-| `tikitaka_reset`  | TikiTaka v1 (`tikitaka_v1`) | `ChoppedTransferCompound.with_reset_prob: 0.0 → 1.0` |
+| `tikitaka_reset`  | TikiTaka v1 (`tikitaka_v1`) | `ChoppedTransferCompound(chopper-off) → TransferCompound` + `with_reset_prob=1.0` (see note below) |
 | `lrtt_v1_reset`   | LRTT-v1 (`lrtt_v1`)         | `PythonLRTTDevice.reinit_mode: "decay" → "standard"` |
 | `lrtt_v2_noreset` | LRTT-v2 (`lrtt_v2`)         | `PythonLRTTDevice.selector_reset_b_on_advance: True → False` |
 
 All other tile / training / device settings are identical to the heatmap
 baseline (`experiments/heatmap_hyperparameters.json`).
+
+**Note on the TikiTaka compound class.** The MNIST baseline `tikitaka_v1`
+uses `ChoppedTransferCompound` with `in_chop_prob=out_chop_prob=0` and
+`no_buffer=True`, which is **bit-identical at runtime** to plain
+`TransferCompound`: with chop_prob=0 the in/out chopper arrays stay all-`false`,
+the `(in_chop != out_chop) ? -val : val` branch always returns `val`, and the
+chop_prob>0 branch (the only place `rw_rng_.sampleUniform()` is called) is
+skipped entirely, so RNG state is not perturbed. The reset variant
+`tikitaka_reset` uses plain `TransferCompound` instead because the chopped
+device's C++ `checkSupported()` (`rpu_chopped_transfer_device.cpp:82-87`)
+hard-rejects any `with_reset_prob > 0` regardless of whether the chopper is
+actually enabled at runtime. The base `TransferRPUDevice` C++ supports
+`with_reset_prob > 0` natively (`rpu_transfer_device.cpp:92, 198`, requires
+`transfer_columns=true` which we already set). So the swap toggles only the
+reset axis between baseline and ablation.
 
 ## Search setup (matches the running TPE-30 sweep)
 

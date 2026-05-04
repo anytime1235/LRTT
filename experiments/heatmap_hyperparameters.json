@@ -179,9 +179,18 @@
       "fast_alternative_script": "experiments/sweep_5x5_reset_modes.py (1 trial/cell at fixed best HP, ~1.5h total)"
     },
     "tikitaka_reset": {
-      "label": "TikiTaka v1 + with_reset_prob=1.0",
+      "label": "TikiTaka v1 (TransferCompound) + with_reset_prob=1.0",
       "base": "tikitaka_v1",
-      "diff": {"compound_settings.with_reset_prob": "0.0 -> 1.0"},
+      "diff": {
+        "compound_class": "ChoppedTransferCompound(chopper-off) -> TransferCompound",
+        "compound_settings.with_reset_prob": "0.0 -> 1.0",
+        "compound_settings.no_buffer": "True -> N/A (TransferCompound has no buffer field)",
+        "compound_settings.in_chop_prob": "0.0 -> N/A (TransferCompound has no chopper)",
+        "compound_settings.out_chop_prob": "0.0 -> N/A (TransferCompound has no chopper)",
+        "compound_settings.auto_scale": "False -> N/A (TransferCompound has no auto_scale)",
+        "compound_settings.auto_momentum": "0.99 -> N/A (TransferCompound has no auto_momentum)"
+      },
+      "rationale_for_compound_swap": "ChoppedTransferCompound's C++ checkSupported() unconditionally rejects with_reset_prob>0 (rpu_chopped_transfer_device.cpp:82-87). The base TransferRPUDevice supports it (rpu_transfer_device.cpp:92, 198, requires transfer_columns=true). The MNIST baseline runs ChoppedTransferCompound with chopper fully off (in_chop_prob=out_chop_prob=0, no_buffer=True), which is bit-identical at runtime to plain TransferCompound, so this swap leaves the with_reset_prob toggle as the only differing axis.",
       "best_hp_warm_start": {"lr": 0.1, "transfer_lr": 1.0, "fast_lr": 0.3, "classifier_lr": 1.0},
       "search_space": {
         "transfer_lr":   {"low": 0.1, "high": 10.0, "log": true},

@@ -3,9 +3,17 @@
 
 Adds three new method variants on top of the existing sweep_5x5_fixed_hp.py:
 
-  - tikitaka_reset:    TikiTaka v1 with ChoppedTransferCompound(with_reset_prob=1.0)
+  - tikitaka_reset:    TikiTaka v1 with TransferCompound(with_reset_prob=1.0)
                        → transferred columns of the fast tile are zeroed each
-                       transfer (TikiTaka-native hard reset).
+                       transfer (TikiTaka-native hard reset). Uses plain
+                       TransferCompound rather than ChoppedTransferCompound
+                       because the chopped device's C++ checkSupported()
+                       (rpu_chopped_transfer_device.cpp:82) hard-rejects any
+                       with_reset_prob>0. The baseline tikitaka_v1 uses
+                       ChoppedTransferCompound with chopper fully disabled
+                       (in_chop_prob=out_chop_prob=0, no_buffer=True), which
+                       is bit-identical at runtime to plain TransferCompound,
+                       so this swap toggles only the reset axis.
   - lrtt_v1_reset:     LRTT v1 with reinit_mode="standard" (instead of "decay")
                        → A and B are reinitialized (A=Kaiming, B=Kaiming) every
                        transfer, wiping accumulated AF-biased state.
@@ -49,7 +57,9 @@ from aihwkit.optim import AnalogSGD
 from aihwkit.simulator.configs import (
     FloatingPointRPUConfig, UnitCellRPUConfig,
 )
-from aihwkit.simulator.configs.compounds import ChoppedTransferCompound
+from aihwkit.simulator.configs.compounds import (
+    ChoppedTransferCompound, TransferCompound,
+)
 from aihwkit.simulator.configs.devices import LinearStepDevice
 from aihwkit.simulator.configs.lrtt_config import PythonLRTTRPUConfig
 from aihwkit.simulator.configs.lrtt_python import PythonLRTTDevice
@@ -84,8 +94,13 @@ def _create_rpu_tikitaka_reset(transfer_lr, fast_lr, af_ratio, unr):
     lt_param = tt3_mod._ab_lifetime_param(tt3_mod.LIFETIME_PHYS)
     fast = tt3_mod._make_fast_device(lt_param, af_ratio, unr)
     slow = tt3_mod._make_slow_device()
+    # NOTE: plain TransferCompound (NOT ChoppedTransferCompound). The chopped
+    # device's C++ checkSupported() rejects with_reset_prob>0 unconditionally.
+    # The baseline tikitaka_v1 runs ChoppedTransferCompound with the chopper
+    # fully disabled, which is bit-identical at runtime to TransferCompound,
+    # so this swap leaves the reset toggle as the only differing axis.
     rpu = UnitCellRPUConfig(
-        device=ChoppedTransferCompound(
+        device=TransferCompound(
             unit_cell_devices=[fast, slow],
             transfer_every=tt3_mod.TE,
             units_in_mbatch=True,
@@ -95,7 +110,8 @@ def _create_rpu_tikitaka_reset(transfer_lr, fast_lr, af_ratio, unr):
             transfer_lr=transfer_lr,
             fast_lr=fast_lr,
             scale_transfer_lr=False,
-            with_reset_prob=1.0,                 # ← reset mode
+            with_reset_prob=1.0,                 # ← reset mode (fast tile col)
+            random_selection=False,
             transfer_forward=IOParameters(
                 noise_management=NoiseManagementType.NONE,
                 bound_management=BoundManagementType.NONE,
@@ -105,8 +121,6 @@ def _create_rpu_tikitaka_reset(transfer_lr, fast_lr, af_ratio, unr):
                 update_bl_management=True,
                 update_management=True,
             ),
-            no_buffer=True, in_chop_prob=0.0, out_chop_prob=0.0,
-            auto_scale=False, auto_momentum=0.99,
         )
     )
     rpu.forward.out_noise = 0.0
