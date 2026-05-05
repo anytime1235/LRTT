@@ -20,7 +20,7 @@ Inline flags (edit directly in script):
     TRANSFER_METHOD = "onehot"      # Transfer method: "onehot" | "direct" | "set"
     FAST_LR = 1.0                   # Fast LR for A/B updates
     AUTO_SCALE_MODE = "none"        # Auto-scale: "none" | "shared" | "separate"
-    REINIT_MODE = "hybrid"          # Reinit mode: "standard" | "decay" | "hybrid"
+    REINIT_MODE = "hybrid"          # Reinit mode: "standard" | "decay" | "hybrid" | "orthogonal_zero" | "orthogonal_decay" | "gauss_b_zero" | "gauss_b_decay"
     REINIT_GAIN = 1.0               # Reinitialization gain
     TAU_SEC = 0.0                   # 6T1C retention (0 = no decay)
     DYNAMIC_TE = False              # Enable dynamic transfer every
@@ -311,7 +311,7 @@ def _create_ab_device(tau_sec=None, dw_min=None, multilevel=None, device_name=No
         gamma_up_dtod=0.05, gamma_down_dtod=0.05,
         dw_min_std=0.3, write_noise_std=0.0,
         mean_bound_reference=True,
-        lifetime=lifetime, lifetime_dtod=0.0,
+        lifetime=lifetime, lifetime_dtod=0.1,
         reset=0.0, reset_dtod=0.0,
     )
 

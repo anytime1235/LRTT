@@ -15,7 +15,10 @@ All flags:
         --no-wd                     # Disable weight decay tuning (fix to 0)
         --no-momentum               # Disable momentum tuning (fix to 0, SGD only)
         --no-nesterov               # Disable nesterov tuning (fix to False, SGD only)
-        --reinit-mode <str>         # Fix reinit mode: standard | decay | hybrid (default: tune all)
+        --reinit-mode <str>         # Fix reinit mode: standard | decay | hybrid |
+                                    #   orthogonal_zero | orthogonal_decay |
+                                    #   gauss_b_zero | gauss_b_decay
+                                    #   (default: tune among standard/decay/hybrid)
         --batch-size <int>          # Batch size (default: 64)
         --grad-accum-steps <int>    # Gradient accumulation steps (default: 1)
         --epochs <int>              # Number of epochs (default: 15)
@@ -507,7 +510,7 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981, multilevel=None):
         write_noise_std=0.0,
         mean_bound_reference=True,
         lifetime=lifetime,
-        lifetime_dtod=0.0,
+        lifetime_dtod=0.1,
         reset=0.0,
         reset_dtod=0.0,
     )
@@ -1734,8 +1737,10 @@ def main():
     parser.add_argument('--no-nesterov', action='store_true',
                         help='Disable nesterov tuning (fix to False, SGD only)')
     parser.add_argument('--reinit-mode', type=str, default=None,
-                        choices=['standard', 'decay', 'hybrid'],
-                        help='Fix reinit mode (default: tune all three)')
+                        choices=['standard', 'decay', 'hybrid',
+                                 'orthogonal_zero', 'orthogonal_decay',
+                                 'gauss_b_zero', 'gauss_b_decay'],
+                        help='Fix reinit mode (default: tune among standard/decay/hybrid)')
     parser.add_argument('--batch-size', type=int, default=32,
                         help='Batch size (default: 32)')
     parser.add_argument('--grad-accum-steps', type=int, default=1,
