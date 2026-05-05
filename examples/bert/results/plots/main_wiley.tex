@@ -5,7 +5,7 @@
 
 \documentclass[AMA,LATO2COL]{WileyNJDv5}
 \usepackage{xcolor}      % colors
-\usepackage{colortbl}    % \rowcolor 안정적으로 지원 (권장)
+\usepackage{colortbl}    
 \usepackage{booktabs}    % \toprule \midrule \bottomrule
 \usepackage{tabularx}    % tabularx
 \usepackage{array}       % \newcolumntype
@@ -13,9 +13,7 @@
 \usepackage{graphicx}
 \usepackage{subcaption}
 \usepackage{caption}
-\usepackage{dblfloatfix} % figure* / table* 상단 배치 안정화
-% --- Float placement tuning for two-column main text ---
-% Keep double-column floats at the page top and discourage float-only pages.
+\usepackage{dblfloatfix} 
 \setcounter{dbltopnumber}{1}
 \setcounter{topnumber}{2}
 \setcounter{totalnumber}{3}
@@ -31,7 +29,13 @@
 \newcommand{\new}[1]{{\color{red}#1}}
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 \newcommand{\erank}{\operatorname{erank}}
-
+% --- Nature-style table palette: add in preamble ---
+\definecolor{NatHead}{RGB}{245,246,247}
+\definecolor{NatLoRA}{RGB}{232,242,248}
+\definecolor{NatTT}{RGB}{244,239,249}
+\definecolor{NatLRTT}{RGB}{238,248,241}
+\definecolor{NatLRTTvTwo}{RGB}{255,247,230}
+\definecolor{NatRule}{RGB}{115,115,115}
 
 % --- colors (subtle, journal-friendly) ---
 \definecolor{HeadGray}{RGB}{245,245,245}
@@ -56,12 +60,10 @@
 \gdef\@publisheddoi{}%
 \makeatother
 
-% (중요) 템플릿이 "값이 없으면 Added at production"을 다시 채우는 경우가 있어,
-% 사용자 매크로도 빈 값으로 한번 더 호출해두는 게 안전합니다.
 \received{}
 \revised{}
 \accepted{}
-% 일부 버전에선 DOI를 아래 중 하나로 받습니다(에러 나는 건 주석 처리)
+
 % \doi{}
 % \publisheddoi{}
 
@@ -89,7 +91,7 @@
 % \JELinfo{JEL codes.}
 
 \abstract[Abstract]{%
-As transformer models continue to scale, task adaptation becomes increasingly expensive, particularly for on-chip adaptation. Parameter-efficient fine-tuning methods such as LoRA substantially reduce the trainable adaptation state while maintaining competitive downstream-task performance. However, reducing the adaptation state alone does not remove the main on-chip burden, because large dense projections still have to be stored and repeatedly executed, making analog in-memory computing (AIMC) attractive for massively parallel matrix--vector multiplication. For such in-situ AIMC training, Tiki-Taka mitigates analog update non-idealities through core--auxiliary learning, but its full-dimensional auxiliary state remains costly for transformer fine-tuning. Here we introduce Low-Rank Tiki-Taka (LR-TT), which replaces the full-dimensional auxiliary state of Tiki-Taka with low-rank \(A/B\) auxiliary tiles. Projected updates are accumulated on these tiles and periodically transferred to a core tile that stores the core weight of the mapped layer. We implement this auxiliary path on measured 6T1C synaptic arrays, whose near-linear and symmetric incremental updates, \(\sim 10^3\) programmable states and \(>10^9\)-pulse endurance suit the repeated small-update demands of LR-TT in transformer fine-tuning. Hardware-in-the-loop regression and MNIST training validate the low-rank accumulate-and-transfer dynamics and their robustness under non-ideal updates. In BERT-base fine-tuning on SQuAD v1.1, LR-TT retains performance close to full-rank Tiki-Taka while substantially reducing auxiliary-path energy and mapped hardware footprint, establishing a practical route to parameter-efficient transformer on-chip training with AIMC hardware.
+As transformer models continue to scale, task adaptation becomes increasingly expensive, particularly for on-chip adaptation. Parameter-efficient methods such as LoRA reduce the trainable state while preserving downstream-task performance, but the on-chip burden remains because large dense projections must still be stored and repeatedly executed, making analog in-memory computing (AIMC) attractive for parallel matrix--vector multiplication. Tiki-Taka mitigates analog update non-idealities through core--auxiliary learning, but its full-dimensional auxiliary state remains costly at transformer scale. Here we introduce Low-Rank Tiki-Taka (LR-TT), which replaces the full-dimensional auxiliary state of Tiki-Taka with low-rank \(A/B\) auxiliary tiles. Projected updates accumulate on these tiles and are periodically consolidated rank-wise into a core tile, replacing Tiki-Taka's column-wise transfer. Measured 6T1C synaptic arrays---with near-linear symmetric updates, \(\sim 10^3\) programmable states, and \(>10^9\)-pulse endurance---provide a suitable substrate for the auxiliary path. Hardware-in-the-loop regression and MNIST experiments validate the accumulate-and-transfer dynamics. In BERT-base fine-tuning on SQuAD v1.1, LR-TT retains performance close to full-dimensional Tiki-Taka while substantially reducing auxiliary-path energy and mapped hardware footprint. This represents, to our knowledge, the first AIMC on-chip fine-tuning of a BERT-base-scale transformer language model, opening a practical route beyond prior transformer-AIMC work that has been limited to inference or digital adapters.
 }
 
 \keywords{low-rank adaptation; Tiki-Taka; analog in-memory computing; on-chip training; transformers}
@@ -140,6 +142,7 @@ However, for adaptation executed on-device or near the data source, the bottlene
 Analog in-memory computing (AIMC) is attractive in this setting because it performs matrix--vector multiplications (MVMs) directly inside memory arrays, reducing the data-movement overhead of conventional von Neumann systems \cite{ielmini2018imc,wan2022neurram,rasch2024fastrobust}.
 Recent work has begun to explore transformer-family workloads on AIMC, including post-training optimization, analog inference demonstrations, hardware-aware LoRA-style adaptation, and architecture-level approaches for transformer acceleration \cite{lammie2024pt_roberta,chen2025albertanalog,li2026ahwa_lora,leroux2025aimc_attention,buchel2025moe_3d_aimc}.
 Yet these efforts largely remain focused on inference or hardware-aware software adaptation.
+While in-situ pulsed training has been demonstrated for small convolutional networks and, more recently, for a small-scale Vision Transformer trained in simulation on CIFAR-10 \cite{rasch2024fastrobust}, pulsed on-chip fine-tuning of transformer language models at the BERT-base scale ($\sim$110\,M parameters) has not been reported.
 Extending AIMC from inference-oriented MVM acceleration to in-situ transformer fine-tuning is more challenging because training requires repeated local weight updates in addition to forward and backward MVMs \cite{ambrogio2018analogtraining,rasch2024fastrobust,wu2025responsefunctions}.
 In the most direct analog-SGD update path, pulsed weight updates are affected by asymmetric device response, finite update granularity, and retention- or drift-induced state errors; these effects can bias the effective update, discretize small corrections, and perturb the intended optimization trajectory \cite{ambrogio2018analogtraining,wu2025responsefunctions,rasch2024fastrobust,aguirre2024memristor_ann_review}.
 
@@ -155,14 +158,15 @@ A suitable auxiliary-array device should support gradual and near-symmetric incr
 These requirements become especially relevant for transformer fine-tuning, where low-magnitude updates and low-bit adaptation make stable update representation difficult without adequate state resolution and endurance \cite{jeon2025l4q,zhou2025quzo,chen2025albertanalog}.
 Low-leakage IGZO-TFT/capacitor 6T1C synaptic arrays provide a promising platform for this auxiliary path, with demonstrated linear and symmetric incremental updates, transfer-window retention, and device-level endurance beyond \(10^9\) update pulses \cite{won2023advs_6t1c}.
 Recent circuit- and array-level results further report hundreds of distinct programmable states, high update linearity, and enhanced retention, supporting their use as a device substrate for repeated auxiliary accumulation \cite{kang2025jssc_6t1c,kang2025advs_disturbance,han2025acsami_gi}.
+These device-level properties align with LR-TT's auxiliary-path requirements: compressing the auxiliary state to \(r(M+N)\) cells concentrates pulse-write activity onto a small, well-engineered cell population, where 6T1C's near-symmetric incremental updates support per-step bidirectional accumulation, its transfer-window retention covers the accumulate-then-transfer cadence, and its \(>10^9\)-pulse endurance accommodates the elevated per-cell write rate inherent to compact auxiliary tiles.
 
 \noindent
 In this work, we propose \emph{Low-Rank Tiki-Taka} (LR-TT), a core/auxiliary analog training framework that integrates LoRA-style low-rank adaptation with Tiki-Taka-style accumulate-and-transfer learning for transformer fine-tuning \cite{hu2021lora,gokmen2020tikitaka,gokmen2021ttv2}.
 As illustrated in Fig.~\ref{fig:lrtt_concept}(a), each mapped linear operator is represented by a core \(C\) tile and low-rank auxiliary \(A/B\) tiles.
 The core tile stores the core weight used for the forward MVM, whereas the auxiliary tiles accumulate projected update information within a rank-\(r\) subspace through stochastic pulse updates.
-As illustrated in Fig.~\ref{fig:lrtt_concept}(b), after every transfer interval \(\tau\), the auxiliary states are read out one rank at a time using one-hot selection vectors and transferred to \(C\) as \(r\) sequential rank-1 stochastic pulse updates.
+As illustrated in Fig.~\ref{fig:lrtt_concept}(b), after every transfer interval \(\tau\), the auxiliary states are read out one rank at a time using one-hot selection vectors and transferred to \(C\) as \(r\) sequential rank-1 stochastic pulse updates, in contrast to Tiki-Taka's column-by-column transfer.
 % Because this auxiliary path is repeatedly written before each transfer, the device choice is co-designed with the core/auxiliary partitioning: we instantiate the auxiliary path using measured 6T1C synaptic-array characteristics, whose near-linear and near-symmetric incremental updates, transfer-window retention, and high pulse endurance support stable low-rank accumulation between transfers.
-As shown in Fig.~\ref{fig:figure1_c}(b) by replacing the full-rank Tiki-Taka auxiliary state with rank-controlled \(A/B\) auxiliary tiles, LR-TT preserves the parameter efficiency of LoRA while retaining the update robustness of Tiki-Taka-like core/auxiliary learning under analog non-idealities \cite{gokmen2020tikitaka,gokmen2021ttv2,noh2024retention_zeroshifting,rasch2024fastrobust}.
+As shown in Fig.~\ref{fig:figure1_c}(b) by replacing the full-dimensional Tiki-Taka auxiliary state with rank-controlled \(A/B\) auxiliary tiles, LR-TT preserves the parameter efficiency of LoRA while retaining the update robustness of Tiki-Taka-like core/auxiliary learning under analog non-idealities \cite{gokmen2020tikitaka,gokmen2021ttv2,noh2024retention_zeroshifting,rasch2024fastrobust}.
 
 \begin{table*}[!t]
   \centering
@@ -240,10 +244,159 @@ As shown in Fig.~\ref{fig:figure1_c}(b) by replacing the full-rank Tiki-Taka aux
   \(G_k=D_kX_k^\top\). \(U_k\) denotes the Tiki-Taka auxiliary matrix, whereas
 \(A_k\in\mathbb{R}^{d_{\mathrm{out}}\times r}\) and
 \(B_k\in\mathbb{R}^{r\times d_{\mathrm{in}}}\) denote the low-rank auxiliary factors.
-\(\mathcal{T}(\cdot)\) and \(\mathcal{T}_r(\cdot)\) denote colmun-wise and rank-wise stochastic transfer, respectively; \(\tau\) is the transfer interval. Superscript \(+\) denotes the state after local accumulation and before transfer.
+\(\mathcal{T}(\cdot)\) and \(\mathcal{T}_r(\cdot)\) denote column-wise and rank-wise stochastic transfer, respectively; \(\tau\) is the transfer interval. Superscript \(+\) denotes the state after local accumulation and before transfer.
   \end{minipage}
   }
 \end{table*}
+
+% \begin{table*}[!t]
+%   \centering
+%   \caption{\textbf{Operational comparison of LoRA, Tiki-Taka, LR-TT and LR-TT-v2.}
+%   The methods are compared in terms of the forward-visible weight, local update rule,
+%   transfer operation, and auxiliary state retained after transfer. LoRA keeps the
+%   low-rank adapter in the forward path. Tiki-Taka and LR-TT use the core state
+%   \(C_k\) for the forward MVM and periodically transfer auxiliary information to
+%   \(C_k\). LR-TT replaces the full-size Tiki-Taka auxiliary matrix with low-rank
+%   \(A/B\) auxiliary tiles. LR-TT-v2 further replaces the dense \(A\)-factor with an
+%   address selector, so that each selector micro-transfer updates only a subset of
+%   output rows while full row coverage is obtained over a coverage cycle.}
+%   \label{tab:ops_lora_tt_lrtt2}
+
+%   {\footnotesize
+%   \renewcommand{\arraystretch}{1.18}
+%   \setlength{\tabcolsep}{3.0pt}
+%   \arrayrulecolor{NatRule}
+
+%   \begin{tabularx}{\textwidth}{@{}p{1.65cm} Y Y Y Y@{}}
+%   \toprule
+%   \rowcolor{NatHead}
+%   \textbf{Method} &
+%   \textbf{Forward-visible weight} &
+%   \textbf{Update / accumulation rule} &
+%   \textbf{Transfer to core state} &
+%   \textbf{Retained state after transfer} \\
+%   \midrule
+
+%   \rowcolor{NatLoRA}
+%   \textbf{LoRA} &
+%   \makecell[l]{
+%   \(W_k^{\mathrm{vis}} = W_0+\alpha A_kB_k\)
+%   } &
+%   \makecell[l]{
+%   \(A_{k+1}=A_k-\eta_A\,G_kB_k^\top\) \\
+%   \(B_{k+1}=B_k-\eta_B\,A_k^\top G_k\)
+%   } &
+%   \makecell[c]{
+%   none
+%   } &
+%   \makecell[l]{
+%   \(A_{k+1},B_{k+1}\) remain \\
+%   forward-visible adapters
+%   } \\
+%   \midrule
+
+%   \rowcolor{NatTT}
+%   \textbf{Tiki-Taka} &
+%   \makecell[l]{
+%   \(W_k^{\mathrm{vis}}=C_k\)
+%   } &
+%   \makecell[l]{
+%   \(U_k^{+}=U_k-\eta_U\,G_k\)
+%   } &
+%   \makecell[l]{
+%   \(C_{k+1}=C_k+\eta_{\mathrm{tr}}\,
+%   \mathcal{T}(U_k^{+})\) \\
+%   \emph{every \(\tau\) steps}
+%   } &
+%   \makecell[l]{
+%   full-size auxiliary state \\
+%   \(U_{k+1}=U_k^{+}\)
+%   } \\
+%   \midrule
+
+%   \rowcolor{NatLRTT}
+%   \textbf{LR-TT} &
+%   \makecell[l]{
+%   \(W_k^{\mathrm{vis}}=C_k\)
+%   } &
+%   \makecell[l]{
+%   \(A_k^{+}=A_k-\eta_A\,G_kB_k^\top\) \\
+%   \(B_k^{+}=B_k-\eta_B\,A_k^\top G_k\)
+%   } &
+%   \makecell[l]{
+%   \(C_{k+1}=C_k+\eta_{\mathrm{tr}}\,
+%   \mathcal{T}_r(A_k^{+}B_k^{+})\) \\
+%   \(=C_k+\eta_{\mathrm{tr}}
+%   \sum_{i=1}^{r}\mathcal{T}
+%   (a_{k,i}^{+}b_{k,i}^{+\top})\) \\
+%   \emph{every \(\tau\) steps}
+%   } &
+%   \makecell[l]{
+%   low-rank auxiliary factors \\
+%   \(A_{k+1}=A_k^{+}\), \\
+%   \(B_{k+1}=B_k^{+}\)
+%   } \\
+%   \midrule
+
+%   \rowcolor{NatLRTTvTwo}
+%   \textbf{LR-TT-v2} &
+%   \makecell[l]{
+%   \(W_k^{\mathrm{vis}}=C_k\)
+%   } &
+%   \makecell[l]{
+%   \(S_q=[e_{\pi_{q,1}},\ldots,e_{\pi_{q,s}}]\) \\
+%   \(B_q^{+}=B_q-\eta_B\,S_q^\top G_k\) \\
+%   \(\hphantom{B_q^{+}}=B_q-\eta_B\,(S_q^\top D_k)X_k^\top\)
+%   } &
+%   \makecell[l]{
+%   \(C_{k+1}=C_k+\eta_{\mathrm{tr}}\,
+%   \mathcal{T}_s(S_qB_q^{+})\) \\
+%   \emph{one selector micro-transfer} \\
+%   \(q\leftarrow q+1\)
+%   } &
+%   \makecell[l]{
+%   active row-local trace only: \\
+%   \(B_{q+1}=B^{(0)}\) after transfer; \\
+%   next selector \(S_{q+1}\) loaded \\
+%   from the coverage schedule
+%   } \\
+%   \bottomrule
+%   \end{tabularx}
+
+%   \arrayrulecolor{black}
+
+%   \vspace{0.45em}
+%   \begin{minipage}{0.98\textwidth}
+%   \emph{Notation.}
+%   \(G_k=D_kX_k^\top\), where \(X_k\) is the input activation and \(D_k\) is the output-gradient signal.
+%   \(U_k\in\mathbb{R}^{d_{\mathrm{out}}\times d_{\mathrm{in}}}\) is the full-size Tiki-Taka auxiliary matrix.
+%   In LR-TT,
+%   \(A_k\in\mathbb{R}^{d_{\mathrm{out}}\times r}\) and
+%   \(B_k\in\mathbb{R}^{r\times d_{\mathrm{in}}}\) are low-rank auxiliary factors.
+%   \(\mathcal{T}(\cdot)\) denotes stochastic transfer, and
+%   \(\mathcal{T}_r(\cdot)\) denotes rank-wise transfer of \(A_kB_k\) through \(r\) sequential rank-1 outer products.
+%   In LR-TT-v2,
+%   \(S_q\in\{0,1\}^{d_{\mathrm{out}}\times s}\) is a non-trainable selector matrix,
+%   \(s\) is the selector width, and
+%   \(B_q\in\mathbb{R}^{s\times d_{\mathrm{in}}}\) stores the auxiliary trace only for the currently selected output rows.
+%   A single LR-TT-v2 micro-transfer updates only the \(s\) selected rows of \(C_k\), and
+%   \(\mathcal{T}_s(\cdot)\) denotes the corresponding selector-width stochastic transfer.
+%   Full row coverage requires
+%   \(n_{\mathrm{cov}}=\lceil d_{\mathrm{out}}/s\rceil\) micro-transfers.
+%   In each coverage cycle \(c\), a random permutation
+%   \(P_c=\mathrm{Shuffle}(\{1,\ldots,d_{\mathrm{out}}\})\) is generated, and the selector block is
+%   \[
+%   S_q=
+%   [e_{P_c(js+1)},\ldots,
+%   e_{P_c(\min\{(j+1)s,d_{\mathrm{out}}\})}],
+%   \qquad
+%   j=q\bmod n_{\mathrm{cov}} .
+%   \]
+%   Thus, for a \(768\times768\) projection with \(s=32\), one full coverage cycle consists of \(24\) selector micro-transfers.
+%   Superscript \(+\) denotes the state after local accumulation and before transfer.
+%   \end{minipage}
+%   }
+% \end{table*}
 
 \section{Results and Discussion}
 \label{sec:Results and Discussion}
@@ -252,7 +405,7 @@ As shown in Fig.~\ref{fig:figure1_c}(b) by replacing the full-rank Tiki-Taka aux
 We first formulate the LR-TT training rule for AIMC-mapped transformer linear layers, defining the core-visible forward path, projected low-rank auxiliary accumulation, and rank-wise transfer to the core state.
 We then validate the low-rank accumulation and transfer operation using measured 6T1C arrays in a hardware-in-the-loop rank-1 regression task.
 We next examine LR-TT on MNIST classification to characterize the effects of rank, transfer interval, and analog update non-idealities on training \cite{lecun1998gradient}.
-We finally evaluate BERT-base fine-tuning on SQuAD v1.1 and compare LR-TT with full-rank Tiki-Taka in accuracy, update-path behavior, auxiliary-path energy, and mapped hardware footprint \cite{devlin2019bert,rajpurkar2016squad}.
+We finally evaluate BERT-base fine-tuning on SQuAD v1.1 and compare LR-TT with full-dimensional Tiki-Taka in accuracy, update-path behavior, auxiliary-path energy, and mapped hardware footprint \cite{devlin2019bert,rajpurkar2016squad}.
 
 \subsection{Operational principles of LR-TT for transformer adaptation}
 \label{subsec:results_lrtt_formulation}
@@ -260,7 +413,7 @@ We finally evaluate BERT-base fine-tuning on SQuAD v1.1 and compare LR-TT with f
 \noindent
 We first define the LR-TT training rule evaluated in the following experiments.
 Following the hardware mapping in Fig.~\ref{fig:figure1_c}(a), we apply LR-TT to the dense linear operators of each transformer block, including the attention input projections, attention output projection, FFN1, and FFN2.
-Attention-score computation, softmax, normalization, residual additions  remain in digital compute.
+Attention-score computation, softmax, normalization, and residual additions remain in digital compute.
 
 \noindent\textbf{Core and low-rank auxiliary states.}
 For each mapped linear layer \(\ell\), let
@@ -315,7 +468,7 @@ D_{\ell,t}X_{\ell,t}^{\top}
 \in \mathbb{R}^{d_{\mathrm{out},\ell}\times d_{\mathrm{in},\ell}} .
 \label{eq:lrtt_layer_grad}
 \end{equation}
-Here, \(D_{\ell,t}\) is the output gradient and \(G_{\ell,t}\) is the dense gradient that would be applied to the core-visible weight under a full-rank update.
+Here, \(D_{\ell,t}\) is the output gradient and \(G_{\ell,t}\) is the dense gradient that would be applied to the core-visible weight under a direct update.
 We use \(G_{\ell,t}\) only as compact notation; LR-TT does not materialize it as a full-size update on the core tile.
 Instead, the factor updates are generated from projected activation and error signals,
 \begin{equation}
@@ -378,7 +531,7 @@ C_{\ell,t},
 \label{eq:lrtt_transformer_transfer}
 \end{equation}
 where \(\eta_{\mathrm{tr},\ell}\) is the transfer learning rate and \(\mathcal{T}_{r}\) is the rank-wise stochastic pulse-transfer operator.
-For an ideal transfer, \(\mathcal{T}_{r}(AB)=AB\); in hardware, \(\mathcal{T}_{r}\) includes stochastic pulse granularity and the device non-idealities specified in Supporting information~S8.
+For an ideal transfer, \(\mathcal{T}_{r}(AB)=AB\); in hardware, \(\mathcal{T}_{r}\) includes stochastic pulse granularity and the device non-idealities specified in Supporting Information~S8.
 
 Writing
 \begin{equation}
@@ -408,7 +561,7 @@ Equations~\eqref{eq:lrtt_visible_weight}--\eqref{eq:lrtt_post_B_retention} speci
 This differs from LoRA/ReLoRA-style merge-and-restart schemes, where the low-rank adapter is absorbed into the base weight and then removed or reinitialized for subsequent training \cite{hu2021lora,lialin2023relora}.
 In LR-TT, transfer updates \(C_{\ell,t}\) without reinitializing \(A_{\ell,t}\) or \(B_{\ell,t}\).
 Conventional Tiki-Taka/TTv2 can expose the auxiliary state to the forward path and transfer selected rows or columns of a full-size auxiliary state with slice-wise reset/retention policies \cite{gokmen2020tikitaka,gokmen2021ttv2,rasch2024fastrobust}.
-The corresponding LR-TT variants, including auxiliary-forward exposure and full-\(B\)-matrix reset after \(AB\!\rightarrow C\) transfer are summarized in Supporting information~S5.
+The corresponding LR-TT variants, including auxiliary-forward exposure and full-\(B\)-matrix reset after \(AB\!\rightarrow C\) transfer are summarized in Supporting Information~S5.
 
 \begin{figure*}[t]
   \centering
@@ -422,7 +575,7 @@ The corresponding LR-TT variants, including auxiliary-forward exposure and full-
   \centering
   \includegraphics[width=0.92\textwidth]{Figure4.png}
   \caption{\textbf{Training trajectories and MNIST evaluation of LR-TT under on-chip scratch training.}
-(a) Test-error heat map over low-rank dimension $r$ and transfer interval $\tau$, showing that test error decreases gradually as $r$ increases and is minimized near $\tau=10$ over most of the rank range, with the optimum shifting to larger $\tau$ only at the lowest ranks. (b) Test-error heat map over core-tile weight precision and core-tile asymmetry factor $\mathrm{AF}^{c}$ at fixed $r=8$ and $\tau=10$, showing that core-tile weight precision has only a modest effect in the low-$\mathrm{AF}^{c}$ regime, whereas test error rises sharply once $\mathrm{AF}^{c}>2$. (c) Box-plot statistics of the effective rank $\mathrm{erank}(\Delta C)$ of the core-tile increment measured at individual transfer events. The effective rank decreases strongly as $\tau$ increases, whereas it increases more gradually with $r$. 
+(a) Test-error heat map over low-rank dimension $r$ and transfer interval $\tau$, showing that test error decreases gradually as $r$ increases and is minimized near $\tau=10$ over most of the rank range, with the optimum shifting to larger $\tau$ only at the lowest ranks. (b) Test-error heat map over core-tile weight precision and core-tile asymmetry factor $\mathrm{AF}^{C}$ at fixed $r=8$ and $\tau=10$, showing that core-tile weight precision has only a modest effect in the low-$\mathrm{AF}^{C}$ regime, whereas test error rises sharply once $\mathrm{AF}^{C}>2$. (c) Box-plot statistics of the effective rank $\mathrm{erank}(\Delta C)$ of the core-tile increment measured at individual transfer events. The effective rank decreases strongly as $\tau$ increases, whereas it increases more gradually with $r$. 
 (d) PCA-projected learning trajectories of the core matrix \(C\) in a controlled regression setting, with training loss on the \(z\)-axis, for fixed \(\tau=1\) and \(r\in\{1,2,4\}\) together with a direct-\(C\) SGD (FP32) baseline; diamond markers (\(\diamond\)) are placed every 1k steps to indicate convergence speed. As rank increases, the trajectory becomes smoother and more direct toward the target.
 (e) Same projection for fixed \(r=1\) and \(\tau\in\{1,10,100\}\) with the same direct-\(C\) SGD (FP32) baseline; diamond markers (\(\diamond\)) are placed every 5k steps to indicate convergence speed. Smaller transfer periods produce more oscillatory trajectories, whereas larger transfer periods yield more direct but slower convergence.
 }
@@ -440,28 +593,28 @@ The 6T1C array was fabricated on an 8-inch wafer, and device measurements were c
 Figure~\ref{fig:main_fig3}(a)--(c) summarizes the device characteristics of the 6T1C synaptic primitive used for LR-TT auxiliary-state accumulation. The synaptic state is encoded as the capacitor voltage ($V_{\mathrm{cap}}$), and the cell employs dedicated transistor pairs for potentiation (N1, N2), depression (N3, N4), and readout (N5, N6). Because the programmed conductance is controlled by pulse width together with the TFT on-current, the device exhibits gradual bidirectional updates over an approximately $10^{3}$-level window while maintaining high linearity and near-symmetric response. Bias optimization further confirms scalability of the usable state window and retention compatible with the time scale of the present hardware-in-the-loop experiments (Supporting Information S1). Endurance measurements also indicate that the device can sustain the repeated rewriting required for an auxiliary tile during transformer-level adaptation \cite{ambrogio2018analogtraining,li2018insitu,legallo2018mixedprecision,mackin2022weightprogramming,won2023advs_6t1c,kang2025advs_disturbance}.
 
 \noindent\textbf{Circuit-level operation.}
-Figure~\ref{fig:main_fig3}(d)--(e) presents the array configuration and hardware learning workflow. The 5$\times$5 array shows uniform update trajectories across all 25 cells (Supporting Information S1), after which a 3$\times$1 subarray and a 1$\times$3 subarray are assigned to the $A$ and $B$ factors, respectively. To isolate auxiliary-state accumulation from core-state non-idealities, the core matrix $C$ is maintained as MCU software variables. During each learning step, the forward response is first computed from $C$, and the resulting input and error signals are then converted into pulse-width-coded controls applied to the selected $A/B$ subarrays. Column-wise current summation in $A$ and chopper-assisted row-wise MAC readout in $B$ generate the projected signals required for factor-wise low-rank updates. These signals are digitized by the MCU and used to trigger fully parallel stochastic programming of the selected cells, where a previously developed disturbance-aware update scheme to mitigate write disturbance 24,28. A photograph of the overall hardware setup for the demonstration is provided in Supporting Information S2.
+Figure~\ref{fig:main_fig3}(d)--(e) presents the array configuration and hardware learning workflow. The 5$\times$5 array shows uniform update trajectories across all 25 cells (Supporting Information S1), after which a 3$\times$1 subarray and a 1$\times$3 subarray are assigned to the $A$ and $B$ factors, respectively. To isolate auxiliary-state accumulation from core-state non-idealities, the core matrix $C$ is maintained as MCU software variables. During each learning step, the forward response is first computed from $C$, and the resulting input and error signals are then converted into pulse-width-coded controls applied to the selected $A/B$ subarrays. Column-wise current summation in $A$ and chopper-assisted row-wise MAC readout in $B$ generate the projected signals required for factor-wise low-rank updates. These signals are digitized by the MCU and used to trigger fully parallel stochastic programming of the selected cells, using a previously developed disturbance-aware update scheme to mitigate write disturbance \cite{won2023advs_6t1c,kang2025advs_disturbance}. A photograph of the overall hardware setup for the demonstration is provided in Supporting Information S2.
 
 \noindent\textbf{Rank-1 regression demonstration.}
 We then demonstrate a closed hardware-in-the-loop LR-TT update cycle on a controlled rank-1 regression task.
 Because the forward path is computed from the core state \(C\), loss reduction occurs through discrete \(AB\!\rightarrow C\) transfer events.
 Figure~\ref{fig:main_fig3}(f)--(h) shows the resulting core-state trajectory, alignment with the target, and loss evolution, confirming that the measured 6T1C \(A/B\) tiles can accumulate projected updates and transfer them to \(C\) under physical pulse programming.
-Detailed core and auxiliary trajectories under different transfer periods are provided in Supporting information~S3.
+Detailed core and auxiliary trajectories under different transfer periods are provided in Supporting Information~S3.
 
 \subsection{\texorpdfstring{Small-scale on-chip scratch training: task evaluation and trajectory analysis}{Small-scale on-chip scratch training: task evaluation and trajectory analysis}}
 \label{subsec:results_scratch}
 
 \noindent
-We first evaluate LR-TT on MNIST classification \cite{lecun1998gradient} using an MLP, with the low-rank auxiliary state implemented on 6T1C arrays. We then complement the task-level results with a trajectory analysis on a controlled regression problem. Together, these small-scale experiments allow the accumulate--transfer dynamics of LR-TT to be examined before moving to transformer fine-tuning. As shown in Fig.~\ref{fig:main_fig4}, an appropriate choice of the transfer period $\tau$ stabilizes training across the full rank range, and even the rank-1 case can approach the performance regime of full-rank training.
+We first evaluate LR-TT on MNIST classification \cite{lecun1998gradient} using an MLP, with the low-rank auxiliary state implemented on 6T1C arrays. We then complement the task-level results with a trajectory analysis on a controlled regression problem. Together, these small-scale experiments allow the accumulate--transfer dynamics of LR-TT to be examined before moving to transformer fine-tuning. As shown in Fig.~\ref{fig:main_fig4}, an appropriate choice of the transfer period $\tau$ stabilizes training across the full rank range, and even the rank-1 case can approach the performance regime of full training.
 
 \noindent\textbf{Interplay of rank and transfer interval.}
-Figure~\ref{fig:main_fig4}(a) maps the MNIST test error over rank $r\in\{1,4,8,16,32,64\}$ and transfer interval $\tau\in\{1,10,50,100,500,1000\}$. Performance improves gradually with increasing $r$, but the stronger dependence is on $\tau$. Across most tested ranks, the minimum error occurs near $\tau=10$, and the best configuration reaches \(98.19\%\) accuracy at \(r=64\). The main result is therefore a clear optimum at an intermediate transfer interval. When $\tau$ is too small, transfer occurs before successive rank-limited updates have accumulated into a sufficiently informative correction. This interpretation is consistent with ReLoRA, where repeated low-rank updates require a finite accumulation window to build a richer overall change \cite{lialin2023relora}. When $\tau$ is too large, the opposite problem appears. The auxiliary state can accumulate useful history, but the core state is updated too infrequently for that information to influence learning effectively. This behavior is consistent with Tiki-Taka, where performance depends on how often the accumulated auxiliary-state update is transferred to the core weights \cite{gokmen2020tikitaka,lee2022tikitaka_asymmetry,rasch2024fastrobust}. By contrast, a hard-reset post-transfer policy for $B$ ($\rho=1$) lowers the accuracy relative to retention and shifts the optimum toward a larger transfer interval near $\tau=100$ (see Supporting information~S5), suggesting that, in this small-scale MLP removing the forward path of accumulated low-rank state after each transfer shortens the effective accumulation window and delays the formation of a sufficiently informative correction on the core state.
+Figure~\ref{fig:main_fig4}(a) maps the MNIST test error over rank $r\in\{1,4,8,16,32,64\}$ and transfer interval $\tau\in\{1,10,50,100,500,1000\}$. Performance improves gradually with increasing $r$, but the stronger dependence is on $\tau$. Across most tested ranks, the minimum error occurs near $\tau=10$, and the best configuration reaches \(98.19\%\) accuracy at \(r=64\). The main result is therefore a clear optimum at an intermediate transfer interval. When $\tau$ is too small, transfer occurs before successive rank-limited updates have accumulated into a sufficiently informative correction. This interpretation is consistent with ReLoRA, where repeated low-rank updates require a finite accumulation window to build a richer overall change \cite{lialin2023relora}. When $\tau$ is too large, the opposite problem appears. The auxiliary state can accumulate useful history, but the core state is updated too infrequently for that information to influence learning effectively. This behavior is consistent with Tiki-Taka, where performance depends on how often the accumulated auxiliary-state update is transferred to the core weights \cite{gokmen2020tikitaka,lee2022tikitaka_asymmetry,rasch2024fastrobust}. By contrast, a hard-reset post-transfer policy for $B$ lowers the accuracy relative to retention and shifts the optimum toward a larger transfer interval near $\tau=100$ (see Supporting Information~S5), suggesting that, in this small-scale MLP removing the forward path of accumulated low-rank state after each transfer shortens the effective accumulation window and delays the formation of a sufficiently informative correction on the core state.
 
 \noindent\textbf{Sensitivity to core-tile non-idealities.}
-Figure~\ref{fig:main_fig4}(b) compares the effects of core-array weight resolution and core-array asymmetry by sweeping the nominal C-tile precision from 5 to 10 bits together with the asymmetry factor \(\mathrm{AF}^{c}\in\{0.0,0.5,1.0,2.0,5.0,10.0\}\). At \(\mathrm{AF}^{c}\leq 1\), the test error remains below about \(3.1\%\) across the full 5--10-bit range, indicating that this small MLP is relatively insensitive to moderate C-tile quantization. The stronger dependence is on asymmetry. At \(\mathrm{AF}^{c}=2\), increasing the C-tile precision partially recovers the performance, with 9--10 bits approaching the low-asymmetry regime. Once \(\mathrm{AF}^{c}\geq 5\), however, the error exceeds \(7.6\%\) almost independently of nominal bit resolution. The dominant limitation in this sweep is therefore asymmetric programming of the core tile rather than finite weight resolution.
+Figure~\ref{fig:main_fig4}(b) compares the effects of core-array weight resolution and core-array asymmetry by sweeping the nominal C-tile precision from 5 to 10 bits together with the asymmetry factor \(\mathrm{AF}^{C}\in\{0.0,0.5,1.0,2.0,5.0,10.0\}\). At \(\mathrm{AF}^{C}\leq 1\), the test error remains below about \(3.1\%\) across the full 5--10-bit range, indicating that this small MLP is relatively insensitive to moderate C-tile quantization. The stronger dependence is on asymmetry. At \(\mathrm{AF}^{C}=2\), increasing the C-tile precision partially recovers the performance, with 9--10 bits approaching the low-asymmetry regime. Once \(\mathrm{AF}^{C}\geq 5\), however, the error exceeds \(7.6\%\) almost independently of nominal bit resolution. The dominant limitation in this sweep is therefore asymmetric programming of the core tile rather than finite weight resolution.
 
 \noindent
-This trend is qualitatively consistent with the MNIST asymmetry analysis of Lee et al., which identified the most robust region around $AF^{F}\approx1$ and $AF^{C}\approx1$ and showed that increasing main-array asymmetry makes the core-state update less frequent and more oscillatory \cite{lee2022tikitaka_asymmetry}. The stronger sensitivity observed here is plausibly related to the present LR-TT realization, in which the visible model is defined entirely by $C$ at $\gamma=0$. As a result, asymmetry in the core tile perturbs the forward path directly, and the low-rank state is written to $C$ through repeated rank-1 transfers without the digital filtering used in TTv2 to relax device-state requirements \cite{rasch2024fastrobust}. 
+This trend is qualitatively consistent with the MNIST asymmetry analysis of Lee et al., which identified the most robust region around AF $\approx 1$ for both auxiliary and core arrays and showed that increasing main-array asymmetry makes the core-state update less frequent and more oscillatory \cite{lee2022tikitaka_asymmetry}. The stronger sensitivity observed here is plausibly related to the present LR-TT realization, in which the visible model is defined entirely by $C$. As a result, asymmetry in the core tile perturbs the forward path directly, and the low-rank state is written to $C$ through repeated rank-1 transfers without the digital filtering used in TTv2 to relax device-state requirements \cite{rasch2024fastrobust}. 
 
 \noindent\textbf{Effective-rank growth in the core-state.}
 Figure~\ref{fig:main_fig4}(c) reports the statistics of \(\mathrm{erank}(\Delta C)\) for the cumulative core-state update, with the exact definition and evaluation procedure given in the Experimental Section. Although each individual transfer is rank-limited by construction, repeated transfers progressively expand the update space of \(C\). The mean effective rank decreases monotonically with \(\tau\), from about 194 at \(\tau=1\) to about 79 at \(\tau=1000\), and increases more gradually with rank, from about 112 at \(r=1\) to about 141 at \(r=64\). LR-TT is therefore not confined to a permanently rank-\(r\) update at the core state. Instead, repeated low-rank transfers accumulate into a substantially richer modification of \(C\). At the same time, the largest \(\mathrm{erank}(\Delta C)\) is obtained at \(\tau=1\), whereas the best classification accuracy is obtained near \(\tau=10\). Effective-rank growth alone is therefore not sufficient to explain training quality. Figure~\ref{fig:main_fig4}(c) therefore complements Figure~\ref{fig:main_fig4}(a) by showing that the optimum near $\tau=10$ is not explained by effective-rank growth alone, but by the balance between enriching the cumulative core-state update and transferring it early enough to benefit learning. 
@@ -506,9 +659,9 @@ The sensitivity of the optimization trajectory to device nonlinearity is examine
   \end{subfigure}
   \vspace{0.5em}
 \caption{\textbf{Ablation and sensitivity analysis of LR-TT in BERT-base fine-tuning on SQuAD v1.1.}
-(a) F1 comparison across mapped-layer configurations (QKVO, FFN, ALL) for digital full-rank training, digital LoRA (\(r=32\)), full-rank Tiki-Taka, and LR-TT (\(r=32\)). The QKVO\(>\)FFN ordering is consistent across all four methods. LR-TT narrows the gap to full-rank Tiki-Taka, while the remaining gap to digital LoRA reflects analog non-idealities.
+(a) F1 comparison across mapped-layer configurations (QKVO, FFN, ALL) for full digital fine-tuning, digital LoRA (\(r=32\)), full-dimensional Tiki-Taka, and LR-TT (\(r=32\)). The QKVO\(>\)FFN ordering is consistent across all four methods. LR-TT narrows the gap to full-dimensional Tiki-Taka, while the remaining gap to digital LoRA reflects analog non-idealities.
 (b) F1 versus rank for rank-wise stochastic transfer and ideal transfer on QKVO mapping, with trainable parameter ratio on the upper axis. Performance saturates near rank 32, and the small gap between the two transfer methods indicates that stochastic pulse-transfer quantization does not substantially degrade end-to-end performance.
-(c) Sensitivity to device non-idealities on QKVO mapping at \(r=32\). Left: noise scaling ratio sweep at fixed AF ratio\(=\)1. Right: AF ratio sweep for two independently optimized conditions (AF ratio\(=\)0: 10-bit auxiliary tile, \(|w|_{\max}^{A,B}=0.0624\); AF ratio\(=\)1: 12-bit auxiliary tile, \(|w|_{\max}^{A,B}=1.0\)), showing that the AF ratio\(=\)1 condition requires the asymmetry-induced soft bound to prevent weight divergence at large \(|w|_{\max}^{A,B}\).
+(c) Sensitivity to device non-idealities on QKVO mapping at \(r=32\). Left: AF ratio sweep for two independently optimized conditions (AF ratio\(=\)0: 10-bit auxiliary tile, \(|w|_{\max}^{A,B}=0.0624\); AF ratio\(=\)1: 12-bit auxiliary tile, \(|w|_{\max}^{A,B}=1.0\)), showing that the AF ratio\(=\)1 condition requires the asymmetry-induced soft bound to prevent weight divergence at large \(|w|_{\max}^{A,B}\). Right: noise scaling ratio sweep for two independently optimized conditions at fixed AF ratio\(=\)1 (hyperparameters optimized at noise ratio\(=\)0 vs at noise ratio\(=\)1).
 (d) Training-step evolution of \(\erank(\Delta C)\) for rank\(\in\{1,4,16,64\}\) at layer 11 attention output under the AF ratio\(=\)0 condition, with the pretrained-weight effective rank \(\erank(C_0)\) shown as a dashed reference. Despite rank-limited transfers, the cumulative update achieves effective ranks far exceeding the nominal rank, confirming that LR-TT is not confined to a permanently low-rank modification.}
 \label{fig:main_fig6}
 \end{figure*}
@@ -537,7 +690,7 @@ Figure~\ref{fig:main_fig5}(f) shows the training-step evolution of the auxiliary
 
 \noindent
 \textbf{Auxiliary and core tile precision requirements.}
-Figure~\ref{fig:main_fig5}(g) shows the core-tile precision sweep at fixed auxiliary-tile conditions, comparing LR-TT against a single-RPU direct-update baseline and a full-rank Tiki-Taka baseline. LR-TT retains F1\(>\)82 even at 6-bit core-tile resolution, whereas the single-RPU baseline collapses to F1\(\approx\)12 at the same precision. Tiki-Taka maintains consistently higher F1 across the sweep owing to its full-rank auxiliary state. Figure~\ref{fig:main_fig5}(h) shows the complementary per-bit-optimized auxiliary-tile precision sweep at fixed 10-bit core-tile resolution, together with a full-rank Tiki-Taka baseline at matched bit conditions. LR-TT achieves F1\(>\)84 at 8--10-bit auxiliary-tile precision, while Tiki-Taka maintains higher F1 across the sweep owing to its full-rank auxiliary state. The gap between the two narrows at intermediate bit counts, confirming that the auxiliary accumulation path is the decisive precision bottleneck. These results demonstrate that the core tile tolerates substantially coarser quantization than the auxiliary tile, consistent with the core tile receiving only periodic transferred updates rather than continuous sub-pulse accumulation.
+Figure~\ref{fig:main_fig5}(g) shows the core-tile precision sweep at fixed auxiliary-tile conditions, comparing LR-TT against a single-RPU direct-update baseline and a full-dimensional Tiki-Taka baseline. LR-TT retains F1\(>\)82 even at 6-bit core-tile resolution, whereas the single-RPU baseline collapses to F1\(\approx\)12 at the same precision. Tiki-Taka maintains consistently higher F1 across the sweep owing to its full-dimensional auxiliary state. Figure~\ref{fig:main_fig5}(h) shows the complementary per-bit-optimized auxiliary-tile precision sweep at fixed 10-bit core-tile resolution, together with a full-dimensional Tiki-Taka baseline at matched bit conditions. LR-TT achieves F1\(>\)84 at 8--10-bit auxiliary-tile precision, while Tiki-Taka maintains higher F1 across the sweep owing to its full-dimensional auxiliary state. The gap between the two narrows at intermediate bit counts, confirming that the auxiliary accumulation path is the decisive precision bottleneck. These results demonstrate that the core tile tolerates substantially coarser quantization than the auxiliary tile, consistent with the core tile receiving only periodic transferred updates rather than continuous sub-pulse accumulation.
 
 \noindent
 \textbf{Transfer fidelity and gradient alignment.}
@@ -545,15 +698,7 @@ Figure~\ref{fig:main_fig5}(i) evaluates the rank-wise stochastic transfer mechan
 
 \noindent
 \textbf{Mapped-layer comparison and rank scaling.}
-Figure~\ref{fig:main_fig6}(a) compares LR-TT fine-tuning performance across three mapped-layer configurations: Q/K/V/O attention projections only, FFN layers only, and all mapped layers, together with digital full-rank training, digital LoRA, and full-rank Tiki-Taka baselines. Among the LR-TT configurations, all-layer mapping achieves the highest F1 (85.2), followed by QKVO-only (85.0) and FFN-only (84.1). The same QKVO\(>\)FFN ordering is observed across all four methods, suggesting that attention projections contribute more to task adaptation than FFN layers for this task. Full-rank Tiki-Taka reaches 86.9 (QKVO) and 87.0 (ALL), narrowing the gap to the digital baselines (88.1 and 88.3 for digital LoRA). The remaining gap between LR-TT and Tiki-Taka reflects the cost of low-rank compression in the auxiliary path, while the gap between Tiki-Taka and digital LoRA is attributable to analog non-idealities. Figure~\ref{fig:main_fig6}(b) shows the rank sweep for rank-wise stochastic transfer and ideal transfer, together with the trainable parameter ratio relative to full-rank fine-tuning. For the ideal-transfer condition, the hyperparameters optimized under rank-wise transfer were reused without re-tuning. Both transfer methods show monotonically increasing F1 with rank, saturating near rank 32, and the F1 gap between the two remains small across the rank range. This small gap indicates that the quantization loss inherent in rank-wise stochastic pulse transfer does not substantially degrade end-to-end performance, consistent with the transfer-fidelity analysis in Fig.~\ref{fig:main_fig5}(i). At rank 1, LR-TT achieves F1\(>\)82 using only 0.4\% of the full-rank trainable parameters, demonstrating that the cumulative transfer mechanism enables effective adaptation even at extreme parameter compression.
-
-\noindent
-\textbf{Sensitivity to device non-idealities.}
-Figure~\ref{fig:main_fig6}(c) examines the sensitivity of LR-TT to auxiliary-tile noise and update asymmetry. The left panel shows that noise scaling has a modest effect on F1 for the condition optimized at AF ratio\(=\)1, with F1 decreasing from 84.1 at noise ratio\(=\)0 to 78.1 at noise ratio\(=\)1. The right panel compares the AF ratio sweep for two independently optimized conditions: the AF ratio\(=\)0 condition (\(|w|_{\max}^{A,B}=0.0624\), 10-bit auxiliary tile with multi-level updates) achieves F1\(=\)85.0 at zero asymmetry but degrades with increasing AF ratio, whereas the AF ratio\(=\)1 condition (\(|w|_{\max}^{A,B}=1.0\), 12-bit auxiliary tile) fails completely at AF ratio\(<\)1 because the device relies on the asymmetry-induced soft bound to prevent weight divergence at the larger \(|w|_{\max}^{A,B}\). This complementary behavior indicates that the optimal operating regime depends on whether the auxiliary device provides an intrinsic soft bound through update asymmetry or relies on a constrained weight range. The gamma--\(|w|_{\max}^{A,B}\) interaction is further characterized in Supplementary Figure~S9.
-
-\noindent
-\textbf{Effective rank of the cumulative core-tile update.}
-Figure~\ref{fig:main_fig6}(d) shows the training-step evolution of \(\erank(\Delta C) = \erank(C_t - C_0)\) for different LR-TT ranks. Despite each transfer event being rank-limited, the cumulative core-tile update achieves effective ranks far exceeding the nominal rank: at rank 1, \(\erank(\Delta C)\) exceeds 100, and at rank 64 it approaches the effective rank of the pretrained weight itself (\(\erank(C_0)\approx\)599, dashed line). The subsequent decline in \(\erank(\Delta C)\) during later training is consistent with convergence to a task-specific subspace, where successive transfers reinforce existing dominant singular directions rather than introducing new ones. This confirms that LR-TT is not confined to a permanently low-rank modification of the core matrix; instead, the repeated accumulate-and-transfer cycle progressively enriches the subspace of the cumulative update. This behavior is analogous to the cumulative rank growth observed in ReLoRA, where repeated low-rank merges build an effective update whose rank exceeds that of any single adapter \cite{lialin2023relora}. Higher nominal rank accelerates this enrichment by contributing more directions per transfer event, consistent with the monotonic F1 improvement observed in Fig.~\ref{fig:main_fig6}(b).
+Figure~\ref{fig:main_fig6}(a) compares LR-TT fine-tuning performance across three mapped-layer configurations: Q/K/V/O attention projections only, FFN layers only, and all mapped layers, together with full digital fine-tuning, digital LoRA, and full-dimensional Tiki-Taka baselines. Among the LR-TT configurations, all-layer mapping achieves the highest F1 (85.2), followed by QKVO-only (85.0) and FFN-only (84.1). The same QKVO\(>\)FFN ordering is observed across all four methods, suggesting that attention projections contribute more to task adaptation than FFN layers for this task. Full-dimensional Tiki-Taka reaches 86.9 (QKVO) and 87.0 (ALL), narrowing the gap to the digital baselines (88.1 and 88.3 for digital LoRA). The remaining gap between LR-TT and Tiki-Taka reflects the cost of low-rank compression in the auxiliary path, while the gap between Tiki-Taka and digital LoRA is attributable to analog non-idealities. Figure~\ref{fig:main_fig6}(b) shows the rank sweep for rank-wise stochastic transfer and ideal transfer, together with the trainable parameter ratio relative to full fine-tuning. For the ideal-transfer condition, the hyperparameters optimized under rank-wise transfer were reused without re-tuning. Both transfer methods show monotonically increasing F1 with rank, saturating near rank 32, and the F1 gap between the two remains small across the rank range. This small gap indicates that the quantization loss inherent in rank-wise stochastic pulse transfer does not substantially degrade end-to-end performance, consistent with the transfer-fidelity analysis in Fig.~\ref{fig:main_fig5}(i). At rank 1, LR-TT achieves F1\(>\)82 using only 0.4\% of the full fine-tuning trainable parameters, demonstrating that the cumulative transfer mechanism enables effective adaptation even at extreme parameter compression.
 
 \begin{figure*}[t]
   \centering
@@ -566,6 +711,15 @@ Figure~\ref{fig:main_fig6}(d) shows the training-step evolution of \(\erank(\Del
   \label{fig:e2e_lrtt_tt}
 \end{figure*}
 
+\noindent
+\textbf{Sensitivity to device non-idealities.}
+Figure~\ref{fig:main_fig6}(c) examines the sensitivity of LR-TT to auxiliary-tile noise and update asymmetry. The right panel compares two independently optimized conditions at fixed AF ratio\(=\)1. The condition optimized at noise ratio\(=\)0 decreases from F1\(=\)84.1 at noise ratio\(=\)0 to 78.1 at noise ratio\(=\)1 and collapses below F1\(=\)10 beyond ratio\(=\)2, whereas the condition optimized at noise ratio\(=\)1 maintains F1\(\approx\)82 across the 0--1 range and retains F1\(=\)73.4 even at ratio\(=\)3, demonstrating that re-optimization at the target noise level substantially extends the usable operating range at the cost of a modest 2 F1-point drop in the low-noise regime. Notably, in contrast to the AF ratio sweep (left panel), where the condition optimized at AF ratio\(=\)1 collapses below AF ratio\(=\)1 because the device relies on the asymmetry-induced soft bound, noise scaling is reversible: the noise-ratio\(=\)1-optimized condition functions normally at noise ratio\(=\)0 since reducing additive noise does not violate any device-level operating assumption. The left panel compares the AF ratio sweep for two independently optimized conditions: the AF ratio\(=\)0 condition (\(|w|_{\max}^{A,B}=0.0624\), 10-bit auxiliary tile with multi-level updates) achieves F1\(=\)85.0 at zero asymmetry but degrades with increasing AF ratio, whereas the AF ratio\(=\)1 condition (\(|w|_{\max}^{A,B}=1.0\), 12-bit auxiliary tile) fails completely at AF ratio\(<\)1 because the device relies on the asymmetry-induced soft bound to prevent weight divergence at the larger \(|w|_{\max}^{A,B}\). This complementary behavior indicates that the optimal operating regime depends on whether the auxiliary device provides an intrinsic soft bound through update asymmetry or relies on a constrained weight range. Together, these noise and asymmetry sweeps emphasize that there is no universally optimal hyperparameter set: hyperparameters should be tuned at the deployment device's actual operating point---its native AF ratio and noise amplitude---to obtain the most robust LR-TT performance on hardware (Supporting Information~S8 outlines a practical heuristic for selecting LR-TT hyperparameters from device-level AF and noise specifications). The AF-ratio--\(|w|_{\max}^{A,B}\) interaction is further characterized in Supplementary Figure~S9.
+
+\noindent
+\textbf{Effective rank of the cumulative core-tile update.}
+Figure~\ref{fig:main_fig6}(d) shows the training-step evolution of \(\erank(\Delta C) = \erank(C_t - C_0)\) for different LR-TT ranks. Despite each transfer event being rank-limited, the cumulative core-tile update achieves effective ranks far exceeding the nominal rank: at rank 1, \(\erank(\Delta C)\) exceeds 100, and at rank 64 it approaches the effective rank of the pretrained weight itself (\(\erank(C_0)\approx\)599, dashed line). The subsequent decline in \(\erank(\Delta C)\) during later training is consistent with convergence to a task-specific subspace, where successive transfers reinforce existing dominant singular directions rather than introducing new ones. This confirms that LR-TT is not confined to a permanently low-rank modification of the core matrix; instead, the repeated accumulate-and-transfer cycle progressively enriches the subspace of the cumulative update. This behavior is analogous to the cumulative rank growth observed in ReLoRA, where repeated low-rank merges build an effective update whose rank exceeds that of any single adapter \cite{lialin2023relora}. Higher nominal rank accelerates this enrichment by contributing more directions per transfer event, consistent with the monotonic F1 improvement observed in Fig.~\ref{fig:main_fig6}(b).
+
+
 \subsection{End-to-end system-level evaluation}
 \label{subsec:PPA_transformer}
 
@@ -576,7 +730,7 @@ We next compare LR-TT and the Tiki-Taka (TT) baseline at the system level using 
 Figure~\ref{fig:e2e_lrtt_tt}(a)--(d) summarizes the nominal Q/K/V/O-only auxiliary-path operating point at \(r=32\) (see Experimental Setup). Relative to TT, LR-TT reduces the auxiliary-path operation count from 56.6M to 9.4M per token and the corresponding energy from 4.4 to 0.74~\(\mu\)J per token. The trainable cell count decreases from 28.3M to 2.4M, and the required tile count decreases from 432 to 36. These reductions follow directly from the change in auxiliary-state scaling, since the TT auxiliary state scales with \(MN\), whereas the LR-TT auxiliary state scales with \(r(M+N)\). At the same operating point, conventional LR-TT reaches 12.24~\(\mu\)s per token rather than the 7.44~\(\mu\)s of TT because the low-rank projection path introduces an explicit readout overhead; the ADC-less co-design reduces this value to 9.84~\(\mu\)s per token.
 
 \noindent
-Figure~\ref{fig:e2e_lrtt_tt}(e)--(h) extends the auxiliary-path comparison across rank for Q/K/V/O-only, FFN-only, and all-layer mapping, and reports the corresponding TT/LR-TT ratios in operation count, energy, trainable cell count, and required tile count. The largest savings are obtained in the low-rank regime, where the auxiliary state remains strongly compressed; as \(r\) increases, these benefits taper because the LR-TT auxiliary state scales with \(r(M+N)\). The strongest reduction appears in the FFN-only case, where the wider \(3072\times768\) and \(768\times3072\) matrices further amplify the gap between the full-rank and low-rank auxiliary states.
+Figure~\ref{fig:e2e_lrtt_tt}(e)--(h) extends the auxiliary-path comparison across rank for Q/K/V/O-only, FFN-only, and all-layer mapping, and reports the corresponding TT/LR-TT ratios in operation count, energy, trainable cell count, and required tile count. The largest savings are obtained in the low-rank regime, where the auxiliary state remains strongly compressed; as \(r\) increases, these benefits taper because the LR-TT auxiliary state scales with \(r(M+N)\). The strongest reduction appears in the FFN-only case, where the wider \(3072\times768\) and \(768\times3072\) matrices further amplify the gap between the full-dimensional and low-rank auxiliary states.
 
 \noindent\textbf{Sensitivity to pulse length and update-energy assumptions.}
 Figure~\ref{fig:e2e_lrtt_tt}(i) isolates the LR-TT auxiliary update micro-cycle in the Q/K/V/O-only auxiliary path and examines how its pulse-write fraction varies with the pulse-train length \(BL\). The quantity of interest is \(t_{\mathrm{upd}}/(t_{\mathrm{proj}}+t_{\mathrm{upd}})\), which increases with \(BL\) because the relative contribution of projection readout decreases; at the nominal \(BL=31\), it is 0.608 for conventional projection readout and 0.756 for the ADC-less co-design. Figure~\ref{fig:e2e_lrtt_tt}(j) evaluates the auxiliary-path energy robustness of LR-TT relative to TT as the update-to-MVM energy ratio \(\kappa_e\) is swept, showing that the LR-TT energy advantage persists across the examined \(\kappa_e\) range. The corresponding definitions and the literature basis of the \(\kappa_e\) range are given in the Experimental Section.
@@ -589,9 +743,10 @@ Figure~\ref{fig:e2e_lrtt_tt}(k) and (l) extend the analysis to the all-layer ful
 
 In this work, we introduced Low-Rank Tiki-Taka (LR-TT), a core--auxiliary analog training scheme that makes Tiki-Taka-style in-situ learning compatible with parameter-efficient transformer adaptation. By replacing the full-dimensional auxiliary matrix of Tiki-Taka with low-rank \(A/B\) auxiliary tiles, LR-TT preserves the accumulate-and-transfer mechanism required for robust analog updates while changing the auxiliary-state scaling from \(MN\) to \(r(M+N)\). This distinction is important for transformer fine-tuning, where large dense projections dominate the mapped hardware footprint and where many useful update components fall below the unit-pulse threshold of direct low-bit analog writing.
 
-The proposed scheme was validated across device, algorithm, task, and system levels. Measured IGZO-TFT/capacitor 6T1C arrays provided gradual and near-symmetric bidirectional updates suitable for the repeatedly written auxiliary path, and hardware-in-the-loop regression confirmed that measured \(A/B\) tiles can accumulate projected low-rank updates and transfer them to a visible core state. Small-scale MNIST training and controlled trajectory analyses further showed that LR-TT is not confined to a permanently rank-\(r\) modification of the core matrix: repeated rank-limited transfers progressively build a richer cumulative update, while the transfer period must balance directional accumulation with timely consolidation. At the transformer scale, BERT-base fine-tuning on SQuAD v1.1 identified backward outliers, layer-dependent I/O sensitivity, and sub-pulse-limited updates as the dominant obstacles to AIMC-based training. LR-TT addresses these obstacles by retaining a high-resolution auxiliary accumulation path before transfer to the core state, thereby maintaining task performance close to full-rank Tiki-Taka as rank increases while substantially reducing the auxiliary-path operation count, energy, trainable cells, and tile footprint.
+The proposed scheme was validated across device, algorithm, task, and system levels. Measured IGZO-TFT/capacitor 6T1C arrays provided gradual and near-symmetric bidirectional updates suitable for the repeatedly written auxiliary path, and hardware-in-the-loop regression confirmed that measured \(A/B\) tiles can accumulate projected low-rank updates and transfer them to a visible core state. Small-scale MNIST training and controlled trajectory analyses further showed that LR-TT is not confined to a permanently rank-\(r\) modification of the core matrix: repeated rank-limited transfers progressively build a richer cumulative update, while the transfer period must balance directional accumulation with timely consolidation. At the transformer scale, BERT-base fine-tuning on SQuAD v1.1 identified backward outliers, layer-dependent I/O sensitivity, and sub-pulse-limited updates as the dominant obstacles to AIMC-based training. LR-TT addresses these obstacles by retaining a high-resolution auxiliary accumulation path before transfer to the core state, thereby maintaining task performance close to full-dimensional Tiki-Taka as rank increases while substantially reducing the auxiliary-path operation count, energy, trainable cells, and tile footprint.
+To our knowledge, this constitutes the first AIMC on-chip fine-tuning of a transformer language model at the BERT-base scale.
 
-These results suggest that low-rank structure is most useful for AIMC training when it compresses the analog accumulation path rather than merely reducing the number of trainable software parameters. The present implementation still relies on a hybrid analog--digital partition, calibrated system-level modeling, and explicit low-rank projection readout, which introduces a modest latency overhead relative to full-rank Tiki-Taka in the evaluated full-system setting. Future implementations should therefore focus on projection-readout co-design, larger integrated 6T1C auxiliary arrays, core-tile non-ideality validation, and end-to-end transformer training demonstrations that include the full interaction between analog MVMs, pulsed updates, and digital attention. Overall, LR-TT provides a practical route toward memory-efficient on-chip adaptation of transformer models using analog in-memory computing hardware.
+These results suggest that low-rank structure is most useful for AIMC training when it compresses the analog accumulation path rather than merely reducing the number of trainable software parameters. The present implementation still relies on a hybrid analog--digital partition, calibrated system-level modeling, and explicit low-rank projection readout, which introduces a modest latency overhead relative to full-dimensional Tiki-Taka in the evaluated full-system setting. The evaluation also focuses on a single language-model scale and task and on a single 6T1C device family with a uniform auxiliary update rule shared across the \(A\) and \(B\) factors. Principled selection of the multiple interacting LR-TT hyperparameters---including rank, transfer interval, and pulse-update settings, and their possible variation across encoder layers---would also benefit from further study. Future implementations should therefore focus on projection-readout co-design, larger integrated 6T1C auxiliary arrays, core-tile non-ideality validation, and end-to-end transformer training demonstrations that include the full interaction between analog MVMs, pulsed updates, and digital attention; together with these refinements, the above limitations motivate further investigation of the analog auxiliary accumulation path under broader algorithmic and device-level settings, including efforts to narrow the small accuracy gap that remains relative to full-dimensional Tiki-Taka. Overall, LR-TT provides a practical route toward memory-efficient on-chip adaptation of transformer models using analog in-memory computing hardware.
 
 %====================================================
 \section{Experimental Section}
@@ -604,10 +759,10 @@ The synaptic array was fabricated using established process techniques reported 
 The measurement system was implemented following configurations reported in prior studies\cite{won2023advs_6t1c, kang2025advs_disturbance}. A PCB-based measurement platform was employed, integrating a microcontroller unit (MCU) with discrete peripheral circuits, including multiplexers, analog switches, D flip-flops, and operational amplifiers, to support hardware-based training operations such as feedforward, backpropagation, and weight updates. Analog-to-digital conversion was performed using the on-chip ADC of the MCU board (Arduino Due), where the output of the PCB-integrated integrator was directly connected to the ADC, enabling digitization into 10-bit integer values (0–1023). The PCB was electrically interfaced with synaptic devices fabricated on an 8-inch wafer via a 45-pin probe card, and the wafer was mounted on an auto-prober system (Eg4090) for die-level array measurements. Required bias voltages were supplied through an external DC power source, while control signals, including pulse width, repetition count, and training sequences, were generated on a host computer using C/C++-based Arduino code and transmitted to the MCU via a universal asynchronous receiver–transmitter (UART) interface. A photograph of the overall device measurement setup is provided in Supporting Information S2.
 
 \noindent\textbf{MNIST on-chip scratch training.}
-All analog simulations in this subsection were performed using the IBM Analog Hardware Acceleration Kit (AIHWKIT, v0.9.0) \cite{rasch2021aihwkit,legallo2023aihwkit}. For the MNIST scratch-training benchmark, we used the \texttt{torchvision} MNIST dataset with 60,000 training images and 10,000 test images, normalized with mean 0.1307 and standard deviation 0.3081. The network was a two-layer MLP consisting of an LR-TT-mapped \texttt{AnalogLinear(784,256,bias=True)} layer, ReLU, a \texttt{FloatingPointRPUConfig} \texttt{AnalogLinear(256,10,bias=True)} classifier, and LogSoftmax output trained with NLLLoss. Thus, the first layer was mapped to an LR-TT three-tile analog block, whereas the classifier and non-MVM operations were evaluated in the FP32/digital path. All MNIST runs used batch size 64, 30 epochs, and a StepLR schedule with step size 10 and decay factor 0.5. Exact network, tile, I/O, optimizer, and sweep settings are listed in Supporting information~S8.
+All analog simulations in this subsection were performed using the IBM Analog Hardware Acceleration Kit (AIHWKIT, v0.9.0) \cite{rasch2021aihwkit,legallo2023aihwkit}. For the MNIST scratch-training benchmark, we used the \texttt{torchvision} MNIST dataset with 60,000 training images and 10,000 test images, normalized with mean 0.1307 and standard deviation 0.3081. The network was a two-layer MLP consisting of an LR-TT-mapped \texttt{AnalogLinear(784,256,bias=True)} layer, ReLU, a \texttt{FloatingPointRPUConfig} \texttt{AnalogLinear(256,10,bias=True)} classifier, and LogSoftmax output trained with NLLLoss. Thus, the first layer was mapped to an LR-TT three-tile analog block, whereas the classifier and non-MVM operations were evaluated in the FP32/digital path. All MNIST runs used batch size 64, 30 epochs, and a StepLR schedule with step size 10 and decay factor 0.5. Exact network, tile, I/O, optimizer, and sweep settings are listed in Supporting Information~S8.
 
 \noindent\textbf{BERT-base SQuAD fine-tuning.}
-All BERT-base experiments used the pretrained \texttt{bert-base-uncased} checkpoint (12 encoder layers, 110M parameters) fine-tuned on SQuAD v1.1 \cite{devlin2019bert,rajpurkar2016squad}. The LR-TT analog block was applied to the Q, K, V, and attention-output projections (QKVO mapping) unless otherwise specified; FFN-only and all-layer mappings were used for the mapped-layer ablation in Fig.~\ref{fig:main_fig6}(a). Non-matrix operations (attention-score computation, softmax, LayerNorm, GeLU, residual additions) and the SQuAD task head remained in the digital path. Training used the AnalogAdam optimizer with batch size 48, 5 epochs, linear learning-rate warmup over 365 steps followed by linear decay, no weight decay, and maximum sequence length 384. The default LR-TT configuration used rank \(r=32\), rank-wise stochastic transfer with transfer learning rate scaled by the optimizer learning rate, and auxiliary forward-path participation \(\gamma=0\), with post-transfer retention for both \(A\) and \(B\) tiles. The auxiliary tiles used an ideal symmetric device model with multi-level updates, and the core tile used the same device model; the decay reinitialization mode was used. All reported training runs used ideal I/O; the I/O precision diagnostics in Fig.~\ref{fig:main_fig5}(a)--(e) used the quantized I/O model described in Supporting Information~S8. Per-configuration hyperparameter optimization was performed using Optuna with early stopping. The complete set of training, device, and optimizer parameters for every experimental condition is listed in Supporting Information~S8.
+All BERT-base experiments used the pretrained \texttt{bert-base-uncased} checkpoint (12 encoder layers, 110M parameters) fine-tuned on SQuAD v1.1 \cite{devlin2019bert,rajpurkar2016squad}. The LR-TT analog block was applied to the Q, K, V, and attention-output projections (QKVO mapping) unless otherwise specified; FFN-only and all-layer mappings were used for the mapped-layer ablation in Fig.~\ref{fig:main_fig6}(a). Non-matrix operations (attention-score computation, softmax, LayerNorm, GeLU, residual additions) and the SQuAD task head remained in the digital path. Training used the AnalogAdam optimizer with batch size 48, 5 epochs, linear learning-rate warmup over 365 steps followed by linear decay, no weight decay, and maximum sequence length 384. The default LR-TT configuration used rank \(r=32\), rank-wise stochastic transfer with transfer learning rate scaled by the optimizer learning rate, no auxiliary contribution to the forward path (i.e., \(W^{\mathrm{vis}}=C\)), and post-transfer retention for both \(A\) and \(B\) tiles. The auxiliary tiles used an ideal symmetric device model with multi-level updates, and the core tile used the same device model; the decay reinitialization mode was used. All reported training runs used ideal I/O; the I/O precision diagnostics in Fig.~\ref{fig:main_fig5}(a)--(e) used the quantized I/O model described in Supporting Information~S8. Per-configuration hyperparameter optimization was performed using Optuna with early stopping. The complete set of training, device, and optimizer parameters for every experimental condition is listed in Supporting Information~S8.
 
 
 \noindent\textbf{Backward-gradient and update-path diagnostics.}
@@ -648,7 +803,7 @@ The QZR was computed as
 }.
 \label{eq:qzr_def}
 \end{equation}
-The heat map in Fig.~\ref{fig:main_fig4}(a) uses the 8-bit backward-DAC setting.
+The heat map in Fig.~\ref{fig:main_fig5}(a) uses the 8-bit backward-DAC setting.
 
 Fig.~\ref{fig:main_fig5}(b) reports the outlier dominance ratio (ODR), which quantifies how strongly the ABS\_MAX scale of each gradient vector is set by its largest element rather than by the bulk of the vector. 
 ODR was computed on the same padding-masked vectors as QZR:
@@ -716,7 +871,7 @@ The \(\mu\) values were accumulated into a shared 200-bin log-spaced histogram o
 Figures~\ref{fig:e2e_lrtt_tt}(a)--(h) report auxiliary-path cost metrics, Figures~\ref{fig:e2e_lrtt_tt}(i) and (j) report auxiliary-path sensitivity trends, and Figures~\ref{fig:e2e_lrtt_tt}(k) and (l) report the end-to-end latency and energy of the full mapped encoder. Unless otherwise stated, the nominal operating point was \(r=32\), \(BL=31\), \(S=384\), and \(B=48\). All values are reported per token, and \(B\) enters the model only through the amortization of transfer events. The analysis was calibrated to a \(256\times256\) AIMC tile model \cite{klein2023alpine}, with per-tile MVM latency \(T_{\mathrm{MVM}}=100~\mathrm{ns}\), device-level programming-pulse duration \(t_{\mathrm{pulse}}=5~\mathrm{ns}\), and analog energy per operation \(\varepsilon_{\mathrm{AIMC}}=0.078~\mathrm{pJ/op}\). At the nominal pulse length, this corresponds to a pulsed-update window of \(BL\cdot t_{\mathrm{pulse}}=155~\mathrm{ns}\) \cite{rasch2024fastrobust}. In the baseline LR-TT estimate, each low-rank projection read was assigned one calibrated MVM window. Figures~\ref{fig:e2e_lrtt_tt}(b) and (i) additionally include a reduced projection-read window of \(50~\mathrm{ns}\) as a latency sensitivity case for projection-readout co-design. These quantities should therefore be interpreted as calibrated model parameters rather than as new direct silicon measurements. Digital operations were converted to latency and energy using first-order reference constants, \(P_{\mathrm{dig}}=1280~\mathrm{ops/ns}\) and \(\varepsilon_{\mathrm{dig}}=1.0~\mathrm{pJ/op}\) \cite{chen2025albertanalog,horowitz2014computing}.
 
 \noindent
-In Figures~\ref{fig:e2e_lrtt_tt}(a), (d), and (e)--(h), operation count, trainable cell count, and mapped tile count were evaluated only for the auxiliary state and its associated update operations. The core \(C\) tile and the digital transformer operations were therefore excluded from these panels. For a mapped matrix \(W\in\mathbb{R}^{M\times N}\), the trainable auxiliary cell count is \(MN\) for TT and \(Mr+rN\) for LR-TT, corresponding to the full-rank auxiliary matrix in TT and the two low-rank factors \(A\in\mathbb{R}^{M\times r}\) and \(B\in\mathbb{R}^{r\times N}\) in LR-TT. Operation counts follow the same primitive-operation convention for both methods, with one multiplication and one accumulation counted separately. Under this convention, the TT auxiliary update requires \(2MN\) operations per mapped matrix, whereas the reported LR-TT auxiliary-path operation count is the sum of one projection-read stage and one auxiliary-update stage, each scaling as \(2rN+2Mr\). Tile counts were obtained by mapping the corresponding auxiliary arrays to \(256\times256\) tiles. For TT, each auxiliary matrix contributes \(\lceil M/256\rceil\lceil N/256\rceil\) tiles. For LR-TT, the \(A\) and \(B\) factors were first mapped to \(M\times r\) and \(r\times N\) tiles, respectively, and repeated low-rank factors with the same matrix shape were then packed along the rank dimension whenever possible.
+In Figures~\ref{fig:e2e_lrtt_tt}(a), (d), and (e)--(h), operation count, trainable cell count, and mapped tile count were evaluated only for the auxiliary state and its associated update operations. The core \(C\) tile and the digital transformer operations were therefore excluded from these panels. For a mapped matrix \(W\in\mathbb{R}^{M\times N}\), the trainable auxiliary cell count is \(MN\) for TT and \(Mr+rN\) for LR-TT, corresponding to the full-dimensional auxiliary matrix in TT and the two low-rank factors \(A\in\mathbb{R}^{M\times r}\) and \(B\in\mathbb{R}^{r\times N}\) in LR-TT. Operation counts follow the same primitive-operation convention for both methods, with one multiplication and one accumulation counted separately. Under this convention, the TT auxiliary update requires \(2MN\) operations per mapped matrix, whereas the reported LR-TT auxiliary-path operation count is the sum of one projection-read stage and one auxiliary-update stage, each scaling as \(2rN+2Mr\). Tile counts were obtained by mapping the corresponding auxiliary arrays to \(256\times256\) tiles. For TT, each auxiliary matrix contributes \(\lceil M/256\rceil\lceil N/256\rceil\) tiles. For LR-TT, the \(A\) and \(B\) factors were first mapped to \(M\times r\) and \(r\times N\) tiles, respectively, and repeated low-rank factors with the same matrix shape were then packed along the rank dimension whenever possible.
 
 \noindent
 Auxiliary-path latency was computed from the projection-read stage, the auxiliary-update stage, and the amortized transfer term. The pulse-length sensitivity in Figure~\ref{fig:e2e_lrtt_tt}(i) was parameterized by
@@ -735,11 +890,11 @@ For the energy sensitivity in Figure~\ref{fig:e2e_lrtt_tt}(j), the update-to-MVM
 \kappa_e=\frac{\varepsilon_{\mathrm{upd}}}{\varepsilon_{\mathrm{MVM}}},
 \qquad
 R_E(\kappa_e,r)=
-\frac{\kappa_e\sum_{\ell\in\mathcal{L}}M_\ell N_\ell}
-{(1+\kappa_e)\,r\sum_{\ell\in\mathcal{L}}(M_\ell+N_\ell)} ,
+\frac{\kappa_e\sum_{\ell}M_\ell N_\ell}
+{(1+\kappa_e)\,r\sum_{\ell}(M_\ell+N_\ell)} ,
 \label{eq:ppa_kappa_ratio}
 \end{equation}
-where \(\varepsilon_{\mathrm{upd}}\) and \(\varepsilon_{\mathrm{MVM}}\) denote the energy assigned to one analog pulsed-update operation and one analog MVM operation under the same primitive-operation convention, respectively. The reference anchors in Figure~\ref{fig:e2e_lrtt_tt}(j) were obtained by converting literature-reported update and MVM energies to the ratio in Eq.~\eqref{eq:ppa_kappa_ratio}, giving \(\kappa_e=0.5\) for the RPU training simulation of Gokmen and Vlasov \cite{gokmen2016rpu}, \(\kappa_e=1\) for the near-parity write/read energy reported for the FeFET crossbar demonstration \cite{soliman2023fefet_crossbar}, and \(\kappa_e=4\) for the cell-level write/read energies reported for ReRAM by Marinella et al. \cite{marinella2018rram_training}.
+where \(\varepsilon_{\mathrm{upd}}\) and \(\varepsilon_{\mathrm{MVM}}\) denote the energy assigned to one analog pulsed-update operation and one analog MVM operation under the same primitive-operation convention, respectively, and the sum runs over all mapped layers. The reference anchors in Figure~\ref{fig:e2e_lrtt_tt}(j) were obtained by converting literature-reported update and MVM energies to the ratio in Eq.~\eqref{eq:ppa_kappa_ratio}, giving \(\kappa_e=0.5\) for the RPU training simulation of Gokmen and Vlasov \cite{gokmen2016rpu}, \(\kappa_e=1\) for the near-parity write/read energy reported for the FeFET crossbar demonstration \cite{soliman2023fefet_crossbar}, and \(\kappa_e=4\) for the cell-level write/read energies reported for ReRAM by Marinella et al. \cite{marinella2018rram_training}.
 
 \noindent
 The full-system latency and energy in Figures~\ref{fig:e2e_lrtt_tt}(k) and (l) were evaluated for the all-layer mapping and were decomposed into four components: the common core-matrix MVM path, the method-dependent auxiliary path, digital attention, and the remaining digital transformer operations. The digital-attention component includes attention-score computation, softmax, attention-value multiplication, and their backward-pass counterparts. The remaining digital operations include LayerNorm, GeLU, and residual additions. The detailed timing breakdown and derivation of this cost decomposition are provided in Supporting Information~S7.
@@ -748,17 +903,16 @@ The full-system latency and energy in Figures~\ref{fig:e2e_lrtt_tt}(k) and (l) w
 Supporting Information is available from the Wiley Online Library or from the author.
 
 \bmsection*{Acknowledgements}
-The authors acknowledge financial support from [funding agency, grant number] and thank [facility/laboratory/colleagues, if any] for technical assistance.
+The authors acknowledge financial support from [funding agency, grant number].
 
 \bmsection*{Author Contributions}
-[A.A.] and [B.B.] conceived the project; [A.A.] developed the LR-TT algorithm; [C.C.] performed the 6T1C device measurements; [A.A.] and [B.B.] performed the simulations and system-level analysis; all authors discussed the results and contributed to writing and revising the manuscript.
+[A.A.] and [B.B.] conceived the project; [A.A.] developed the LR-TT algorithm; [C.C.] performed the 6T1C device measurements; [A.A.] and [B.B.] performed the simulations and system-level analysis; all authors contributed to writing and revising the manuscript.
 
 \bmsection*{Conflict of Interest}
 The authors declare no conflict of interest.
 
 \bmsection*{Data Availability Statement}
-The data that support the findings of this study are available within the article and its Supporting Information; additional raw measurement data and simulation scripts are available from the corresponding author upon reasonable request.
-
+The data that support the findings of this study are available within the article and its Supporting Information.
 %====================================================
 % References
 %====================================================

@@ -290,6 +290,38 @@ Supplementary Figure~\ref{fig:si_reset_aux_path} shows that the w/o reset mode y
   \label{fig:si_reset_aux_path}
 \end{figure}
 
+\begin{table}[!htbp]
+\centering
+\caption{\textbf{Exploratory LR-TT extensions on BERT-base SQuAD.}
+As a preliminary feasibility check, we tested two variants that extend the
+main-text default by enabling auxiliary forward-path participation
+($\gamma>0$) together with the partial post-transfer reset rule
+(``w/'' reset; Eq.~\eqref{eq:S4_reset_rule}, equivalent to the
+\texttt{hybrid} reinitialization mode in the implementation), evaluated with
+rank-wise stochastic pulse transfer (RW) and ideal analytic transfer (Id).
+These runs used limited Optuna searches with no dedicated hyperparameter
+tuning at this regime; the F1 values below should be read as an indication
+that these extensions also train successfully on this task rather than as
+optimized results. All other settings mirror the main-text default ($r=32$,
+QKVO mapping, constantstepideal AB device, $|w|_{\max}^{A,B}=1.0$ without
+multilevel updates).}
+\label{tab:S5_lrtt_variants}
+\small
+\renewcommand{\arraystretch}{1.10}
+\setlength{\tabcolsep}{4.0pt}
+\begin{tabularx}{\linewidth}{c c c c c c r r}
+\toprule
+\rowcolor{HeadGray}
+\textbf{$\gamma$} & \textbf{Reset} & \textbf{Transfer} & \textbf{$r$} &
+\textbf{$|w|_{\max}^{A,B}$} & \textbf{C bit} &
+\textbf{Optuna trials} & \textbf{Best F1} \\
+\midrule
+$>0$ & w/ & RW & 32 & 1.0 & 10 & 94 & 85.85 \\
+$>0$ & w/ & Id & 32 & 1.0 & 10 & 44 & 87.21 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
 \SIEndSection
 
 %====================================================
@@ -301,7 +333,7 @@ Supplementary Figure~\ref{fig:si_reset_aux_path} shows that the w/o reset mode y
 This section presents additional diagnostics and ablations that complement the BERT-base fine-tuning results in the main text.
 
 
-  \begin{figure}[t]                                                                                         
+  \begin{figure}[!htbp]                                                                                        
     \centering                                                                                              
     \includegraphics[width=0.98\textwidth]{sup_fig6_1.png}                                                  
     \caption{\textbf{Per-cell weight dynamics of the auxiliary ($A$, $B$)                                   
@@ -312,7 +344,7 @@ This section presents additional diagnostics and ablations that complement the B
     From top to bottom, the rows plot the trajectories of 10 randomly                                       
     sampled cells from tile~$B$ (auxiliary), tile~$A$ (auxiliary), and                                      
     tile~$C$ (core), respectively. The auxiliary tiles (top and middle)                                     
-    exhibit random-walk-like excursions bounded by the device range
+    exhibit random-walk-like excursions bounded by the device range                                         
     $|w|_{\max}^{A,B}\!\approx\!6.2\times10^{-2}$, reflecting the auxiliary low-rank
     accumulation that is periodically reset by rank-wise stochastic transfer, whereas                                    
     the core tile (bottom) evolves on a much slower timescale, with each                                    
@@ -330,16 +362,16 @@ This section presents additional diagnostics and ablations that complement the B
     \includegraphics[width=0.98\textwidth]{sup_fig6_2.png}                                                  
     \caption{\textbf{Hyperparameter and device ablations for LR-TT                                          
     fine-tuning of BERT-base on SQuAD v1.1.}                                                                
-    (a)dev-F1 versus weight precision at rank~$r\!=\!32$
-    (per-bit Optuna-optimized); the bottom axis sweeps the auxiliary
+    (a)dev-F1 versus weight precision at rank~$r\!=\!32$                                      
+    (per-bit Optuna-optimized); the bottom axis sweeps the auxiliary                                        
     ($A$/$B$) tile bit width ($F_1\!=\!78.0/79.5/83.2/84.1/84.1$
-    for $6/8/10/12/14$~bits) and the top axis sweeps the core ($C$)
+    for $6/8/10/12/14$~bits) and the top axis sweeps the core ($C$)                                         
     tile bit width ($F_1\!=\!80.3/80.8/83.3/83.5/84.1$ for
     $6/7/8/9/10$~bits).
-   (b)rank sweep (per-rank optimized); F1 rises
+   (b)rank sweep (per-rank optimized); F1 rises                                         
     monotonically from $82.0$ at $r\!=\!1$ (0.40\% of full-FT
     parameters) to $84.5$ at $r\!=\!64$ (16.78\%) and saturates beyond
-    $r\!=\!32$.
+    $r\!=\!32$.     
    (c)LoRA target selection; adapting only the
     attention projections (QKVO, $F_1\!=\!84.6$) outperforms FFN-only
     ($82.5$) and ALL-modules ($83.6$).
@@ -802,7 +834,7 @@ Stochastic pulse trains are generated with probabilities proportional to the sca
 Table~\ref{tab:S8_hardware_simulator} summarizes the common AIHWKIT configuration used for LR-TT simulations. The listed 6T1C-calibrated auxiliary-array parameters define the baseline device used across the MNIST and BERT-base studies. BERT-base diagnostic studies use an 8-bit DAC/ADC setting as the default I/O condition and additionally sweep the DAC/ADC precision from 4 to 8 bits; the reported BERT-base training runs use ideal I/O, denoted by \(\mathrm{io\_perfect}=\mathrm{true}\). For the BERT-base auxiliary-device study, the auxiliary weight range is swept over \(|w|_{\max}^{A,B}\in[0.01,1.0]\), with \(\Delta w_{\min}\) adjusted according to the target weight precision using Eq.~\eqref{eq:S8_weight_bit}. For the MNIST core-array study, the core precision sweep uses \(b_w\in\{5,6,7,8,9,10\}\), and the core nonlinearity sweep uses \(\mathrm{AF}^{C}\in\{0,0.5,1,2,5,10\}\). The BERT-base AF-ratio and noise-ratio studies scale the auxiliary-array baseline slopes and noise/variation amplitudes defined in Table~\ref{tab:S8_hardware_simulator} according to Eqs.~\eqref{eq:S8_af_ratio} and~\eqref{eq:S8_noise_ratio}.
 
 %----------------------------------------------------
-\begin{table}[H]
+\begin{table}[!htbp]
 \centering
 \caption{\textbf{Common simulator, device, I/O, and update settings for LR-TT.}
 The table lists the shared AIHWKIT simulator configuration and the baseline numerical parameters used unless a study-specific sweep modifies the corresponding quantity.}
@@ -825,7 +857,7 @@ Auxiliary-array variation &
 \(\sigma_{\Delta}^{\mathrm{d2d}}=0.1\), \(\sigma_{\mathrm{ud}}^{\mathrm{d2d}}=0.01\), \(\sigma_{b^{\max}}=\sigma_{b^{\min}}=0.05\), \(\sigma_{\gamma^{+}}=\sigma_{\gamma^{-}}=0.05\), and \(\sigma_{\mathrm{wn}}=0\). BERT noise-ratio sweeps multiply these baseline amplitudes by \(r_{\mathrm{noise}}\). \\
 \midrule
 Core-array device &
-Baseline core array: \(|w|_{\max}^{C}=1\), \(\Delta w_{\min}=0.001\), \(\bar{\gamma}^{+}=\bar{\gamma}^{-}=0\), \(\sigma_{\Delta}^{\mathrm{d2d}}=0\), \(\sigma_{\mathrm{pulse}}=0\), and \(\sigma_{\mathrm{wn}}=0\). MNIST core sweeps use \(b_w\in\{5,6,7,8,9,10\}\), \(\Delta w_{\min}^{C}=2/2^{b_w}\), and \(\mathrm{AF}^{C}\in\{0,0.5,1,2,5,10\}\). \\
+Baseline core array: \(|w|_{\max}^{C}=1\) (raw-tile bound; the effective model weight is recovered through a per-tile scaling factor calibrated to the pretrained weight range), \(\Delta w_{\min}=0.001\), \(\bar{\gamma}^{+}=\bar{\gamma}^{-}=0\), \(\sigma_{\Delta}^{\mathrm{d2d}}=0\), \(\sigma_{\mathrm{pulse}}=0\), and \(\sigma_{\mathrm{wn}}=0\). MNIST core sweeps use \(b_w\in\{5,6,7,8,9,10\}\), \(\Delta w_{\min}^{C}=2/2^{b_w}\), and \(\mathrm{AF}^{C}\in\{0,0.5,1,2,5,10\}\). \\
 \midrule
 I/O parameter &
 Default training I/O: \(b_{\mathrm{DAC}}=7\), \(b_{\mathrm{ADC}}=9\), \(B_{\mathrm{DAC}}=1.0\), \(B_{\mathrm{ADC}}=12.0\), and \(\sigma_{\mathrm{out}}=0\). Forward MVM uses absolute-maximum scaling with iterative bound rescaling; backward MVM uses the same precision without iterative bound rescaling. BERT diagnostic studies use \(b_{\mathrm{DAC}}=b_{\mathrm{ADC}}=8\) by default and sweep \(b_{\mathrm{DAC}},b_{\mathrm{ADC}}\in\{4,5,6,7,8\}\); BERT training uses \(\mathrm{io\_perfect}=\mathrm{true}\). \\
@@ -841,7 +873,7 @@ Pulsed-update parameter &
 Table~\ref{tab:S8_mnist_training} lists the task, network architecture, mapped-layer partition, LR-TT configuration, and training setting used for the MNIST scratch-training experiments. The table is limited to model and training hyperparameters; reset/retention analysis is provided in Supplementary Section~\ref{sec:S4}.
 
 %----------------------------------------------------
-\begin{table}[H]
+\begin{table}[!htbp]
 \centering
 \caption{\textbf{MNIST network mapping and training settings.}
 The table lists the task, model, mapped-layer configuration, LR-TT setting, and training setting used for the small-scale scratch-training experiments.}
@@ -880,7 +912,7 @@ Analog SGD with negative log-likelihood loss, batch size 64, 30 epochs, learning
 Table~\ref{tab:S8_bert_training} lists the BERT-base SQuAD task setup using the same component structure as Table~\ref{tab:S8_mnist_training}. This presentation separates model/training hyperparameters from the shared simulator/device settings in Table~\ref{tab:S8_hardware_simulator} and keeps the MNIST and transformer configurations directly comparable.
 
 %----------------------------------------------------
-\begin{table}[H]
+\begin{table}[!htbp]
 \centering
 \caption{\textbf{BERT-base SQuAD mapping and fine-tuning settings.}
 The table lists the task, transformer model, mapped-layer configuration, LR-TT setting, and matched fine-tuning setting.}
@@ -906,7 +938,7 @@ Digital path &
 Attention-score computation, softmax, LayerNorm, GeLU, residual additions, embeddings, and the SQuAD task head are evaluated digitally. \\
 \midrule
 LR-TT configuration &
-Default operating point: rank \(r=32\), transfer interval \(\tau=2\), rank-wise stochastic transfer with transfer learning rate scaled by the optimizer learning rate (\texttt{scale\_transfer\_lr=true}), auxiliary forward-path participation \(\gamma=0\), and post-transfer retention for both \(A\) and \(B\) tiles. The decay reinitialization mode is used. The core ($C$) tile uses $|w|_{\max}^{C}=1.0$ across all reported conditions; only the auxiliary-tile bound $|w|_{\max}^{A,B}$ varies and is listed in Table~\ref{tab:S8_bert_perfig}. \\
+Default operating point: rank \(r=32\), transfer interval \(\tau=2\), rank-wise stochastic transfer with transfer learning rate scaled by the optimizer learning rate (\texttt{scale\_transfer\_lr=true}), auxiliary forward-path participation \(\gamma=0\), and post-transfer retention for both \(A\) and \(B\) tiles. The decay reinitialization mode is used. The core ($C$) tile uses raw $|w|_{\max}^{C}=1.0$ (with per-tile model-weight scaling) across all reported conditions; only the auxiliary-tile bound $|w|_{\max}^{A,B}$ varies and is listed in Table~\ref{tab:S8_bert_perfig}. \\
 \midrule
 Training setting &
 AnalogAdam optimizer with batch size 48, 5 epochs, linear learning-rate warmup over 365 steps followed by linear decay, no weight decay, and maximum sequence length \(S=384\). All BERT-base comparisons use matched dataset preprocessing, initialization checkpoint, mapped-layer set, optimizer schedule, and validation protocol. Reported training runs use ideal I/O (\(\mathrm{io\_perfect}=\mathrm{true}\)); diagnostic precision studies use the I/O model in Table~\ref{tab:S8_hardware_simulator}. Per-configuration hyperparameter optimization was performed using Optuna with early stopping. \\
@@ -918,7 +950,7 @@ AnalogAdam optimizer with batch size 48, 5 epochs, linear learning-rate warmup o
 \noindent\textbf{Per-figure experimental conditions for BERT-base fine-tuning.}
 Table~\ref{tab:S8_bert_perfig} lists the varying parameters for each data point in the main-text figures. All conditions share the common settings in Tables~\ref{tab:S8_hardware_simulator} and~\ref{tab:S8_bert_training} unless otherwise noted. The AF ratio\(=\)0 condition uses the constantstepideal device with 10-bit multi-level updates (\(|w|_{\max}^{A,B}=0.0624\), \(\Delta w_{\min}=1.21\times10^{-4}\)), and the AF ratio\(=\)1 condition uses the 6T1C-gamma device with 12-bit resolution (\(|w|_{\max}^{A,B}=1.0\), \(\Delta w_{\min}=4.88\times10^{-4}\)).
 
-{\small
+{\normalsize
 \renewcommand{\arraystretch}{1.10}
 \setlength{\tabcolsep}{3.0pt}
 \begin{longtable}{@{}l l l l r r r r r r r r r r r@{}}
@@ -948,16 +980,16 @@ Table~\ref{tab:S8_bert_perfig} lists the varying parameters for each data point 
 5(g) & LR-TT C 8b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 8 & .062 & 0 & 0 & 84.76 \\
 5(g) & LR-TT C 9b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 9 & .062 & 0 & 0 & 84.81 \\
 5(g) & LR-TT C 10b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 84.98 \\
-5(g) & Single RPU 6b & QKVO & --- & --- & --- & --- & --- & --- & --- & 6 & --- & 0 & 0 & 11.6 \\
-5(g) & Single RPU 7b & QKVO & --- & --- & --- & --- & --- & --- & --- & 7 & --- & 0 & 0 & 17.4 \\
-5(g) & Single RPU 8b & QKVO & --- & --- & --- & --- & --- & --- & --- & 8 & --- & 0 & 0 & 58.2 \\
-5(g) & Single RPU 9b & QKVO & --- & --- & --- & --- & --- & --- & --- & 9 & --- & 0 & 0 & 75.9 \\
-5(g) & Single RPU 10b & QKVO & --- & --- & --- & --- & --- & --- & --- & 10 & --- & 0 & 0 & 82.6 \\
-5(g) & TT C 6b & QKVO & --- & --- & --- & --- & --- & --- & --- & 6 & --- & --- & --- & 85.2 \\
-5(g) & TT C 7b & QKVO & --- & --- & --- & --- & --- & --- & --- & 7 & --- & --- & --- & 85.9 \\
-5(g) & TT C 8b & QKVO & --- & --- & --- & --- & --- & --- & --- & 8 & --- & --- & --- & 86.3 \\
-5(g) & TT C 9b & QKVO & --- & --- & --- & --- & --- & --- & --- & 9 & --- & --- & --- & 87.0 \\
-5(g) & TT C 10b & QKVO & --- & --- & --- & --- & --- & --- & --- & 10 & --- & --- & --- & 86.9 \\
+5(g) & Single RPU 6b & QKVO & --- & --- & --- & 1.60e-2 & --- & --- & --- & 6 & --- & 0 & 0 & 11.6 \\
+5(g) & Single RPU 7b & QKVO & --- & --- & --- & 1.60e-2 & --- & --- & --- & 7 & --- & 0 & 0 & 17.4 \\
+5(g) & Single RPU 8b & QKVO & --- & --- & --- & 1.60e-2 & --- & --- & --- & 8 & --- & 0 & 0 & 58.2 \\
+5(g) & Single RPU 9b & QKVO & --- & --- & --- & 1.60e-2 & --- & --- & --- & 9 & --- & 0 & 0 & 75.9 \\
+5(g) & Single RPU 10b & QKVO & --- & --- & --- & 1.60e-2 & --- & --- & --- & 10 & --- & 0 & 0 & 82.6 \\
+5(g) & TT C 6b & QKVO & --- & --- & 3 & 1.60e-2 & 0.80 & 0.13 & 10 & 6 & .050 & 0 & 0 & 85.2 \\
+5(g) & TT C 7b & QKVO & --- & --- & 3 & 1.60e-2 & 0.80 & 0.13 & 10 & 7 & .050 & 0 & 0 & 85.9 \\
+5(g) & TT C 8b & QKVO & --- & --- & 3 & 1.60e-2 & 0.80 & 0.13 & 10 & 8 & .050 & 0 & 0 & 86.3 \\
+5(g) & TT C 9b & QKVO & --- & --- & 3 & 1.60e-2 & 0.80 & 0.13 & 10 & 9 & .050 & 0 & 0 & 87.0 \\
+5(g) & TT C 10b & QKVO & --- & --- & 3 & 1.60e-2 & 0.80 & 0.13 & 10 & 10 & .050 & 0 & 0 & 86.9 \\
 \midrule
 
 \multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~5(h): Aux-tile bit sweep (per-bit opt.)}} \\
@@ -966,11 +998,11 @@ Table~\ref{tab:S8_bert_perfig} lists the varying parameters for each data point 
 5(h) & LR-TT AB 10b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 84.98 \\
 5(h) & LR-TT AB 12b & QKVO & RW & 32 & 2 & 2.50e-3 & 0.12 & 0.25 & 12 & 10 & .062 & 0 & 0 & 82.16 \\
 5(h) & LR-TT AB 14b & QKVO & RW & 32 & 2 & 3.28e-3 & 0.02 & 0.35 & 14 & 10 & .062 & 0 & 0 & 78.72 \\
-5(h) & TT AB 6b & QKVO & --- & --- & --- & --- & --- & --- & 6 & 10 & --- & --- & --- & 83.4 \\
-5(h) & TT AB 8b & QKVO & --- & --- & --- & --- & --- & --- & 8 & 10 & --- & --- & --- & 86.2 \\
-5(h) & TT AB 10b & QKVO & --- & --- & --- & --- & --- & --- & 10 & 10 & --- & --- & --- & 86.9 \\
-5(h) & TT AB 12b & QKVO & --- & --- & --- & --- & --- & --- & 12 & 10 & --- & --- & --- & 86.0 \\
-5(h) & TT AB 14b & QKVO & --- & --- & --- & --- & --- & --- & 14 & 10 & --- & --- & --- & 85.1 \\
+5(h) & TT AB 6b & QKVO & --- & --- & 3 & 1.60e-2 & 0.80 & 0.13 & 6 & 10 & .050 & 0 & 0 & 83.4 \\
+5(h) & TT AB 8b & QKVO & --- & --- & 3 & 1.60e-2 & 0.80 & 0.13 & 8 & 10 & .050 & 0 & 0 & 86.2 \\
+5(h) & TT AB 10b & QKVO & --- & --- & 3 & 1.60e-2 & 0.80 & 0.13 & 10 & 10 & .050 & 0 & 0 & 86.9 \\
+5(h) & TT AB 12b & QKVO & --- & --- & 3 & 1.60e-2 & 0.80 & 0.13 & 12 & 10 & .050 & 0 & 0 & 86.0 \\
+5(h) & TT AB 14b & QKVO & --- & --- & 3 & 1.60e-2 & 0.80 & 0.13 & 14 & 10 & .050 & 0 & 0 & 85.1 \\
 \midrule
 
 \multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~5(i): Cosine similarity}} \\
@@ -981,9 +1013,9 @@ Table~\ref{tab:S8_bert_perfig} lists the varying parameters for each data point 
 6(a) & LR-TT & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 84.98 \\
 6(a) & LR-TT & FFN & RW & 32 & 2 & 3.30e-3 & 0.20 & 0.20 & 10 & 10 & .062 & 0 & 0 & 84.12 \\
 6(a) & LR-TT & ALL & RW & 32 & 2 & 2.00e-3 & 0.35 & 0.15 & 10 & 10 & .062 & 0 & 0 & 85.22 \\
-6(a) & TT & QKVO & --- & --- & --- & --- & --- & --- & --- & --- & --- & --- & --- & 86.9 \\
-6(a) & TT & FFN & --- & --- & --- & --- & --- & --- & --- & --- & --- & --- & --- & 85.7 \\
-6(a) & TT & ALL & --- & --- & --- & --- & --- & --- & --- & --- & --- & --- & --- & 87.0 \\
+6(a) & TT & QKVO & --- & --- & 3 & 1.60e-2 & 0.80 & 0.13 & 10 & 10 & .050 & 0 & 0 & 86.9 \\
+6(a) & TT & FFN & --- & --- & 3 & 1.60e-2 & 0.80 & 0.13 & 10 & 10 & .050 & 0 & 0 & 85.7 \\
+6(a) & TT & ALL & --- & --- & 3 & 1.60e-2 & 0.80 & 0.13 & 10 & 10 & .050 & 0 & 0 & 87.0 \\
 6(a) & Dig.\ LoRA & QKVO & --- & 32 & --- & 3.05e-4 & --- & --- & --- & --- & --- & --- & --- & 88.12 \\
 6(a) & Dig.\ LoRA & FFN & --- & 32 & --- & 4.20e-4 & --- & --- & --- & --- & --- & --- & --- & 87.21 \\
 6(a) & Dig.\ LoRA & ALL & --- & 32 & --- & 4.20e-4 & --- & --- & --- & --- & --- & --- & --- & 88.26 \\
@@ -1009,47 +1041,44 @@ Table~\ref{tab:S8_bert_perfig} lists the varying parameters for each data point 
 6(b) & LR-TT $r$=64 & QKVO & Id & 64 & 1 & 3.80e-3 & 0.40 & 0.095 & 10 & 10 & .062 & 0 & 0 & 84.56 \\
 \midrule
 
-\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~6(c) left: Noise ratio sweep (AF=1, opt. at noise ratio = 0; T249 base)}} \\
-6(c) & LR-TT (T249) nr=0 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0 & 84.06 \\
-6(c) & LR-TT (T249) nr=0.1 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0.1 & 83.76 \\
-6(c) & LR-TT (T249) nr=0.3 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0.3 & 84.20 \\
-6(c) & LR-TT (T249) nr=0.5 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0.5 & 82.90 \\
-6(c) & LR-TT (T249) nr=0.7 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0.7 & 80.74 \\
-6(c) & LR-TT (T249) nr=1.0 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 1.0 & 78.12 \\
-6(c) & LR-TT (T249) nr=2.0 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 2.0 & 7.27 \\
-6(c) & LR-TT (T249) nr=3.0 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 3.0 & 7.27 \\
-6(c) & LR-TT (T249) nr=5.0 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 5.0 & 7.27 \\
-6(c) & LR-TT (T249) nr=10.0 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 10.0 & 7.27 \\
+\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~6(c) right: Noise ratio sweep}} \\
+6(c) & (opt@nr=0) nr=0 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0 & 84.06 \\
+6(c) & (opt@nr=0) nr=0.1 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0.1 & 83.76 \\
+6(c) & (opt@nr=0) nr=0.3 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0.3 & 84.20 \\
+6(c) & (opt@nr=0) nr=0.5 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0.5 & 82.90 \\
+6(c) & (opt@nr=0) nr=0.7 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0.7 & 80.74 \\
+6(c) & (opt@nr=0) nr=1.0 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 1.0 & 78.12 \\
+6(c) & (opt@nr=0) nr=2.0 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 2.0 & 7.27 \\
+6(c) & (opt@nr=0) nr=3.0 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 3.0 & 7.27 \\
+6(c) & (opt@nr=0) nr=5.0 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 5.0 & 7.27 \\
+6(c) & (opt@nr=0) nr=10.0 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 10.0 & 7.27 \\
+6(c) & (opt@nr=1) nr=0 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 0 & 82.13 \\
+6(c) & (opt@nr=1) nr=0.1 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 0.1 & 81.93 \\
+6(c) & (opt@nr=1) nr=0.3 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 0.3 & 81.87 \\
+6(c) & (opt@nr=1) nr=0.5 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 0.5 & 82.26 \\
+6(c) & (opt@nr=1) nr=0.7 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 0.7 & 82.25 \\
+6(c) & (opt@nr=1) nr=1.0 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 1.0 & 82.24 \\
+6(c) & (opt@nr=1) nr=2.0 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 2.0 & 76.82 \\
+6(c) & (opt@nr=1) nr=3.0 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 3.0 & 73.44 \\
+6(c) & (opt@nr=1) nr=5.0 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 5.0 & 9.50 \\
+6(c) & (opt@nr=1) nr=10.0 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 10.0 & 7.27 \\
 \midrule
 
-\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~6(c) left: Noise ratio sweep (AF=1, opt. at noise ratio = 1; T98 base)}} \\
-6(c) & LR-TT (T98) nr=0 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 0 & 82.13 \\
-6(c) & LR-TT (T98) nr=0.1 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 0.1 & 81.93 \\
-6(c) & LR-TT (T98) nr=0.3 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 0.3 & 81.87 \\
-6(c) & LR-TT (T98) nr=0.5 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 0.5 & 82.26 \\
-6(c) & LR-TT (T98) nr=0.7 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 0.7 & 82.25 \\
-6(c) & LR-TT (T98) nr=1.0 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 1.0 & 82.24 \\
-6(c) & LR-TT (T98) nr=2.0 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 2.0 & 76.82 \\
-6(c) & LR-TT (T98) nr=3.0 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 3.0 & 73.44 \\
-6(c) & LR-TT (T98) nr=5.0 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 5.0 & 9.50 \\
-6(c) & LR-TT (T98) nr=10.0 & QKVO & RW & 32 & 4 & 1.90e-3 & 0.092 & 0.20 & 12 & 10 & 1.0 & 1 & 10.0 & 7.27 \\
-\midrule
-
-\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~6(c) right: AF ratio sweep}} \\
-6(c) & AF=0 $\gamma$=0 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 84.98 \\
-6(c) & AF=0 $\gamma$=0.5 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0.5 & 0 & 80.03 \\
-6(c) & AF=0 $\gamma$=1 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 1 & 0 & 78.91 \\
-6(c) & AF=0 $\gamma$=2 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 2 & 0 & 78.44 \\
-6(c) & AF=0 $\gamma$=3 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 3 & 0 & 78.51 \\
-6(c) & AF=0 $\gamma$=5 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 5 & 0 & 78.48 \\
-6(c) & AF=0 $\gamma$=10 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 10 & 0 & 78.36 \\
-6(c) & AF=1 $\gamma$=0 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 0 & 0 & 7.27 \\
-6(c) & AF=1 $\gamma$=0.5 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 0.5 & 0 & 7.27 \\
-6(c) & AF=1 $\gamma$=1 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0 & 84.06 \\
-6(c) & AF=1 $\gamma$=2 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 2 & 0 & 82.11 \\
-6(c) & AF=1 $\gamma$=3 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 3 & 0 & 81.43 \\
-6(c) & AF=1 $\gamma$=5 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 5 & 0 & 80.26 \\
-6(c) & AF=1 $\gamma$=10 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 10 & 0 & 79.37 \\
+\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~6(c) left: AF ratio sweep}} \\
+6(c) & (opt@AF=0) $\gamma$=0 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 84.98 \\
+6(c) & (opt@AF=0) $\gamma$=0.5 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0.5 & 0 & 80.03 \\
+6(c) & (opt@AF=0) $\gamma$=1 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 1 & 0 & 78.91 \\
+6(c) & (opt@AF=0) $\gamma$=2 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 2 & 0 & 78.44 \\
+6(c) & (opt@AF=0) $\gamma$=3 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 3 & 0 & 78.51 \\
+6(c) & (opt@AF=0) $\gamma$=5 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 5 & 0 & 78.48 \\
+6(c) & (opt@AF=0) $\gamma$=10 & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 10 & 0 & 78.36 \\
+6(c) & (opt@AF=1) $\gamma$=0 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 0 & 0 & 7.27 \\
+6(c) & (opt@AF=1) $\gamma$=0.5 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 0.5 & 0 & 7.27 \\
+6(c) & (opt@AF=1) $\gamma$=1 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 1 & 0 & 84.06 \\
+6(c) & (opt@AF=1) $\gamma$=2 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 2 & 0 & 82.11 \\
+6(c) & (opt@AF=1) $\gamma$=3 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 3 & 0 & 81.43 \\
+6(c) & (opt@AF=1) $\gamma$=5 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 5 & 0 & 80.26 \\
+6(c) & (opt@AF=1) $\gamma$=10 & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & 1.0 & 10 & 0 & 79.37 \\
 \midrule
 
 \multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~6(d): Effective rank (per-rank opt.)}} \\
@@ -1101,7 +1130,7 @@ S9b & AF=1 opt & QKVO & RW & 32 & 1 & 3.80e-3 & 0.47 & 0.095 & 12 & 10 & var & 0
 S10 & LR-TT & QKVO & RW & 32 & 2 & 3.28e-3 & 0.30 & 0.25 & 10 & 10 & .062 & 0 & 0 & 84.98 \\
 \midrule
 
-\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~S11: Effective rank full 2$\times$2 (per-rank opt.)}} \\
+\multicolumn{15}{l}{\cellcolor{HeadGray}\textbf{Fig.~S11: Effective rank full 2$\times$2}} \\
 S11 & LR-TT $r$=1 & QKVO & RW & 1 & 2 & 2.00e-3 & 0.30 & 1.00 & 10 & 10 & .062 & 0 & 0 & 82.46 \\
 S11 & LR-TT $r$=2 & QKVO & RW & 2 & 1 & 2.00e-3 & 0.50 & 1.00 & 10 & 10 & .062 & 0 & 0 & 82.85 \\
 S11 & LR-TT $r$=4 & QKVO & RW & 4 & 2 & 2.00e-3 & 0.30 & 0.50 & 10 & 10 & .062 & 0 & 0 & 83.31 \\

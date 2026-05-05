@@ -9,8 +9,8 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-# Common plot points (option A): match gamma sweep ratios for visual alignment.
-NOISE_PLOT_RATIOS = [0.0, 0.5, 1.0, 2.0, 3.0, 5.0, 10.0]
+# Common plot points: include intermediate ratios (0.1, 0.3, 0.7) in addition to the gamma-aligned ratios.
+NOISE_PLOT_RATIOS = [0.0, 0.1, 0.3, 0.5, 0.7, 1.0, 2.0, 3.0, 5.0, 10.0]
 
 # T267: constantstepideal + abml=10 (ideal symmetric, multi-level) — full data preserved in JSON
 noise_t267 = [
@@ -83,7 +83,41 @@ plt.rcParams.update({
 
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 3.5))
 
-# --- Left: Noise ratio sweep (two AF=1 optimization conditions) ---
+# --- Left: Gamma (AF) ratio sweep ---
+for data, color, marker, label in [
+    (gamma_t249, '#d62728', 's', 'LR-TT (opt. at AF ratio = 1)'),
+    (gamma_t267, '#1f77b4', 'o', 'LR-TT (opt. at AF ratio = 0)'),
+]:
+    x = [d['ratio'] for d in data]
+    y = [d['f1'] for d in data]
+    ax1.plot(x, y, f'{marker}-', color=color, linewidth=1.6, markersize=6, zorder=3,
+             label=label)
+    for r, f in zip(x, y):
+        if f < 10:
+            ax1.annotate(f'{f:.1f}', (r, f), textcoords='offset points', xytext=(0, 7),
+                         fontsize=7, ha='center', color=color)
+        else:
+            oy = 7 if label.endswith('ratio = 1)') else -12
+            if label.endswith('ratio = 0)') and r == 0.5:
+                oy = 7
+            ax1.annotate(f'{f:.1f}', (r, f), textcoords='offset points', xytext=(0, oy),
+                         fontsize=7, ha='center', color=color)
+
+ax1.set_xlabel('Asymmetry factor (AF) ratio')
+ax1.set_ylabel('F1 score')
+ax1.set_ylim(0, 90)
+ax1.set_xscale('symlog', linthresh=0.5, linscale=0.5)
+_xt1 = [0.0, 0.5, 1.0, 2.0, 3.0, 5.0, 10.0]
+ax1.set_xticks(_xt1)
+ax1.set_xticklabels([str(t) for t in _xt1])
+ax1.set_xlim(-0.05, 11.0)
+ax1.minorticks_off()
+ax1.text(0.97, 0.12, 'Fixed: noise ratio = 0.0', transform=ax1.transAxes,
+         fontsize=7.5, ha='right', va='bottom', color='0.4')
+ax1.legend(fontsize=8, loc='center right', framealpha=0.9, edgecolor='0.7')
+ax1.grid(True, linestyle=':', linewidth=0.5, alpha=0.6)
+
+# --- Right: Noise ratio sweep (two AF=1 optimization conditions) ---
 for data, color, marker, label in [
     (noise_t98,  '#1f77b4', 'o', 'LR-TT (opt. at noise ratio = 1)'),
     (noise_t249, '#d62728', 's', 'LR-TT (opt. at noise ratio = 0)'),
@@ -91,48 +125,14 @@ for data, color, marker, label in [
     pts = _select(data, NOISE_PLOT_RATIOS)
     x = [r for r, _ in pts]
     y = [f for _, f in pts]
-    ax1.plot(x, y, f'{marker}-', color=color, linewidth=1.6, markersize=6, zorder=3,
-             label=label)
-    for r, f in zip(x, y):
-        oy = 7 if label.endswith('= 1)') else -12
-        ax1.annotate(f'{f:.1f}', (r, f), textcoords='offset points', xytext=(0, oy),
-                     fontsize=7, ha='center', color=color)
-
-ax1.set_xlabel('Noise scaling ratio')
-ax1.set_ylabel('F1 score')
-ax1.set_ylim(0, 90)
-ax1.set_xscale('symlog', linthresh=0.5, linscale=0.5)
-_xt = [0.0, 0.5, 1.0, 2.0, 3.0, 5.0, 10.0]
-ax1.set_xticks(_xt)
-ax1.set_xticklabels([str(t) for t in _xt])
-ax1.set_xlim(-0.05, 11.0)
-ax1.minorticks_off()
-ax1.text(0.97, 0.12, 'Fixed: AF ratio = 1', transform=ax1.transAxes,
-         fontsize=7.5, ha='right', va='bottom', color='0.4')
-ax1.legend(fontsize=8, loc='lower left', framealpha=0.9, edgecolor='0.7')
-ax1.grid(True, linestyle=':', linewidth=0.5, alpha=0.6)
-
-# --- Right: Gamma (AF) ratio sweep ---
-for data, color, marker, label in [
-    (gamma_t249, '#d62728', 's', 'LR-TT (opt. at AF ratio = 1)'),
-    (gamma_t267, '#1f77b4', 'o', 'LR-TT (opt. at AF ratio = 0)'),
-]:
-    x = [d['ratio'] for d in data]
-    y = [d['f1'] for d in data]
     ax2.plot(x, y, f'{marker}-', color=color, linewidth=1.6, markersize=6, zorder=3,
              label=label)
     for r, f in zip(x, y):
-        if f < 10:
-            ax2.annotate(f'{f:.1f}', (r, f), textcoords='offset points', xytext=(0, 7),
-                         fontsize=7, ha='center', color=color)
-        else:
-            oy = 7 if label.endswith('ratio = 1)') else -12
-            if label.endswith('ratio = 0)') and r == 0.5:
-                oy = 7
-            ax2.annotate(f'{f:.1f}', (r, f), textcoords='offset points', xytext=(0, oy),
-                         fontsize=7, ha='center', color=color)
+        oy = 7 if label.endswith('= 1)') else -12
+        ax2.annotate(f'{f:.1f}', (r, f), textcoords='offset points', xytext=(0, oy),
+                     fontsize=7, ha='center', color=color)
 
-ax2.set_xlabel('Asymmetry factor (AF) ratio')
+ax2.set_xlabel('Noise scaling ratio')
 ax2.set_ylabel('F1 score')
 ax2.set_ylim(0, 90)
 ax2.set_xscale('symlog', linthresh=0.5, linscale=0.5)
@@ -141,9 +141,9 @@ ax2.set_xticks(_xt2)
 ax2.set_xticklabels([str(t) for t in _xt2])
 ax2.set_xlim(-0.05, 11.0)
 ax2.minorticks_off()
-ax2.text(0.97, 0.12, 'Fixed: noise ratio = 0.0', transform=ax2.transAxes,
+ax2.text(0.97, 0.12, 'Fixed: AF ratio = 1', transform=ax2.transAxes,
          fontsize=7.5, ha='right', va='bottom', color='0.4')
-ax2.legend(fontsize=8, loc='center right', framealpha=0.9, edgecolor='0.7')
+ax2.legend(fontsize=8, loc='lower left', framealpha=0.9, edgecolor='0.7')
 ax2.grid(True, linestyle=':', linewidth=0.5, alpha=0.6)
 
 fig.tight_layout(pad=0.5)
