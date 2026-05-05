@@ -100,9 +100,9 @@ class ScratchExperimentConfig:
     #   "hybrid"          - A=0, B unchanged (6T1C decay handles B)
     #   "orthogonal_zero" - A=0, B=Random Orthogonal (frozen)
     #   "orthogonal_decay"- A unchanged, B=Random Orthogonal (frozen)
-    #   "zero_orthogonal_zero" - A=0, B=0 every transfer (write noise varies)
-    #   "zero_orthogonal_decay"- A unchanged, B=0 every transfer (write noise varies)
-    reinit_mode = "zero_orthogonal_decay"
+    #   "gauss_b_zero" - A=0, B=0 every transfer (write noise varies)
+    #   "gauss_b_decay"- A unchanged, B=0 every transfer (write noise varies)
+    reinit_mode = "gauss_b_decay"
 
     # A matrix initialization mode
     # Options: 'zero' (LoRA-style, ΔW=0 initially), 'kaiming' (random Kaiming initialization)
