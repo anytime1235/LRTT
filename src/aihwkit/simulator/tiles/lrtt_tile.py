@@ -144,6 +144,8 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             a_d = getattr(self.lrtt_config, "a_d_scaling", None)
             b_x = getattr(self.lrtt_config, "b_x_scaling", None)
             b_d = getattr(self.lrtt_config, "b_d_scaling", None)
+            a_bl = getattr(self.lrtt_config, "a_desired_bl", None)
+            b_bl = getattr(self.lrtt_config, "b_desired_bl", None)
             c_bl = getattr(self.lrtt_config, "c_desired_bl", None)
 
             # AB pulse type override
@@ -163,7 +165,7 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             # Check if any tile-specific config is set
             transfer_method = getattr(self.lrtt_config, 'transfer_method', 'direct')
             c_needs_nwd = (tile_type == "c" and transfer_method == "set")
-            has_tile_specific = any(x is not None for x in [a_x, a_d, b_x, b_d, c_bl])
+            has_tile_specific = any(x is not None for x in [a_x, a_d, b_x, b_d, a_bl, b_bl, c_bl])
 
             if not has_tile_specific and not c_needs_nwd and not ab_needs_pulse_override:
                 # No tile-specific config, use base update params
@@ -187,6 +189,8 @@ class LRTTSimulatorTile(SimulatorTile, Module):
                     update_copy.manual_x_scaling = a_x
                 if a_d is not None:
                     update_copy.manual_d_scaling = a_d
+                if a_bl is not None:
+                    update_copy.desired_bl = a_bl
                 if ab_needs_pulse_override:
                     update_copy.pulse_type = _AB_PULSE_MAP[ab_pulse_type_str]
             elif tile_type == "b":
@@ -194,6 +198,8 @@ class LRTTSimulatorTile(SimulatorTile, Module):
                     update_copy.manual_x_scaling = b_x
                 if b_d is not None:
                     update_copy.manual_d_scaling = b_d
+                if b_bl is not None:
+                    update_copy.desired_bl = b_bl
                 if ab_needs_pulse_override:
                     update_copy.pulse_type = _AB_PULSE_MAP[ab_pulse_type_str]
             elif tile_type == "c":
@@ -224,6 +230,11 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         update_b = create_update_params(rpu_config.update, "b")
 
         mapping_ab = getattr(self.lrtt_config, 'mapping_ab', MappingParameter())
+        # Per-tile overrides for A/B mapping (None → fall back to mapping_ab)
+        mapping_a_override = getattr(self.lrtt_config, 'mapping_a', None)
+        mapping_b_override = getattr(self.lrtt_config, 'mapping_b', None)
+        mapping_a = mapping_a_override if mapping_a_override is not None else mapping_ab
+        mapping_b = mapping_b_override if mapping_b_override is not None else mapping_ab
 
         # A/B tile IO: optionally remove ADC/DAC between B and A projections
         from copy import deepcopy
@@ -240,7 +251,7 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             backward=backward_a,
             update=update_a,
             tile_class=tile_class_a,
-            mapping=mapping_ab,
+            mapping=mapping_a,
         )
         self.tile_a = rpu_config_a.tile_class(d_size, self.rank, rpu_config_a)
 
@@ -255,7 +266,7 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             backward=rpu_config.backward,
             update=update_b,
             tile_class=tile_class_b,
-            mapping=mapping_ab,
+            mapping=mapping_b,
         )
         self.tile_b = rpu_config_b.tile_class(self.rank, x_size, rpu_config_b)
 

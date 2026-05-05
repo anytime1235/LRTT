@@ -87,8 +87,14 @@ class PythonLRTTDevice(_PrintableMixin):
     - 'hybrid': A=0, B unchanged (6T1C capacitor decay handles B)
     - 'orthogonal_zero': A=0, B=Random Orthogonal (FROZEN)
     - 'orthogonal_decay': A unchanged, B=Random Orthogonal (FROZEN)
-    - 'zero_orthogonal_zero': A=0, B=0 every transfer (write noise varies each time)
-    - 'zero_orthogonal_decay': A unchanged, B=0 every transfer (write noise varies each time)
+    - 'gauss_b_zero': A=0, B=fresh Gaussian draw every transfer (B frozen between transfers; B device's reset_std = σ)
+    - 'gauss_b_decay': A first-time only (6T1C decay), B=fresh Gaussian every transfer
+    - 'gauss_a_zero': A=fresh Gaussian every transfer, B=0 every transfer (mirror of gauss_b_zero)
+    - 'gauss_a_decay': A=fresh Gaussian every transfer, B=0 first-init only (then 6T1C decay) (mirror of gauss_b_decay)
+    - 'selector_b_zero': A=0, B=fresh row-coordinate selector (rank one-hot rows over x_size) every transfer
+    - 'selector_b_decay': A first-init only (then 6T1C decay), B=fresh row-coordinate selector every transfer
+    - 'selector_a_zero': A=fresh column-coordinate selector (rank one-hot cols over d_size) every transfer, B=0
+    - 'selector_a_decay': A=fresh selector every transfer, B=0 first-init only (then 6T1C decay) (mirror of selector_b_decay)
     """
 
     a_init_mode: str = "zero"
@@ -297,7 +303,15 @@ class PythonLRTTDevice(_PrintableMixin):
         weight_scaling_omega=0.0,
         learn_out_scaling=False,
     ))
-    """A/B tile mapping. Default: no weight scaling (omega=0), no learnable out_scaling."""
+    """A/B tile mapping (default for both A and B). Default: no weight scaling
+    (omega=0), no learnable out_scaling. Overridden per-tile by mapping_a / mapping_b
+    when those are not None."""
+
+    mapping_a: Optional[MappingParameter] = None
+    """Optional override for A tile mapping. None → use mapping_ab."""
+
+    mapping_b: Optional[MappingParameter] = None
+    """Optional override for B tile mapping. None → use mapping_ab."""
 
     mapping_c: MappingParameter = field(default_factory=lambda: MappingParameter(
         weight_scaling_omega=1.0,
@@ -343,6 +357,12 @@ class PythonLRTTDevice(_PrintableMixin):
     """D (gradient) scaling factor for B tile. If None, uses global manual_d_scaling."""
 
     # === Separate BL (Bit Length) Settings ===
+    a_desired_bl: Optional[int] = None
+    """Desired BL for A tile updates. If None, uses global desired_bl from UpdateParameters."""
+
+    b_desired_bl: Optional[int] = None
+    """Desired BL for B tile updates. If None, uses global desired_bl from UpdateParameters."""
+
     c_desired_bl: Optional[int] = None
     """Desired BL for C tile (transfer). If None, uses global desired_bl from UpdateParameters.
     Typically set higher (e.g., 31) for more accurate transfer to C tile."""
@@ -385,7 +405,9 @@ class PythonLRTTDevice(_PrintableMixin):
             raise ValueError(f"reinit_gain must be non-negative, got {self.reinit_gain}")
 
         # Validate reinit_mode
-        valid_modes = ["standard", "decay", "hybrid", "orthogonal_zero", "orthogonal_decay", "zero_orthogonal_zero", "zero_orthogonal_decay"]
+        valid_modes = ["standard", "decay", "hybrid", "orthogonal_zero", "orthogonal_decay",
+                       "gauss_b_zero", "gauss_b_decay", "gauss_a_zero", "gauss_a_decay",
+                       "selector_b_zero", "selector_b_decay", "selector_a_zero", "selector_a_decay"]
         if self.reinit_mode not in valid_modes:
             raise ValueError(f"reinit_mode must be one of {valid_modes}, got '{self.reinit_mode}'")
 

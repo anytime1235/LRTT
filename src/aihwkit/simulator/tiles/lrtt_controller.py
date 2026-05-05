@@ -100,8 +100,14 @@ class LRTTController:
                         "hybrid" - A=0, B unchanged (6T1C capacitor decay handles B)
                         "orthogonal_zero" - A=0, B=Random Orthogonal (FROZEN)
                         "orthogonal_decay" - A unchanged, B=Random Orthogonal (FROZEN)
-                        "zero_orthogonal_zero" - A=0, B=0 every transfer (write noise varies)
-                        "zero_orthogonal_decay" - A unchanged, B=0 every transfer (write noise varies)
+                        "gauss_b_zero" - A=0, B=fresh Gaussian draw every transfer (B frozen between transfers)
+                        "gauss_b_decay" - A first-init only (then 6T1C decay), B=fresh Gaussian every transfer
+                        "gauss_a_zero" - A=fresh Gaussian every transfer (A frozen between), B=0
+                        "gauss_a_decay" - A=fresh Gaussian every transfer, B=0 first-init only (then 6T1C decay)
+                        "selector_b_zero" - A=0, B=row-coordinate selector (rank one-hot rows, fresh indices each transfer)
+                        "selector_b_decay" - A first-init only (then 6T1C decay), B=fresh row-coordinate selector each transfer
+                        "selector_a_zero" - A=column-coordinate selector (rank one-hot cols, fresh indices each transfer), B=0
+                        "selector_a_decay" - A=fresh selector every transfer, B=0 first-init only (then 6T1C decay)
             correct_gradient_magnitudes: Divide transfer LR by fast effective LR reference
             rank_chunk: Chunk size for transfer (None = full rank)
             ab_bl_mgmt: BL management for A/B updates {update_bl_management, update_management, desired_BL}
@@ -219,7 +225,8 @@ class LRTTController:
         # Track initialization state with flags to avoid weight norm checks
         self._c_initialized = True
         self._tiles_initialized = False
-        self._b_frozen = False  # Set to True for orthogonal mode
+        self._b_frozen = False  # Set to True for orthogonal mode / gauss_b_* (B is frozen)
+        self._a_frozen = False  # Set to True for gauss_a_* (A is frozen, mirror of _b_frozen)
 
         # Transfer robustness knobs (safe defaults)
         self.transfer_micro_steps: int = 1          # M: micro-transfer 반복 횟수
@@ -516,8 +523,14 @@ class LRTTController:
         - "hybrid": A=0, B unchanged (6T1C capacitor decay handles B)
         - "orthogonal_zero": A=0, B=Random Orthogonal (FROZEN)
         - "orthogonal_decay": A unchanged, B=Random Orthogonal (FROZEN) (6T1C decay handles A)
-        - "zero_orthogonal_zero": A=0, B=0 every transfer (write noise varies each time)
-        - "zero_orthogonal_decay": A unchanged, B=0 every transfer (write noise varies each time)
+        - "gauss_b_zero": A=0, B=fresh Gaussian draw every transfer (B frozen between transfers; reset_std on B device controls σ)
+        - "gauss_b_decay": A first-time only (6T1C decay), B=fresh Gaussian every transfer
+        - "gauss_a_zero": A=fresh Gaussian every transfer (A frozen between transfers), B=0
+        - "gauss_a_decay": A=fresh Gaussian every transfer, B=0 first-init only (then 6T1C decay)
+        - "selector_b_zero": A=0, B=fresh row-coordinate selector (rank one-hot rows over x_size) every transfer
+        - "selector_b_decay": A first-time only (6T1C decay), B=fresh row-coordinate selector every transfer
+        - "selector_a_zero": A=fresh column-coordinate selector (rank one-hot cols over d_size) every transfer, B=0
+        - "selector_a_decay": A=fresh selector every transfer, B=0 first-init only (then 6T1C decay)
 
         A initialization (controlled by a_init_mode):
         - "zero": A=0 (LoRA-style, ensures ΔW=0 initially)
@@ -532,6 +545,12 @@ class LRTTController:
             def _set_raw(tile, w):
                 tile.tile.set_weights(w)
 
+            # Helper: reset all columns using device's reset/reset_std (capacitor-discharge mechanism).
+            # Used for "A=0" and "B=Gaussian" intents where the physical reset path is correct
+            # rather than writing zeros via the update mechanism.
+            def _reset_tile(tile):
+                tile.tile.reset_columns(0, -1, 1.0)
+
             def _get_raw_gpu(tile):
                 return tile.tile.get_weights().to(self.device)
 
@@ -541,9 +560,9 @@ class LRTTController:
                     A_init = torch.empty(self.d_size, self.rank, device=self.device, dtype=self.dtype)
                     nn.init.kaiming_uniform_(A_init, a=math.sqrt(5))
                     A_init *= self.reinit_gain
+                    _set_raw(self.tile_a, A_init)
                 else:  # "zero"
-                    A_init = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
-                _set_raw(self.tile_a, A_init)
+                    _reset_tile(self.tile_a)
 
                 # B matrix: Use b_init_mode
                 if self.b_init_mode == "zero":
@@ -563,9 +582,9 @@ class LRTTController:
                         A_init = torch.empty(self.d_size, self.rank, device=self.device, dtype=self.dtype)
                         nn.init.kaiming_uniform_(A_init, a=math.sqrt(5))
                         A_init *= self.reinit_gain
+                        _set_raw(self.tile_a, A_init)
                     else:  # "zero"
-                        A_init = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
-                    _set_raw(self.tile_a, A_init)
+                        _reset_tile(self.tile_a)
 
                     # B matrix: Use b_init_mode
                     if self.b_init_mode == "zero":
@@ -579,8 +598,7 @@ class LRTTController:
 
             elif self.reinit_mode == "hybrid":
                 # A=0, B unchanged (6T1C capacitor decay handles B reduction)
-                A_zeros = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
-                _set_raw(self.tile_a, A_zeros)
+                _reset_tile(self.tile_a)
 
                 if not self._tiles_initialized:
                     # First time: Use b_init_mode
@@ -595,8 +613,7 @@ class LRTTController:
 
             elif self.reinit_mode == "orthogonal_zero":
                 # B = Random Orthogonal (FROZEN), A = 0 after each transfer
-                A_zeros = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
-                _set_raw(self.tile_a, A_zeros)
+                _reset_tile(self.tile_a)
 
                 if not self._tiles_initialized:
                     random_matrix = torch.randn(self.rank, self.x_size, device=self.device, dtype=self.dtype)
@@ -609,8 +626,7 @@ class LRTTController:
             elif self.reinit_mode == "orthogonal_decay":
                 # B = Random Orthogonal (FROZEN), A unchanged (6T1C decay handles it)
                 if not self._tiles_initialized:
-                    A_zeros = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
-                    _set_raw(self.tile_a, A_zeros)
+                    _reset_tile(self.tile_a)
 
                     random_matrix = torch.randn(self.rank, self.x_size, device=self.device, dtype=self.dtype)
                     Q, R = torch.linalg.qr(random_matrix.t())
@@ -619,30 +635,93 @@ class LRTTController:
                     self._b_frozen = True
                 # else: A unchanged, 6T1C capacitor decay handles it
 
-            elif self.reinit_mode == "zero_orthogonal_zero":
-                # A=0, B=0 every transfer (non-trainable)
-                # B is re-set to zero each transfer so device write noise differs each time
-                A_zeros = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
-                _set_raw(self.tile_a, A_zeros)
-                B_zeros = torch.zeros(self.rank, self.x_size, device=self.device, dtype=self.dtype)
-                _set_raw(self.tile_b, B_zeros)
+            elif self.reinit_mode == "gauss_b_zero":
+                # A=0 (via reset, with a_device.reset_std as physical floor),
+                # B=fresh Gaussian draw every transfer (via reset, with b_device.reset_std as σ).
+                _reset_tile(self.tile_a)
+                _reset_tile(self.tile_b)
                 self._b_frozen = True
 
-            elif self.reinit_mode == "zero_orthogonal_decay":
-                # A unchanged (6T1C decay handles it), B=0 every transfer (non-trainable)
-                # B is re-set to zero each transfer so device write noise differs each time
+            elif self.reinit_mode == "gauss_b_decay":
+                # A first-time reset only (then 6T1C capacitor decay handles it),
+                # B=fresh Gaussian draw every transfer (via reset, with b_device.reset_std as σ).
                 if not self._tiles_initialized:
-                    A_zeros = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
-                    _set_raw(self.tile_a, A_zeros)
+                    _reset_tile(self.tile_a)
                 # else: A unchanged, 6T1C capacitor decay handles it
-                B_zeros = torch.zeros(self.rank, self.x_size, device=self.device, dtype=self.dtype)
-                _set_raw(self.tile_b, B_zeros)
+                _reset_tile(self.tile_b)
                 self._b_frozen = True
+
+            elif self.reinit_mode == "gauss_a_zero":
+                # Mirror of gauss_b_zero with A and B swapped:
+                # A=fresh Gaussian draw every transfer (via reset, with a_device.reset_std as σ),
+                # B=0 (via reset, with b_device.reset_std as physical floor).
+                _reset_tile(self.tile_a)
+                _reset_tile(self.tile_b)
+                self._a_frozen = True
+
+            elif self.reinit_mode == "gauss_a_decay":
+                # True mirror of gauss_b_decay (A↔B swapped):
+                # A=fresh Gaussian draw every transfer (a_device.reset_std as σ),
+                # B=0 first-init only (then 6T1C capacitor decay handles it).
+                _reset_tile(self.tile_a)
+                if not self._tiles_initialized:
+                    _reset_tile(self.tile_b)
+                # else: B unchanged, 6T1C capacitor decay handles it
+                self._a_frozen = True
+
+            elif self.reinit_mode == "selector_b_zero":
+                # A=0 every transfer, B=row-coordinate selector (rank distinct one-hot rows
+                # picked from x_size, refreshed every transfer with new random indices).
+                _reset_tile(self.tile_a)
+                idx = torch.randperm(self.x_size, device=self.device)[:self.rank]
+                B_sel = torch.zeros(self.rank, self.x_size, device=self.device, dtype=self.dtype)
+                B_sel[torch.arange(self.rank, device=self.device), idx] = 1.0
+                _set_raw(self.tile_b, B_sel)
+                self._b_frozen = True
+
+            elif self.reinit_mode == "selector_b_decay":
+                # A first-time reset only (then 6T1C decay), B=fresh row-coordinate selector
+                # every transfer. Mirror of gauss_b_decay with Gaussian B → selector B.
+                if not self._tiles_initialized:
+                    _reset_tile(self.tile_a)
+                # else: A unchanged, 6T1C capacitor decay handles it
+                idx = torch.randperm(self.x_size, device=self.device)[:self.rank]
+                B_sel = torch.zeros(self.rank, self.x_size, device=self.device, dtype=self.dtype)
+                B_sel[torch.arange(self.rank, device=self.device), idx] = 1.0
+                _set_raw(self.tile_b, B_sel)
+                self._b_frozen = True
+
+            elif self.reinit_mode == "selector_a_zero":
+                # A=column-coordinate selector (rank distinct one-hot columns picked from
+                # d_size, refreshed every transfer), B=0 every transfer.
+                # Mirror of gauss_a_zero with Gaussian A → selector A.
+                idx = torch.randperm(self.d_size, device=self.device)[:self.rank]
+                A_sel = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
+                A_sel[idx, torch.arange(self.rank, device=self.device)] = 1.0
+                _set_raw(self.tile_a, A_sel)
+                _reset_tile(self.tile_b)
+                self._a_frozen = True
+
+            elif self.reinit_mode == "selector_a_decay":
+                # True mirror of selector_b_decay (A↔B swapped):
+                # A=fresh column-coordinate selector every transfer,
+                # B=0 first-init only (then 6T1C capacitor decay handles it).
+                idx = torch.randperm(self.d_size, device=self.device)[:self.rank]
+                A_sel = torch.zeros(self.d_size, self.rank, device=self.device, dtype=self.dtype)
+                A_sel[idx, torch.arange(self.rank, device=self.device)] = 1.0
+                _set_raw(self.tile_a, A_sel)
+                if not self._tiles_initialized:
+                    _reset_tile(self.tile_b)
+                # else: B unchanged, 6T1C capacitor decay handles it
+                self._a_frozen = True
 
             else:
                 raise ValueError(f"Unknown reinit_mode: {self.reinit_mode}. "
                                  f"Must be 'standard', 'decay', 'hybrid', 'orthogonal_zero', "
-                                 f"'orthogonal_decay', 'zero_orthogonal_zero', or 'zero_orthogonal_decay'")
+                                 f"'orthogonal_decay', 'gauss_b_zero', 'gauss_b_decay', "
+                                 f"'gauss_a_zero', 'gauss_a_decay', "
+                                 f"'selector_b_zero', 'selector_b_decay', "
+                                 f"'selector_a_zero', or 'selector_a_decay'")
 
         # Apply device clipping if available
         if hasattr(self.tile_a, 'clip_weights'):
@@ -722,12 +801,12 @@ class LRTTController:
                     # A unchanged, B frozen — no-op
                     pass
 
-                elif self.reinit_mode == "zero_orthogonal_zero":
+                elif self.reinit_mode == "gauss_b_zero":
                     # A[:, k] = 0, B[k, :] = 0
                     A_full[:, k] = 0.0
                     B_full[k, :] = 0.0
 
-                elif self.reinit_mode == "zero_orthogonal_decay":
+                elif self.reinit_mode == "gauss_b_decay":
                     # A unchanged, B[k, :] = 0
                     B_full[k, :] = 0.0
 
@@ -871,14 +950,16 @@ class LRTTController:
                   f"lr_eff_a={lr_eff_a:.6f}, lr_eff_b={lr_eff_b:.6f}")
 
         # 3) ΔA = -lr_eff_a · D^T · (B·X) → tile_a.update(XB, d)
-        lr_a_old = self.tile_a.get_learning_rate()
-        self.tile_a.set_learning_rate(lr_eff_a)
-        if hasattr(self.tile_a, '_orig_update'):
-            self.tile_a._orig_update(XB, d)
-        else:
-            self.tile_a.update(XB, d)
-        self.tile_a.set_learning_rate(lr_a_old)
-        self.num_a_updates += 1
+        # Skip A update if A is frozen (gauss_a_* mode)
+        if not self._a_frozen:
+            lr_a_old = self.tile_a.get_learning_rate()
+            self.tile_a.set_learning_rate(lr_eff_a)
+            if hasattr(self.tile_a, '_orig_update'):
+                self.tile_a._orig_update(XB, d)
+            else:
+                self.tile_a.update(XB, d)
+            self.tile_a.set_learning_rate(lr_a_old)
+            self.num_a_updates += 1
 
         # 4) ΔB = -lr_eff_b · (A^T·D)^T · X → tile_b.update(x, DA)
         # Skip B update if B is frozen (orthogonal mode)
@@ -947,14 +1028,16 @@ class LRTTController:
 
         # 3) Hebbian updates: A -= lr * GB^T, B -= lr * A^TG
         # A update: A -= lr_rec * D^T @ XB = A -= lr_rec * GB^T
-        lr_a_old = self.tile_a.get_learning_rate()
-        self.tile_a.set_learning_rate(lr_rec)
-        if hasattr(self.tile_a, '_orig_update'):
-            self.tile_a._orig_update(XB, d)
-        else:
-            self.tile_a.update(XB, d)
-        self.tile_a.set_learning_rate(lr_a_old)
-        self.num_a_updates += 1
+        # Skip if A is frozen (gauss_a_* mode)
+        if not self._a_frozen:
+            lr_a_old = self.tile_a.get_learning_rate()
+            self.tile_a.set_learning_rate(lr_rec)
+            if hasattr(self.tile_a, '_orig_update'):
+                self.tile_a._orig_update(XB, d)
+            else:
+                self.tile_a.update(XB, d)
+            self.tile_a.set_learning_rate(lr_a_old)
+            self.num_a_updates += 1
 
         # B update: B -= lr_rec * DA^T @ X = B -= lr_rec * A^TG
         # Skip if B is frozen (orthogonal mode)
@@ -1035,11 +1118,12 @@ class LRTTController:
                 ATA_reg = ATA + self.recon_lambda_b * I_rank
 
                 # Apply A -= lr_rec * A @ BBT_reg using tile.update
-                d_A = (A_rank @ BBT_reg).t()  # [rank, d_size]
-                lr_old_a = self.tile_a.get_learning_rate()
-                self.tile_a.set_learning_rate(lr_rec)
-                self.tile_a.update(I_rank, d_A.t())
-                self.tile_a.set_learning_rate(lr_old_a)
+                if not self._a_frozen:
+                    d_A = (A_rank @ BBT_reg).t()  # [rank, d_size]
+                    lr_old_a = self.tile_a.get_learning_rate()
+                    self.tile_a.set_learning_rate(lr_rec)
+                    self.tile_a.update(I_rank, d_A.t())
+                    self.tile_a.set_learning_rate(lr_old_a)
 
                 if not self._b_frozen:
                     # B -= lr_rec * ATA_reg @ B
@@ -1062,12 +1146,13 @@ class LRTTController:
                 decay_B = math.exp(-exp_arg_B)
 
                 # Apply A *= decay using tile.update: A -= (1-decay)*A
-                c_A = 1.0 - decay_A
-                if c_A > 1e-8:
-                    lr_old_a = self.tile_a.get_learning_rate()
-                    self.tile_a.set_learning_rate(c_A)
-                    self.tile_a.update(I_rank, A_T.t())
-                    self.tile_a.set_learning_rate(lr_old_a)
+                if not self._a_frozen:
+                    c_A = 1.0 - decay_A
+                    if c_A > 1e-8:
+                        lr_old_a = self.tile_a.get_learning_rate()
+                        self.tile_a.set_learning_rate(c_A)
+                        self.tile_a.update(I_rank, A_T.t())
+                        self.tile_a.set_learning_rate(lr_old_a)
 
                 if not self._b_frozen:
                     c_B = 1.0 - decay_B
@@ -1090,7 +1175,7 @@ class LRTTController:
             A_T = self.tile_a.forward(I_rank_a)  # [rank, d_size] = A.T
             A_norm = torch.norm(A_T).item()
 
-            if A_norm > max_norm:
+            if A_norm > max_norm and not self._a_frozen:
                 scale = max_norm / A_norm
                 c = 1.0 - scale
                 lr_old = self.tile_a.get_learning_rate()
