@@ -894,9 +894,15 @@ def collect_tile_diagnostics(tile, C_prev_raw, A_before, B_before, C_before,
     if compute_erank:
         record["erank_C"] = _effective_rank(C_eff)
         record["erank_C_delta"] = _effective_rank(C_eff - C_initial_eff) if C_initial_eff is not None else 0.0
+        record["erank_A"] = _effective_rank(A)
+        record["erank_B"] = _effective_rank(B)
+        record["erank_AB"] = _effective_rank(A @ B)
     else:
         record["erank_C"] = None
         record["erank_C_delta"] = None
+        record["erank_A"] = None
+        record["erank_B"] = None
+        record["erank_AB"] = None
     return record, C_raw.clone().detach(), num_transfers
 
 
@@ -911,7 +917,7 @@ def _compute_multi_mean(multi_logs):
     fields = ["norm_A", "norm_B", "norm_C_raw", "norm_AB",
               "A_eff_min", "A_eff_max", "B_eff_min", "B_eff_max",
               "C_eff_min", "C_eff_max", "C_raw_min", "C_raw_max",
-              "erank_C", "erank_C_delta"]
+              "erank_C", "erank_C_delta", "erank_A", "erank_B", "erank_AB"]
     mean_log = []
     for i in range(n_steps):
         rec = {"step": multi_logs[keys_with_data[0]][i]["step"]}
