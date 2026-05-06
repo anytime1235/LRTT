@@ -245,6 +245,16 @@ TRANSFER_METHOD = "onehot"  # "onehot", "direct", or "set"
 AB_DEVICE = "6t1c"  # "6t1c", "linearstep", "linearstepideal", "constantstep", "constantstepideal", "constantstep6t1cgamma", "fp", or "ideal"
 A_DEVICE = None  # Optional override for A tile device. None → use AB_DEVICE for both A and B (backward compatible).
 B_DEVICE = None  # Optional override for B tile device. None → use AB_DEVICE for both A and B (backward compatible).
+# Per-tile split sweep toggles. When True, sweep a_X and b_X independently; when
+# False, sweep a single ab_X applied to both A and B tiles (legacy behavior).
+SPLIT_AB_PARAMS = {
+    'dw_min': False,
+    'multilevel': False,
+    'tau_sec': False,
+    'reset_std': False,
+    'desired_bl': False,
+    'weight_scaling_omega': False,
+}
 C_DEVICE = "softboundsideal"  # "softboundsideal", "linearstepideal", "constantstep", "constantstepideal", "constantstep6t1cgamma", or "ideal"
 IO_NOISE = True  # If False, disable out_noise (resolution kept)
 FORWARD_INJECT = False  # If True, enable forward noise injection
@@ -373,6 +383,11 @@ def get_study_name_suffix():
         suffix += f"_abpt-{OPT_CONFIG['ab_pulse_type']}"
     if OPT_CONFIG.get('ab_multilevel', False):
         suffix += "_abml"
+
+    # Split mode markers (only when at least one ab param is split per-tile).
+    split_keys = sorted(k for k, v in SPLIT_AB_PARAMS.items() if v)
+    if split_keys:
+        suffix += "_split-" + "-".join(split_keys)
 
     # Add lora target (always include for clarity)
     suffix += f"_{LORA_TARGET}"
@@ -661,35 +676,68 @@ def create_frozen_analog_config(lrtt_config=None, out_noise=0.0):
     return rpu_config
 
 
-def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, tau_sec=0.0,
-                       c_dw_min=0.001, c_desired_bl=None, out_noise=0.0, ab_weight_scaling_omega=0.0,
+def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode,
+                       c_dw_min=0.001, c_desired_bl=None, out_noise=0.0,
                        auto_scale_mode='none', correct_gradient_magnitudes=False,
                        transfer_rank_schedule='all', transfer_ranks_per_step=1,
                        scale_transfer_lr=True,
                        fi_continuous_alpha=False,
                        ab_pulse_type='default',
-                       ab_dw_min=0.001981, ab_desired_bl=31,
-                       ab_multilevel=None,
+                       a_tau_sec=0.0, b_tau_sec=0.0,
+                       a_dw_min=0.001981, b_dw_min=0.001981,
+                       a_multilevel=None, b_multilevel=None,
+                       a_reset_std=0.01, b_reset_std=0.01,
+                       ab_desired_bl=31,
+                       a_desired_bl=None, b_desired_bl=None,
+                       ab_weight_scaling_omega=0.0,
+                       a_weight_scaling_omega=None, b_weight_scaling_omega=None,
                        lora_alpha=1.0):
-    """Create LRTT RPU configuration for analog layers."""
+    """Create LRTT RPU configuration for analog layers.
+
+    Per-tile parameters (each can differ between A and B):
+      - tau_sec, dw_min, multilevel, reset_std: applied to LinearStepDevice instances
+      - desired_bl: applied via PythonLRTTDevice.{a,b}_desired_bl override
+      - weight_scaling_omega: applied via PythonLRTTDevice.{mapping_a, mapping_b}
+        overrides of mapping_ab
+
+    a_desired_bl / b_desired_bl: when None, both inherit ab_desired_bl (the rpu.update
+    level value). When set, override per tile.
+    a_weight_scaling_omega / b_weight_scaling_omega: when None, both inherit
+    ab_weight_scaling_omega (the mapping_ab level value). When set, build mapping_a /
+    mapping_b override objects.
+    """
     # A and B tile devices: independently overridable via A_DEVICE / B_DEVICE.
     # When both are None, both A and B use AB_DEVICE (legacy behavior preserved).
-    a_device = _create_ab_device(tau_sec=tau_sec, dw_min=ab_dw_min, multilevel=ab_multilevel,
-                                 device_name=A_DEVICE)
-    b_device = _create_ab_device(tau_sec=tau_sec, dw_min=ab_dw_min, multilevel=ab_multilevel,
-                                 device_name=B_DEVICE)
+    a_device = _create_ab_device(tau_sec=a_tau_sec, dw_min=a_dw_min, multilevel=a_multilevel,
+                                 device_name=A_DEVICE, reset_std=a_reset_std)
+    b_device = _create_ab_device(tau_sec=b_tau_sec, dw_min=b_dw_min, multilevel=b_multilevel,
+                                 device_name=B_DEVICE, reset_std=b_reset_std)
     c_device = _create_c_device(dw_min=c_dw_min)
 
     # Scale B initialization to match new w_max/w_min bounds.
-    # Default w_max=1.0; with multilevel, w_max = 2^(multilevel-1) * ab_dw_min.
+    # Default w_max=1.0; with multilevel, w_max = 2^(multilevel-1) * b_dw_min.
     # reinit_gain multiplies B_init (and A_init, but A is "zero" by default).
-    if ab_multilevel is not None and ab_multilevel > 0:
-        ab_w_max = (2 ** ab_multilevel) * ab_dw_min / 2.0
-        b_reinit_gain = REINIT_GAIN * ab_w_max
+    if b_multilevel is not None and b_multilevel > 0:
+        b_w_max = (2 ** b_multilevel) * b_dw_min / 2.0
+        b_reinit_gain = REINIT_GAIN * b_w_max
     else:
         b_reinit_gain = REINIT_GAIN
 
     te = transfer_every
+
+    # Build mapping_a / mapping_b overrides only when per-tile omega differs from shared.
+    def _build_mapping(omega):
+        return MappingParameter(
+            weight_scaling_omega=omega,
+            learn_out_scaling=False,
+            max_input_size=0 if IS_PERFECT else 512,
+            max_output_size=0 if IS_PERFECT else 512,
+        )
+
+    mapping_ab_obj = _build_mapping(ab_weight_scaling_omega)
+    mapping_a_obj = _build_mapping(a_weight_scaling_omega) if a_weight_scaling_omega is not None else None
+    mapping_b_obj = _build_mapping(b_weight_scaling_omega) if b_weight_scaling_omega is not None else None
+
     device_config = PythonLRTTDevice(
         rank=rank,
         transfer_every=te,
@@ -699,12 +747,9 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, 
         reinit_mode=reinit_mode,
         unit_cell_devices=[a_device, b_device, c_device],
         train_c_bias=False,        # C tile bias frozen
-        mapping_ab=MappingParameter(
-            weight_scaling_omega=ab_weight_scaling_omega,
-            learn_out_scaling=False,
-            max_input_size=0 if IS_PERFECT else 512,
-            max_output_size=0 if IS_PERFECT else 512,
-        ),
+        mapping_ab=mapping_ab_obj,
+        mapping_a=mapping_a_obj,
+        mapping_b=mapping_b_obj,
         mapping_c=MappingParameter(
             weight_scaling_omega=1.0,
             weight_scaling_columnwise=True,
@@ -730,6 +775,10 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, 
     device_config.ab_pulse_type = ab_pulse_type
     if c_desired_bl is not None:
         device_config.c_desired_bl = c_desired_bl
+    if a_desired_bl is not None:
+        device_config.a_desired_bl = a_desired_bl
+    if b_desired_bl is not None:
+        device_config.b_desired_bl = b_desired_bl
 
     # Dynamic TE
     device_config.dynamic_te = DYNAMIC_TE
@@ -867,14 +916,23 @@ def create_model(params):
             transfer_lr=params["transfer_lr"],
             fast_lr=params["fast_lr"],
             reinit_mode=params["reinit_mode"],
-            tau_sec=params["tau_sec"],
-            ab_dw_min=params["ab_dw_min"],
+            a_tau_sec=params["a_tau_sec"],
+            b_tau_sec=params["b_tau_sec"],
+            a_dw_min=params["a_dw_min"],
+            b_dw_min=params["b_dw_min"],
             ab_desired_bl=params["ab_desired_bl"],
-            ab_multilevel=params["ab_multilevel"],
+            a_desired_bl=params["a_desired_bl"],
+            b_desired_bl=params["b_desired_bl"],
+            a_multilevel=params["a_multilevel"],
+            b_multilevel=params["b_multilevel"],
+            a_reset_std=params["a_reset_std"],
+            b_reset_std=params["b_reset_std"],
             c_dw_min=params["c_dw_min"],
             c_desired_bl=params["c_desired_bl"],
             out_noise=params["out_noise"],
             ab_weight_scaling_omega=params["ab_weight_scaling_omega"],
+            a_weight_scaling_omega=params["a_weight_scaling_omega"],
+            b_weight_scaling_omega=params["b_weight_scaling_omega"],
             auto_scale_mode=OPT_CONFIG['auto_scale_mode'],
             correct_gradient_magnitudes=OPT_CONFIG['correct_gradient_magnitudes'],
             transfer_rank_schedule=OPT_CONFIG['transfer_rank_schedule'],
@@ -1312,24 +1370,61 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         rank_exp = 2             # fixed (A=0 init, no effect)
         rank = 4
         fast_lr = 1.0            # fixed (no effect)
-        tau_sec = 0.0            # fixed
+        a_tau_sec = b_tau_sec = 0.0    # fixed
     else:
         transfer_lr = trial.suggest_float('transfer_lr', 9e-3, 5e0, log=True)
         transfer_every = trial.suggest_int('transfer_every', 1, 20, log=True)
         rank_exp = trial.suggest_int('rank_exp', 5, 5)
         rank = 2 ** rank_exp
         fast_lr = trial.suggest_float('fast_lr', 1e-2, 5e0, log=True)
-        tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
+        # tau_sec → device.lifetime is per-tile splittable. Default shared.
+        if SPLIT_AB_PARAMS.get('tau_sec', False):
+            a_tau_sec = trial.suggest_float('a_tau_sec', 0, 0, log=False)
+            b_tau_sec = trial.suggest_float('b_tau_sec', 0, 0, log=False)
+        else:
+            tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
+            a_tau_sec = b_tau_sec = tau_sec
 
     # A/B device params
-    ab_dw_min = trial.suggest_float('ab_dw_min', 0.0004883, 0.0004883, log=True)  # default: 6t1c value
-    ab_desired_bl = trial.suggest_int('ab_desired_bl', 31, 31)        # default: 31
-    # ab_multilevel: w_max-w_min = 2^multilevel * ab_dw_min (symmetric).
+    # dw_min: per-tile splittable. SPLIT_AB_PARAMS['dw_min']=False sweeps a single
+    # ab_dw_min and applies it to both; True sweeps a_dw_min and b_dw_min independently.
+    if SPLIT_AB_PARAMS.get('dw_min', False):
+        a_dw_min = trial.suggest_float('a_dw_min', 0.0004883, 0.0004883, log=True)
+        b_dw_min = trial.suggest_float('b_dw_min', 0.0004883, 0.0004883, log=True)
+    else:
+        ab_dw_min = trial.suggest_float('ab_dw_min', 0.0004883, 0.0004883, log=True)  # default: 6t1c value
+        a_dw_min = b_dw_min = ab_dw_min
+
+    # desired_bl: per-tile splittable (a_desired_bl / b_desired_bl override the
+    # rpu.update level desired_bl in aihwkit's create_update_params).
+    if SPLIT_AB_PARAMS.get('desired_bl', False):
+        a_desired_bl = trial.suggest_int('a_desired_bl', 31, 31)
+        b_desired_bl = trial.suggest_int('b_desired_bl', 31, 31)
+        ab_desired_bl = a_desired_bl  # placeholder for rpu.update.desired_bl base; A/B override
+    else:
+        ab_desired_bl = trial.suggest_int('ab_desired_bl', 31, 31)            # default: 31
+        a_desired_bl = b_desired_bl = None  # None → A and B inherit ab_desired_bl base
+
+    # multilevel: per-tile splittable. w_max-w_min = 2^multilevel * dw_min (symmetric).
     # When enabled, B init also scales accordingly. Default: disabled (w_max=1.0).
     if OPT_CONFIG.get('ab_multilevel', False):
-        ab_multilevel = trial.suggest_int('ab_multilevel', 12, 12)
+        if SPLIT_AB_PARAMS.get('multilevel', False):
+            a_multilevel = trial.suggest_int('a_multilevel', 12, 12)
+            b_multilevel = trial.suggest_int('b_multilevel', 12, 12)
+        else:
+            ab_multilevel = trial.suggest_int('ab_multilevel', 12, 12)
+            a_multilevel = b_multilevel = ab_multilevel
     else:
-        ab_multilevel = None
+        a_multilevel = b_multilevel = None
+
+    # reset_std: per-tile splittable (B's reset_std is the inherent floor noise, also
+    # used as the random Gaussian σ for gauss_b_* reinit modes).
+    if SPLIT_AB_PARAMS.get('reset_std', False):
+        a_reset_std = trial.suggest_float('a_reset_std', 0.0, 0.0, log=False)
+        b_reset_std = trial.suggest_float('b_reset_std', 0.0, 0.0, log=False)
+    else:
+        ab_reset_std = trial.suggest_float('ab_reset_std', 0.0, 0.0, log=False)
+        a_reset_std = b_reset_std = ab_reset_std
 
     # C tile pulsed transfer params (only meaningful for onehot/direct)
     if TRANSFER_METHOD in ("onehot", "direct") and not OPT_CONFIG['no_transfer']:
@@ -1344,7 +1439,15 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         out_noise = trial.suggest_float('out_noise', 0.0, 0.0)
     else:
         out_noise = 0.0
-    ab_weight_scaling_omega = trial.suggest_float('ab_weight_scaling_omega', 0.0, 0.0)
+    # weight_scaling_omega: per-tile splittable via mapping_a / mapping_b override of
+    # mapping_ab in aihwkit. Default shared.
+    if SPLIT_AB_PARAMS.get('weight_scaling_omega', False):
+        a_weight_scaling_omega = trial.suggest_float('a_weight_scaling_omega', 0.0, 0.0)
+        b_weight_scaling_omega = trial.suggest_float('b_weight_scaling_omega', 0.0, 0.0)
+        ab_weight_scaling_omega = a_weight_scaling_omega  # placeholder for legacy callers
+    else:
+        ab_weight_scaling_omega = trial.suggest_float('ab_weight_scaling_omega', 0.0, 0.0)
+        a_weight_scaling_omega = b_weight_scaling_omega = ab_weight_scaling_omega
 
     # lora_alpha: only sweep when forward_inject is ON and fi_continuous_alpha is OFF
     if FORWARD_INJECT and not OPT_CONFIG.get('fi_continuous_alpha', False):
@@ -1387,14 +1490,23 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         "transfer_lr": transfer_lr,
         "fast_lr": fast_lr,
         "reinit_mode": reinit_mode,
-        "tau_sec": tau_sec,
-        "ab_dw_min": ab_dw_min,
+        "a_tau_sec": a_tau_sec,
+        "b_tau_sec": b_tau_sec,
+        "a_dw_min": a_dw_min,
+        "b_dw_min": b_dw_min,
         "ab_desired_bl": ab_desired_bl,
-        "ab_multilevel": ab_multilevel,
+        "a_desired_bl": a_desired_bl,
+        "b_desired_bl": b_desired_bl,
+        "a_multilevel": a_multilevel,
+        "b_multilevel": b_multilevel,
+        "a_reset_std": a_reset_std,
+        "b_reset_std": b_reset_std,
         "c_dw_min": c_dw_min,
         "c_desired_bl": c_desired_bl,
         "out_noise": out_noise,
         "ab_weight_scaling_omega": ab_weight_scaling_omega,
+        "a_weight_scaling_omega": a_weight_scaling_omega,
+        "b_weight_scaling_omega": b_weight_scaling_omega,
         "lora_alpha": lora_alpha,
     }
 
@@ -1404,11 +1516,15 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
     print(f"  rank={rank}, transfer_every={transfer_every}, transfer_lr={transfer_lr:.4e}")
     print(f"  fast_lr={fast_lr:.2e}, lr={learning_rate:.2e}, wd={weight_decay:.2e}")
     print(f"  momentum={momentum:.2f}, nesterov={nesterov}, reinit_mode={reinit_mode}")
-    print(f"  tau_sec={tau_sec:.1f}, optimizer={optimizer_name}, min_lr_rate={min_lr_rate:.4f}")
-    if ab_multilevel is not None:
-        print(f"  ab_dw_min={ab_dw_min:.4e}, ab_desired_bl={ab_desired_bl}, ab_multilevel={ab_multilevel} (w_max=±{(2**ab_multilevel)*ab_dw_min/2:.4e})")
+    if a_tau_sec == b_tau_sec:
+        print(f"  tau_sec={a_tau_sec:.1f}, optimizer={optimizer_name}, min_lr_rate={min_lr_rate:.4f}")
     else:
-        print(f"  ab_dw_min={ab_dw_min:.4e}, ab_desired_bl={ab_desired_bl}, ab_multilevel=off (w_max=±1.0)")
+        print(f"  a_tau_sec={a_tau_sec:.1f}, b_tau_sec={b_tau_sec:.1f}, optimizer={optimizer_name}, min_lr_rate={min_lr_rate:.4f}")
+    if a_dw_min == b_dw_min:
+        _ml_str = f", multilevel={a_multilevel}" if a_multilevel is not None else ", multilevel=off"
+        print(f"  ab_dw_min={a_dw_min:.4e}, ab_desired_bl={ab_desired_bl}{_ml_str}")
+    else:
+        print(f"  a_dw_min={a_dw_min:.4e}, b_dw_min={b_dw_min:.4e}, ab_desired_bl={ab_desired_bl}, multilevel a/b={a_multilevel}/{b_multilevel}")
     if TRANSFER_METHOD in ("onehot", "direct"):
         print(f"  c_dw_min={c_dw_min:.4e}, c_desired_bl={c_desired_bl}")
     print(f"{'='*70}")
