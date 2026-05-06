@@ -196,6 +196,7 @@ LORA_TARGET_MODULES = {
 # Diagnostic
 ENABLE_DIAGNOSTIC = True   # False = no diagnostic overhead, fast training
 DIAG_EPOCHS = 0            # 0 = all epochs, N = first N epochs only
+ERANK_RATE_LIMIT_STEPS = 0 # If >0, compute erank only at transfer events AND with ≥N step gap (saves SVD time). 0 = every step
 
 # Data subset sizes (0 = use full dataset)
 TRAIN_SUBSET_SIZE = 0
@@ -1115,7 +1116,7 @@ def snapshot_weights(tile):
 def collect_tile_diagnostics(tile, C_prev_raw, A_before, B_before, C_before,
                              C_raw_before, step, prev_num_transfers,
                              A_ci, B_ci, C_ci, A_pre_transfer=None,
-                             C_initial_eff=None):
+                             C_initial_eff=None, compute_erank=True):
     controller = tile.controller
     A = A_pre_transfer if A_pre_transfer is not None else tile.tile_a.get_weights()[0]
     B = tile.tile_b.get_weights()[0]
@@ -1161,12 +1162,19 @@ def collect_tile_diagnostics(tile, C_prev_raw, A_before, B_before, C_before,
         "delta_A": delta_A, "delta_B": delta_B, "delta_C_raw": delta_C_raw_step,
         "transfer_counter": controller.transfer_counter,
         "num_transfers": num_transfers, "is_transfer": is_transfer,
-        "erank_C": _effective_rank(C_eff),
-        "erank_C_delta": _effective_rank(C_eff - C_initial_eff) if C_initial_eff is not None else 0.0,
-        "erank_A": _effective_rank(A),
-        "erank_B": _effective_rank(B),
-        "erank_AB": _effective_rank(A @ B),
     }
+    if compute_erank:
+        record["erank_C"] = _effective_rank(C_eff)
+        record["erank_C_delta"] = _effective_rank(C_eff - C_initial_eff) if C_initial_eff is not None else 0.0
+        record["erank_A"] = _effective_rank(A)
+        record["erank_B"] = _effective_rank(B)
+        record["erank_AB"] = _effective_rank(A @ B)
+    else:
+        record["erank_C"] = None
+        record["erank_C_delta"] = None
+        record["erank_A"] = None
+        record["erank_B"] = None
+        record["erank_AB"] = None
     return record, C_raw.clone().detach(), num_transfers
 
 
@@ -1607,6 +1615,10 @@ def main():
         first_tile.controller.enable_diagnostics = True
         last_tile.controller.enable_diagnostics = True
 
+        # Rate-limit erank computation for first/last tile (gated by ERANK_RATE_LIMIT_STEPS)
+        first_last_erank_step = -10**9
+        last_last_erank_step = -10**9
+
         A_shape = tuple(first_tile.tile_a.get_weights()[0].shape)
         B_shape = tuple(first_tile.tile_b.get_weights()[0].shape)
         C_shape = tuple(first_tile.tile_c.get_weights()[0].shape)
@@ -1920,16 +1932,31 @@ def main():
                     ]:
                         A_bef, B_bef, C_bef, Craw_bef = snap
                         A_pre = gcd.pop('_A_pre_transfer', None)
+                        # Rate-limited erank: compute only on transfer events with min step gap
                         if prev_state == "first":
+                            _is_xfer = tile.controller.num_transfers > first_prev_nt
+                            _do_erank = (ERANK_RATE_LIMIT_STEPS <= 0) or (
+                                _is_xfer and (global_step - first_last_erank_step) >= ERANK_RATE_LIMIT_STEPS
+                            )
+                            if _do_erank:
+                                first_last_erank_step = global_step
                             rec, first_C_prev_raw, first_prev_nt = collect_tile_diagnostics(
                                 tile, first_C_prev_raw, A_bef, B_bef, C_bef, Craw_bef,
                                 global_step, first_prev_nt, A_CI, B_CI, C_CI,
-                                A_pre_transfer=A_pre, C_initial_eff=first_C_initial_eff)
+                                A_pre_transfer=A_pre, C_initial_eff=first_C_initial_eff,
+                                compute_erank=_do_erank)
                         else:
+                            _is_xfer = tile.controller.num_transfers > last_prev_nt
+                            _do_erank = (ERANK_RATE_LIMIT_STEPS <= 0) or (
+                                _is_xfer and (global_step - last_last_erank_step) >= ERANK_RATE_LIMIT_STEPS
+                            )
+                            if _do_erank:
+                                last_last_erank_step = global_step
                             rec, last_C_prev_raw, last_prev_nt = collect_tile_diagnostics(
                                 tile, last_C_prev_raw, A_bef, B_bef, C_bef, Craw_bef,
                                 global_step, last_prev_nt, A_CI, B_CI, C_CI,
-                                A_pre_transfer=A_pre, C_initial_eff=last_C_initial_eff)
+                                A_pre_transfer=A_pre, C_initial_eff=last_C_initial_eff,
+                                compute_erank=_do_erank)
                         rec["loss"] = loss.item() * GRAD_ACCUM_STEPS
                         rec["norm_G_accum"] = gcd.get('norm_G_accum', 0.0)
                         rec["norm_AB_pre"] = gcd.get('norm_AB_pre', 0.0)
