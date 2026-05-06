@@ -393,7 +393,8 @@ os.environ["WANDB_MODE"] = "offline"
 # LRTT Device Functions
 # =============================================================================
 
-def _create_ab_device(tau_sec=0.0, dw_min=0.001981, multilevel=None, device_name=None):
+def _create_ab_device(tau_sec=0.0, dw_min=0.001981, multilevel=None, device_name=None,
+                      reset_std=0.01):
     """Create A/B tile device based on AB_DEVICE setting.
 
     Options:
@@ -414,6 +415,13 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981, multilevel=None, device_name
         device_name: Optional override for the device type. None → use AB_DEVICE.
                      Used to instantiate A and B tiles independently when A_DEVICE
                      or B_DEVICE differs from AB_DEVICE.
+        reset_std: σ for the reset (capacitor-discharge) operation. Used as the random
+                   Gaussian source for B in gauss_b_* reinit modes. Default 0.01 matches
+                   the 6T1C inherent floor noise. Applied to all pulsed-device branches;
+                   ignored for non-pulsed device classes (fp / ideal).
+
+    Note: reset_dtod is hardcoded to 0.0 (PulsedDevice default) on every pulsed-device
+    branch — written explicitly for readability, not configurable.
     """
     name = device_name if device_name is not None else AB_DEVICE
 
@@ -437,7 +445,12 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981, multilevel=None, device_name
     if name == "ideal":
         return IdealDevice()
     if name == "linearstep":
-        return LinearStepDevice(dw_min=dw_min, lifetime=lifetime)
+        return LinearStepDevice(
+            dw_min=dw_min,
+            lifetime=lifetime,
+            reset_std=reset_std,
+            reset_dtod=0.0,
+        )
     if name == "linearstepideal":
         return LinearStepDevice(
             dw_min=dw_min,
@@ -451,13 +464,19 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981, multilevel=None, device_name
             gamma_up_dtod=0.0,
             gamma_down_dtod=0.0,
             write_noise_std=0.0,
-            reset_std=0.0,
+            reset_std=reset_std,
+            reset_dtod=0.0,
             up_down=0.0,
             mult_noise=False,
             lifetime=lifetime,
         )
     if name == "constantstep":
-        return ConstantStepDevice(dw_min=dw_min, lifetime=lifetime)
+        return ConstantStepDevice(
+            dw_min=dw_min,
+            lifetime=lifetime,
+            reset_std=reset_std,
+            reset_dtod=0.0,
+        )
     if name == "constantstepideal":
         return ConstantStepDevice(
             dw_min=dw_min,
@@ -468,7 +487,8 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981, multilevel=None, device_name
             up_down_dtod=0.0,
             w_max_dtod=0.0,
             w_min_dtod=0.0,
-            reset_std=0.0,
+            reset_std=reset_std,
+            reset_dtod=0.0,
             up_down=0.0,
             lifetime=lifetime,
         )
@@ -487,7 +507,8 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981, multilevel=None, device_name
             gamma_up_dtod=0.0,
             gamma_down_dtod=0.0,
             write_noise_std=0.0,
-            reset_std=0.0,
+            reset_std=reset_std,
+            reset_dtod=0.0,
             up_down=0.0,
             mult_noise=False,
             lifetime=lifetime,
@@ -514,12 +535,19 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981, multilevel=None, device_name
         lifetime=lifetime,
         lifetime_dtod=0.1,
         reset=0.0,
+        reset_std=reset_std,
         reset_dtod=0.0,
     )
 
 
-def _create_c_device(dw_min=0.001):
-    """Create device for C tile."""
+def _create_c_device(dw_min=0.001, reset_std=0.0):
+    """Create device for C tile.
+
+    Args:
+        dw_min: Minimum weight update step size for the device.
+        reset_std: σ for the reset operation. Default 0.0 (deterministic reset). Applied
+                   to all pulsed-device branches; ignored for ideal/floating-point.
+    """
     if C_DEVICE == "ideal":
         return IdealDevice()
     if C_DEVICE == "linearstepideal":
@@ -535,12 +563,17 @@ def _create_c_device(dw_min=0.001):
             gamma_up_dtod=0.0,
             gamma_down_dtod=0.0,
             write_noise_std=0.0,
-            reset_std=0.0,
+            reset_std=reset_std,
+            reset_dtod=0.0,
             up_down=0.0,
             mult_noise=False,
         )
     if C_DEVICE == "constantstep":
-        return ConstantStepDevice(dw_min=dw_min)
+        return ConstantStepDevice(
+            dw_min=dw_min,
+            reset_std=reset_std,
+            reset_dtod=0.0,
+        )
     if C_DEVICE == "constantstepideal":
         return ConstantStepDevice(
             dw_min=dw_min,
@@ -551,7 +584,8 @@ def _create_c_device(dw_min=0.001):
             up_down_dtod=0.0,
             w_max_dtod=0.0,
             w_min_dtod=0.0,
-            reset_std=0.0,
+            reset_std=reset_std,
+            reset_dtod=0.0,
             up_down=0.0,
         )
     if C_DEVICE == "constantstep6t1cgamma":
@@ -569,7 +603,8 @@ def _create_c_device(dw_min=0.001):
             gamma_up_dtod=0.0,
             gamma_down_dtod=0.0,
             write_noise_std=0.0,
-            reset_std=0.0,
+            reset_std=reset_std,
+            reset_dtod=0.0,
             up_down=0.0,
             mult_noise=False,
         )
@@ -584,7 +619,8 @@ def _create_c_device(dw_min=0.001):
         w_max_dtod=0.0,
         w_min_dtod=0.0,
         write_noise_std=0.0,
-        reset_std=0.0,
+        reset_std=reset_std,
+        reset_dtod=0.0,
         mult_noise=False,  # No multiplicative noise for C tile
     )
 
@@ -1267,7 +1303,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         torch.cuda.empty_cache()
 
     # Hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 1e-5, 1e0, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 1e-4, 5e-2, log=True)
 
     # LRTT parameters: skip sweep if --no-transfer (A/B frozen, no transfer happens)
     if OPT_CONFIG['no_transfer']:
@@ -1278,15 +1314,15 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         fast_lr = 1.0            # fixed (no effect)
         tau_sec = 0.0            # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 8e-3, 1e2, log=True)
-        transfer_every = trial.suggest_int('transfer_every', 1, 1000, log=True)
+        transfer_lr = trial.suggest_float('transfer_lr', 9e-3, 5e0, log=True)
+        transfer_every = trial.suggest_int('transfer_every', 1, 20, log=True)
         rank_exp = trial.suggest_int('rank_exp', 5, 5)
         rank = 2 ** rank_exp
-        fast_lr = trial.suggest_float('fast_lr', 8e-4, 4e0, log=True)
+        fast_lr = trial.suggest_float('fast_lr', 1e-2, 5e0, log=True)
         tau_sec = trial.suggest_float('tau_sec', 0, 0, log=False)  # 0 = no decay
 
     # A/B device params
-    ab_dw_min = trial.suggest_float('ab_dw_min', 8e-8, 6e-3, log=True)  # default: 6t1c value
+    ab_dw_min = trial.suggest_float('ab_dw_min', 0.0004883, 0.0004883, log=True)  # default: 6t1c value
     ab_desired_bl = trial.suggest_int('ab_desired_bl', 31, 31)        # default: 31
     # ab_multilevel: w_max-w_min = 2^multilevel * ab_dw_min (symmetric).
     # When enabled, B init also scales accordingly. Default: disabled (w_max=1.0).
@@ -1651,7 +1687,10 @@ def main():
     parser.add_argument('--reinit-mode', type=str, default=None,
                         choices=['standard', 'decay', 'hybrid',
                                  'orthogonal_zero', 'orthogonal_decay',
-                                 'gauss_b_zero', 'gauss_b_decay'],
+                                 'gauss_b_zero', 'gauss_b_decay',
+                                 'gauss_a_zero', 'gauss_a_decay',
+                                 'selector_b_zero', 'selector_b_decay',
+                                 'selector_a_zero', 'selector_a_decay'],
                         help='Fix reinit mode (default: tune among standard/decay/hybrid)')
     parser.add_argument('--batch-size', type=int, default=32,
                         help='Batch size (default: 32)')

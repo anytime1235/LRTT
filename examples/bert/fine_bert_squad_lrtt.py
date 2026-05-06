@@ -213,7 +213,8 @@ os.environ["WANDB_MODE"] = "offline"
 # LRTT Device Functions
 # =============================================================================
 
-def _create_ab_device(tau_sec=None, dw_min=None, multilevel=None, device_name=None):
+def _create_ab_device(tau_sec=None, dw_min=None, multilevel=None, device_name=None,
+                      reset_std=0.01):
     """Create A/B tile device based on AB_DEVICE setting.
 
     Options:
@@ -229,6 +230,10 @@ def _create_ab_device(tau_sec=None, dw_min=None, multilevel=None, device_name=No
     If multilevel (or AB_MULTILEVEL) is set to an int > 0, the ideal device branches
     (linearstepideal, constantstepideal) use w_max = 2^multilevel * dw_min / 2 and
     w_min = -w_max instead of +/-1.0. The 6t1c default branch is unaffected.
+
+    reset_std: σ for the reset (capacitor-discharge) operation. Used as the random
+    Gaussian source for B in gauss_b_* reinit modes. Default 0.01 matches the 6T1C
+    inherent floor noise. Applied to all pulsed-device branches.
     """
     if tau_sec is None:
         tau_sec = TAU_SEC
@@ -257,7 +262,10 @@ def _create_ab_device(tau_sec=None, dw_min=None, multilevel=None, device_name=No
     if name == "ideal":
         return IdealDevice()
     if name == "linearstep":
-        return LinearStepDevice(dw_min=dw_min, lifetime=lifetime)
+        return LinearStepDevice(
+            dw_min=dw_min, lifetime=lifetime,
+            reset_std=reset_std, reset_dtod=0.0,
+        )
     if name == "linearstepideal":
         return LinearStepDevice(
             dw_min=dw_min,
@@ -265,19 +273,22 @@ def _create_ab_device(tau_sec=None, dw_min=None, multilevel=None, device_name=No
             dw_min_dtod=0.0, dw_min_std=0.0,
             up_down_dtod=0.0, w_max_dtod=0.0, w_min_dtod=0.0,
             gamma_up_dtod=0.0, gamma_down_dtod=0.0,
-            write_noise_std=0.0, reset_std=0.0,
+            write_noise_std=0.0, reset_std=reset_std, reset_dtod=0.0,
             up_down=0.0, mult_noise=False,
             lifetime=lifetime,
         )
     if name == "constantstep":
-        return ConstantStepDevice(dw_min=dw_min, lifetime=lifetime)
+        return ConstantStepDevice(
+            dw_min=dw_min, lifetime=lifetime,
+            reset_std=reset_std, reset_dtod=0.0,
+        )
     if name == "constantstepideal":
         return ConstantStepDevice(
             dw_min=dw_min,
             w_max=w_max, w_min=w_min,
             dw_min_dtod=0.0, dw_min_std=0.0,
             up_down_dtod=0.0, w_max_dtod=0.0, w_min_dtod=0.0,
-            reset_std=0.0, up_down=0.0,
+            reset_std=reset_std, reset_dtod=0.0, up_down=0.0,
             lifetime=lifetime,
         )
     if name == "constantstep6t1cgamma":
@@ -295,7 +306,8 @@ def _create_ab_device(tau_sec=None, dw_min=None, multilevel=None, device_name=No
             gamma_up_dtod=0.0,
             gamma_down_dtod=0.0,
             write_noise_std=0.0,
-            reset_std=0.0,
+            reset_std=reset_std,
+            reset_dtod=0.0,
             up_down=0.0,
             mult_noise=False,
             lifetime=lifetime,
@@ -312,12 +324,16 @@ def _create_ab_device(tau_sec=None, dw_min=None, multilevel=None, device_name=No
         dw_min_std=0.3, write_noise_std=0.0,
         mean_bound_reference=True,
         lifetime=lifetime, lifetime_dtod=0.1,
-        reset=0.0, reset_dtod=0.0,
+        reset=0.0, reset_std=reset_std, reset_dtod=0.0,
     )
 
 
-def _create_c_device(dw_min=None):
-    """Create device for C tile based on C_DEVICE setting."""
+def _create_c_device(dw_min=None, reset_std=0.0):
+    """Create device for C tile based on C_DEVICE setting.
+
+    reset_std: σ for the reset operation. Default 0.0 (deterministic). Applied to
+    all pulsed-device branches; ignored for ideal/floating-point.
+    """
     if dw_min is None:
         dw_min = C_DW_MIN
 
@@ -330,18 +346,21 @@ def _create_c_device(dw_min=None):
             dw_min_dtod=0.0, dw_min_std=0.0,
             up_down_dtod=0.0, w_max_dtod=0.0, w_min_dtod=0.0,
             gamma_up_dtod=0.0, gamma_down_dtod=0.0,
-            write_noise_std=0.0, reset_std=0.0,
+            write_noise_std=0.0, reset_std=reset_std, reset_dtod=0.0,
             up_down=0.0, mult_noise=False,
         )
     if C_DEVICE == "constantstep":
-        return ConstantStepDevice(dw_min=dw_min)
+        return ConstantStepDevice(
+            dw_min=dw_min,
+            reset_std=reset_std, reset_dtod=0.0,
+        )
     if C_DEVICE == "constantstepideal":
         return ConstantStepDevice(
             dw_min=dw_min,
             w_max=1.0, w_min=-1.0,
             dw_min_dtod=0.0, dw_min_std=0.0,
             up_down_dtod=0.0, w_max_dtod=0.0, w_min_dtod=0.0,
-            reset_std=0.0, up_down=0.0,
+            reset_std=reset_std, reset_dtod=0.0, up_down=0.0,
         )
     if C_DEVICE == "constantstep6t1cgamma":
         return LinearStepDevice(
@@ -358,7 +377,8 @@ def _create_c_device(dw_min=None):
             gamma_up_dtod=0.0,
             gamma_down_dtod=0.0,
             write_noise_std=0.0,
-            reset_std=0.0,
+            reset_std=reset_std,
+            reset_dtod=0.0,
             up_down=0.0,
             mult_noise=False,
         )
@@ -369,7 +389,7 @@ def _create_c_device(dw_min=None):
         dw_min_dtod=0.0, dw_min_std=0.0,
         up_down=0.0, up_down_dtod=0.0,
         w_max_dtod=0.0, w_min_dtod=0.0,
-        write_noise_std=0.0, reset_std=0.0,
+        write_noise_std=0.0, reset_std=reset_std, reset_dtod=0.0,
         mult_noise=False,
     )
 
@@ -1140,9 +1160,15 @@ def collect_tile_diagnostics(tile, C_prev_raw, A_before, B_before, C_before,
     if compute_erank:
         record["erank_C"] = _effective_rank(C_eff)
         record["erank_C_delta"] = _effective_rank(C_eff - C_initial_eff) if C_initial_eff is not None else 0.0
+        record["erank_A"] = _effective_rank(A)
+        record["erank_B"] = _effective_rank(B)
+        record["erank_AB"] = _effective_rank(A @ B)
     else:
         record["erank_C"] = None
         record["erank_C_delta"] = None
+        record["erank_A"] = None
+        record["erank_B"] = None
+        record["erank_AB"] = None
     return record, C_raw.clone().detach(), num_transfers
 
 
@@ -1157,7 +1183,7 @@ def _compute_multi_mean(multi_logs):
     fields = ["norm_A", "norm_B", "norm_C_raw", "norm_AB",
               "A_eff_min", "A_eff_max", "B_eff_min", "B_eff_max",
               "C_eff_min", "C_eff_max", "C_raw_min", "C_raw_max",
-              "erank_C", "erank_C_delta"]
+              "erank_C", "erank_C_delta", "erank_A", "erank_B", "erank_AB"]
     mean_log = []
     for i in range(n_steps):
         rec = {"step": multi_logs[keys_with_data[0]][i]["step"]}
