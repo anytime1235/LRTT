@@ -267,6 +267,8 @@ C_DEVICE = "softboundsideal"  # "softboundsideal", "linearstepideal", "constants
 IO_NOISE = True  # If False, disable out_noise (resolution kept)
 FORWARD_INJECT = False  # If True, enable forward noise injection
 IS_PERFECT = False  # If True, forward/backward use ideal FP matmul (no ADC/DAC/noise)
+AF_RATIO = 1.0  # Asymmetry factor: scales 6T1C gamma_up/gamma_down (used by scaledideal device)
+UNR = 1.0       # Update noise ratio: scales 6T1C dw_min_std (used by scaledideal device)
 NO_QUANT = False  # If True, disable DAC/ADC quantization (inp_res/out_res → -1)
 ENCODER_ANALOG = False  # If True, non-LRTT linear layers become frozen analog instead of digital
 HEAD_ANALOG = False  # If True, output head (classifier) → frozen analog instead of digital
@@ -375,6 +377,9 @@ def get_study_name_suffix():
         suffix += f"_trs-{OPT_CONFIG['transfer_rank_schedule']}-{OPT_CONFIG['transfer_ranks_per_step']}"
     if not OPT_CONFIG.get('scale_transfer_lr', True):
         suffix += "_no-stlr"
+    # Scaled device sweep markers
+    if AB_DEVICE == "scaledideal" or A_DEVICE == "scaledideal" or B_DEVICE == "scaledideal":
+        suffix += f"_af{AF_RATIO:g}_unr{UNR:g}"
     if OPT_CONFIG.get('fi_continuous_alpha', False):
         suffix += "_fica"
     if OPT_CONFIG.get('ab_pulse_type', 'default') != 'default':
@@ -514,6 +519,30 @@ def _create_ab_device(tau_sec=0.0, dw_min=0.001981, multilevel=None, device_name
             gamma_down=0.1410,
             dw_min_dtod=0.0,
             dw_min_std=0.0,
+            up_down_dtod=0.0,
+            w_max_dtod=0.0,
+            w_min_dtod=0.0,
+            gamma_up_dtod=0.0,
+            gamma_down_dtod=0.0,
+            write_noise_std=0.0,
+            reset_std=reset_std,
+            reset_dtod=0.0,
+            up_down=0.0,
+            mult_noise=False,
+            lifetime=lifetime,
+        )
+    if name == "scaledideal":
+        # LinearStep with all dtod/write_noise/mult_noise zeroed; only gamma (× AF_RATIO)
+        # and dw_min_std (× UNR) carry 6T1C nominal values scaled by sweep ratios.
+        # AF=0, UNR=0 ⇒ exactly equivalent to constantstepideal.
+        return LinearStepDevice(
+            dw_min=dw_min,
+            w_max=w_max,
+            w_min=w_min,
+            gamma_up=-0.1678 * AF_RATIO,
+            gamma_down=0.1410 * AF_RATIO,
+            dw_min_std=0.3 * UNR,
+            dw_min_dtod=0.0,
             up_down_dtod=0.0,
             w_max_dtod=0.0,
             w_min_dtod=0.0,
@@ -1123,7 +1152,7 @@ def objective(trial, train_loader, val_loader):
         torch.cuda.empty_cache()
 
     # Hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 1e-2, 1e1, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 6e-3, 5e0, log=True)
 
     # LRTT parameters: skip sweep if --no-transfer (A/B frozen, no transfer happens)
     if OPT_CONFIG['no_transfer']:
@@ -1134,11 +1163,11 @@ def objective(trial, train_loader, val_loader):
         fast_lr = 1.0            # fixed (no effect)
         a_tau_sec = b_tau_sec = 0.0    # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 1e-4, 1e2, log=True)
-        transfer_every = trial.suggest_int('transfer_every', 1, 1e3, log=True)
-        rank_exp = trial.suggest_int('rank_exp', 0, 6)
+        transfer_lr = trial.suggest_float('transfer_lr', 1e-5, 3e-2, log=True)
+        transfer_every = trial.suggest_int('transfer_every', 10, 10, log=True)
+        rank_exp = trial.suggest_int('rank_exp', 3, 3)
         rank = 2 ** rank_exp
-        fast_lr = trial.suggest_float('fast_lr', 1e-4, 1e3, log=True)
+        fast_lr = trial.suggest_float('fast_lr', 7e-4, 2e4, log=True)
         # tau_sec → device.lifetime is per-tile splittable. Default shared (single ab variable).
         if SPLIT_AB_PARAMS.get('tau_sec', False):
             a_tau_sec = trial.suggest_float('a_tau_sec', 0, 0, log=False)
@@ -1183,8 +1212,8 @@ def objective(trial, train_loader, val_loader):
     # for gauss_b_* random Gaussian σ). Set SPLIT_AB_PARAMS['reset_std']=False to
     # sweep a single ab_reset_std applied to both tiles (ablation use case).
     if SPLIT_AB_PARAMS.get('reset_std', True):
-        a_reset_std = trial.suggest_float('a_reset_std', 1e-3, 1e3)
-        b_reset_std = trial.suggest_float('b_reset_std', 1e-30, 1e-30, log=True)
+        a_reset_std = trial.suggest_float('a_reset_std', 1e-30, 1e-30, log=True)
+        b_reset_std = trial.suggest_float('b_reset_std', 2e-5, 3e4, log=True)
     else:
         ab_reset_std = trial.suggest_float('ab_reset_std', 0.0, 0.0, log=True)
         a_reset_std = b_reset_std = ab_reset_std
@@ -1535,7 +1564,7 @@ def print_study_summary(study):
 # =============================================================================
 
 def main():
-    global BATCH_SIZE, GRAD_ACCUM_STEPS, N_EPOCHS, STEP_LR_SIZE, STEP_LR_GAMMA, TRANSFER_METHOD, AB_DEVICE, A_DEVICE, B_DEVICE, C_DEVICE, IO_NOISE, FORWARD_INJECT, IS_PERFECT, NO_QUANT, LORA_TARGET, HEAD_LAYER, ENCODER_ANALOG, HEAD_ANALOG, BACKWARD_OUT_BOUND, _oom_retry_pending
+    global BATCH_SIZE, GRAD_ACCUM_STEPS, N_EPOCHS, STEP_LR_SIZE, STEP_LR_GAMMA, TRANSFER_METHOD, AB_DEVICE, A_DEVICE, B_DEVICE, C_DEVICE, IO_NOISE, FORWARD_INJECT, IS_PERFECT, NO_QUANT, LORA_TARGET, HEAD_LAYER, ENCODER_ANALOG, HEAD_ANALOG, BACKWARD_OUT_BOUND, AF_RATIO, UNR, _oom_retry_pending
 
     parser = argparse.ArgumentParser(description="Optuna sweep for MLP MNIST LRTT")
     parser.add_argument('--study-name', type=str, default=None,
@@ -1573,13 +1602,13 @@ def main():
                         choices=['onehot', 'direct', 'set'],
                         help=f'Transfer method (default: {TRANSFER_METHOD})')
     parser.add_argument('--ab-device', type=str, default=AB_DEVICE,
-                        choices=['6t1c', 'linearstep', 'linearstepideal', 'constantstep', 'constantstepideal', 'constantstep6t1cgamma', 'fp', 'ideal'],
+                        choices=['6t1c', 'linearstep', 'linearstepideal', 'constantstep', 'constantstepideal', 'constantstep6t1cgamma', 'scaledideal', 'fp', 'ideal'],
                         help=f'A/B tile device type (default: {AB_DEVICE}). Used for both A and B unless --a-device or --b-device overrides.')
     parser.add_argument('--a-device', type=str, default=None,
-                        choices=['6t1c', 'linearstep', 'linearstepideal', 'constantstep', 'constantstepideal', 'constantstep6t1cgamma', 'fp', 'ideal'],
+                        choices=['6t1c', 'linearstep', 'linearstepideal', 'constantstep', 'constantstepideal', 'constantstep6t1cgamma', 'scaledideal', 'fp', 'ideal'],
                         help='Override A tile device only (default: same as --ab-device)')
     parser.add_argument('--b-device', type=str, default=None,
-                        choices=['6t1c', 'linearstep', 'linearstepideal', 'constantstep', 'constantstepideal', 'constantstep6t1cgamma', 'fp', 'ideal'],
+                        choices=['6t1c', 'linearstep', 'linearstepideal', 'constantstep', 'constantstepideal', 'constantstep6t1cgamma', 'scaledideal', 'fp', 'ideal'],
                         help='Override B tile device only (default: same as --ab-device)')
     parser.add_argument('--c-device', type=str, default=C_DEVICE,
                         choices=['softboundsideal', 'linearstepideal', 'constantstep', 'constantstepideal', 'constantstep6t1cgamma', 'ideal'],
@@ -1629,6 +1658,10 @@ def main():
                         help='Pulse type for A/B tile updates (default: use RPUConfig default)')
     parser.add_argument('--fi-continuous-alpha', action='store_true',
                         help='Use transfer LR as forward-injection α (continuity condition)')
+    parser.add_argument('--af-ratio', type=float, default=AF_RATIO,
+                        help='Asymmetry factor for scaledideal: gamma scaled by this ratio (default: 1.0)')
+    parser.add_argument('--unr', type=float, default=UNR,
+                        help='Update noise ratio for scaledideal: dw_min_std scaled by this ratio (default: 1.0)')
     args = parser.parse_args()
 
     # Update global config
@@ -1667,6 +1700,8 @@ def main():
     ENCODER_ANALOG = args.encoder_analog
     HEAD_ANALOG = args.head_analog
     BACKWARD_OUT_BOUND = args.backward_out_bound
+    AF_RATIO = args.af_ratio
+    UNR = args.unr
 
     # Auto-generate study name based on config (includes batch size)
     study_name = args.study_name or f"mlp_mnist_lrtt_bs{BATCH_SIZE}_{get_study_name_suffix()}"
