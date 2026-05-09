@@ -187,3 +187,4 @@ checkpoints/
 # Test outputs and results
 *_RESULTS/
 *.log
+*.bak
