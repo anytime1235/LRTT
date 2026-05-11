@@ -495,6 +495,12 @@ class LRTTSimulatorTile(SimulatorTile, Module):
                         lr_eff_a = lr_eff_b = 1.0
                     elif ctrl.auto_scale_mode == "none":
                         lr_eff_a = lr_eff_b = ctrl.fast_lr
+                    elif hasattr(ctrl, '_fi_skip_ema'):
+                        # grad_accum path pre-computed lr_eff externally (single EMA
+                        # call with concatenated amax sequence across all chunks).
+                        # Skip per-chunk EMA to avoid 3× decay over-application.
+                        lr_eff_a = ctrl.last_lr_eff_a
+                        lr_eff_b = ctrl.last_lr_eff_b
                     else:
                         ctrl._update_autoscale_ema(
                             ctrl._fi_b_x, ctrl._fi_a_d,     # x, d

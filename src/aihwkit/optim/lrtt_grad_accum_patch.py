@@ -274,11 +274,13 @@ def _step_mem_opt(self, closure=None, **kwargs):
                     elif controller.auto_scale_mode == "none":
                         controller.last_lr_eff_a = controller.last_lr_eff_b = controller.fast_lr
                     elif controller.auto_scale_mode in ("shared", "separate"):
-                        x_amax = _torch.tensor(0.0, device=_dev)
-                        d_amax = _torch.tensor(0.0, device=_dev)
-                        xb_amax = _torch.tensor(0.0, device=_dev)
-                        da_amax = _torch.tensor(0.0, device=_dev)
-                        total_m_batch = 0
+                        # ── Per-sample amax sequences (faithfully matches original C++
+                        # rpu_chopped_transfer_device.cpp:317-322 calling updateAutoScale
+                        # once per outer product with per-sample feature-dim max). ──
+                        x_amax_seqs = []
+                        d_amax_seqs = []
+                        xb_amax_seqs = []
+                        da_amax_seqs = []
                         for g in range(grad_accum_steps):
                             start = g * entries_per_fwd
                             end = start + entries_per_fwd
@@ -294,39 +296,45 @@ def _step_mem_opt(self, closure=None, **kwargs):
                                 x_g = x_g.to(_dev)
                             if runtime.offload_gradient:
                                 d_g = d_g.to(_dev)
-                            x_amax = _torch.max(x_amax, x_g.abs().amax())
-                            d_amax = _torch.max(d_amax, d_g.abs().amax())
+                            # Per-sample amax: max over feature dim only, flatten others
+                            x_amax_seqs.append(x_g.abs().amax(dim=-1).reshape(-1))
+                            d_amax_seqs.append(d_g.abs().amax(dim=-1).reshape(-1))
                             with _torch.no_grad():
                                 # EMA stats: use tile forward/backward for IO fidelity.
                                 # Weights haven't been updated yet (before the loop),
                                 # so tile weights == snapshot A0/B0.
                                 xb_g = controller.tile_b.forward(x_g)
                                 da_g = controller.tile_a.backward(d_g)
-                            xb_amax = _torch.max(xb_amax, xb_g.abs().amax())
-                            da_amax = _torch.max(da_amax, da_g.abs().amax())
-                            total_m_batch += x_g.shape[0]
+                            xb_amax_seqs.append(xb_g.abs().amax(dim=-1).reshape(-1))
+                            da_amax_seqs.append(da_g.abs().amax(dim=-1).reshape(-1))
                             del x_g, d_g, xb_g, da_g
-                        # Single EMA update with full-batch stats
-                        tau = (1.0 - controller.auto_momentum) / total_m_batch
+                        # Concatenate across grad_accum into single per-sample sequence
+                        x_amax_seq = _torch.cat(x_amax_seqs)   # shape [total_m_batch]
+                        d_amax_seq = _torch.cat(d_amax_seqs)
+                        xb_amax_seq = _torch.cat(xb_amax_seqs)
+                        da_amax_seq = _torch.cat(da_amax_seqs)
+                        # Apply EMA via closed-form (= N sequential applications of
+                        # original C++ updateAutoScale with cold-start protection).
                         controller._lazy_init_ema(A0.device)
+                        _ema_fn = controller._update_ema_exact
                         if controller.auto_scale_mode == "shared":
-                            controller.m_x = (1 - tau) * controller.m_x + tau * x_amax
-                            controller.m_d = (1 - tau) * controller.m_d + tau * d_amax
+                            controller.m_x = _ema_fn(controller.m_x, x_amax_seq, controller.auto_momentum)
+                            controller.m_d = _ema_fn(controller.m_d, d_amax_seq, controller.auto_momentum)
                             denom = controller.m_x * controller.m_d
-                            fast_lr_t = x_amax.new_tensor(controller.fast_lr)
+                            fast_lr_t = x_amax_seq.new_tensor(controller.fast_lr)
                             lr_eff = _torch.where(denom > 0, fast_lr_t / denom, fast_lr_t).item()
                             controller.last_lr_eff_a = lr_eff
                             controller.last_lr_eff_b = lr_eff
                         elif controller.auto_scale_mode == "separate":
-                            controller.m_x = (1 - tau) * controller.m_x + tau * x_amax
-                            controller.m_d = (1 - tau) * controller.m_d + tau * d_amax
-                            controller.m_xb = (1 - tau) * controller.m_xb + tau * xb_amax
-                            controller.m_da = (1 - tau) * controller.m_da + tau * da_amax
+                            controller.m_x = _ema_fn(controller.m_x, x_amax_seq, controller.auto_momentum)
+                            controller.m_d = _ema_fn(controller.m_d, d_amax_seq, controller.auto_momentum)
+                            controller.m_xb = _ema_fn(controller.m_xb, xb_amax_seq, controller.auto_momentum)
+                            controller.m_da = _ema_fn(controller.m_da, da_amax_seq, controller.auto_momentum)
                             denom_a = controller.m_xb * controller.m_d
-                            fa = x_amax.new_tensor(controller.fast_lr * controller.gran_a)
+                            fa = x_amax_seq.new_tensor(controller.fast_lr * controller.gran_a)
                             controller.last_lr_eff_a = _torch.where(denom_a > 0, fa / denom_a, fa).item()
                             denom_b = controller.m_x * controller.m_da
-                            fb = x_amax.new_tensor(controller.fast_lr * controller.gran_b)
+                            fb = x_amax_seq.new_tensor(controller.fast_lr * controller.gran_b)
                             controller.last_lr_eff_b = _torch.where(denom_b > 0, fb / denom_b, fb).item()
 
                     # Signal snapshot path to skip per-call EMA update
@@ -417,11 +425,29 @@ def _step_mem_opt(self, closure=None, **kwargs):
                         a_ctx = controller._fi_ga_a_ctx
                         a_runtime = controller._fi_ga_a_runtime
 
+                        # ── First pass: collect per-sample amax sequences across
+                        # all groups, compute EMA ONCE (matches original C++ semantics
+                        # of N=total_m_batch sequential updateAutoScale calls). This
+                        # avoids the per-chunk over-decay where 3 separate EMA calls
+                        # would apply (1-μ) decay 3 times instead of once.
+                        #
+                        # FI hook uses d_rescaled = d_input / α for EMA, so we mirror
+                        # that here. Set _last_lr_sgd first so effective_alpha is
+                        # current (matches what FI hook would see). ──
+                        controller._last_lr_sgd = learning_rate
+                        _fi_alpha = controller.effective_alpha
+                        groups_data = []  # cache materialized x_a, d_a, x_b, d_b per group
+                        if controller.auto_scale_mode in ("shared", "separate"):
+                            x_a_amax_seqs = []
+                            d_a_amax_seqs = []   # = d_a / α (matches FI hook rescaling)
+                            x_b_amax_seqs = []
+                            d_b_amax_seqs = []   # = d_b / α (matches FI hook rescaling)
+
                         for g in range(grad_accum_steps):
                             start = g * entries_per_fwd
                             end = start + entries_per_fwd
 
-                            # tile_a group
+                            # tile_a group (x_a = XB, d_a = d/α after FI rescaling)
                             x_a = self._pad_and_cat(
                                 a_ctx.analog_input[start:end],
                                 axis=-1 if a_tile.in_trans else 0,
@@ -435,7 +461,7 @@ def _step_mem_opt(self, closure=None, **kwargs):
                             if a_runtime.offload_gradient:
                                 d_a = d_a.to(a_tile.device)
 
-                            # tile_b group
+                            # tile_b group (x_b = x, d_b = DA after FI rescaling)
                             x_b = self._pad_and_cat(
                                 analog_ctx.analog_input[start:end],
                                 axis=-1 if analog_tile.in_trans else 0,
@@ -449,12 +475,58 @@ def _step_mem_opt(self, closure=None, **kwargs):
                             if runtime.offload_gradient:
                                 d_b = d_b.to(analog_tile.device)
 
+                            groups_data.append((x_a, d_a, x_b, d_b))
+
+                            if controller.auto_scale_mode in ("shared", "separate"):
+                                # Per-sample amax sequences (FI hook expects:
+                                # x=fi_b_x=x_b, d=fi_a_d=d_a/α (rescaled), XB=fi_a_x=x_a, DA=fi_b_d=d_b/α)
+                                x_b_amax_seqs.append(x_b.abs().amax(dim=-1).reshape(-1))
+                                # d_a and d_b come from analog_grad_output (includes α from forward).
+                                # FI hook divides by α before EMA — mirror that here.
+                                d_a_amax_seqs.append((d_a / _fi_alpha).abs().amax(dim=-1).reshape(-1))
+                                x_a_amax_seqs.append(x_a.abs().amax(dim=-1).reshape(-1))
+                                d_b_amax_seqs.append((d_b / _fi_alpha).abs().amax(dim=-1).reshape(-1))
+
+                        # Compute EMA once externally with concatenated sequences
+                        if controller.auto_scale_mode in ("shared", "separate"):
+                            x_seq  = _torch.cat(x_b_amax_seqs)   # x in EMA signature
+                            d_seq  = _torch.cat(d_a_amax_seqs)   # d
+                            xb_seq = _torch.cat(x_a_amax_seqs)   # XB
+                            da_seq = _torch.cat(d_b_amax_seqs)   # DA
+                            controller._lazy_init_ema(x_seq.device)
+                            _ema_fn = controller._update_ema_exact
+                            if controller.auto_scale_mode == "shared":
+                                controller.m_x = _ema_fn(controller.m_x, x_seq, controller.auto_momentum)
+                                controller.m_d = _ema_fn(controller.m_d, d_seq, controller.auto_momentum)
+                                denom = controller.m_x * controller.m_d
+                                fast_lr_t = x_seq.new_tensor(controller.fast_lr)
+                                lr_eff = _torch.where(denom > 0, fast_lr_t / denom, fast_lr_t).item()
+                                controller.last_lr_eff_a = lr_eff
+                                controller.last_lr_eff_b = lr_eff
+                            elif controller.auto_scale_mode == "separate":
+                                controller.m_x  = _ema_fn(controller.m_x,  x_seq,  controller.auto_momentum)
+                                controller.m_d  = _ema_fn(controller.m_d,  d_seq,  controller.auto_momentum)
+                                controller.m_xb = _ema_fn(controller.m_xb, xb_seq, controller.auto_momentum)
+                                controller.m_da = _ema_fn(controller.m_da, da_seq, controller.auto_momentum)
+                                denom_a = controller.m_xb * controller.m_d
+                                fa = x_seq.new_tensor(controller.fast_lr * controller.gran_a)
+                                controller.last_lr_eff_a = _torch.where(denom_a > 0, fa / denom_a, fa).item()
+                                denom_b = controller.m_x * controller.m_da
+                                fb = x_seq.new_tensor(controller.fast_lr * controller.gran_b)
+                                controller.last_lr_eff_b = _torch.where(denom_b > 0, fb / denom_b, fb).item()
+                            # Signal FI hook to use pre-computed lr_eff (skip per-chunk EMA)
+                            controller._fi_skip_ema = True
+
+                        # Second pass: actual tile updates (FI hook reads pre-computed lr_eff)
+                        for x_a, d_a, x_b, d_b in groups_data:
                             # Call in order: tile_a then tile_b
                             # FI hook caches _fi_a_*, then _fi_b_* triggers _orig_update
                             a_tile.update(x_a, d_a)
                             analog_tile.update(x_b, d_b)
 
-                        # Reset deferred tile_a context
+                        # Clean up
+                        if hasattr(controller, '_fi_skip_ema'):
+                            del controller._fi_skip_ema
                         a_ctx.reset()
                         del controller._fi_ga_a_tile, controller._fi_ga_a_ctx, controller._fi_ga_a_runtime
 

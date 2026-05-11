@@ -859,37 +859,87 @@ class LRTTController:
             self.m_da = torch.tensor(0.0, device=device)
         self._autoscale_ema_initialized = True
 
+    @staticmethod
+    def _update_ema_exact(m_old: Tensor, amax_seq: Tensor, momentum: float) -> Tensor:
+        """Exact vectorized equivalent of original C++ updateAutoScale called N times.
+
+        Mirrors rpu_chopped_transfer_device.cpp:92-103:
+          - First call (m_old <= 0): m = amax_seq[0]  (cold-start protection)
+          - Subsequent calls: m = (1-τ) * m + τ * amax  with τ = (1-μ)/N
+
+        Closed-form for N sequential applications:
+            m[N] = (1-τ)^N * m_old + τ * Σ_k (1-τ)^(N-1-k) * amax_seq[k]
+
+        Args:
+            m_old: Previous EMA value (scalar tensor)
+            amax_seq: Per-sample amax sequence [N]
+            momentum: auto_momentum (e.g., 0.99)
+        Returns:
+            New EMA value (scalar tensor)
+        """
+        n = amax_seq.numel()
+        if n == 0:
+            return m_old
+        # Filter out non-positive amax (skip degenerate samples, like C++ line 97-99)
+        # In practice all amaxes are non-negative since they come from .abs().amax()
+        # We still handle the cold-start case explicitly:
+        if float(m_old) <= 0.0:
+            # Cold-start: original sets m = first value directly (line 93-96)
+            m_curr = amax_seq[0]
+            if n == 1:
+                return m_curr
+            rest = amax_seq[1:]
+            n_rest = n - 1
+        else:
+            m_curr = m_old
+            rest = amax_seq
+            n_rest = n
+        tau = (1.0 - momentum) / n  # original uses N = total m_batch for τ
+        one_minus_tau = 1.0 - tau
+        # Decay exponents (newest sample has smallest exponent → largest weight)
+        exponents = torch.arange(n_rest - 1, -1, -1, device=rest.device, dtype=rest.dtype)
+        decay = one_minus_tau ** exponents
+        return (one_minus_tau ** n_rest) * m_curr + tau * (decay * rest).sum()
+
     def _update_autoscale_ema(
         self, x: Tensor, d: Tensor, XB: Tensor, DA: Tensor, m_batch: int
     ) -> None:
         """Update EMA statistics and compute lr_eff_a/b for auto_scale_mode.
 
         This is extracted from _ab_weight_update_lora so it can also be called
-        from the forward_inject=True hook path.
+        from the forward_inject=True hook path. Uses _update_ema_exact to
+        faithfully replicate the original C++ TikiTaka per-sample EMA loop
+        with cold-start protection (rpu_chopped_transfer_device.cpp:92-103).
 
         Args:
-            x: Input activations [batch, x_size]
-            d: Gradient w.r.t. output [batch, d_size]
-            XB: B·x projection [batch, rank]
-            DA: A^T·d projection [batch, rank]
-            m_batch: Batch size (for tau calculation)
+            x: Input activations [batch, ..., x_size]
+            d: Gradient w.r.t. output [batch, ..., d_size]
+            XB: B·x projection [batch, ..., rank]
+            DA: A^T·d projection [batch, ..., rank]
+            m_batch: Total number of outer products (used for τ scaling in original)
         """
-        tau = (1.0 - self.auto_momentum) / m_batch
         self._lazy_init_ema(x.device)
 
+        # Per-sample amax sequences (max over feature dim only, NOT batch-aggregate)
+        # This matches original C++ Find_Absolute_Max called per outer product.
+        x_seq = x.abs().amax(dim=-1).reshape(-1).to(self.m_x.device)
+        d_seq = d.abs().amax(dim=-1).reshape(-1).to(self.m_d.device)
+
         if self.auto_scale_mode == "shared":
-            self.m_x = (1 - tau) * self.m_x + tau * x.abs().amax()
-            self.m_d = (1 - tau) * self.m_d + tau * d.abs().amax()
+            self.m_x = self._update_ema_exact(self.m_x, x_seq, self.auto_momentum)
+            self.m_d = self._update_ema_exact(self.m_d, d_seq, self.auto_momentum)
             denom = self.m_x * self.m_d
             fast_lr_t = x.new_tensor(self.fast_lr)
             lr_eff = torch.where(denom > 0, fast_lr_t / denom, fast_lr_t).item()
             self.last_lr_eff_a = lr_eff
             self.last_lr_eff_b = lr_eff
         elif self.auto_scale_mode == "separate":
-            self.m_x = (1 - tau) * self.m_x + tau * x.abs().amax()
-            self.m_d = (1 - tau) * self.m_d + tau * d.abs().amax()
-            self.m_xb = (1 - tau) * self.m_xb + tau * XB.abs().amax()
-            self.m_da = (1 - tau) * self.m_da + tau * DA.abs().amax()
+            xb_seq = XB.abs().amax(dim=-1).reshape(-1).to(self.m_xb.device)
+            da_seq = DA.abs().amax(dim=-1).reshape(-1).to(self.m_da.device)
+            self.m_x = self._update_ema_exact(self.m_x, x_seq, self.auto_momentum)
+            self.m_d = self._update_ema_exact(self.m_d, d_seq, self.auto_momentum)
+            self.m_xb = self._update_ema_exact(self.m_xb, xb_seq, self.auto_momentum)
+            self.m_da = self._update_ema_exact(self.m_da, da_seq, self.auto_momentum)
             denom_a = self.m_xb * self.m_d
             fa = x.new_tensor(self.fast_lr * self.gran_a)
             self.last_lr_eff_a = torch.where(denom_a > 0, fa / denom_a, fa).item()
