@@ -1,0 +1,60 @@
+{
+  "timestamp": "20260512_095208",
+  "hyperparams": {
+    "lr": 0.0038,
+    "tlr": 0.095,
+    "te": 1,
+    "fast_lr": 0.474,
+    "rank": 32,
+    "ab_dw_min": 0.0004883,
+    "c_dw_min": 0.001953,
+    "abml": null,
+    "warmup_steps": 365,
+    "batch_size": 48,
+    "seed": 42
+  },
+  "conditions": {
+    "no_noise": {
+      "a_device": "constantstep6t1cgamma",
+      "b_device": "constantstep6t1cgamma"
+    },
+    "a_only": {
+      "a_device": "6t1c",
+      "b_device": "constantstep6t1cgamma"
+    },
+    "b_only": {
+      "a_device": "constantstep6t1cgamma",
+      "b_device": "6t1c"
+    },
+    "both": {
+      "a_device": "6t1c",
+      "b_device": "6t1c"
+    }
+  },
+  "results": [
+    {
+      "tag": "no_noise",
+      "f1": 83.57,
+      "exit_code": 0,
+      "diag_json": "/root/LRTT/examples/bert/results/plots/diag_4conditions_multitile/diag_no_noise.json"
+    },
+    {
+      "tag": "b_only",
+      "f1": 84.23,
+      "exit_code": 0,
+      "diag_json": "/root/LRTT/examples/bert/results/plots/diag_4conditions_multitile/diag_b_only.json"
+    },
+    {
+      "tag": "a_only",
+      "f1": 83.73,
+      "exit_code": 0,
+      "diag_json": "/root/LRTT/examples/bert/results/plots/diag_4conditions_multitile/diag_a_only.json"
+    },
+    {
+      "tag": "both",
+      "f1": 78.14,
+      "exit_code": 0,
+      "diag_json": "/root/LRTT/examples/bert/results/plots/diag_4conditions_multitile/diag_both.json"
+    }
+  ]
+}

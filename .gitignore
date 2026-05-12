@@ -188,3 +188,24 @@ checkpoints/
 *_RESULTS/
 *.log
 *.bak
+
+# Run-output artifacts (BERT/MobileBERT/ALBERT/MLP fine examples)
+**/_tmp_*.py
+**/_tmp_smoke_*.py
+**/runlog_*.txt
+**/squad_diagnostic_log_*.json
+examples/bert/results/BERT_SQUAD_LRTT_FINE/squad_*.png
+examples/bert/results/BERT_SQUAD_LRTT_FINE/squad_*.svg
+examples/bert/results/MOBILEBERT_SQUAD_LRTT_FINE/squad_*.png
+examples/bert/results/MOBILEBERT_SQUAD_LRTT_FINE/squad_*.svg
+examples/bert/results/ALBERT_SQUAD_LRTT_FINE/squad_*.png
+
+# Large per-experiment raw diagnostic JSONs (keep summary_*.json, .md, plots)
+examples/bert/results/plots/diag_*/diag_*.json
+examples/bert/results/plots/diag_*/multi_logs.json
+
+# CUDA installer detritus
+cuda-keyring_*.deb*
+
+# Optuna zombie-cleanup locks
+**/_zombie_cleanup_*.lock

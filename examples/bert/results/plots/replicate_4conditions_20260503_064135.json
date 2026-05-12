@@ -1,0 +1,100 @@
+{
+  "timestamp": "20260503_064135",
+  "common": {
+    "rank": 32,
+    "ab_dw_min": 0.0004883,
+    "c_dw_min": 0.001953,
+    "abml": null,
+    "warmup_steps": 365,
+    "batch_size": 48
+  },
+  "seeds": [
+    42,
+    43,
+    44,
+    45,
+    46
+  ],
+  "conditions": {
+    "no_noise": {
+      "hyperparams": {
+        "a_device": "constantstep6t1cgamma",
+        "b_device": "constantstep6t1cgamma",
+        "lr": 0.0038,
+        "tlr": 0.095,
+        "te": 1,
+        "fast_lr": 0.474
+      },
+      "f1_per_seed": {
+        "44": 7.13,
+        "43": 83.26,
+        "45": 83.55,
+        "42": 83.28,
+        "46": 83.91
+      },
+      "mean": 68.226,
+      "std": 34.15471460867445,
+      "n": 5
+    },
+    "a_only": {
+      "hyperparams": {
+        "a_device": "6t1c",
+        "b_device": "constantstep6t1cgamma",
+        "lr": 0.0038,
+        "tlr": 0.095,
+        "te": 1,
+        "fast_lr": 0.474
+      },
+      "f1_per_seed": {
+        "45": 7.21,
+        "43": 83.96,
+        "42": 83.37,
+        "44": 83.95,
+        "46": 84.76
+      },
+      "mean": 68.65,
+      "std": 34.34956404381285,
+      "n": 5
+    },
+    "b_only": {
+      "hyperparams": {
+        "a_device": "constantstep6t1cgamma",
+        "b_device": "6t1c",
+        "lr": 0.003655,
+        "tlr": 0.08468,
+        "te": 1,
+        "fast_lr": 0.3016
+      },
+      "f1_per_seed": {
+        "42": 83.96,
+        "44": 84.07,
+        "43": 83.79,
+        "45": 83.75,
+        "46": 84.08
+      },
+      "mean": 83.92999999999999,
+      "std": 0.15411035007422072,
+      "n": 5
+    },
+    "both": {
+      "hyperparams": {
+        "a_device": "6t1c",
+        "b_device": "6t1c",
+        "lr": 0.0019,
+        "tlr": 0.2,
+        "te": 4,
+        "fast_lr": 0.092
+      },
+      "f1_per_seed": {
+        "42": 82.09,
+        "43": 81.87,
+        "44": 82.31,
+        "46": 82.27,
+        "45": 81.99
+      },
+      "mean": 82.10600000000001,
+      "std": 0.18568791021496162,
+      "n": 5
+    }
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "timestamp": "20260506_144818",
+  "hyper_base": {
+    "lr": 0.0038,
+    "tlr": 0.095,
+    "te": 1,
+    "fast_lr": 0.474,
+    "rank": 32,
+    "ab_dw_min": 0.0004883,
+    "c_dw_min": 0.001953,
+    "abml": null,
+    "warmup_steps": 365,
+    "batch_size": 48,
+    "min_lr_rate": 0.0
+  },
+  "variants": [
+    {
+      "tag": "seed42",
+      "seed": 42,
+      "min_lr_rate": 0.0
+    },
+    {
+      "tag": "seed43",
+      "seed": 43,
+      "min_lr_rate": 0.0
+    },
+    {
+      "tag": "seed44",
+      "seed": 44,
+      "min_lr_rate": 0.0
+    },
+    {
+      "tag": "seed42_lrfloor001",
+      "seed": 42,
+      "min_lr_rate": 0.01
+    }
+  ],
+  "results": [
+    {
+      "tag": "seed42_lrfloor001",
+      "exit_code": 0,
+      "diag_json": "/root/LRTT/examples/bert/results/plots/diag_no_noise_variants/diag_seed42_lrfloor001.json"
+    },
+    {
+      "tag": "seed42",
+      "exit_code": 0,
+      "diag_json": "/root/LRTT/examples/bert/results/plots/diag_no_noise_variants/diag_seed42.json"
+    },
+    {
+      "tag": "seed44",
+      "exit_code": 0,
+      "diag_json": "/root/LRTT/examples/bert/results/plots/diag_no_noise_variants/diag_seed44.json"
+    },
+    {
+      "tag": "seed43",
+      "exit_code": 0,
+      "diag_json": "/root/LRTT/examples/bert/results/plots/diag_no_noise_variants/diag_seed43.json"
+    }
+  ]
+}

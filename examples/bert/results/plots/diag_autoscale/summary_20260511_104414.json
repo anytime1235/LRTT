@@ -1,0 +1,64 @@
+{
+  "timestamp": "20260511_104414",
+  "hyper": {
+    "lr": 0.0038,
+    "tlr": 0.095,
+    "te": 1,
+    "fast_lr": 0.474,
+    "rank": 32,
+    "ab_dw_min": 0.0004883,
+    "c_dw_min": 0.001953,
+    "abml": null,
+    "warmup_steps": 365,
+    "batch_size": 48,
+    "min_lr_rate": 0.0
+  },
+  "variants": [
+    {
+      "tag": "separate_seed42",
+      "seed": 42,
+      "autoscale": "separate"
+    },
+    {
+      "tag": "separate_seed43",
+      "seed": 43,
+      "autoscale": "separate"
+    },
+    {
+      "tag": "separate_seed44",
+      "seed": 44,
+      "autoscale": "separate"
+    },
+    {
+      "tag": "separate_seed45",
+      "seed": 45,
+      "autoscale": "separate"
+    }
+  ],
+  "results": [
+    {
+      "tag": "separate_seed43",
+      "autoscale": "separate",
+      "exit_code": 0,
+      "diag_json": "/root/LRTT/examples/bert/results/plots/diag_autoscale/diag_separate_seed43.json"
+    },
+    {
+      "tag": "separate_seed45",
+      "autoscale": "separate",
+      "exit_code": 0,
+      "diag_json": "/root/LRTT/examples/bert/results/plots/diag_autoscale/diag_separate_seed45.json"
+    },
+    {
+      "tag": "separate_seed42",
+      "autoscale": "separate",
+      "exit_code": 0,
+      "diag_json": "/root/LRTT/examples/bert/results/plots/diag_autoscale/diag_separate_seed42.json"
+    },
+    {
+      "tag": "separate_seed44",
+      "autoscale": "separate",
+      "exit_code": 0,
+      "diag_json": "/root/LRTT/examples/bert/results/plots/diag_autoscale/diag_separate_seed44.json"
+    }
+  ]
+}
