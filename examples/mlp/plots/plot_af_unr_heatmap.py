@@ -103,19 +103,26 @@ def main():
     else:
         modes = ["gauss_a_zero", "gauss_b_zero"]
 
+    # Collect all data first (for CSV dump)
+    all_data = {}  # mode → (grid, counts)
+    for m in modes:
+        all_data[m] = collect_grid(results_dir, m)
+
     if len(modes) == 1:
         out = Path(args.out) if args.out else here / f"heatmap_af_unr_{modes[0]}.png"
+        csv_out = out.with_suffix(".csv")
         fig, ax = plt.subplots(figsize=(6.5, 5.5))
-        grid, counts = collect_grid(results_dir, modes[0])
+        grid, counts = all_data[modes[0]]
         im = render_panel(ax, grid, counts,
                           f"{modes[0]} (rank=8, te=10)",
                           vmin=args.vmin, vmax=args.vmax)
         fig.colorbar(im, ax=ax, label="Best val acc (%)")
     else:
         out = Path(args.out) if args.out else here / "heatmap_af_unr_combined.png"
+        csv_out = out.with_suffix(".csv")
         fig, axes = plt.subplots(1, 2, figsize=(13, 5.5))
         for ax, mode in zip(axes, modes):
-            grid, counts = collect_grid(results_dir, mode)
+            grid, counts = all_data[mode]
             im = render_panel(ax, grid, counts,
                               f"{mode} (rank=8, te=10)",
                               vmin=args.vmin, vmax=args.vmax)
@@ -124,6 +131,22 @@ def main():
 
     fig.savefig(out, dpi=150, bbox_inches="tight")
     print(f"Saved: {out}")
+
+    # Save raw data as CSV alongside the PNG
+    import csv
+    with csv_out.open("w", newline="") as fh:
+        w = csv.writer(fh)
+        w.writerow(["reinit_mode", "af_ratio", "unr", "best_val_acc", "n_complete"])
+        for m in modes:
+            grid, counts = all_data[m]
+            for i, af in enumerate(AF_VALUES):
+                for j, unr in enumerate(UNR_VALUES):
+                    v = grid[i, j]
+                    n = counts[i, j]
+                    w.writerow([m, af, unr,
+                                f"{v:.3f}" if not np.isnan(v) else "",
+                                int(n)])
+    print(f"Saved: {csv_out}")
 
 
 if __name__ == "__main__":

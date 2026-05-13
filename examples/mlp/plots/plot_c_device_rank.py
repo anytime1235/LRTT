@@ -104,6 +104,20 @@ def main():
     fig.savefig(out, dpi=150, bbox_inches="tight")
     print(f"Saved: {out}")
 
+    # Save raw data as CSV alongside the PNG
+    import csv
+    csv_out = out.with_suffix(".csv")
+    with csv_out.open("w", newline="") as fh:
+        w = csv.writer(fh)
+        w.writerow(["c_device", "reinit_mode", "rank", "rank_exp", "best_val_acc"])
+        for dev in DEVICES:
+            for mode in REINIT_MODES:
+                for e in RANK_EXPS:
+                    v = data[(mode, dev)][e]
+                    w.writerow([dev, mode, 2 ** e, e,
+                                f"{v:.3f}" if v is not None else ""])
+    print(f"Saved: {csv_out}")
+
     # Also print the data table
     print("\nbest val acc (%) by (device, mode, rank):")
     print(f"{'device':<22} {'mode':<14} " + " ".join(f"{f'rank={r}':>8}" for r in RANKS))
