@@ -119,6 +119,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import aihwkit.optim.lrtt_grad_accum_patch  # noqa: F401  — per-micro-batch tile.update + LRTT A/B snapshot
 
 from aihwkit.simulator.configs.devices import LinearStepDevice, SoftBoundsDevice, FloatingPointDevice, IdealDevice, ConstantStepDevice
+from aihwkit.simulator.presets.devices import IdealizedPresetDevice, ReRamESPresetDevice, EcRamPresetDevice
 from aihwkit.simulator.configs import SingleRPUConfig
 
 # LRTT config imports (direct imports to avoid __init__.py dependency issues)
@@ -652,6 +653,12 @@ def _create_c_device(dw_min=0.001, reset_std=0.0):
             up_down=0.0,
             mult_noise=False,
         )
+    if C_DEVICE == "idealizedpreset":
+        return IdealizedPresetDevice()
+    if C_DEVICE == "reramespreset":
+        return ReRamESPresetDevice()
+    if C_DEVICE == "ecrampreset":
+        return EcRamPresetDevice()
     return SoftBoundsDevice(
         dw_min=dw_min,
         w_max=1.0,
@@ -1152,7 +1159,7 @@ def objective(trial, train_loader, val_loader):
         torch.cuda.empty_cache()
 
     # Hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 6e-3, 5e0, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 8e-2, 5e1, log=True)
 
     # LRTT parameters: skip sweep if --no-transfer (A/B frozen, no transfer happens)
     if OPT_CONFIG['no_transfer']:
@@ -1163,11 +1170,11 @@ def objective(trial, train_loader, val_loader):
         fast_lr = 1.0            # fixed (no effect)
         a_tau_sec = b_tau_sec = 0.0    # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 1e-5, 3e-2, log=True)
+        transfer_lr = trial.suggest_float('transfer_lr', 3e-6, 2e-3, log=True)
         transfer_every = trial.suggest_int('transfer_every', 10, 10, log=True)
-        rank_exp = trial.suggest_int('rank_exp', 3, 3)
+        rank_exp = trial.suggest_int('rank_exp', 6, 6)
         rank = 2 ** rank_exp
-        fast_lr = trial.suggest_float('fast_lr', 7e-4, 2e4, log=True)
+        fast_lr = trial.suggest_float('fast_lr', 6e-3, 4e0, log=True)
         # tau_sec → device.lifetime is per-tile splittable. Default shared (single ab variable).
         if SPLIT_AB_PARAMS.get('tau_sec', False):
             a_tau_sec = trial.suggest_float('a_tau_sec', 0, 0, log=False)
@@ -1213,7 +1220,7 @@ def objective(trial, train_loader, val_loader):
     # sweep a single ab_reset_std applied to both tiles (ablation use case).
     if SPLIT_AB_PARAMS.get('reset_std', True):
         a_reset_std = trial.suggest_float('a_reset_std', 1e-30, 1e-30, log=True)
-        b_reset_std = trial.suggest_float('b_reset_std', 2e-5, 3e4, log=True)
+        b_reset_std = trial.suggest_float('b_reset_std', 6e-2, 3e5, log=True)
     else:
         ab_reset_std = trial.suggest_float('ab_reset_std', 0.0, 0.0, log=True)
         a_reset_std = b_reset_std = ab_reset_std
@@ -1611,7 +1618,7 @@ def main():
                         choices=['6t1c', 'linearstep', 'linearstepideal', 'constantstep', 'constantstepideal', 'constantstep6t1cgamma', 'scaledideal', 'fp', 'ideal'],
                         help='Override B tile device only (default: same as --ab-device)')
     parser.add_argument('--c-device', type=str, default=C_DEVICE,
-                        choices=['softboundsideal', 'linearstepideal', 'constantstep', 'constantstepideal', 'constantstep6t1cgamma', 'ideal'],
+                        choices=['softboundsideal', 'linearstepideal', 'constantstep', 'constantstepideal', 'constantstep6t1cgamma', 'ideal', 'idealizedpreset', 'reramespreset', 'ecrampreset'],
                         help=f'C tile device type (default: {C_DEVICE})')
     parser.add_argument('--no-io-noise', action='store_true',
                         help='Disable IO out_noise (resolution kept)')
