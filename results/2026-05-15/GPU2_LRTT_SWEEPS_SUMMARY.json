@@ -1,0 +1,2606 @@
+{
+  "generated_at": "2026-05-15",
+  "project": "LRTT \u2014 per-cell TPE sweeps over (af_ratio \u00d7 update_noise_ratio)",
+  "task": "MNIST classification (LRTT diagnostic harness)",
+  "search_space": "Per cell: 30 TPE trials over (transfer_lr, fast_lr, classifier_lr) \u2014 log-uniform, see search_space in each cell json.",
+  "grid": "5x5: af_ratio \u2208 {0,1,2,5,10} \u00d7 update_noise_ratio \u2208 {0,1,3,5,10}",
+  "trials_per_cell": 30,
+  "recent_sweeps": {
+    "per_cell_tpe_30_wide (current/recent)": {
+      "tikitaka_v1": {
+        "dir": "/root/LRTT/results/per_cell_tpe_30_wide/tikitaka_v1",
+        "completed_at": "2026-05-10 19:38 UTC",
+        "n_cells": 25,
+        "best_cell": "af=0.0, unr=5.0 \u2192 98.00%  (hp: transfer_lr=0.244, fast_lr=0.199, classifier_lr=1.679)",
+        "cells": [
+          {
+            "af_ratio": 0.0,
+            "update_noise_ratio": 0.0,
+            "n_trials": 30,
+            "best_acc": 97.97,
+            "best_hp": {
+              "transfer_lr": 2.173963676700592,
+              "fast_lr": 0.07603027295671405,
+              "classifier_lr": 3.8625200109188387
+            },
+            "warm_start_hp": {
+              "transfer_lr": 1.0,
+              "fast_lr": 0.3,
+              "classifier_lr": 1.0
+            },
+            "search_space": {
+              "transfer_lr": {
+                "low": 0.05,
+                "high": 10.0,
+                "log": true
+              },
+              "fast_lr": {
+                "low": 0.01,
+                "high": 1.0,
+                "log": true
+              },
+              "classifier_lr": {
+                "low": 0.05,
+                "high": 4.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/tikitaka_v1/af0_unr0.json"
+          },
+          {
+            "af_ratio": 0.0,
+            "update_noise_ratio": 1.0,
+            "n_trials": 30,
+            "best_acc": 97.99,
+            "best_hp": {
+              "transfer_lr": 2.4810786896386725,
+              "fast_lr": 0.060412943586880874,
+              "classifier_lr": 2.966888768242149
+            },
+            "warm_start_hp": {
+              "transfer_lr": 1.0,
+              "fast_lr": 0.3,
+              "classifier_lr": 1.0
+            },
+            "search_space": {
+              "transfer_lr": {
+                "low": 0.05,
+                "high": 10.0,
+                "log": true
+              },
+              "fast_lr": {
+                "low": 0.01,
+                "high": 1.0,
+                "log": true
+              },
+              "classifier_lr": {
+                "low": 0.05,
+                "high": 4.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/tikitaka_v1/af0_unr1.json"
+          },
+          {
+            "af_ratio": 0.0,
+            "update_noise_ratio": 10.0,
+            "n_trials": 30,
+            "best_acc": 97.92,
+            "best_hp": {
+              "transfer_lr": 3.1768243746117357,
+              "fast_lr": 0.0923046464175948,
+              "classifier_lr": 2.817423776054348
+            },
+            "warm_start_hp": {
+              "transfer_lr": 1.0,
+              "fast_lr": 0.3,
+              "classifier_lr": 1.0
+            },
+            "search_space": {
+              "transfer_lr": {
+                "low": 0.05,
+                "high": 10.0,
+                "log": true
+              },
+              "fast_lr": {
+                "low": 0.01,
+                "high": 1.0,
+                "log": true
+              },
+              "classifier_lr": {
+                "low": 0.05,
+                "high": 4.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/tikitaka_v1/af0_unr10.json"
+          },
+          {
+            "af_ratio": 0.0,
+            "update_noise_ratio": 3.0,
+            "n_trials": 30,
+            "best_acc": 97.96,
+            "best_hp": {
+              "transfer_lr": 0.9278683942637667,
+              "fast_lr": 0.07048601717923979,
+              "classifier_lr": 2.5783329511582482
+            },
+            "warm_start_hp": {
+              "transfer_lr": 1.0,
+              "fast_lr": 0.3,
+              "classifier_lr": 1.0
+            },
+            "search_space": {
+              "transfer_lr": {
+                "low": 0.05,
+                "high": 10.0,
+                "log": true
+              },
+              "fast_lr": {
+                "low": 0.01,
+                "high": 1.0,
+                "log": true
+              },
+              "classifier_lr": {
+                "low": 0.05,
+                "high": 4.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/tikitaka_v1/af0_unr3.json"
+          },
+          {
+            "af_ratio": 0.0,
+            "update_noise_ratio": 5.0,
+            "n_trials": 30,
+            "best_acc": 98.0,
+            "best_hp": {
+              "transfer_lr": 0.24409103228344944,
+              "fast_lr": 0.19928753639284652,
+              "classifier_lr": 1.679467798367079
+            },
+            "warm_start_hp": {
+              "transfer_lr": 1.0,
+              "fast_lr": 0.3,
+              "classifier_lr": 1.0
+            },
+            "search_space": {
+              "transfer_lr": {
+                "low": 0.05,
+                "high": 10.0,
+                "log": true
+              },
+              "fast_lr": {
+                "low": 0.01,
+                "high": 1.0,
+                "log": true
+              },
+              "classifier_lr": {
+                "low": 0.05,
+                "high": 4.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/tikitaka_v1/af0_unr5.json"
+          },
+          {
+            "af_ratio": 10.0,
+            "update_noise_ratio": 0.0,
+            "n_trials": 30,
+            "best_acc": 95.28,
+            "best_hp": {
+              "transfer_lr": 2.1294441051450415,
+              "fast_lr": 0.010994335574766204,
+              "classifier_lr": 3.505869387642107
+            },
+            "warm_start_hp": {
+              "transfer_lr": 1.0,
+              "fast_lr": 0.3,
+              "classifier_lr": 1.0
+            },
+            "search_space": {
+              "transfer_lr": {
+                "low": 0.05,
+                "high": 10.0,
+                "log": true
+              },
+              "fast_lr": {
+                "low": 0.01,
+                "high": 1.0,
+                "log": true
+              },
+              "classifier_lr": {
+                "low": 0.05,
+                "high": 4.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/tikitaka_v1/af10_unr0.json"
+          },
+          {
+            "af_ratio": 10.0,
+            "update_noise_ratio": 1.0,
+            "n_trials": 30,
+            "best_acc": 95.33,
+            "best_hp": {
+              "transfer_lr": 3.692688130196086,
+              "fast_lr": 0.02577646736786372,
+              "classifier_lr": 1.2942751945623912
+            },
+            "warm_start_hp": {
+              "transfer_lr": 1.0,
+              "fast_lr": 0.3,
+              "classifier_lr": 1.0
+            },
+            "search_space": {
+              "transfer_lr": {
+                "low": 0.05,
+                "high": 10.0,
+                "log": true
+              },
+              "fast_lr": {
+                "low": 0.01,
+                "high": 1.0,
+                "log": true
+              },
+              "classifier_lr": {
+                "low": 0.05,
+                "high": 4.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/tikitaka_v1/af10_unr1.json"
+          },
+          {
+            "af_ratio": 10.0,
+            "update_noise_ratio": 10.0,
+            "n_trials": 30,
+            "best_acc": 95.19,
+            "best_hp": {
+              "transfer_lr": 3.6716204703876456,
+              "fast_lr": 0.027953708102374155,
+              "classifier_lr": 2.5663794776966435
+            },
+            "warm_start_hp": {
+              "transfer_lr": 1.0,
+              "fast_lr": 0.3,
+              "classifier_lr": 1.0
+            },
+            "search_space": {
+              "transfer_lr": {
+                "low": 0.05,
+                "high": 10.0,
+                "log": true
+              },
+              "fast_lr": {
+                "low": 0.01,
+                "high": 1.0,
+                "log": true
+              },
+              "classifier_lr": {
+                "low": 0.05,
+                "high": 4.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/tikitaka_v1/af10_unr10.json"
+          },
+          {
+            "af_ratio": 10.0,
+            "update_noise_ratio": 3.0,
+            "n_trials": 30,
+            "best_acc": 95.2,
+            "best_hp": {
+              "transfer_lr": 8.437707090327734,
+              "fast_lr": 0.010280029617905608,
+              "classifier_lr": 3.500147705664028
+            },
+            "warm_start_hp": {
+              "transfer_lr": 1.0,
+              "fast_lr": 0.3,
+              "classifier_lr": 1.0
+            },
+            "search_space": {
+              "transfer_lr": {
+                "low": 0.05,
+                "high": 10.0,
+                "log": true
+              },
+              "fast_lr": {
+                "low": 0.01,
+                "high": 1.0,
+                "log": true
+              },
+              "classifier_lr": {
+                "low": 0.05,
+                "high": 4.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/tikitaka_v1/af10_unr3.json"
+          },
+          {
+            "af_ratio": 10.0,
+            "update_noise_ratio": 5.0,
+            "n_trials": 30,
+            "best_acc": 95.3,
+            "best_hp": {
+              "transfer_lr": 2.1294441051450415,
+              "fast_lr": 0.010994335574766204,
+              "classifier_lr": 3.505869387642107
+            },
+            "warm_start_hp": {
+              "transfer_lr": 1.0,
+              "fast_lr": 0.3,
+              "classifier_lr": 1.0
+            },
+            "search_space": {
+              "transfer_lr": {
+                "low": 0.05,
+                "high": 10.0,
+                "log": true
+              },
+              "fast_lr": {
+                "low": 0.01,
+                "high": 1.0,
+                "log": true
+              },
+              "classifier_lr": {
+                "low": 0.05,
+                "high": 4.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/tikitaka_v1/af10_unr5.json"
+          },
+          {
+            "af_ratio": 1.0,
+            "update_noise_ratio": 0.0,
+            "n_trials": 30,
+            "best_acc": 97.56,
+            "best_hp": {
+              "transfer_lr": 1.9619358034859875,
+              "fast_lr": 0.045797129333728974,
+              "classifier_lr": 2.806705008694648
+            },
+            "warm_start_hp": {
+              "transfer_lr": 1.0,
+              "fast_lr": 0.3,
+              "classifier_lr": 1.0
+            },
+            "search_space": {
+              "transfer_lr": {
+                "low": 0.05,
+                "high": 10.0,
+                "log": true
+              },
+              "fast_lr": {
+                "low": 0.01,
+                "high": 1.0,
+                "log": true
+              },
+              "classifier_lr": {
+                "low": 0.05,
+                "high": 4.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/tikitaka_v1/af1_unr0.json"
+          },
+          {
+            "af_ratio": 1.0,
+            "update_noise_ratio": 1.0,
+            "n_trials": 30,
+            "best_acc": 97.53,
+            "best_hp": {
+              "transfer_lr": 3.005417802142118,
+              "fast_lr": 0.014667808721571779,
+              "classifier_lr": 3.970614229929587
+            },
+            "warm_start_hp": {
+              "transfer_lr": 1.0,
+              "fast_lr": 0.3,
+              "classifier_lr": 1.0
+            },
+            "search_space": {
+              "transfer_lr": {
+                "low": 0.05,
+                "high": 10.0,
+                "log": true
+              },
+              "fast_lr": {
+                "low": 0.01,
+                "high": 1.0,
+                "log": true
+              },
+              "classifier_lr": {
+                "low": 0.05,
+                "high": 4.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/tikitaka_v1/af1_unr1.json"
+          },
+          {
+            "af_ratio": 1.0,
+            "update_noise_ratio": 10.0,
+            "n_trials": 30,
+            "best_acc": 97.35,
+            "best_hp": {
+              "transfer_lr": 3.5029480131976833,
+              "fast_lr": 0.03560171785309247,
+              "classifier_lr": 3.970614229929587
+            },
+            "warm_start_hp": {
+              "transfer_lr": 1.0,
+              "fast_lr": 0.3,
+              "classifier_lr": 1.0
+            },
+            "search_space": {
+              "transfer_lr": {
+                "low": 0.05,
+                "high": 10.0,
+                "log": true
+              },
+              "fast_lr": {
+                "low": 0.01,
+                "high": 1.0,
+                "log": true
+              },
+              "classifier_lr": {
+                "low": 0.05,
+                "high": 4.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/tikitaka_v1/af1_unr10.json"
+          },
+          {
+            "af_ratio": 1.0,
+            "update_noise_ratio": 3.0,
+            "n_trials": 30,
+            "best_acc": 97.49,
+            "best_hp": {
+              "transfer_lr": 3.5111921362551324,
+              "fast_lr": 0.010305393722698824,
+              "classifier_lr": 3.8268164900744037
+            },
+            "warm_start_hp": {
+              "transfer_lr": 1.0,
+              "fast_lr": 0.3,
+              "classifier_lr": 1.0
+            },
+            "search_space": {
+              "transfer_lr": {
+                "low": 0.05,
+                "high": 10.0,
+                "log": true
+              },
+              "fast_lr": {
+                "low": 0.01,
+                "high": 1.0,
+                "log": true
+              },
+              "classifier_lr": {
+                "low": 0.05,
+                "high": 4.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/tikitaka_v1/af1_unr3.json"
+          },
+          {
+            "af_ratio": 1.0,
+            "update_noise_ratio": 5.0,
+            "n_trials": 30,
+            "best_acc": 97.39,
+            "best_hp": {
+              "transfer_lr": 2.7402579792987467,
+              "fast_lr": 0.02750490574395729,
+              "classifier_lr": 1.9547564656834506
+            },
+            "warm_start_hp": {
+              "transfer_lr": 1.0,
+              "fast_lr": 0.3,
+              "classifier_lr": 1.0
+            },
+            "search_space": {
+              "transfer_lr": {
+                "low": 0.05,
+                "high": 10.0,
+                "log": true
+              },
+              "fast_lr": {
+                "low": 0.01,
+                "high": 1.0,
+                "log": true
+              },
+              "classifier_lr": {
+                "low": 0.05,
+                "high": 4.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/tikitaka_v1/af1_unr5.json"
+          },
+          {
+            "af_ratio": 2.0,
+            "update_noise_ratio": 0.0,
+            "n_trials": 30,
+            "best_acc": 97.17,
+            "best_hp": {
+              "transfer_lr": 8.213157969676475,
+              "fast_lr": 0.010163026887847787,
+              "classifier_lr": 3.7103961466422084
+            },
+            "warm_start_hp": {
+              "transfer_lr": 1.0,
+              "fast_lr": 0.3,
+              "classifier_lr": 1.0
+            },
+            "search_space": {
+              "transfer_lr": {
+                "low": 0.05,
+                "high": 10.0,
+                "log": true
+              },
+              "fast_lr": {
+                "low": 0.01,
+                "high": 1.0,
+                "log": true
+              },
+              "classifier_lr": {
+                "low": 0.05,
+                "high": 4.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/tikitaka_v1/af2_unr0.json"
+          },
+          {
+            "af_ratio": 2.0,
+            "update_noise_ratio": 1.0,
+            "n_trials": 30,
+            "best_acc": 97.04,
+            "best_hp": {
+              "transfer_lr": 8.293460298770807,
+              "fast_lr": 0.05959206131645762,
+              "classifier_lr": 3.512172378284302
+            },
+            "warm_start_hp": {
+              "transfer_lr": 1.0,
+              "fast_lr": 0.3,
+              "classifier_lr": 1.0
+            },
+            "search_space": {
+              "transfer_lr": {
+                "low": 0.05,
+                "high": 10.0,
+                "log": true
+              },
+              "fast_lr": {
+                "low": 0.01,
+                "high": 1.0,
+                "log": true
+              },
+              "classifier_lr": {
+                "low": 0.05,
+                "high": 4.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/tikitaka_v1/af2_unr1.json"
+          },
+          {
+            "af_ratio": 2.0,
+            "update_noise_ratio": 10.0,
+            "n_trials": 30,
+            "best_acc": 96.81,
+            "best_hp": {
+              "transfer_lr": 2.359132203777175,
+              "fast_lr": 0.03732859233370472,
+              "classifier_lr": 2.578333127814776
+            },
+            "warm_start_hp": {
+              "transfer_lr": 1.0,
+              "fast_lr": 0.3,
+              "classifier_lr": 1.0
+            },
+            "search_space": {
+              "transfer_lr": {
+                "low": 0.05,
+                "high": 10.0,
+                "log": true
+              },
+              "fast_lr": {
+                "low": 0.01,
+                "high": 1.0,
+                "log": true
+              },
+              "classifier_lr": {
+                "low": 0.05,
+                "high": 4.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/tikitaka_v1/af2_unr10.json"
+          },
+          {
+            "af_ratio": 2.0,
+            "update_noise_ratio": 3.0,
+            "n_trials": 30,
+            "best_acc": 96.98,
+            "best_hp": {
+              "transfer_lr": 9.38446668813398,
+              "fast_lr": 0.03236787128689683,
+              "classifier_lr": 2.9750576445064136
+            },
+            "warm_start_hp": {
+              "transfer_lr": 1.0,
+              "fast_lr": 0.3,
+              "classifier_lr": 1.0
+            },
+            "search_space": {
+              "transfer_lr": {
+                "low": 0.05,
+                "high": 10.0,
+                "log": true
+              },
+              "fast_lr": {
+                "low": 0.01,
+                "high": 1.0,
+                "log": true
+              },
+              "classifier_lr": {
+                "low": 0.05,
+                "high": 4.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/tikitaka_v1/af2_unr3.json"
+          },
+          {
+            "af_ratio": 2.0,
+            "update_noise_ratio": 5.0,
+            "n_trials": 30,
+            "best_acc": 97.0,
+            "best_hp": {
+              "transfer_lr": 3.193994904945833,
+              "fast_lr": 0.015735914962698546,
+              "classifier_lr": 3.589079930048816
+            },
+            "warm_start_hp": {
+              "transfer_lr": 1.0,
+              "fast_lr": 0.3,
+              "classifier_lr": 1.0
+            },
+            "search_space": {
+              "transfer_lr": {
+                "low": 0.05,
+                "high": 10.0,
+                "log": true
+              },
+              "fast_lr": {
+                "low": 0.01,
+                "high": 1.0,
+                "log": true
+              },
+              "classifier_lr": {
+                "low": 0.05,
+                "high": 4.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/tikitaka_v1/af2_unr5.json"
+          },
+          {
+            "af_ratio": 5.0,
+            "update_noise_ratio": 0.0,
+            "n_trials": 30,
+            "best_acc": 96.11,
+            "best_hp": {
+              "transfer_lr": 8.437707090327734,
+              "fast_lr": 0.010280029617905608,
+              "classifier_lr": 3.500147705664028
+            },
+            "warm_start_hp": {
+              "transfer_lr": 1.0,
+              "fast_lr": 0.3,
+              "classifier_lr": 1.0
+            },
+            "search_space": {
+              "transfer_lr": {
+                "low": 0.05,
+                "high": 10.0,
+                "log": true
+              },
+              "fast_lr": {
+                "low": 0.01,
+                "high": 1.0,
+                "log": true
+              },
+              "classifier_lr": {
+                "low": 0.05,
+                "high": 4.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/tikitaka_v1/af5_unr0.json"
+          },
+          {
+            "af_ratio": 5.0,
+            "update_noise_ratio": 1.0,
+            "n_trials": 30,
+            "best_acc": 96.17,
+            "best_hp": {
+              "transfer_lr": 2.1294441051450415,
+              "fast_lr": 0.010994335574766204,
+              "classifier_lr": 3.505869387642107
+            },
+            "warm_start_hp": {
+              "transfer_lr": 1.0,
+              "fast_lr": 0.3,
+              "classifier_lr": 1.0
+            },
+            "search_space": {
+              "transfer_lr": {
+                "low": 0.05,
+                "high": 10.0,
+                "log": true
+              },
+              "fast_lr": {
+                "low": 0.01,
+                "high": 1.0,
+                "log": true
+              },
+              "classifier_lr": {
+                "low": 0.05,
+                "high": 4.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/tikitaka_v1/af5_unr1.json"
+          },
+          {
+            "af_ratio": 5.0,
+            "update_noise_ratio": 10.0,
+            "n_trials": 30,
+            "best_acc": 96.04,
+            "best_hp": {
+              "transfer_lr": 8.437707090327734,
+              "fast_lr": 0.010280029617905608,
+              "classifier_lr": 3.500147705664028
+            },
+            "warm_start_hp": {
+              "transfer_lr": 1.0,
+              "fast_lr": 0.3,
+              "classifier_lr": 1.0
+            },
+            "search_space": {
+              "transfer_lr": {
+                "low": 0.05,
+                "high": 10.0,
+                "log": true
+              },
+              "fast_lr": {
+                "low": 0.01,
+                "high": 1.0,
+                "log": true
+              },
+              "classifier_lr": {
+                "low": 0.05,
+                "high": 4.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/tikitaka_v1/af5_unr10.json"
+          },
+          {
+            "af_ratio": 5.0,
+            "update_noise_ratio": 3.0,
+            "n_trials": 30,
+            "best_acc": 96.37,
+            "best_hp": {
+              "transfer_lr": 5.60060323468452,
+              "fast_lr": 0.01919413227133379,
+              "classifier_lr": 2.6942580304470565
+            },
+            "warm_start_hp": {
+              "transfer_lr": 1.0,
+              "fast_lr": 0.3,
+              "classifier_lr": 1.0
+            },
+            "search_space": {
+              "transfer_lr": {
+                "low": 0.05,
+                "high": 10.0,
+                "log": true
+              },
+              "fast_lr": {
+                "low": 0.01,
+                "high": 1.0,
+                "log": true
+              },
+              "classifier_lr": {
+                "low": 0.05,
+                "high": 4.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/tikitaka_v1/af5_unr3.json"
+          },
+          {
+            "af_ratio": 5.0,
+            "update_noise_ratio": 5.0,
+            "n_trials": 30,
+            "best_acc": 95.92,
+            "best_hp": {
+              "transfer_lr": 8.53833888412688,
+              "fast_lr": 0.035884731217147574,
+              "classifier_lr": 3.4072223570722335
+            },
+            "warm_start_hp": {
+              "transfer_lr": 1.0,
+              "fast_lr": 0.3,
+              "classifier_lr": 1.0
+            },
+            "search_space": {
+              "transfer_lr": {
+                "low": 0.05,
+                "high": 10.0,
+                "log": true
+              },
+              "fast_lr": {
+                "low": 0.01,
+                "high": 1.0,
+                "log": true
+              },
+              "classifier_lr": {
+                "low": 0.05,
+                "high": 4.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/tikitaka_v1/af5_unr5.json"
+          }
+        ]
+      },
+      "lrtt_v1": {
+        "dir": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v1",
+        "completed_at": "2026-05-07 10:32 UTC",
+        "n_cells": 25,
+        "best_cell": "af=0.0, unr=0.0 or 5.0 \u2192 97.77%  (hp: lr=1.271, tlr=1.57e-4, clr=0.677)",
+        "cells": [
+          {
+            "af_ratio": 0.0,
+            "update_noise_ratio": 0.0,
+            "n_trials": 30,
+            "best_acc": 97.77,
+            "best_hp": {
+              "lr": 1.2713136851191302,
+              "tlr": 0.00015693129041984732,
+              "clr": 0.6772630325671755
+            },
+            "warm_start_hp": {
+              "lr": 0.6856281002400535,
+              "tlr": 0.0005714156196833334,
+              "clr": 1.068491389726499
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 3e-05,
+                "high": 0.03,
+                "log": true
+              },
+              "clr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v1/af0_unr0.json"
+          },
+          {
+            "af_ratio": 0.0,
+            "update_noise_ratio": 1.0,
+            "n_trials": 30,
+            "best_acc": 97.77,
+            "best_hp": {
+              "lr": 0.3390824914343053,
+              "tlr": 0.00020864314354106367,
+              "clr": 0.7620811042624966
+            },
+            "warm_start_hp": {
+              "lr": 0.4414973500475083,
+              "tlr": 0.0004895752474520049,
+              "clr": 1.0276757487109107
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 3e-05,
+                "high": 0.03,
+                "log": true
+              },
+              "clr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v1/af0_unr1.json"
+          },
+          {
+            "af_ratio": 0.0,
+            "update_noise_ratio": 10.0,
+            "n_trials": 30,
+            "best_acc": 97.49,
+            "best_hp": {
+              "lr": 0.06090096751004688,
+              "tlr": 0.00010957693512501426,
+              "clr": 0.3649126975505002
+            },
+            "warm_start_hp": {
+              "lr": 0.49035055738883004,
+              "tlr": 0.0015832018931122107,
+              "clr": 0.7708598389207344
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 3e-05,
+                "high": 0.03,
+                "log": true
+              },
+              "clr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v1/af0_unr10.json"
+          },
+          {
+            "af_ratio": 0.0,
+            "update_noise_ratio": 3.0,
+            "n_trials": 30,
+            "best_acc": 97.65,
+            "best_hp": {
+              "lr": 0.2627204198893487,
+              "tlr": 0.00017469982195041862,
+              "clr": 0.7213974165276886
+            },
+            "warm_start_hp": {
+              "lr": 0.05787040603057256,
+              "tlr": 0.003972424759586785,
+              "clr": 0.32921410950426416
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 3e-05,
+                "high": 0.03,
+                "log": true
+              },
+              "clr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v1/af0_unr3.json"
+          },
+          {
+            "af_ratio": 0.0,
+            "update_noise_ratio": 5.0,
+            "n_trials": 30,
+            "best_acc": 97.77,
+            "best_hp": {
+              "lr": 1.5202651574227388,
+              "tlr": 8.929210946109856e-05,
+              "clr": 0.5137076679124084
+            },
+            "warm_start_hp": {
+              "lr": 0.03,
+              "tlr": 0.0010565778048874915,
+              "clr": 0.9840314331997002
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 3e-05,
+                "high": 0.03,
+                "log": true
+              },
+              "clr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v1/af0_unr5.json"
+          },
+          {
+            "af_ratio": 10.0,
+            "update_noise_ratio": 0.0,
+            "n_trials": 30,
+            "best_acc": 93.74,
+            "best_hp": {
+              "lr": 0.0539079005535183,
+              "tlr": 0.0061962150872549495,
+              "clr": 0.8680649057418907
+            },
+            "warm_start_hp": {
+              "lr": 0.08522454076938178,
+              "tlr": 0.00421752486734405,
+              "clr": 0.6713842612328161
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 3e-05,
+                "high": 0.03,
+                "log": true
+              },
+              "clr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v1/af10_unr0.json"
+          },
+          {
+            "af_ratio": 10.0,
+            "update_noise_ratio": 1.0,
+            "n_trials": 30,
+            "best_acc": 94.22,
+            "best_hp": {
+              "lr": 2.4926582898366205,
+              "tlr": 0.02544139696089498,
+              "clr": 0.5381316609995246
+            },
+            "warm_start_hp": {
+              "lr": 0.445938563113529,
+              "tlr": 0.006759880947634165,
+              "clr": 0.7483350274176502
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 3e-05,
+                "high": 0.03,
+                "log": true
+              },
+              "clr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v1/af10_unr1.json"
+          },
+          {
+            "af_ratio": 10.0,
+            "update_noise_ratio": 10.0,
+            "n_trials": 30,
+            "best_acc": 96.03,
+            "best_hp": {
+              "lr": 0.06449624818064932,
+              "tlr": 0.029857706758210725,
+              "clr": 0.5456929208965516
+            },
+            "warm_start_hp": {
+              "lr": 0.09716326081154086,
+              "tlr": 0.009971926850751404,
+              "clr": 0.3830789484177565
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 3e-05,
+                "high": 0.03,
+                "log": true
+              },
+              "clr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v1/af10_unr10.json"
+          },
+          {
+            "af_ratio": 10.0,
+            "update_noise_ratio": 3.0,
+            "n_trials": 30,
+            "best_acc": 94.76,
+            "best_hp": {
+              "lr": 0.09839548254858997,
+              "tlr": 0.02544139696089498,
+              "clr": 0.5381316609995246
+            },
+            "warm_start_hp": {
+              "lr": 0.05611516415334506,
+              "tlr": 0.007969454818643935,
+              "clr": 0.8731907739399206
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 3e-05,
+                "high": 0.03,
+                "log": true
+              },
+              "clr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v1/af10_unr3.json"
+          },
+          {
+            "af_ratio": 10.0,
+            "update_noise_ratio": 5.0,
+            "n_trials": 30,
+            "best_acc": 95.4,
+            "best_hp": {
+              "lr": 0.2460881937681933,
+              "tlr": 0.024794840306796503,
+              "clr": 0.6069145859683446
+            },
+            "warm_start_hp": {
+              "lr": 0.039302990815142776,
+              "tlr": 0.00907330797542142,
+              "clr": 0.6404296127606646
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 3e-05,
+                "high": 0.03,
+                "log": true
+              },
+              "clr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v1/af10_unr5.json"
+          },
+          {
+            "af_ratio": 1.0,
+            "update_noise_ratio": 0.0,
+            "n_trials": 30,
+            "best_acc": 96.88,
+            "best_hp": {
+              "lr": 0.06041332717623109,
+              "tlr": 0.004294953689140036,
+              "clr": 0.3864316378271947
+            },
+            "warm_start_hp": {
+              "lr": 0.05390554135314329,
+              "tlr": 0.0005149600337998744,
+              "clr": 1.171861110410025
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 3e-05,
+                "high": 0.03,
+                "log": true
+              },
+              "clr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v1/af1_unr0.json"
+          },
+          {
+            "af_ratio": 1.0,
+            "update_noise_ratio": 1.0,
+            "n_trials": 30,
+            "best_acc": 97.22,
+            "best_hp": {
+              "lr": 0.030971192336539898,
+              "tlr": 0.005983255267325757,
+              "clr": 0.3157758383039015
+            },
+            "warm_start_hp": {
+              "lr": 0.10006341912046485,
+              "tlr": 0.001418447948228691,
+              "clr": 0.7005121814818677
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 3e-05,
+                "high": 0.03,
+                "log": true
+              },
+              "clr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v1/af1_unr1.json"
+          },
+          {
+            "af_ratio": 1.0,
+            "update_noise_ratio": 10.0,
+            "n_trials": 30,
+            "best_acc": 96.95,
+            "best_hp": {
+              "lr": 0.03,
+              "tlr": 0.005399484409787433,
+              "clr": 0.4779156784872304
+            },
+            "warm_start_hp": {
+              "lr": 0.03,
+              "tlr": 0.005399484409787433,
+              "clr": 0.4779156784872304
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 3e-05,
+                "high": 0.03,
+                "log": true
+              },
+              "clr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v1/af1_unr10.json"
+          },
+          {
+            "af_ratio": 1.0,
+            "update_noise_ratio": 3.0,
+            "n_trials": 30,
+            "best_acc": 97.14,
+            "best_hp": {
+              "lr": 0.1164599239226829,
+              "tlr": 0.01569814181397996,
+              "clr": 0.22352233307704114
+            },
+            "warm_start_hp": {
+              "lr": 0.31404492702313674,
+              "tlr": 0.0015246065990714098,
+              "clr": 0.6845470964485308
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 3e-05,
+                "high": 0.03,
+                "log": true
+              },
+              "clr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v1/af1_unr3.json"
+          },
+          {
+            "af_ratio": 1.0,
+            "update_noise_ratio": 5.0,
+            "n_trials": 30,
+            "best_acc": 97.19,
+            "best_hp": {
+              "lr": 0.26301265884230995,
+              "tlr": 0.014895290808474269,
+              "clr": 0.32323676493399783
+            },
+            "warm_start_hp": {
+              "lr": 0.9038283815549338,
+              "tlr": 0.00028235768403193944,
+              "clr": 1.7909980430831294
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 3e-05,
+                "high": 0.03,
+                "log": true
+              },
+              "clr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v1/af1_unr5.json"
+          },
+          {
+            "af_ratio": 2.0,
+            "update_noise_ratio": 0.0,
+            "n_trials": 30,
+            "best_acc": 96.43,
+            "best_hp": {
+              "lr": 1.5957905849053167,
+              "tlr": 0.007355750203989591,
+              "clr": 0.3385564667288913
+            },
+            "warm_start_hp": {
+              "lr": 0.049575472370886456,
+              "tlr": 0.0037363789176207258,
+              "clr": 0.5246118273503498
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 3e-05,
+                "high": 0.03,
+                "log": true
+              },
+              "clr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v1/af2_unr0.json"
+          },
+          {
+            "af_ratio": 2.0,
+            "update_noise_ratio": 1.0,
+            "n_trials": 30,
+            "best_acc": 97.17,
+            "best_hp": {
+              "lr": 0.056761860338446254,
+              "tlr": 0.029616217081780305,
+              "clr": 0.3066493713525947
+            },
+            "warm_start_hp": {
+              "lr": 0.03,
+              "tlr": 0.005399484409787433,
+              "clr": 0.4779156784872304
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 3e-05,
+                "high": 0.03,
+                "log": true
+              },
+              "clr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v1/af2_unr1.json"
+          },
+          {
+            "af_ratio": 2.0,
+            "update_noise_ratio": 10.0,
+            "n_trials": 30,
+            "best_acc": 96.57,
+            "best_hp": {
+              "lr": 0.21223297272287134,
+              "tlr": 0.003944479816467623,
+              "clr": 0.4753851138766275
+            },
+            "warm_start_hp": {
+              "lr": 0.21223297272287134,
+              "tlr": 0.003944479816467623,
+              "clr": 0.4753851138766275
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 3e-05,
+                "high": 0.03,
+                "log": true
+              },
+              "clr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v1/af2_unr10.json"
+          },
+          {
+            "af_ratio": 2.0,
+            "update_noise_ratio": 3.0,
+            "n_trials": 30,
+            "best_acc": 97.04,
+            "best_hp": {
+              "lr": 0.17893992754234617,
+              "tlr": 0.028082002360231614,
+              "clr": 0.2752315656730593
+            },
+            "warm_start_hp": {
+              "lr": 0.42460725572610253,
+              "tlr": 0.0022593193563389814,
+              "clr": 0.6600778954319347
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 3e-05,
+                "high": 0.03,
+                "log": true
+              },
+              "clr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v1/af2_unr3.json"
+          },
+          {
+            "af_ratio": 2.0,
+            "update_noise_ratio": 5.0,
+            "n_trials": 30,
+            "best_acc": 96.94,
+            "best_hp": {
+              "lr": 0.045308912347551356,
+              "tlr": 0.017041772079089013,
+              "clr": 0.3456115078645632
+            },
+            "warm_start_hp": {
+              "lr": 0.11147550705579444,
+              "tlr": 0.002684677717741748,
+              "clr": 0.6369847754522765
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 3e-05,
+                "high": 0.03,
+                "log": true
+              },
+              "clr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v1/af2_unr5.json"
+          },
+          {
+            "af_ratio": 5.0,
+            "update_noise_ratio": 0.0,
+            "n_trials": 30,
+            "best_acc": 95.53,
+            "best_hp": {
+              "lr": 0.15463640211369548,
+              "tlr": 0.02985180797032565,
+              "clr": 0.32268403509949667
+            },
+            "warm_start_hp": {
+              "lr": 0.03,
+              "tlr": 0.00955367042519656,
+              "clr": 0.6459405267568461
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 3e-05,
+                "high": 0.03,
+                "log": true
+              },
+              "clr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v1/af5_unr0.json"
+          },
+          {
+            "af_ratio": 5.0,
+            "update_noise_ratio": 1.0,
+            "n_trials": 30,
+            "best_acc": 96.0,
+            "best_hp": {
+              "lr": 0.14215664079041826,
+              "tlr": 0.02972072660178692,
+              "clr": 0.42855347716571307
+            },
+            "warm_start_hp": {
+              "lr": 0.03,
+              "tlr": 0.005964646433067652,
+              "clr": 0.6302136389171495
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 3e-05,
+                "high": 0.03,
+                "log": true
+              },
+              "clr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v1/af5_unr1.json"
+          },
+          {
+            "af_ratio": 5.0,
+            "update_noise_ratio": 10.0,
+            "n_trials": 30,
+            "best_acc": 96.34,
+            "best_hp": {
+              "lr": 0.04633859747445057,
+              "tlr": 0.013079775815029239,
+              "clr": 0.5120149875981321
+            },
+            "warm_start_hp": {
+              "lr": 0.03,
+              "tlr": 0.005708368462364348,
+              "clr": 0.6614203229183483
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 3e-05,
+                "high": 0.03,
+                "log": true
+              },
+              "clr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v1/af5_unr10.json"
+          },
+          {
+            "af_ratio": 5.0,
+            "update_noise_ratio": 3.0,
+            "n_trials": 30,
+            "best_acc": 95.85,
+            "best_hp": {
+              "lr": 0.10955696850960148,
+              "tlr": 0.014187754736109745,
+              "clr": 0.46696569667029275
+            },
+            "warm_start_hp": {
+              "lr": 0.03,
+              "tlr": 0.00559145911521264,
+              "clr": 0.5354945521578915
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 3e-05,
+                "high": 0.03,
+                "log": true
+              },
+              "clr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v1/af5_unr3.json"
+          },
+          {
+            "af_ratio": 5.0,
+            "update_noise_ratio": 5.0,
+            "n_trials": 30,
+            "best_acc": 96.28,
+            "best_hp": {
+              "lr": 0.045592402906453194,
+              "tlr": 0.015101066353741059,
+              "clr": 0.4480358950328176
+            },
+            "warm_start_hp": {
+              "lr": 0.03,
+              "tlr": 0.0038485217558729577,
+              "clr": 0.7514118640798934
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 3e-05,
+                "high": 0.03,
+                "log": true
+              },
+              "clr": {
+                "low": 0.03,
+                "high": 3.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v1/af5_unr5.json"
+          }
+        ]
+      },
+      "lrtt_v2": {
+        "dir": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v2",
+        "completed_at": "2026-05-08 06:14 UTC",
+        "n_cells": 25,
+        "best_cell": "af=0.0, unr=0.0 \u2192 97.16%  (hp: lr=0.436, tlr=0.0270, clr=1.306)",
+        "cells": [
+          {
+            "af_ratio": 0.0,
+            "update_noise_ratio": 0.0,
+            "n_trials": 30,
+            "best_acc": 97.16,
+            "best_hp": {
+              "lr": 0.436259751044698,
+              "tlr": 0.02700226941086791,
+              "clr": 1.30640590601848
+            },
+            "warm_start_hp": {
+              "lr": 0.4848401495672272,
+              "tlr": 0.2876630838186895,
+              "clr": 2.418707061970243
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.1,
+                "high": 10.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 0.01,
+                "high": 10.0,
+                "log": true
+              },
+              "clr": {
+                "low": 0.3,
+                "high": 10.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v2/af0_unr0.json"
+          },
+          {
+            "af_ratio": 0.0,
+            "update_noise_ratio": 1.0,
+            "n_trials": 30,
+            "best_acc": 97.01,
+            "best_hp": {
+              "lr": 0.18015596595059324,
+              "tlr": 0.06627795330995181,
+              "clr": 0.7750547542914313
+            },
+            "warm_start_hp": {
+              "lr": 0.2565570347466515,
+              "tlr": 0.1306378903052594,
+              "clr": 1.0995196440699022
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.1,
+                "high": 10.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 0.01,
+                "high": 10.0,
+                "log": true
+              },
+              "clr": {
+                "low": 0.3,
+                "high": 10.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v2/af0_unr1.json"
+          },
+          {
+            "af_ratio": 0.0,
+            "update_noise_ratio": 10.0,
+            "n_trials": 30,
+            "best_acc": 97.02,
+            "best_hp": {
+              "lr": 0.10991587445851024,
+              "tlr": 4.6700360509793795,
+              "clr": 0.8824746311100585
+            },
+            "warm_start_hp": {
+              "lr": 0.4848401495672272,
+              "tlr": 0.04587424729663121,
+              "clr": 3.270824413813283
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.1,
+                "high": 10.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 0.01,
+                "high": 10.0,
+                "log": true
+              },
+              "clr": {
+                "low": 0.3,
+                "high": 10.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v2/af0_unr10.json"
+          },
+          {
+            "af_ratio": 0.0,
+            "update_noise_ratio": 3.0,
+            "n_trials": 30,
+            "best_acc": 97.08,
+            "best_hp": {
+              "lr": 0.49317673173841897,
+              "tlr": 0.19431784163060778,
+              "clr": 1.6220538608317356
+            },
+            "warm_start_hp": {
+              "lr": 0.8407931655574882,
+              "tlr": 0.23663885196057358,
+              "clr": 4.017164462800491
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.1,
+                "high": 10.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 0.01,
+                "high": 10.0,
+                "log": true
+              },
+              "clr": {
+                "low": 0.3,
+                "high": 10.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v2/af0_unr3.json"
+          },
+          {
+            "af_ratio": 0.0,
+            "update_noise_ratio": 5.0,
+            "n_trials": 30,
+            "best_acc": 97.09,
+            "best_hp": {
+              "lr": 0.20655720539818329,
+              "tlr": 0.024555640420257915,
+              "clr": 1.1291380510680928
+            },
+            "warm_start_hp": {
+              "lr": 7.432308912830163,
+              "tlr": 0.28699250900335915,
+              "clr": 1.5253421517969643
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.1,
+                "high": 10.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 0.01,
+                "high": 10.0,
+                "log": true
+              },
+              "clr": {
+                "low": 0.3,
+                "high": 10.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v2/af0_unr5.json"
+          },
+          {
+            "af_ratio": 10.0,
+            "update_noise_ratio": 0.0,
+            "n_trials": 30,
+            "best_acc": 97.11,
+            "best_hp": {
+              "lr": 2.8053775840282764,
+              "tlr": 2.4411995750255264,
+              "clr": 0.8465056686508586
+            },
+            "warm_start_hp": {
+              "lr": 1.881579743937635,
+              "tlr": 0.05417061344420306,
+              "clr": 0.839903743233065
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.1,
+                "high": 10.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 0.01,
+                "high": 10.0,
+                "log": true
+              },
+              "clr": {
+                "low": 0.3,
+                "high": 10.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v2/af10_unr0.json"
+          },
+          {
+            "af_ratio": 10.0,
+            "update_noise_ratio": 1.0,
+            "n_trials": 30,
+            "best_acc": 97.03,
+            "best_hp": {
+              "lr": 0.1014978106799578,
+              "tlr": 3.36293176863759,
+              "clr": 0.7949251472479145
+            },
+            "warm_start_hp": {
+              "lr": 0.37786115337701426,
+              "tlr": 0.10117248921128354,
+              "clr": 0.6213073196469308
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.1,
+                "high": 10.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 0.01,
+                "high": 10.0,
+                "log": true
+              },
+              "clr": {
+                "low": 0.3,
+                "high": 10.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v2/af10_unr1.json"
+          },
+          {
+            "af_ratio": 10.0,
+            "update_noise_ratio": 10.0,
+            "n_trials": 30,
+            "best_acc": 96.8,
+            "best_hp": {
+              "lr": 0.2824296024463687,
+              "tlr": 0.2110699422797746,
+              "clr": 1.089525588403178
+            },
+            "warm_start_hp": {
+              "lr": 0.17015323179447323,
+              "tlr": 0.29272108026915816,
+              "clr": 0.8803267998900387
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.1,
+                "high": 10.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 0.01,
+                "high": 10.0,
+                "log": true
+              },
+              "clr": {
+                "low": 0.3,
+                "high": 10.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v2/af10_unr10.json"
+          },
+          {
+            "af_ratio": 10.0,
+            "update_noise_ratio": 3.0,
+            "n_trials": 30,
+            "best_acc": 96.94,
+            "best_hp": {
+              "lr": 2.6680411966210795,
+              "tlr": 0.07983736692990172,
+              "clr": 0.6692673290427615
+            },
+            "warm_start_hp": {
+              "lr": 2.6680411966210795,
+              "tlr": 0.07983736692990172,
+              "clr": 0.6692673290427615
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.1,
+                "high": 10.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 0.01,
+                "high": 10.0,
+                "log": true
+              },
+              "clr": {
+                "low": 0.3,
+                "high": 10.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v2/af10_unr3.json"
+          },
+          {
+            "af_ratio": 10.0,
+            "update_noise_ratio": 5.0,
+            "n_trials": 30,
+            "best_acc": 97.07,
+            "best_hp": {
+              "lr": 4.272090243200506,
+              "tlr": 0.043302156214992164,
+              "clr": 1.0054617199122027
+            },
+            "warm_start_hp": {
+              "lr": 5.662772953069657,
+              "tlr": 0.03732859233370472,
+              "clr": 0.7605096641514155
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.1,
+                "high": 10.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 0.01,
+                "high": 10.0,
+                "log": true
+              },
+              "clr": {
+                "low": 0.3,
+                "high": 10.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v2/af10_unr5.json"
+          },
+          {
+            "af_ratio": 1.0,
+            "update_noise_ratio": 0.0,
+            "n_trials": 30,
+            "best_acc": 97.11,
+            "best_hp": {
+              "lr": 1.2911711403145076,
+              "tlr": 0.016207652517415357,
+              "clr": 1.8600209500251357
+            },
+            "warm_start_hp": {
+              "lr": 0.2537403447306082,
+              "tlr": 0.044860505904043606,
+              "clr": 3.331072844599632
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.1,
+                "high": 10.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 0.01,
+                "high": 10.0,
+                "log": true
+              },
+              "clr": {
+                "low": 0.3,
+                "high": 10.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v2/af1_unr0.json"
+          },
+          {
+            "af_ratio": 1.0,
+            "update_noise_ratio": 1.0,
+            "n_trials": 30,
+            "best_acc": 97.02,
+            "best_hp": {
+              "lr": 0.10204646588551228,
+              "tlr": 2.7008018486481253,
+              "clr": 0.6272743034217533
+            },
+            "warm_start_hp": {
+              "lr": 0.8522454076938176,
+              "tlr": 0.4217524867344048,
+              "clr": 2.2379475374427207
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.1,
+                "high": 10.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 0.01,
+                "high": 10.0,
+                "log": true
+              },
+              "clr": {
+                "low": 0.3,
+                "high": 10.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v2/af1_unr1.json"
+          },
+          {
+            "af_ratio": 1.0,
+            "update_noise_ratio": 10.0,
+            "n_trials": 30,
+            "best_acc": 96.93,
+            "best_hp": {
+              "lr": 0.6746348875397029,
+              "tlr": 0.46895680212232826,
+              "clr": 1.3843580233134394
+            },
+            "warm_start_hp": {
+              "lr": 0.8407931655574882,
+              "tlr": 0.23663885196057358,
+              "clr": 4.017164462800491
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.1,
+                "high": 10.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 0.01,
+                "high": 10.0,
+                "log": true
+              },
+              "clr": {
+                "low": 0.3,
+                "high": 10.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v2/af1_unr10.json"
+          },
+          {
+            "af_ratio": 1.0,
+            "update_noise_ratio": 3.0,
+            "n_trials": 30,
+            "best_acc": 97.12,
+            "best_hp": {
+              "lr": 0.14591756871610673,
+              "tlr": 0.02164885588602481,
+              "clr": 1.8254029694621965
+            },
+            "warm_start_hp": {
+              "lr": 0.5611516415334505,
+              "tlr": 0.7969454818643931,
+              "clr": 2.9106359131330697
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.1,
+                "high": 10.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 0.01,
+                "high": 10.0,
+                "log": true
+              },
+              "clr": {
+                "low": 0.3,
+                "high": 10.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v2/af1_unr3.json"
+          },
+          {
+            "af_ratio": 1.0,
+            "update_noise_ratio": 5.0,
+            "n_trials": 30,
+            "best_acc": 97.03,
+            "best_hp": {
+              "lr": 0.34196538382062713,
+              "tlr": 1.1093337654230333,
+              "clr": 1.08796794753487
+            },
+            "warm_start_hp": {
+              "lr": 5.065918967819681,
+              "tlr": 0.12049386791459435,
+              "clr": 4.916282002633095
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.1,
+                "high": 10.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 0.01,
+                "high": 10.0,
+                "log": true
+              },
+              "clr": {
+                "low": 0.3,
+                "high": 10.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v2/af1_unr5.json"
+          },
+          {
+            "af_ratio": 2.0,
+            "update_noise_ratio": 0.0,
+            "n_trials": 30,
+            "best_acc": 96.94,
+            "best_hp": {
+              "lr": 0.32798494182863325,
+              "tlr": 1.1746931059660681,
+              "clr": 1.4224884577368369
+            },
+            "warm_start_hp": {
+              "lr": 0.1036451998177247,
+              "tlr": 0.33638482624732285,
+              "clr": 1.666649462338687
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.1,
+                "high": 10.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 0.01,
+                "high": 10.0,
+                "log": true
+              },
+              "clr": {
+                "low": 0.3,
+                "high": 10.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v2/af2_unr0.json"
+          },
+          {
+            "af_ratio": 2.0,
+            "update_noise_ratio": 1.0,
+            "n_trials": 30,
+            "best_acc": 97.12,
+            "best_hp": {
+              "lr": 0.20854837060208076,
+              "tlr": 0.019128275140403182,
+              "clr": 1.9817241567486468
+            },
+            "warm_start_hp": {
+              "lr": 1.3250633306010435,
+              "tlr": 0.675988094763416,
+              "clr": 2.359717500506077
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.1,
+                "high": 10.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 0.01,
+                "high": 10.0,
+                "log": true
+              },
+              "clr": {
+                "low": 0.3,
+                "high": 10.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v2/af2_unr1.json"
+          },
+          {
+            "af_ratio": 2.0,
+            "update_noise_ratio": 10.0,
+            "n_trials": 30,
+            "best_acc": 97.09,
+            "best_hp": {
+              "lr": 0.8316264993185372,
+              "tlr": 2.343673263230619,
+              "clr": 2.5314286406970457
+            },
+            "warm_start_hp": {
+              "lr": 0.3041654393076618,
+              "tlr": 0.9665676288849352,
+              "clr": 1.5265441324072933
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.1,
+                "high": 10.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 0.01,
+                "high": 10.0,
+                "log": true
+              },
+              "clr": {
+                "low": 0.3,
+                "high": 10.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v2/af2_unr10.json"
+          },
+          {
+            "af_ratio": 2.0,
+            "update_noise_ratio": 3.0,
+            "n_trials": 30,
+            "best_acc": 97.08,
+            "best_hp": {
+              "lr": 0.10401875597278784,
+              "tlr": 0.06879286353886234,
+              "clr": 0.9549317110518021
+            },
+            "warm_start_hp": {
+              "lr": 0.26220991576866537,
+              "tlr": 0.36041826054369513,
+              "clr": 1.7778110704499674
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.1,
+                "high": 10.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 0.01,
+                "high": 10.0,
+                "log": true
+              },
+              "clr": {
+                "low": 0.3,
+                "high": 10.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v2/af2_unr3.json"
+          },
+          {
+            "af_ratio": 2.0,
+            "update_noise_ratio": 5.0,
+            "n_trials": 30,
+            "best_acc": 96.97,
+            "best_hp": {
+              "lr": 3.6330215914032324,
+              "tlr": 0.05982267043746098,
+              "clr": 1.244769653134827
+            },
+            "warm_start_hp": {
+              "lr": 0.2150443784641,
+              "tlr": 0.2596503767765379,
+              "clr": 2.0479735583732017
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.1,
+                "high": 10.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 0.01,
+                "high": 10.0,
+                "log": true
+              },
+              "clr": {
+                "low": 0.3,
+                "high": 10.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v2/af2_unr5.json"
+          },
+          {
+            "af_ratio": 5.0,
+            "update_noise_ratio": 0.0,
+            "n_trials": 30,
+            "best_acc": 96.85,
+            "best_hp": {
+              "lr": 2.8818386329330195,
+              "tlr": 0.07818901810229859,
+              "clr": 2.017213865076965
+            },
+            "warm_start_hp": {
+              "lr": 2.5154211714815533,
+              "tlr": 0.028729358095898033,
+              "clr": 0.9241754121146555
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.1,
+                "high": 10.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 0.01,
+                "high": 10.0,
+                "log": true
+              },
+              "clr": {
+                "low": 0.3,
+                "high": 10.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v2/af5_unr0.json"
+          },
+          {
+            "af_ratio": 5.0,
+            "update_noise_ratio": 1.0,
+            "n_trials": 30,
+            "best_acc": 97.01,
+            "best_hp": {
+              "lr": 8.832668685516266,
+              "tlr": 0.7451617972708864,
+              "clr": 1.152888247970571
+            },
+            "warm_start_hp": {
+              "lr": 0.284969899248581,
+              "tlr": 0.03983347317753688,
+              "clr": 1.3306776089219492
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.1,
+                "high": 10.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 0.01,
+                "high": 10.0,
+                "log": true
+              },
+              "clr": {
+                "low": 0.3,
+                "high": 10.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v2/af5_unr1.json"
+          },
+          {
+            "af_ratio": 5.0,
+            "update_noise_ratio": 10.0,
+            "n_trials": 30,
+            "best_acc": 96.84,
+            "best_hp": {
+              "lr": 0.10602439555701167,
+              "tlr": 0.06361331869322384,
+              "clr": 2.3571792831550833
+            },
+            "warm_start_hp": {
+              "lr": 1.0,
+              "tlr": 0.1,
+              "clr": 1.0
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.1,
+                "high": 10.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 0.01,
+                "high": 10.0,
+                "log": true
+              },
+              "clr": {
+                "low": 0.3,
+                "high": 10.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v2/af5_unr10.json"
+          },
+          {
+            "af_ratio": 5.0,
+            "update_noise_ratio": 3.0,
+            "n_trials": 30,
+            "best_acc": 97.11,
+            "best_hp": {
+              "lr": 0.1036451998177247,
+              "tlr": 7.9428864982982095,
+              "clr": 0.8440936652477514
+            },
+            "warm_start_hp": {
+              "lr": 0.4957547237088644,
+              "tlr": 0.37363789176207235,
+              "clr": 1.748706091167833
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.1,
+                "high": 10.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 0.01,
+                "high": 10.0,
+                "log": true
+              },
+              "clr": {
+                "low": 0.3,
+                "high": 10.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v2/af5_unr3.json"
+          },
+          {
+            "af_ratio": 5.0,
+            "update_noise_ratio": 5.0,
+            "n_trials": 30,
+            "best_acc": 97.02,
+            "best_hp": {
+              "lr": 0.6343101283603371,
+              "tlr": 1.607755363678273,
+              "clr": 1.0001993154336835
+            },
+            "warm_start_hp": {
+              "lr": 0.1571370063128436,
+              "tlr": 0.058380416262583654,
+              "clr": 1.031794995758327
+            },
+            "search_space": {
+              "lr": {
+                "low": 0.1,
+                "high": 10.0,
+                "log": true
+              },
+              "tlr": {
+                "low": 0.01,
+                "high": 10.0,
+                "log": true
+              },
+              "clr": {
+                "low": 0.3,
+                "high": 10.0,
+                "log": true
+              }
+            },
+            "file": "/root/LRTT/results/per_cell_tpe_30_wide/lrtt_v2/af5_unr5.json"
+          }
+        ]
+      }
+    },
+    "per_cell_tpe_30 (earlier)": {
+      "tikitaka_reset": {
+        "dir": "/root/LRTT/results/per_cell_tpe_30/tikitaka_reset",
+        "completed_at": "2026-05-04 14:50 UTC"
+      },
+      "lrtt_v1_reset": {
+        "dir": "/root/LRTT/results/per_cell_tpe_30/lrtt_v1_reset",
+        "completed_at": "2026-05-05 10:58 UTC"
+      },
+      "lrtt_v2_noreset": {
+        "dir": "/root/LRTT/results/per_cell_tpe_30/lrtt_v2_noreset",
+        "completed_at": "2026-05-06 05:01 UTC"
+      }
+    }
+  },
+  "headline_findings": [
+    "tikitaka_v1 dominates: 5x5 grid mean is highest of the three methods; degradation under af_ratio is small (97.97\u219295.28).",
+    "lrtt_v1 is competitive at low (af, unr) but degrades faster with af_ratio (97.77\u219293.74 along unr=0 column).",
+    "lrtt_v2 is more robust across the grid (flatter) but caps lower (~97.0\u201397.2), reflecting the v2 SRA design tradeoff.",
+    "Best HP regions are noticeably different between methods \u2014 TPE warm-start is not transferable across method."
+  ]
+}
