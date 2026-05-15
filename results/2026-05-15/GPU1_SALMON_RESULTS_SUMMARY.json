@@ -1,0 +1,276 @@
+{
+  "meta": {
+    "repository": "/root/SALMON",
+    "backbone": "ResNet18",
+    "dataset": "CIFAR-10",
+    "trainer": {
+      "max_epochs": 300,
+      "batch_size": 128,
+      "optimizer": "AnalogSGD",
+      "momentum": 0.9,
+      "scheduler": "cosine_annealing",
+      "eta_min_rule": "lr / 100",
+      "seed": 12345
+    },
+    "venv": "/root/.venv310/bin/python",
+    "snapshot_date": "2026-05-15"
+  },
+  "experiments": {
+    "core8_dpu_precision_sweep": {
+      "design": "DPU precision (off/fp32/fp16/int8_qat/int4_qat) x RPU preset (Idealized/EcRam)",
+      "planned_cells": 8,
+      "completed_runs": 6,
+      "summary_csv_path": "results/core8_dpu_precision_summary.csv",
+      "summary_csv_status": "blank as of 2026-05-12; populate via collect_core8_results.py",
+      "runs": [
+        {
+          "task_name": "core8_idealized_off",
+          "preset": "Idealized",
+          "dpu_precision": "off",
+          "sa_enabled": false,
+          "optimizer_lr": 0.1,
+          "scheduler_eta_min": 0.001,
+          "test_acc": 0.8173,
+          "test_loss": 0.5496
+        },
+        {
+          "task_name": "core8_idealized_off_lr01",
+          "preset": "Idealized",
+          "dpu_precision": "off",
+          "sa_enabled": false,
+          "optimizer_lr": 0.01,
+          "scheduler_eta_min": 0.0001,
+          "test_acc": 0.7957,
+          "test_loss": 0.5859
+        },
+        {
+          "task_name": "core8_idealized_int8_qat",
+          "preset": "Idealized",
+          "dpu_precision": "int8_qat",
+          "sa_enabled": true,
+          "optimizer_lr": 0.1,
+          "scheduler_eta_min": 0.001,
+          "test_acc": 0.8716,
+          "test_loss": 0.5354,
+          "is_best": true
+        },
+        {
+          "task_name": "core8_idealized_int8_qat_lr01",
+          "preset": "Idealized",
+          "dpu_precision": "int8_qat",
+          "sa_enabled": true,
+          "optimizer_lr": 0.01,
+          "scheduler_eta_min": 0.0001,
+          "test_acc": 0.8454,
+          "test_loss": 0.4726
+        },
+        {
+          "task_name": "core8_ecram_int4_qat_lr10",
+          "preset": "EcRam",
+          "dpu_precision": "int4_qat",
+          "sa_enabled": true,
+          "optimizer_lr": 0.1,
+          "scheduler_eta_min": 0.001,
+          "test_acc": 0.5358,
+          "test_loss": 1.285
+        },
+        {
+          "task_name": "core8_ecram_int4_qat_lr01",
+          "preset": "EcRam",
+          "dpu_precision": "int4_qat",
+          "sa_enabled": true,
+          "optimizer_lr": 0.01,
+          "scheduler_eta_min": 0.0001,
+          "test_acc": 0.5796,
+          "test_loss": 1.1618
+        }
+      ],
+      "missing_cells": [
+        {"preset": "Idealized", "dpu_precision": "fp32"},
+        {"preset": "Idealized", "dpu_precision": "fp16"},
+        {"preset": "EcRam", "dpu_precision": "off"},
+        {"preset": "EcRam", "dpu_precision": "fp32"},
+        {"preset": "EcRam", "dpu_precision": "fp16"},
+        {"preset": "EcRam", "dpu_precision": "int8_qat"}
+      ],
+      "key_findings": [
+        "Idealized: lr=0.1 dominates lr=0.01 (off +2.16pp, int8_qat +2.62pp)",
+        "Idealized x INT8-QAT > Idealized x off at both LRs (+5.43pp @ lr=0.1, +4.97pp @ lr=0.01)",
+        "EcRam x INT4-QAT collapses to 53-58%; lr=0.01 > lr=0.1 here (opposite direction)",
+        "Aggressive (INT4) quantization compounds with non-ideal device dynamics"
+      ],
+      "infra": {
+        "int4_qat_support_added": "2026-05-09",
+        "int4_qat_files": [
+          "src/models/components/dpu_quant.py::prepare_dpu_int4_qat",
+          "src/models/exp7_1_module.py::_QAT_PRECISIONS"
+        ],
+        "dispatchers": [
+          "scripts/run_core8_gpu0.sh",
+          "scripts/run_core8_gpu1.sh",
+          "scripts/run_core8_gpu2.sh",
+          "scripts/run_core8_gpu3.sh"
+        ],
+        "log_pattern": "logs/<task_name>/runs/<timestamp>/csv/version_0/metrics.csv"
+      }
+    },
+    "smoke_and_timing_runs": {
+      "purpose": "sanity-check dispatcher runs, not production results",
+      "note": "All 4-row metrics.csv (1 epoch + test). Ignore for analysis.",
+      "runs": [
+        {"task_name": "smoke_off", "rows": 4, "timestamp": "2026-05-08_12-44-31"},
+        {"task_name": "smoke_fp32", "rows": 4, "timestamp": "2026-05-08_12-45-03"},
+        {"task_name": "smoke_fp16", "rows": 4, "timestamp": "2026-05-08_12-45-34"},
+        {"task_name": "smoke_int8_qat", "rows": 4, "timestamp": "2026-05-08_12-46-07"},
+        {"task_name": "smoke_ecram_int8_qat", "rows": 4, "timestamp": "2026-05-08_12-47-07"},
+        {"task_name": "timing_test", "rows": 3, "timestamp": "2026-05-08_13-01-43", "purpose": "per-run wall time measurement"}
+      ]
+    },
+    "results_summary_template": {
+      "path": "/root/SALMON/results/core8_dpu_precision_summary.csv",
+      "md_path": "/root/SALMON/results/core8_dpu_precision_summary.md",
+      "status": "empty template; populate via scripts/collect_core8_results.py",
+      "blank_as_of": "2026-05-12"
+    },
+    "tt1_fast_transfer_sweep": {
+      "design": "Replace single-tile RPU preset with TransferCompound (TikiTaka v1); 3 best baseline cells x (fast_lr x transfer_lr in {0.1, 1.0}^2)",
+      "launched_utc": "2026-05-12T09:09:00Z",
+      "scale_transfer_lr": false,
+      "planned_runs": 12,
+      "completed_runs": 5,
+      "crashed_runs": 1,
+      "not_launched_runs": 6,
+      "dispatcher_pid_2535996_alive": false,
+      "host_gpu_status": "nvidia-smi reports 'Failed to initialize NVML: Unknown Error' — GPU lost",
+      "cells": [
+        {
+          "cell_tag": "idealized_off",
+          "preset_key": "idealized",
+          "sa_enabled": false,
+          "dpu_precision": "off",
+          "digital_lr": 0.1,
+          "eta_min": 0.001,
+          "baseline_task": "core8_idealized_off",
+          "baseline_test_acc": 0.8173
+        },
+        {
+          "cell_tag": "idealized_int8_qat",
+          "preset_key": "idealized",
+          "sa_enabled": true,
+          "dpu_precision": "int8_qat",
+          "digital_lr": 0.1,
+          "eta_min": 0.001,
+          "baseline_task": "core8_idealized_int8_qat",
+          "baseline_test_acc": 0.8716
+        },
+        {
+          "cell_tag": "ecram_int4_qat",
+          "preset_key": "ecram",
+          "sa_enabled": true,
+          "dpu_precision": "int4_qat",
+          "digital_lr": 0.01,
+          "eta_min": 0.0001,
+          "baseline_task": "core8_ecram_int4_qat_lr01",
+          "baseline_test_acc": 0.5796
+        }
+      ],
+      "runs": [
+        {
+          "task_name": "tt1_idealized_off_f01_t01",
+          "cell_tag": "idealized_off",
+          "fast_lr": 0.1,
+          "transfer_lr": 0.1,
+          "status": "completed",
+          "test_acc": 0.595,
+          "test_loss": 1.1336,
+          "best_val_acc": 0.6118,
+          "delta_vs_baseline_pp": -22.23,
+          "run_timestamp": "2026-05-12_09-09-41"
+        },
+        {
+          "task_name": "tt1_idealized_off_f01_t10",
+          "cell_tag": "idealized_off",
+          "fast_lr": 0.1,
+          "transfer_lr": 1.0,
+          "status": "completed",
+          "test_acc": 0.6135,
+          "test_loss": 1.0815,
+          "best_val_acc": 0.622,
+          "delta_vs_baseline_pp": -20.38,
+          "run_timestamp": "2026-05-12_21-21-52"
+        },
+        {
+          "task_name": "tt1_idealized_off_f10_t01",
+          "cell_tag": "idealized_off",
+          "fast_lr": 1.0,
+          "transfer_lr": 0.1,
+          "status": "completed",
+          "test_acc": 0.654,
+          "test_loss": 0.9654,
+          "best_val_acc": 0.6668,
+          "delta_vs_baseline_pp": -16.33,
+          "run_timestamp": "2026-05-13_09-27-58"
+        },
+        {
+          "task_name": "tt1_idealized_off_f10_t10",
+          "cell_tag": "idealized_off",
+          "fast_lr": 1.0,
+          "transfer_lr": 1.0,
+          "status": "completed",
+          "test_acc": 0.6747,
+          "test_loss": 0.9142,
+          "best_val_acc": 0.6834,
+          "delta_vs_baseline_pp": -14.26,
+          "run_timestamp": "2026-05-13_23-07-02",
+          "cell_best": true
+        },
+        {
+          "task_name": "tt1_idealized_int8_qat_f01_t01",
+          "cell_tag": "idealized_int8_qat",
+          "fast_lr": 0.1,
+          "transfer_lr": 0.1,
+          "status": "completed",
+          "test_acc": 0.7384,
+          "test_loss": 0.7479,
+          "best_val_acc": 0.7608,
+          "delta_vs_baseline_pp": -13.32,
+          "run_timestamp": "2026-05-14_12-29-18"
+        },
+        {
+          "task_name": "tt1_idealized_int8_qat_f01_t10",
+          "cell_tag": "idealized_int8_qat",
+          "fast_lr": 0.1,
+          "transfer_lr": 1.0,
+          "status": "crashed",
+          "crash_utc": "2026-05-15T02:35:04Z",
+          "error": "lightning.fabric.utilities.exceptions.MisconfigurationException: No supported gpu backend found!",
+          "metrics_csv_present": false,
+          "run_timestamp": "2026-05-15_02-35-04"
+        },
+        {"task_name": "tt1_idealized_int8_qat_f10_t01", "cell_tag": "idealized_int8_qat", "fast_lr": 1.0, "transfer_lr": 0.1, "status": "not_launched"},
+        {"task_name": "tt1_idealized_int8_qat_f10_t10", "cell_tag": "idealized_int8_qat", "fast_lr": 1.0, "transfer_lr": 1.0, "status": "not_launched"},
+        {"task_name": "tt1_ecram_int4_qat_f01_t01", "cell_tag": "ecram_int4_qat", "fast_lr": 0.1, "transfer_lr": 0.1, "status": "not_launched"},
+        {"task_name": "tt1_ecram_int4_qat_f01_t10", "cell_tag": "ecram_int4_qat", "fast_lr": 0.1, "transfer_lr": 1.0, "status": "not_launched"},
+        {"task_name": "tt1_ecram_int4_qat_f10_t01", "cell_tag": "ecram_int4_qat", "fast_lr": 1.0, "transfer_lr": 0.1, "status": "not_launched"},
+        {"task_name": "tt1_ecram_int4_qat_f10_t10", "cell_tag": "ecram_int4_qat", "fast_lr": 1.0, "transfer_lr": 1.0, "status": "not_launched"}
+      ],
+      "key_observations": [
+        "All 4 idealized_off TT1 runs lose 14-22pp vs baseline (0.8173) — current LR grid cannot recover single-tile idealized_off under TikiTaka v1",
+        "Within idealized_off: fast_lr=1.0 > 0.1 (+5.9 to +6.1pp); transfer_lr=1.0 > 0.1 (smaller effect, +1.9 to +2.1pp); (f=1.0, t=1.0) is corner-best",
+        "At (f=0.1, t=0.1): SA+int8_qat vs off delta = +14.34pp (test) / +14.90pp (val); core-8 baseline delta at same SA/dpu config = +5.43pp -> TikiTaka amplifies the gap ~2.6x",
+        "ecram_int4_qat cell (the headline hypothesis: TikiTaka recovers EcRam int4_qat collapse) has 0 runs completed"
+      ],
+      "infra": {
+        "factory": "src/utils/rpu_factory.py::build_tikitaka_v1_rpu_config(preset, fast_lr, transfer_lr, scale_transfer_lr)",
+        "dispatcher": "scripts/run_tt1_gpu0.sh",
+        "dispatcher_log": "logs/_gpu0_tt1_dispatch.log",
+        "per_run_wall_h": "12-15"
+      },
+      "resume_actions": [
+        "Restore host GPU/driver; verify nvidia-smi returns normal output",
+        "Modify dispatcher (or branch) to skip the 5 completed task_names and restart from the crashed cell or the next not_launched cell",
+        "ecram_int4_qat 4 runs are the core hypothesis test"
+      ]
+    }
+  }
+}

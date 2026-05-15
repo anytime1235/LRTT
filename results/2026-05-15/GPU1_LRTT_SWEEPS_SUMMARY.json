@@ -1,0 +1,350 @@
+{
+  "meta": {
+    "repository": "/root/LRTT",
+    "branch": "MLP",
+    "hardware": "A100-40GB",
+    "cuda": "12.1",
+    "torch": "2.3.1",
+    "venv": "/root/.venv310",
+    "snapshot_date": "2026-05-15",
+    "tracks_overview": [
+      {"id": 1, "name": "Methods x AF/Noise per-cell TPE-40", "status": "completed 2026-05-07"},
+      {"id": 2, "name": "Methods x AF/Noise phase1 (anchor + corners)", "status": "completed 2026-05-02"},
+      {"id": 3, "name": "LR-TT-v2 rank scan (anchor only)", "status": "completed 2026-04-28"},
+      {"id": 4, "name": "LR-TT-v2 rank x {AF, weight-bit} 1-D sensitivity", "status": "completed 2026-04-30"},
+      {"id": 5, "name": "Diagnostic D (noise/AF/bit robustness)", "status": "completed 2026-04-28"}
+    ]
+  },
+  "experiments": {
+    "1_methods_af_noise_per_cell_tpe40": {
+      "design": {
+        "task": "MNIST 784->256->10",
+        "axes": {
+          "af": {"values": [0.0, 0.5, 1.0, 2.0, 5.0, 10.0], "description": "gamma_up = gamma_down"},
+          "noise": {"values": [0.0, 0.25, 0.5, 1.0, 2.0, 3.0], "description": "ratio; dw_min_std = 0.3 * ratio"}
+        },
+        "cells_total": 12,
+        "methods": ["direct", "tikitaka_v1", "lrtt_v1", "lrtt_v2"],
+        "trials_per_cell": 40,
+        "pruner": {"type": "MedianPruner", "n_startup_trials": 5, "n_warmup_steps": 5},
+        "distribution": "log-uniform (suggest_float log=True)",
+        "device_policy": {
+          "bits": 10, "rank": 8, "te": 10, "omega": 0.6,
+          "c_tile_lifetime": 0, "tile_6t1c_lifetime": 1000, "write_noise_std": 0
+        }
+      },
+      "status": "completed",
+      "launched_utc": "2026-05-06T14:21:00Z",
+      "finished_utc": "2026-05-07T12:20:15Z",
+      "wall_time_h_per_method": {"tikitaka_v1": 9.6, "lrtt_v1": 7.33, "lrtt_v2": 5.27},
+      "hp_ranges": {
+        "lrtt_v1": {"lr": [0.03, 3.0], "transfer_lr": [3e-5, 3e-2], "clf_lr": [0.03, 3.0]},
+        "lrtt_v2": {"lr": [0.1, 10.0], "transfer_lr": [0.01, 10.0], "clf_lr": [0.3, 10.0]},
+        "tikitaka_v1": {"lr": [0.01, 1.0], "transfer_lr": [0.05, 10.0], "clf_lr": [0.05, 4.0]}
+      },
+      "results_per_cell_pct": {
+        "tikitaka_v1": {
+          "af": {"0.0": 97.44, "0.5": 97.47, "1.0": 97.59, "2.0": 97.66, "5.0": 97.18, "10.0": 96.62},
+          "noise": {"0.0": 97.64, "0.25": 97.52, "0.5": 97.50, "1.0": 97.57, "2.0": 97.48, "3.0": 97.50}
+        },
+        "lrtt_v1": {
+          "af": {"0.0": 97.60, "0.5": 97.66, "1.0": 97.57, "2.0": 97.30, "5.0": 96.81, "10.0": 96.33},
+          "noise": {"0.0": 97.65, "0.25": 97.62, "0.5": 97.61, "1.0": 97.66, "2.0": 97.59, "3.0": 97.44}
+        },
+        "lrtt_v2": {
+          "af": {"0.0": 96.98, "0.5": 97.01, "1.0": 96.76, "2.0": 96.59, "5.0": 95.72, "10.0": 94.87},
+          "noise": {"0.0": 97.23, "0.25": 96.80, "0.5": 97.14, "1.0": 97.14, "2.0": 97.20, "3.0": 97.22}
+        }
+      },
+      "best_hp_per_cell": {
+        "tikitaka_v1": [
+          {"axis": "af", "level": 0.0,  "best_acc": 97.44, "lr": 0.8124369622070459,  "tlr": 0.8676083210486036,   "clf_lr": 2.6689337143596594},
+          {"axis": "af", "level": 0.5,  "best_acc": 97.47, "lr": 0.5358828537716197,  "tlr": 0.3494746312084415,   "clf_lr": 1.0401998689940921},
+          {"axis": "af", "level": 1.0,  "best_acc": 97.59, "lr": 0.5358828537716197,  "tlr": 1.3749755248876012,   "clf_lr": 1.2789066998394845},
+          {"axis": "af", "level": 2.0,  "best_acc": 97.66, "lr": 0.8124369622070459,  "tlr": 0.8676083210486036,   "clf_lr": 2.6689337143596594},
+          {"axis": "af", "level": 5.0,  "best_acc": 97.18, "lr": 0.8124369622070459,  "tlr": 0.8676083210486036,   "clf_lr": 2.6689337143596594},
+          {"axis": "af", "level": 10.0, "best_acc": 96.62, "lr": 0.5411456871147463,  "tlr": 0.9155468863315964,   "clf_lr": 2.4737612901444503},
+          {"axis": "noise", "level": 0.0,  "best_acc": 97.64, "lr": 0.3692213149114159,  "tlr": 0.2135492399268334,  "clf_lr": 3.5112854455672564},
+          {"axis": "noise", "level": 0.25, "best_acc": 97.52, "lr": 0.37337870210359136, "tlr": 0.16277323907836566, "clf_lr": 3.8213433951382245},
+          {"axis": "noise", "level": 0.5,  "best_acc": 97.50, "lr": 0.6849057225809096,  "tlr": 0.7923981134703264,  "clf_lr": 0.47956530265821035},
+          {"axis": "noise", "level": 1.0,  "best_acc": 97.57, "lr": 0.7127898642582683,  "tlr": 5.188518079567092,   "clf_lr": 0.9398095934789941},
+          {"axis": "noise", "level": 2.0,  "best_acc": 97.48, "lr": 0.6607890768974765,  "tlr": 1.502275411735124,   "clf_lr": 3.6207290763198},
+          {"axis": "noise", "level": 3.0,  "best_acc": 97.50, "lr": 0.21299678620454568, "tlr": 9.166848673749543,   "clf_lr": 2.2453503883322}
+        ],
+        "lrtt_v1": [
+          {"axis": "af", "level": 0.0,  "best_acc": 97.60, "lr": 0.886138914284773,    "tlr": 0.0016230905605599574, "clf_lr": 0.31672717037489584},
+          {"axis": "af", "level": 0.5,  "best_acc": 97.66, "lr": 0.24648355966532737,  "tlr": 0.001201610034068361,  "clf_lr": 1.1600620227975342},
+          {"axis": "af", "level": 1.0,  "best_acc": 97.57, "lr": 0.11126419540159682,  "tlr": 0.0011993448204012543, "clf_lr": 1.6266884791479148},
+          {"axis": "af", "level": 2.0,  "best_acc": 97.30, "lr": 0.05243016829211844,  "tlr": 0.004019498619726306,  "clf_lr": 1.2249533669957011},
+          {"axis": "af", "level": 5.0,  "best_acc": 96.81, "lr": 0.04442133996658882,  "tlr": 0.0002285171702001163, "clf_lr": 1.2411930730213696},
+          {"axis": "af", "level": 10.0, "best_acc": 96.33, "lr": 0.07538824744017164,  "tlr": 4.870858562436046e-05, "clf_lr": 0.4502472790884844},
+          {"axis": "noise", "level": 0.0,  "best_acc": 97.65, "lr": 1.2738217671783076,  "tlr": 0.0015783003660322578, "clf_lr": 0.09255617619268379},
+          {"axis": "noise", "level": 0.25, "best_acc": 97.62, "lr": 0.6730260610995075,  "tlr": 0.0012399469843393932, "clf_lr": 0.18062247981642793},
+          {"axis": "noise", "level": 0.5,  "best_acc": 97.61, "lr": 0.5576515460046432,  "tlr": 0.0010343322988474464, "clf_lr": 0.13658800012479339},
+          {"axis": "noise", "level": 1.0,  "best_acc": 97.66, "lr": 0.352626047565518,   "tlr": 0.002502677159927004,  "clf_lr": 0.10254836933777331},
+          {"axis": "noise", "level": 2.0,  "best_acc": 97.59, "lr": 0.5039129512244859,  "tlr": 0.002790416773748715,  "clf_lr": 0.2534470277344633},
+          {"axis": "noise", "level": 3.0,  "best_acc": 97.44, "lr": 0.20557573093293952, "tlr": 0.003073537070317759,  "clf_lr": 0.6285200171300614}
+        ],
+        "lrtt_v2": [
+          {"axis": "af", "level": 0.0,  "best_acc": 96.98, "lr": 3.0,                  "tlr": 1.0,                  "clf_lr": 0.3},
+          {"axis": "af", "level": 0.5,  "best_acc": 97.01, "lr": 2.9936200869893717,   "tlr": 0.41852341388796815,  "clf_lr": 1.235042214234623},
+          {"axis": "af", "level": 1.0,  "best_acc": 96.76, "lr": 1.5751320499779735,   "tlr": 0.02938027938703535,  "clf_lr": 0.5184202941199548},
+          {"axis": "af", "level": 2.0,  "best_acc": 96.59, "lr": 2.9978582191230534,   "tlr": 0.012174044178075508, "clf_lr": 1.0550715027922781},
+          {"axis": "af", "level": 5.0,  "best_acc": 95.72, "lr": 3.41928448658262,     "tlr": 0.8697296037819006,   "clf_lr": 0.3262127603827256},
+          {"axis": "af", "level": 10.0, "best_acc": 94.87, "lr": 4.265655371952318,    "tlr": 0.3171464764933362,   "clf_lr": 0.5785479226313567},
+          {"axis": "noise", "level": 0.0,  "best_acc": 97.23, "lr": 1.5751320499779735,   "tlr": 0.02938027938703535,  "clf_lr": 0.5184202941199548},
+          {"axis": "noise", "level": 0.25, "best_acc": 96.80, "lr": 3.500777265385221,    "tlr": 0.8287153797907033,   "clf_lr": 0.30049139024484683},
+          {"axis": "noise", "level": 0.5,  "best_acc": 97.14, "lr": 8.075706147232196,    "tlr": 0.013146528317996568, "clf_lr": 0.3880947298177326},
+          {"axis": "noise", "level": 1.0,  "best_acc": 97.14, "lr": 1.5751320499779735,   "tlr": 0.02938027938703535,  "clf_lr": 0.5184202941199548},
+          {"axis": "noise", "level": 2.0,  "best_acc": 97.20, "lr": 2.890274911387838,    "tlr": 1.0271536832435135,   "clf_lr": 0.31956353086866784},
+          {"axis": "noise", "level": 3.0,  "best_acc": 97.22, "lr": 5.282443106434211,    "tlr": 6.462770905445192,    "clf_lr": 0.7549912812759947}
+        ]
+      },
+      "key_findings": [
+        "tikitaka_v1 wins AF gamma>=1 cells (best at gamma=10: 96.62%)",
+        "lrtt_v1 wins clean / mild AF / all noise cells",
+        "lrtt_v2 lowest in every cell; AF gamma=10 delta vs tikitaka_v1 = -1.75pp; clean delta = -0.62pp",
+        "Continuous log-uniform range eliminated v2 lr=3.0 grid-max pinning",
+        "Per-cell HP retuning collapsed v1 AF cliff (phase3 91.4% -> per_cell 96.33% at gamma=10, +4.93pp)"
+      ],
+      "artifacts": {
+        "per_cell_jsons": {
+          "tikitaka_v1": "/root/LRTT/results/methods_phased/tikitaka_v1_per_cell.json",
+          "lrtt_v1": "/root/LRTT/results/methods_phased/lrtt_v1_per_cell.json",
+          "lrtt_v2": "/root/LRTT/results/methods_phased/lrtt_v2_per_cell.json"
+        },
+        "chain_log": "/root/LRTT/logs/methods_tpe_continuous_chain.log",
+        "driver": "/root/LRTT/experiments/run_methods_per_cell_tpe30.py",
+        "chain_script": "/root/LRTT/run_methods_tpe30_chain.sh",
+        "range_source": "/root/LRTT/experiments/sweep_methods_phased.py (METHOD_HP_RANGES)",
+        "plotter": "/root/LRTT/experiments/plot_methods_phased.py",
+        "figures_dir": "/root/LRTT/results/methods_phased/figures/"
+      }
+    },
+    "2_methods_af_noise_phase1": {
+      "design": {
+        "task": "MNIST 784->256->10",
+        "cells_per_method": 5,
+        "cell_names": ["anchor", "af_middle", "af_largest", "noise_middle", "noise_largest"],
+        "cell_definitions": {
+          "anchor": {"gamma": 0.0, "noise_ratio": 0.0},
+          "af_middle": {"gamma": 2.0, "noise_ratio": 0.0},
+          "af_largest": {"gamma": 10.0, "noise_ratio": 0.0},
+          "noise_middle": {"gamma": 0.0, "noise_ratio": 1.0},
+          "noise_largest": {"gamma": 0.0, "noise_ratio": 3.0}
+        },
+        "trials_per_cell_examples": {"direct": 12, "lrtt_v1": 48},
+        "search": "categorical grid (predecessor of continuous per_cell sweep in track #1)"
+      },
+      "status": "completed",
+      "best_per_cell": [
+        {"method": "direct",      "cell": "anchor",        "gamma": 0.0, "noise": 0.0, "best_acc": 98.51, "best_hp": {"lr": 0.1, "tlr": 1.0,   "clf_lr": 0.3}},
+        {"method": "tikitaka_v1", "cell": "anchor",        "gamma": 0.0, "noise": 0.0, "best_acc": 97.52, "best_hp": {"lr": 3.0, "tlr": 1.0,   "clf_lr": 0.3}},
+        {"method": "lrtt_v1",     "cell": "anchor",        "gamma": 0.0, "noise": 0.0, "best_acc": 97.68, "best_hp": {"lr": 0.3, "tlr": 0.001, "clf_lr": 1.0}},
+        {"method": "lrtt_v1",     "cell": "af_middle",     "gamma": 2.0, "noise": 0.0, "best_acc": 97.31, "best_hp": {"lr": 0.1, "tlr": 0.001, "clf_lr": 1.0}},
+        {"method": "lrtt_v1",     "cell": "af_largest",    "gamma": 10.0,"noise": 0.0, "best_acc": 95.93, "best_hp": {"lr": 0.1, "tlr": 1e-5,  "clf_lr": 1.0}},
+        {"method": "lrtt_v1",     "cell": "noise_middle",  "gamma": 0.0, "noise": 1.0, "best_acc": 97.58, "best_hp": {"lr": 1.0, "tlr": 0.001, "clf_lr": 0.1}},
+        {"method": "lrtt_v1",     "cell": "noise_largest", "gamma": 0.0, "noise": 3.0, "best_acc": 97.72, "best_hp": {"lr": 1.0, "tlr": 0.001, "clf_lr": 0.3}},
+        {"method": "lrtt_v2",     "cell": "anchor",        "gamma": 0.0, "noise": 0.0, "best_acc": 97.29, "best_hp": {"lr": 3.0, "tlr": 0.01,  "clf_lr": 0.3}},
+        {"method": "lrtt_v2",     "cell": "af_middle",     "gamma": 2.0, "noise": 0.0, "best_acc": 96.77, "best_hp": {"lr": 3.0, "tlr": 0.01,  "clf_lr": 0.3}},
+        {"method": "lrtt_v2",     "cell": "af_largest",    "gamma": 10.0,"noise": 0.0, "best_acc": 95.43, "best_hp": {"lr": 0.3, "tlr": 0.01,  "clf_lr": 0.3}},
+        {"method": "lrtt_v2",     "cell": "noise_middle",  "gamma": 0.0, "noise": 1.0, "best_acc": 97.19, "best_hp": {"lr": 3.0, "tlr": 0.01,  "clf_lr": 1.0}},
+        {"method": "lrtt_v2",     "cell": "noise_largest", "gamma": 0.0, "noise": 3.0, "best_acc": 97.08, "best_hp": {"lr": 3.0, "tlr": 0.1,   "clf_lr": 0.3}}
+      ],
+      "key_findings": [
+        "direct anchor 98.51% — highest across all 4 methods",
+        "anchor deltas vs direct: lrtt_v1 -0.83pp, tikitaka_v1 -0.99pp, lrtt_v2 -1.22pp",
+        "Phase1 best HPs used as warm-start trial 0 for per_cell (track #1)",
+        "Almost all phase1 cells beaten by per_cell continuous-range counterparts (track #1)"
+      ],
+      "artifacts": {
+        "per_method_jsons": [
+          "/root/LRTT/results/methods_phased/direct_phase1.json",
+          "/root/LRTT/results/methods_phased/tikitaka_v1_phase1.json",
+          "/root/LRTT/results/methods_phased/lrtt_v1_phase1.json",
+          "/root/LRTT/results/methods_phased/lrtt_v2_phase1.json"
+        ],
+        "best_hp_jsons": [
+          "/root/LRTT/results/methods_phased/direct_best_hp.json",
+          "/root/LRTT/results/methods_phased/tikitaka_v1_best_hp.json",
+          "/root/LRTT/results/methods_phased/lrtt_v1_best_hp.json",
+          "/root/LRTT/results/methods_phased/lrtt_v2_best_hp.json"
+        ],
+        "manifests": [
+          "/root/LRTT/results/methods_phased/direct_manifest.json",
+          "/root/LRTT/results/methods_phased/tikitaka_v1_manifest.json",
+          "/root/LRTT/results/methods_phased/lrtt_v1_manifest.json",
+          "/root/LRTT/results/methods_phased/lrtt_v2_manifest.json"
+        ]
+      }
+    },
+    "3_lrtt_v2_rank_scan_anchor": {
+      "design": {
+        "task": "MNIST / MDMLP",
+        "method": "lrtt_v2",
+        "cell": "anchor (gamma=0, noise=0)",
+        "search_params": ["lr", "transfer_lr", "lifetime_phys", "policy", "cap_rho"],
+        "ranks_swept": [4, 8, 16, 64]
+      },
+      "status": "completed",
+      "results_per_rank": {
+        "4":  {"best_acc": 96.02, "best_lr": 0.5602743212524077, "best_tlr": 0.8431013932082461,    "best_lifetime_phys": 1000, "policy": "shuffled_cycle", "cap_rho": 1.0, "completed_utc": "2026-04-28T20:15:00Z"},
+        "8":  {"best_acc": 96.88, "best_lr": 1.8789664173379752, "best_tlr": 0.0071217696140313865, "best_lifetime_phys": 1000, "policy": "shuffled_cycle", "cap_rho": 1.0, "completed_utc": "2026-04-28T22:05:00Z"},
+        "16": {"best_acc": 97.21, "best_lr": 2.185737000031922,  "best_tlr": 1.9733212840076468,    "best_lifetime_phys": 1000, "policy": "shuffled_cycle", "cap_rho": 1.0, "completed_utc": "2026-04-28T22:31:00Z"},
+        "64": {"best_acc": 97.85, "best_lr": 1.9302537578669092, "best_tlr": 0.006031267543443831,  "best_lifetime_phys": 1000, "policy": "shuffled_cycle", "cap_rho": 1.0, "completed_utc": "2026-04-28T23:39:30Z"}
+      },
+      "key_findings": [
+        "v2 rank scaling monotone: 4 -> 8 -> 16 -> 64 (96.02 -> 96.88 -> 97.21 -> 97.85)",
+        "rank=64 closes the gap to direct anchor (98.51%) to -0.66pp",
+        "All best policies converge to shuffled_cycle, lifetime_phys=1000"
+      ],
+      "artifacts": {
+        "rank1_4_summary":   "/root/LRTT/results/hp_search_v2_rank1_4/lrtt_v2_rank1_4_summary.json",
+        "rank8_summary":     "/root/LRTT/results/hp_search_v2_rank8/lrtt_v2_rank8_summary.json",
+        "rank16_summary":    "/root/LRTT/results/hp_search_v2_rank16/lrtt_v2_rank16_summary.json",
+        "rank32_64_summary": "/root/LRTT/results/hp_search_v2_rank32_64/lrtt_v2_rank32_64_summary.json",
+        "rank32_64_extra":   ["/root/LRTT/results/hp_search_v2_rank32_64/results_final.json",
+                              "/root/LRTT/results/hp_search_v2_rank32_64/results_partial.json"]
+      }
+    },
+    "4_lrtt_v2_rank_x_af_bit_sensitivity": {
+      "design": {
+        "task": "MNIST / MDMLP",
+        "method": "lrtt_v2",
+        "ranks": [1, 8, 64],
+        "axes": {
+          "af": {"values": [0.0, 0.5, 1.0, 2.0, 5.0, 10.0], "bits_fixed": 10, "n_cells": 6},
+          "bit": {"values": [5, 6, 7, 8, 9, 10], "gamma_fixed": 0.0, "n_cells": 6}
+        },
+        "trials_per_cell": 16
+      },
+      "status": "completed",
+      "results_with_best_hp": {
+        "af_axis_bits10": {
+          "rank1": [
+            {"gamma": 0.0,  "best_acc": 95.51, "lr": 1.0, "tlr": 0.1,  "lifetime": null},
+            {"gamma": 0.5,  "best_acc": 95.43, "lr": 1.0, "tlr": 10.0, "lifetime": null},
+            {"gamma": 1.0,  "best_acc": 95.61, "lr": 1.0, "tlr": 10.0, "lifetime": null},
+            {"gamma": 2.0,  "best_acc": 95.38, "lr": 1.0, "tlr": 0.1,  "lifetime": null},
+            {"gamma": 5.0,  "best_acc": 95.25, "lr": 1.0, "tlr": 1.0,  "lifetime": 1000},
+            {"gamma": 10.0, "best_acc": 94.88, "lr": 1.0, "tlr": 0.1,  "lifetime": 1000}
+          ],
+          "rank8": [
+            {"gamma": 0.0,  "best_acc": 96.81, "lr": 1.0, "tlr": 0.1,  "lifetime": null},
+            {"gamma": 0.5,  "best_acc": 96.75, "lr": 1.0, "tlr": 1.0,  "lifetime": null},
+            {"gamma": 1.0,  "best_acc": 96.75, "lr": 1.0, "tlr": 0.1,  "lifetime": null},
+            {"gamma": 2.0,  "best_acc": 96.11, "lr": 1.0, "tlr": 0.1,  "lifetime": 1000},
+            {"gamma": 5.0,  "best_acc": 95.91, "lr": 1.0, "tlr": 0.01, "lifetime": null},
+            {"gamma": 10.0, "best_acc": 95.07, "lr": 1.0, "tlr": 0.1,  "lifetime": null}
+          ],
+          "rank64": [
+            {"gamma": 0.0,  "best_acc": 97.84, "lr": 1.0, "tlr": 0.1,  "lifetime": null},
+            {"gamma": 0.5,  "best_acc": 97.65, "lr": 1.0, "tlr": 0.01, "lifetime": 1000},
+            {"gamma": 1.0,  "best_acc": 97.40, "lr": 1.0, "tlr": 0.01, "lifetime": 1000},
+            {"gamma": 2.0,  "best_acc": 96.21, "lr": 1.0, "tlr": 0.01, "lifetime": 1000},
+            {"gamma": 5.0,  "best_acc": 95.13, "lr": 0.1, "tlr": 0.1,  "lifetime": 1000},
+            {"gamma": 10.0, "best_acc": 94.32, "lr": 0.1, "tlr": 0.01, "lifetime": 1000}
+          ]
+        },
+        "bit_axis_gamma0": {
+          "rank1": [
+            {"bits": 5,  "best_acc": 95.89, "lr": 1.0, "tlr": 0.1, "lifetime": 1000},
+            {"bits": 6,  "best_acc": 95.71, "lr": 1.0, "tlr": 0.1, "lifetime": null},
+            {"bits": 7,  "best_acc": 95.59, "lr": 1.0, "tlr": 0.1, "lifetime": 1000},
+            {"bits": 8,  "best_acc": 95.02, "lr": 1.0, "tlr": 0.1, "lifetime": null},
+            {"bits": 9,  "best_acc": 95.54, "lr": 1.0, "tlr": 1.0, "lifetime": 1000},
+            {"bits": 10, "best_acc": 95.54, "lr": 1.0, "tlr": 0.1, "lifetime": 1000}
+          ],
+          "rank8": [
+            {"bits": 5,  "best_acc": 96.50, "lr": 1.0, "tlr": 0.1, "lifetime": null},
+            {"bits": 6,  "best_acc": 96.82, "lr": 1.0, "tlr": 0.1, "lifetime": 1000},
+            {"bits": 7,  "best_acc": 96.92, "lr": 1.0, "tlr": 0.1, "lifetime": 1000},
+            {"bits": 8,  "best_acc": 96.67, "lr": 1.0, "tlr": 0.1, "lifetime": 1000},
+            {"bits": 9,  "best_acc": 96.68, "lr": 1.0, "tlr": 0.1, "lifetime": 1000},
+            {"bits": 10, "best_acc": 96.85, "lr": 1.0, "tlr": 0.1, "lifetime": null}
+          ],
+          "rank64": [
+            {"bits": 5,  "best_acc": 97.62, "lr": 1.0, "tlr": 0.1,  "lifetime": null},
+            {"bits": 6,  "best_acc": 97.62, "lr": 1.0, "tlr": 0.1,  "lifetime": 1000},
+            {"bits": 7,  "best_acc": 97.56, "lr": 1.0, "tlr": 0.1,  "lifetime": 1000},
+            {"bits": 8,  "best_acc": 97.81, "lr": 1.0, "tlr": 0.01, "lifetime": 1000},
+            {"bits": 9,  "best_acc": 97.70, "lr": 1.0, "tlr": 0.01, "lifetime": null},
+            {"bits": 10, "best_acc": 97.73, "lr": 1.0, "tlr": 1.0,  "lifetime": null}
+          ]
+        }
+      },
+      "search_grid": {
+        "lr": [0.1, 1.0],
+        "tlr": [0.01, 0.1, 1.0, 10.0],
+        "lifetime_phys": [null, 1000],
+        "trials_per_cell": 16
+      },
+      "key_findings": [
+        "AF stress flips rank ordering: at gamma=5, rank8 (95.91%) > rank64 (95.13%); at gamma=10, rank8 (95.07%) > rank64 (94.32%)",
+        "rank-large is a clean-domain capacity gain, hurts under AF stress",
+        "Weight-bit sensitivity nearly flat 5-10 bits (rank=8 delta=0.35pp, rank=64 delta=0.11pp)",
+        "v2 robust to weight quantization down to 5 bits"
+      ],
+      "artifacts": {
+        "rank1":  ["/root/LRTT/results/v2_rank1_ctile_bit_af/af_results.json",
+                   "/root/LRTT/results/v2_rank1_ctile_bit_af/bit_results.json"],
+        "rank8":  ["/root/LRTT/results/v2_rank8_ctile_bit_af/af_results.json",
+                   "/root/LRTT/results/v2_rank8_ctile_bit_af/bit_results.json"],
+        "rank64": ["/root/LRTT/results/v2_rank64_ctile_bit_af/af_results.json",
+                   "/root/LRTT/results/v2_rank64_ctile_bit_af/bit_results.json"]
+      }
+    },
+    "5_diagnostic_d_noise_af_bit_robustness": {
+      "purpose": "Prove LR-TT-v2 structurally removes learned tile_a path -> A-tile noise/AF/weight-bit sensitivity ~ 0; remaining sensitivity localized to B residual buffer and C transfer/core tile. Defensible claim is path-specific robustness, not universal superiority.",
+      "status": "outputs produced 2026-04-28; no changes since",
+      "outputs_dir": "/root/LRTT/outputs/diagnostic_d_noise_af_bit_robustness",
+      "artifacts": [
+        {"file": "a_path_invariance.csv",          "produced_utc": "2026-04-28T17:40:00Z", "sub_diagnostic": "D0"},
+        {"file": "a_path_invariance_summary.json", "produced_utc": "2026-04-28T17:40:00Z", "sub_diagnostic": "D0"},
+        {"file": "local_update_fidelity.csv",      "produced_utc": "2026-04-28T17:42:00Z", "sub_diagnostic": "D1"},
+        {"file": "oat_mnist.csv",                  "produced_utc": "2026-04-28T17:59:00Z", "sub_diagnostic": "D2 (production)"},
+        {"file": "oat_mnist_pilot1ep.csv",         "produced_utc": "2026-04-28T18:12:00Z", "sub_diagnostic": "D2 (pilot)"},
+        {"file": "oat_regression.csv",             "produced_utc": "2026-04-28T20:10:00Z", "sub_diagnostic": "D2 (production)"},
+        {"file": "oat_regression_pilot200.csv",    "produced_utc": "2026-04-28T18:12:00Z", "sub_diagnostic": "D2 (pilot)"},
+        {"file": "summary.md",                     "produced_utc": "2026-04-28T17:59:00Z"}
+      ],
+      "pass_gates_v2_pilot": {
+        "a_path_fp_invariance_bit_exact": true,
+        "b_rel_err": 0.0, "c_rel_err": 0.0, "num_a_updates": 0,
+        "analog_v2_c_residue": 0.03,
+        "c_residue_caveat": "non-isolated device-construction RNG; acceptable and documented"
+      },
+      "infra": {
+        "entry": "experiments/diagnostics/diagnostic_d_noise_af_bit_robustness.py",
+        "modes": ["a_path_invariance", "local_update_fidelity", "one_at_a_time_sensitivity", "all"],
+        "utils": ["experiments/diagnostics/noise_af_bit_utils.py",
+                  "experiments/diagnostics/lrtt_diagnostic_configs.py"],
+        "plot_script": "experiments/diagnostics/plot_diagnostic_d_noise_af_bit_robustness.py",
+        "tests": [
+          {"file": "tests/test_lrtt_v2_a_path_invariance.py", "n_tests": 6, "pass": true},
+          {"file": "tests/test_noise_af_bit_diagnostic_metrics.py", "n_tests": 34, "pass": true}
+        ],
+        "spec": "/root/DIAGNOSTIC_D_NOISE_AF_BIT_ROBUSTNESS_CLAUDE_CODE.md",
+        "d3_d6_stubs": "NotImplementedError (out of scope)"
+      },
+      "production_rerun_recommendation": {
+        "pilot_budget": {"regression": "200 steps x 2 seeds", "mnist": "5k subset x 1 epoch x 2 seeds"},
+        "recommended_budget": {"regression": "2000 steps x 3 seeds"},
+        "reason": "Pilot horizon too short to expose v1 A-path degradation",
+        "verification_needed": "oat_regression.csv production file exists; confirm whether it meets the 2000x3 budget"
+      }
+    }
+  },
+  "deprecated_or_historical": [
+    "results/methods_af_noise_REV1_OLD",
+    "results/methods_af_noise_REV2_LIFETIMEBUG",
+    "results/methods_af_noise_REV3_12x12_v2_partial",
+    "results/methods_af_noise_hpsearch",
+    "results/methods_af_noise_smoke (2026-05-01 smoke run, superseded by track #1)",
+    "results/methods_phased_UDONLY_OLD",
+    "results/methods_phased/{method}_phase3.json (deprecated fixed-HP x 5-run x 12 cells)",
+    "results/methods_phased/tikitaka_v1_per_cell_10trials.json",
+    "results/methods_phased/lrtt_v2_per_cell_smoke.json",
+    "/root/EXPERIMENT_METHODS_AF_NOISE.md (12x12 design, superseded by current 6x6 phased design)"
+  ]
+}
