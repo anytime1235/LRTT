@@ -1,0 +1,2209 @@
+{
+  "sweep_rank_device": {
+    "description": "MNIST tikitaka/LRTT TPE sweep, 30 trials/cell",
+    "date": "2026-05-05",
+    "ranks_tested": [
+      1,
+      2,
+      4,
+      8,
+      16
+    ],
+    "c_tiles_tested": [
+      "ideal",
+      "ecram",
+      "rram"
+    ],
+    "results": {
+      "lrtt_v1": {
+        "rank16_Cecram": {
+          "rank": 16,
+          "c_tile": "ecram",
+          "n_trials": 30,
+          "best_acc": 97.78,
+          "mean_acc": 82.912,
+          "median_acc": 97.42,
+          "worst_acc": 11.35,
+          "best_hp": {
+            "lr": 0.02067465549706,
+            "tlr": 0.0007019269604345425,
+            "clr": 0.3418969137636055
+          },
+          "warm_start_hp": {
+            "lr": 0.1,
+            "tlr": 0.001,
+            "clr": 0.3
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.0001,
+              "high": 0.01,
+              "log": true
+            },
+            "clr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            }
+          }
+        },
+        "rank16_Cideal": {
+          "rank": 16,
+          "c_tile": "ideal",
+          "n_trials": 30,
+          "best_acc": 97.73,
+          "mean_acc": 97.245,
+          "median_acc": 97.4,
+          "worst_acc": 95.67,
+          "best_hp": {
+            "lr": 0.15822739892352541,
+            "tlr": 0.00031553452112527126,
+            "clr": 0.23268579068407647
+          },
+          "warm_start_hp": {
+            "lr": 0.1,
+            "tlr": 0.001,
+            "clr": 0.3
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.0001,
+              "high": 0.01,
+              "log": true
+            },
+            "clr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            }
+          }
+        },
+        "rank16_Crram": {
+          "rank": 16,
+          "c_tile": "rram",
+          "n_trials": 30,
+          "best_acc": 96.86,
+          "mean_acc": 87.545,
+          "median_acc": 96.39,
+          "worst_acc": 11.35,
+          "best_hp": {
+            "lr": 0.040978194662408006,
+            "tlr": 0.00016574291647480298,
+            "clr": 0.11696527856856918
+          },
+          "warm_start_hp": {
+            "lr": 0.1,
+            "tlr": 0.001,
+            "clr": 0.3
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.0001,
+              "high": 0.01,
+              "log": true
+            },
+            "clr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            }
+          }
+        },
+        "rank1_Cecram": {
+          "rank": 1,
+          "c_tile": "ecram",
+          "n_trials": 30,
+          "best_acc": 96.8,
+          "mean_acc": 95.416,
+          "median_acc": 96.07,
+          "worst_acc": 91.3,
+          "best_hp": {
+            "lr": 0.34684509082788834,
+            "tlr": 0.0011645351178607478,
+            "clr": 0.23164254082239039
+          },
+          "warm_start_hp": {
+            "lr": 0.1,
+            "tlr": 0.001,
+            "clr": 0.3
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.0001,
+              "high": 0.01,
+              "log": true
+            },
+            "clr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            }
+          }
+        },
+        "rank1_Cideal": {
+          "rank": 1,
+          "c_tile": "ideal",
+          "n_trials": 30,
+          "best_acc": 96.71,
+          "mean_acc": 95.834,
+          "median_acc": 96.29,
+          "worst_acc": 93.5,
+          "best_hp": {
+            "lr": 0.03866077596728793,
+            "tlr": 0.0011417300508520447,
+            "clr": 0.33841261217050345
+          },
+          "warm_start_hp": {
+            "lr": 0.1,
+            "tlr": 0.001,
+            "clr": 0.3
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.0001,
+              "high": 0.01,
+              "log": true
+            },
+            "clr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            }
+          }
+        },
+        "rank1_Crram": {
+          "rank": 1,
+          "c_tile": "rram",
+          "n_trials": 30,
+          "best_acc": 95.29,
+          "mean_acc": 94.076,
+          "median_acc": 94.63,
+          "worst_acc": 88.95,
+          "best_hp": {
+            "lr": 0.37337870210359136,
+            "tlr": 0.0007148659495423891,
+            "clr": 0.16513280747512876
+          },
+          "warm_start_hp": {
+            "lr": 0.1,
+            "tlr": 0.001,
+            "clr": 0.3
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.0001,
+              "high": 0.01,
+              "log": true
+            },
+            "clr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            }
+          }
+        },
+        "rank2_Cecram": {
+          "rank": 2,
+          "c_tile": "ecram",
+          "n_trials": 30,
+          "best_acc": 97.14,
+          "mean_acc": 95.736,
+          "median_acc": 96.5,
+          "worst_acc": 92.16,
+          "best_hp": {
+            "lr": 0.13328663674474286,
+            "tlr": 0.0005305784374691765,
+            "clr": 0.42251672830741344
+          },
+          "warm_start_hp": {
+            "lr": 0.1,
+            "tlr": 0.001,
+            "clr": 0.3
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.0001,
+              "high": 0.01,
+              "log": true
+            },
+            "clr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            }
+          }
+        },
+        "rank2_Cideal": {
+          "rank": 2,
+          "c_tile": "ideal",
+          "n_trials": 30,
+          "best_acc": 97.07,
+          "mean_acc": 96.339,
+          "median_acc": 96.69,
+          "worst_acc": 94.18,
+          "best_hp": {
+            "lr": 0.9818247569037455,
+            "tlr": 0.0006711632979128916,
+            "clr": 0.46656155488287837
+          },
+          "warm_start_hp": {
+            "lr": 0.1,
+            "tlr": 0.001,
+            "clr": 0.3
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.0001,
+              "high": 0.01,
+              "log": true
+            },
+            "clr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            }
+          }
+        },
+        "rank2_Crram": {
+          "rank": 2,
+          "c_tile": "rram",
+          "n_trials": 30,
+          "best_acc": 95.95,
+          "mean_acc": 94.484,
+          "median_acc": 95.01,
+          "worst_acc": 87.65,
+          "best_hp": {
+            "lr": 0.030312089529843992,
+            "tlr": 0.00043925014595122287,
+            "clr": 0.10619185353168471
+          },
+          "warm_start_hp": {
+            "lr": 0.1,
+            "tlr": 0.001,
+            "clr": 0.3
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.0001,
+              "high": 0.01,
+              "log": true
+            },
+            "clr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            }
+          }
+        },
+        "rank4_Cecram": {
+          "rank": 4,
+          "c_tile": "ecram",
+          "n_trials": 30,
+          "best_acc": 97.45,
+          "mean_acc": 90.945,
+          "median_acc": 96.96,
+          "worst_acc": 11.35,
+          "best_hp": {
+            "lr": 0.03426816992235011,
+            "tlr": 0.0008120661124742418,
+            "clr": 0.3462336829366904
+          },
+          "warm_start_hp": {
+            "lr": 0.1,
+            "tlr": 0.001,
+            "clr": 0.3
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.0001,
+              "high": 0.01,
+              "log": true
+            },
+            "clr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            }
+          }
+        },
+        "rank4_Cideal": {
+          "rank": 4,
+          "c_tile": "ideal",
+          "n_trials": 30,
+          "best_acc": 97.32,
+          "mean_acc": 96.502,
+          "median_acc": 96.78,
+          "worst_acc": 94.13,
+          "best_hp": {
+            "lr": 0.07859747283144705,
+            "tlr": 0.0006941725724590572,
+            "clr": 0.42432611170876416
+          },
+          "warm_start_hp": {
+            "lr": 0.1,
+            "tlr": 0.001,
+            "clr": 0.3
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.0001,
+              "high": 0.01,
+              "log": true
+            },
+            "clr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            }
+          }
+        },
+        "rank4_Crram": {
+          "rank": 4,
+          "c_tile": "rram",
+          "n_trials": 30,
+          "best_acc": 96.16,
+          "mean_acc": 94.749,
+          "median_acc": 95.36,
+          "worst_acc": 86.9,
+          "best_hp": {
+            "lr": 0.02499301207277097,
+            "tlr": 0.000364352629787978,
+            "clr": 0.14269066896687005
+          },
+          "warm_start_hp": {
+            "lr": 0.1,
+            "tlr": 0.001,
+            "clr": 0.3
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.0001,
+              "high": 0.01,
+              "log": true
+            },
+            "clr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            }
+          }
+        },
+        "rank8_Cecram": {
+          "rank": 8,
+          "c_tile": "ecram",
+          "n_trials": 30,
+          "best_acc": 97.67,
+          "mean_acc": 85.576,
+          "median_acc": 97.18,
+          "worst_acc": 11.35,
+          "best_hp": {
+            "lr": 0.08043414937643295,
+            "tlr": 0.0007983736692990171,
+            "clr": 0.33676823079826634
+          },
+          "warm_start_hp": {
+            "lr": 0.1,
+            "tlr": 0.001,
+            "clr": 0.3
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.0001,
+              "high": 0.01,
+              "log": true
+            },
+            "clr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            }
+          }
+        },
+        "rank8_Cideal": {
+          "rank": 8,
+          "c_tile": "ideal",
+          "n_trials": 30,
+          "best_acc": 97.5,
+          "mean_acc": 96.928,
+          "median_acc": 97.09,
+          "worst_acc": 95.29,
+          "best_hp": {
+            "lr": 0.03819641830671885,
+            "tlr": 0.0002646442832480009,
+            "clr": 0.6013660686226051
+          },
+          "warm_start_hp": {
+            "lr": 0.1,
+            "tlr": 0.001,
+            "clr": 0.3
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.0001,
+              "high": 0.01,
+              "log": true
+            },
+            "clr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            }
+          }
+        },
+        "rank8_Crram": {
+          "rank": 8,
+          "c_tile": "rram",
+          "n_trials": 30,
+          "best_acc": 96.45,
+          "mean_acc": 87.027,
+          "median_acc": 95.87,
+          "worst_acc": 11.35,
+          "best_hp": {
+            "lr": 0.1015219964405192,
+            "tlr": 0.0003818464335930654,
+            "clr": 0.10038388797183302
+          },
+          "warm_start_hp": {
+            "lr": 0.1,
+            "tlr": 0.001,
+            "clr": 0.3
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.0001,
+              "high": 0.01,
+              "log": true
+            },
+            "clr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            }
+          }
+        }
+      },
+      "lrtt_v2": {
+        "rank16_Cecram": {
+          "rank": 16,
+          "c_tile": "ecram",
+          "n_trials": 30,
+          "best_acc": 97.49,
+          "mean_acc": 96.85,
+          "median_acc": 97.1,
+          "worst_acc": 94.51,
+          "best_hp": {
+            "lr": 9.874474027437563,
+            "tlr": 0.01585248780014119,
+            "clr": 1.946916700756774
+          },
+          "warm_start_hp": {
+            "lr": 1.0,
+            "tlr": 0.1,
+            "clr": 1.0
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "clr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        },
+        "rank16_Cideal": {
+          "rank": 16,
+          "c_tile": "ideal",
+          "n_trials": 30,
+          "best_acc": 96.21,
+          "mean_acc": 95.76,
+          "median_acc": 95.98,
+          "worst_acc": 93.18,
+          "best_hp": {
+            "lr": 8.613343047148854,
+            "tlr": 0.12424821330515963,
+            "clr": 1.238968443337964
+          },
+          "warm_start_hp": {
+            "lr": 1.0,
+            "tlr": 0.1,
+            "clr": 1.0
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "clr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        },
+        "rank16_Crram": {
+          "rank": 16,
+          "c_tile": "rram",
+          "n_trials": 30,
+          "best_acc": 95.98,
+          "mean_acc": 95.36,
+          "median_acc": 95.61,
+          "worst_acc": 93.25,
+          "best_hp": {
+            "lr": 0.1971438883377861,
+            "tlr": 0.5911706434666502,
+            "clr": 0.712054778462765
+          },
+          "warm_start_hp": {
+            "lr": 1.0,
+            "tlr": 0.1,
+            "clr": 1.0
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "clr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        },
+        "rank1_Cecram": {
+          "rank": 1,
+          "c_tile": "ecram",
+          "n_trials": 30,
+          "best_acc": 95.45,
+          "mean_acc": 94.729,
+          "median_acc": 95.04,
+          "worst_acc": 92.63,
+          "best_hp": {
+            "lr": 5.20952096557747,
+            "tlr": 0.41000081003661504,
+            "clr": 1.1851997168449417
+          },
+          "warm_start_hp": {
+            "lr": 1.0,
+            "tlr": 0.1,
+            "clr": 1.0
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "clr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        },
+        "rank1_Cideal": {
+          "rank": 1,
+          "c_tile": "ideal",
+          "n_trials": 30,
+          "best_acc": 93.48,
+          "mean_acc": 92.977,
+          "median_acc": 93.07,
+          "worst_acc": 91.71,
+          "best_hp": {
+            "lr": 0.2283493602586,
+            "tlr": 0.32669461679864403,
+            "clr": 1.1032654344415609
+          },
+          "warm_start_hp": {
+            "lr": 1.0,
+            "tlr": 0.1,
+            "clr": 1.0
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "clr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        },
+        "rank1_Crram": {
+          "rank": 1,
+          "c_tile": "rram",
+          "n_trials": 30,
+          "best_acc": 94.99,
+          "mean_acc": 94.13,
+          "median_acc": 94.42,
+          "worst_acc": 90.2,
+          "best_hp": {
+            "lr": 9.941374082081065,
+            "tlr": 0.8439743038936978,
+            "clr": 1.1233943843387992
+          },
+          "warm_start_hp": {
+            "lr": 1.0,
+            "tlr": 0.1,
+            "clr": 1.0
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "clr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        },
+        "rank2_Cecram": {
+          "rank": 2,
+          "c_tile": "ecram",
+          "n_trials": 30,
+          "best_acc": 96.09,
+          "mean_acc": 95.484,
+          "median_acc": 95.86,
+          "worst_acc": 92.02,
+          "best_hp": {
+            "lr": 0.20629495679838697,
+            "tlr": 0.03297746665654691,
+            "clr": 1.2487468657199592
+          },
+          "warm_start_hp": {
+            "lr": 1.0,
+            "tlr": 0.1,
+            "clr": 1.0
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "clr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        },
+        "rank2_Cideal": {
+          "rank": 2,
+          "c_tile": "ideal",
+          "n_trials": 30,
+          "best_acc": 93.82,
+          "mean_acc": 93.429,
+          "median_acc": 93.6,
+          "worst_acc": 92.24,
+          "best_hp": {
+            "lr": 0.35560743660547833,
+            "tlr": 0.07010478624133054,
+            "clr": 3.4983170563822164
+          },
+          "warm_start_hp": {
+            "lr": 1.0,
+            "tlr": 0.1,
+            "clr": 1.0
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "clr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        },
+        "rank2_Crram": {
+          "rank": 2,
+          "c_tile": "rram",
+          "n_trials": 30,
+          "best_acc": 95.77,
+          "mean_acc": 94.878,
+          "median_acc": 95.13,
+          "worst_acc": 92.77,
+          "best_hp": {
+            "lr": 0.20744592056551123,
+            "tlr": 0.6473332153797221,
+            "clr": 0.8818248749814762
+          },
+          "warm_start_hp": {
+            "lr": 1.0,
+            "tlr": 0.1,
+            "clr": 1.0
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "clr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        },
+        "rank4_Cecram": {
+          "rank": 4,
+          "c_tile": "ecram",
+          "n_trials": 30,
+          "best_acc": 96.72,
+          "mean_acc": 95.997,
+          "median_acc": 96.3,
+          "worst_acc": 93.86,
+          "best_hp": {
+            "lr": 6.191738052323992,
+            "tlr": 0.4870213370806928,
+            "clr": 0.8507461435342072
+          },
+          "warm_start_hp": {
+            "lr": 1.0,
+            "tlr": 0.1,
+            "clr": 1.0
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "clr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        },
+        "rank4_Cideal": {
+          "rank": 4,
+          "c_tile": "ideal",
+          "n_trials": 30,
+          "best_acc": 94.5,
+          "mean_acc": 93.99,
+          "median_acc": 94.0,
+          "worst_acc": 92.44,
+          "best_hp": {
+            "lr": 2.131340682544613,
+            "tlr": 0.978650153966674,
+            "clr": 2.3496826834476456
+          },
+          "warm_start_hp": {
+            "lr": 1.0,
+            "tlr": 0.1,
+            "clr": 1.0
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "clr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        },
+        "rank4_Crram": {
+          "rank": 4,
+          "c_tile": "rram",
+          "n_trials": 30,
+          "best_acc": 95.76,
+          "mean_acc": 95.233,
+          "median_acc": 95.46,
+          "worst_acc": 92.81,
+          "best_hp": {
+            "lr": 0.1569385723656639,
+            "tlr": 0.9399352815998744,
+            "clr": 1.0570116865474106
+          },
+          "warm_start_hp": {
+            "lr": 1.0,
+            "tlr": 0.1,
+            "clr": 1.0
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "clr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        },
+        "rank8_Cecram": {
+          "rank": 8,
+          "c_tile": "ecram",
+          "n_trials": 30,
+          "best_acc": 96.96,
+          "mean_acc": 96.394,
+          "median_acc": 96.58,
+          "worst_acc": 94.19,
+          "best_hp": {
+            "lr": 2.6680411966210795,
+            "tlr": 0.07983736692990172,
+            "clr": 0.6692673290427615
+          },
+          "warm_start_hp": {
+            "lr": 1.0,
+            "tlr": 0.1,
+            "clr": 1.0
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "clr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        },
+        "rank8_Cideal": {
+          "rank": 8,
+          "c_tile": "ideal",
+          "n_trials": 30,
+          "best_acc": 95.54,
+          "mean_acc": 95.005,
+          "median_acc": 95.28,
+          "worst_acc": 93.06,
+          "best_hp": {
+            "lr": 0.7550963512217633,
+            "tlr": 0.12707276506775467,
+            "clr": 1.2454922663079342
+          },
+          "warm_start_hp": {
+            "lr": 1.0,
+            "tlr": 0.1,
+            "clr": 1.0
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "clr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        },
+        "rank8_Crram": {
+          "rank": 8,
+          "c_tile": "rram",
+          "n_trials": 30,
+          "best_acc": 95.81,
+          "mean_acc": 95.286,
+          "median_acc": 95.56,
+          "worst_acc": 92.85,
+          "best_hp": {
+            "lr": 0.36246570760387764,
+            "tlr": 0.027430683718717118,
+            "clr": 0.7325981354021398
+          },
+          "warm_start_hp": {
+            "lr": 1.0,
+            "tlr": 0.1,
+            "clr": 1.0
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "clr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        }
+      },
+      "tikitaka_v1": {
+        "norank_Cecram": {
+          "rank": null,
+          "c_tile": "ecram",
+          "n_trials": 30,
+          "best_acc": 97.96,
+          "mean_acc": 89.007,
+          "median_acc": 97.61,
+          "worst_acc": 11.35,
+          "best_hp": {
+            "transfer_lr": 0.1986297779880433,
+            "fast_lr": 0.08493944117865279,
+            "classifier_lr": 2.6534666636132616
+          },
+          "warm_start_hp": {
+            "transfer_lr": 1.0,
+            "fast_lr": 0.3,
+            "classifier_lr": 1.0
+          },
+          "search_space": {
+            "transfer_lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "fast_lr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            },
+            "classifier_lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        },
+        "norank_Cideal": {
+          "rank": null,
+          "c_tile": "ideal",
+          "n_trials": 30,
+          "best_acc": 95.96,
+          "mean_acc": 84.005,
+          "median_acc": 95.41,
+          "worst_acc": 11.35,
+          "best_hp": {
+            "transfer_lr": 7.202231985605065,
+            "fast_lr": 0.03083861823307431,
+            "classifier_lr": 1.9263008322842758
+          },
+          "warm_start_hp": {
+            "transfer_lr": 1.0,
+            "fast_lr": 0.3,
+            "classifier_lr": 1.0
+          },
+          "search_space": {
+            "transfer_lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "fast_lr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            },
+            "classifier_lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        },
+        "norank_Crram": {
+          "rank": null,
+          "c_tile": "rram",
+          "n_trials": 30,
+          "best_acc": 15.76,
+          "mean_acc": 12.949,
+          "median_acc": 13.16,
+          "worst_acc": 10.13,
+          "best_hp": {
+            "transfer_lr": 8.833999845429917,
+            "fast_lr": 0.7195663870389868,
+            "classifier_lr": 0.3915804549852191
+          },
+          "warm_start_hp": {
+            "transfer_lr": 1.0,
+            "fast_lr": 0.3,
+            "classifier_lr": 1.0
+          },
+          "search_space": {
+            "transfer_lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "fast_lr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            },
+            "classifier_lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        }
+      }
+    }
+  },
+  "sweep_rank_device_wide": {
+    "description": "MNIST tikitaka/LRTT TPE sweep (extended), 70 trials/cell, includes rank=64",
+    "date": "2026-05-06",
+    "ranks_tested": [
+      1,
+      4,
+      16,
+      64
+    ],
+    "c_tiles_tested": [
+      "ideal",
+      "ecram",
+      "rram"
+    ],
+    "results": {
+      "lrtt_v1": {
+        "rank16_Cecram": {
+          "rank": 16,
+          "c_tile": "ecram",
+          "n_trials": 70,
+          "best_acc": 97.89,
+          "mean_acc": 89.847,
+          "median_acc": 97.49,
+          "worst_acc": 11.35,
+          "best_hp": {
+            "lr": 0.6001561023940075,
+            "tlr": 0.00023086341086003335,
+            "clr": 0.3935007475974629
+          },
+          "warm_start_hp": {
+            "lr": 0.03,
+            "tlr": 0.0007019269604345425,
+            "clr": 0.3418969137636055
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 3e-05,
+              "high": 0.03,
+              "log": true
+            },
+            "clr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            }
+          }
+        },
+        "rank16_Cideal": {
+          "rank": 16,
+          "c_tile": "ideal",
+          "n_trials": 70,
+          "best_acc": 97.75,
+          "mean_acc": 97.27,
+          "median_acc": 97.47,
+          "worst_acc": 95.17,
+          "best_hp": {
+            "lr": 0.2003611012067877,
+            "tlr": 0.00034327190212629194,
+            "clr": 0.4351286557399904
+          },
+          "warm_start_hp": {
+            "lr": 0.15822739892352541,
+            "tlr": 0.00031553452112527126,
+            "clr": 0.23268579068407647
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 3e-05,
+              "high": 0.03,
+              "log": true
+            },
+            "clr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            }
+          }
+        },
+        "rank16_Crram": {
+          "rank": 16,
+          "c_tile": "rram",
+          "n_trials": 70,
+          "best_acc": 97.01,
+          "mean_acc": 92.429,
+          "median_acc": 96.47,
+          "worst_acc": 11.35,
+          "best_hp": {
+            "lr": 0.09093626858953197,
+            "tlr": 0.00024180775188480322,
+            "clr": 0.10619185353168471
+          },
+          "warm_start_hp": {
+            "lr": 0.040978194662408006,
+            "tlr": 0.00016574291647480298,
+            "clr": 0.11696527856856918
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 3e-05,
+              "high": 0.03,
+              "log": true
+            },
+            "clr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            }
+          }
+        },
+        "rank1_Cecram": {
+          "rank": 1,
+          "c_tile": "ecram",
+          "n_trials": 70,
+          "best_acc": 97.02,
+          "mean_acc": 95.6,
+          "median_acc": 96.23,
+          "worst_acc": 89.52,
+          "best_hp": {
+            "lr": 0.6593367333800747,
+            "tlr": 0.0012723332643786887,
+            "clr": 0.43562160301422853
+          },
+          "warm_start_hp": {
+            "lr": 0.34684509082788834,
+            "tlr": 0.0011645351178607478,
+            "clr": 0.23164254082239039
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 3e-05,
+              "high": 0.03,
+              "log": true
+            },
+            "clr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            }
+          }
+        },
+        "rank1_Cideal": {
+          "rank": 1,
+          "c_tile": "ideal",
+          "n_trials": 70,
+          "best_acc": 96.8,
+          "mean_acc": 95.894,
+          "median_acc": 96.28,
+          "worst_acc": 93.0,
+          "best_hp": {
+            "lr": 1.9636597644031248,
+            "tlr": 0.0008779008582036469,
+            "clr": 0.2779804037427088
+          },
+          "warm_start_hp": {
+            "lr": 0.03866077596728793,
+            "tlr": 0.0011417300508520447,
+            "clr": 0.33841261217050345
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 3e-05,
+              "high": 0.03,
+              "log": true
+            },
+            "clr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            }
+          }
+        },
+        "rank1_Crram": {
+          "rank": 1,
+          "c_tile": "rram",
+          "n_trials": 70,
+          "best_acc": 95.26,
+          "mean_acc": 94.122,
+          "median_acc": 94.62,
+          "worst_acc": 87.61,
+          "best_hp": {
+            "lr": 0.37337870210359136,
+            "tlr": 0.0007148659495423891,
+            "clr": 0.16513280747512876
+          },
+          "warm_start_hp": {
+            "lr": 0.37337870210359136,
+            "tlr": 0.0007148659495423891,
+            "clr": 0.16513280747512876
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 3e-05,
+              "high": 0.03,
+              "log": true
+            },
+            "clr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            }
+          }
+        },
+        "rank4_Cecram": {
+          "rank": 4,
+          "c_tile": "ecram",
+          "n_trials": 70,
+          "best_acc": 97.39,
+          "mean_acc": 90.701,
+          "median_acc": 96.98,
+          "worst_acc": 11.35,
+          "best_hp": {
+            "lr": 0.8966927267080759,
+            "tlr": 0.0018727840964690029,
+            "clr": 0.3511073498056458
+          },
+          "warm_start_hp": {
+            "lr": 0.03426816992235011,
+            "tlr": 0.0008120661124742418,
+            "clr": 0.3462336829366904
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 3e-05,
+              "high": 0.03,
+              "log": true
+            },
+            "clr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            }
+          }
+        },
+        "rank4_Cideal": {
+          "rank": 4,
+          "c_tile": "ideal",
+          "n_trials": 70,
+          "best_acc": 97.42,
+          "mean_acc": 96.704,
+          "median_acc": 97.01,
+          "worst_acc": 94.03,
+          "best_hp": {
+            "lr": 2.979577120002597,
+            "tlr": 0.000620073369393398,
+            "clr": 0.4047894246977616
+          },
+          "warm_start_hp": {
+            "lr": 0.07859747283144705,
+            "tlr": 0.0006941725724590572,
+            "clr": 0.42432611170876416
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 3e-05,
+              "high": 0.03,
+              "log": true
+            },
+            "clr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            }
+          }
+        },
+        "rank4_Crram": {
+          "rank": 4,
+          "c_tile": "rram",
+          "n_trials": 70,
+          "best_acc": 96.27,
+          "mean_acc": 93.983,
+          "median_acc": 95.5,
+          "worst_acc": 21.26,
+          "best_hp": {
+            "lr": 0.047843611384800956,
+            "tlr": 0.0006263511991586195,
+            "clr": 0.11528625358994149
+          },
+          "warm_start_hp": {
+            "lr": 0.03,
+            "tlr": 0.000364352629787978,
+            "clr": 0.14269066896687005
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 3e-05,
+              "high": 0.03,
+              "log": true
+            },
+            "clr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            }
+          }
+        },
+        "rank64_Cecram": {
+          "rank": 64,
+          "c_tile": "ecram",
+          "n_trials": 70,
+          "best_acc": 98.24,
+          "mean_acc": 87.85,
+          "median_acc": 97.87,
+          "worst_acc": 11.35,
+          "best_hp": {
+            "lr": 1.6856054730588348,
+            "tlr": 0.0001261569111210021,
+            "clr": 0.36355110212621755
+          },
+          "warm_start_hp": {
+            "lr": 0.03,
+            "tlr": 0.0007019269604345425,
+            "clr": 0.3418969137636055
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 3e-05,
+              "high": 0.03,
+              "log": true
+            },
+            "clr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            }
+          }
+        },
+        "rank64_Cideal": {
+          "rank": 64,
+          "c_tile": "ideal",
+          "n_trials": 70,
+          "best_acc": 98.06,
+          "mean_acc": 81.875,
+          "median_acc": 97.75,
+          "worst_acc": 11.35,
+          "best_hp": {
+            "lr": 0.19155894992129813,
+            "tlr": 0.00031361994988498806,
+            "clr": 0.2596677661047654
+          },
+          "warm_start_hp": {
+            "lr": 0.15822739892352541,
+            "tlr": 0.00031553452112527126,
+            "clr": 0.23268579068407647
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 3e-05,
+              "high": 0.03,
+              "log": true
+            },
+            "clr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            }
+          }
+        },
+        "rank64_Crram": {
+          "rank": 64,
+          "c_tile": "rram",
+          "n_trials": 70,
+          "best_acc": 97.46,
+          "mean_acc": 86.943,
+          "median_acc": 96.98,
+          "worst_acc": 11.35,
+          "best_hp": {
+            "lr": 0.49378251799413647,
+            "tlr": 0.00014437593189462305,
+            "clr": 0.14063771587878882
+          },
+          "warm_start_hp": {
+            "lr": 0.040978194662408006,
+            "tlr": 0.00016574291647480298,
+            "clr": 0.11696527856856918
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 3e-05,
+              "high": 0.03,
+              "log": true
+            },
+            "clr": {
+              "low": 0.03,
+              "high": 3.0,
+              "log": true
+            }
+          }
+        }
+      },
+      "lrtt_v2": {
+        "rank16_Cecram": {
+          "rank": 16,
+          "c_tile": "ecram",
+          "n_trials": 70,
+          "best_acc": 97.62,
+          "mean_acc": 97.047,
+          "median_acc": 97.05,
+          "worst_acc": 96.14,
+          "best_hp": {
+            "lr": 0.19447696509994336,
+            "tlr": 0.021871446259491473,
+            "clr": 1.1183324938485433
+          },
+          "warm_start_hp": {
+            "lr": 9.874474027437563,
+            "tlr": 0.01585248780014119,
+            "clr": 1.946916700756774
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.01,
+              "high": 10.0,
+              "log": true
+            },
+            "clr": {
+              "low": 0.3,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        },
+        "rank16_Cideal": {
+          "rank": 16,
+          "c_tile": "ideal",
+          "n_trials": 70,
+          "best_acc": 96.24,
+          "mean_acc": 95.976,
+          "median_acc": 96.05,
+          "worst_acc": 95.28,
+          "best_hp": {
+            "lr": 0.1717757084752279,
+            "tlr": 0.28666544311069386,
+            "clr": 2.549319931689485
+          },
+          "warm_start_hp": {
+            "lr": 8.613343047148854,
+            "tlr": 0.12424821330515963,
+            "clr": 1.238968443337964
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.01,
+              "high": 10.0,
+              "log": true
+            },
+            "clr": {
+              "low": 0.3,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        },
+        "rank16_Crram": {
+          "rank": 16,
+          "c_tile": "rram",
+          "n_trials": 70,
+          "best_acc": 96.15,
+          "mean_acc": 95.672,
+          "median_acc": 95.78,
+          "worst_acc": 93.85,
+          "best_hp": {
+            "lr": 7.680146199516043,
+            "tlr": 0.022790755095250175,
+            "clr": 0.6535291864190882
+          },
+          "warm_start_hp": {
+            "lr": 0.1971438883377861,
+            "tlr": 0.5911706434666502,
+            "clr": 0.712054778462765
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.01,
+              "high": 10.0,
+              "log": true
+            },
+            "clr": {
+              "low": 0.3,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        },
+        "rank1_Cecram": {
+          "rank": 1,
+          "c_tile": "ecram",
+          "n_trials": 70,
+          "best_acc": 95.42,
+          "mean_acc": 94.745,
+          "median_acc": 94.82,
+          "worst_acc": 91.59,
+          "best_hp": {
+            "lr": 9.65440094312842,
+            "tlr": 1.429358426884455,
+            "clr": 4.123936570998474
+          },
+          "warm_start_hp": {
+            "lr": 5.20952096557747,
+            "tlr": 0.41000081003661504,
+            "clr": 1.1851997168449417
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.01,
+              "high": 10.0,
+              "log": true
+            },
+            "clr": {
+              "low": 0.3,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        },
+        "rank1_Cideal": {
+          "rank": 1,
+          "c_tile": "ideal",
+          "n_trials": 70,
+          "best_acc": 93.4,
+          "mean_acc": 93.042,
+          "median_acc": 93.06,
+          "worst_acc": 91.89,
+          "best_hp": {
+            "lr": 2.2668621129273547,
+            "tlr": 5.20869968650967,
+            "clr": 0.9770507990976871
+          },
+          "warm_start_hp": {
+            "lr": 0.2283493602586,
+            "tlr": 0.32669461679864403,
+            "clr": 1.1032654344415609
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.01,
+              "high": 10.0,
+              "log": true
+            },
+            "clr": {
+              "low": 0.3,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        },
+        "rank1_Crram": {
+          "rank": 1,
+          "c_tile": "rram",
+          "n_trials": 70,
+          "best_acc": 95.07,
+          "mean_acc": 94.349,
+          "median_acc": 94.42,
+          "worst_acc": 92.42,
+          "best_hp": {
+            "lr": 4.628738106995107,
+            "tlr": 0.5340401993992673,
+            "clr": 0.8608502734949319
+          },
+          "warm_start_hp": {
+            "lr": 9.941374082081065,
+            "tlr": 0.8439743038936978,
+            "clr": 1.1233943843387992
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.01,
+              "high": 10.0,
+              "log": true
+            },
+            "clr": {
+              "low": 0.3,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        },
+        "rank4_Cecram": {
+          "rank": 4,
+          "c_tile": "ecram",
+          "n_trials": 70,
+          "best_acc": 96.69,
+          "mean_acc": 96.242,
+          "median_acc": 96.33,
+          "worst_acc": 95.09,
+          "best_hp": {
+            "lr": 3.7336023824481224,
+            "tlr": 0.02514122962419353,
+            "clr": 1.0981384809749637
+          },
+          "warm_start_hp": {
+            "lr": 6.191738052323992,
+            "tlr": 0.4870213370806928,
+            "clr": 0.8507461435342072
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.01,
+              "high": 10.0,
+              "log": true
+            },
+            "clr": {
+              "low": 0.3,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        },
+        "rank4_Cideal": {
+          "rank": 4,
+          "c_tile": "ideal",
+          "n_trials": 70,
+          "best_acc": 94.63,
+          "mean_acc": 94.129,
+          "median_acc": 94.14,
+          "worst_acc": 92.81,
+          "best_hp": {
+            "lr": 1.0499345212108613,
+            "tlr": 0.547896023448117,
+            "clr": 0.8833049640022185
+          },
+          "warm_start_hp": {
+            "lr": 2.131340682544613,
+            "tlr": 0.978650153966674,
+            "clr": 2.3496826834476456
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.01,
+              "high": 10.0,
+              "log": true
+            },
+            "clr": {
+              "low": 0.3,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        },
+        "rank4_Crram": {
+          "rank": 4,
+          "c_tile": "rram",
+          "n_trials": 70,
+          "best_acc": 95.95,
+          "mean_acc": 95.452,
+          "median_acc": 95.53,
+          "worst_acc": 94.59,
+          "best_hp": {
+            "lr": 0.34920036851897956,
+            "tlr": 0.6936003765462878,
+            "clr": 0.7961280427267484
+          },
+          "warm_start_hp": {
+            "lr": 0.1569385723656639,
+            "tlr": 0.9399352815998744,
+            "clr": 1.0570116865474106
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.01,
+              "high": 10.0,
+              "log": true
+            },
+            "clr": {
+              "low": 0.3,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        },
+        "rank64_Cecram": {
+          "rank": 64,
+          "c_tile": "ecram",
+          "n_trials": 70,
+          "best_acc": 98.03,
+          "mean_acc": 97.319,
+          "median_acc": 97.27,
+          "worst_acc": 96.41,
+          "best_hp": {
+            "lr": 0.46520655629935004,
+            "tlr": 0.012933831025363558,
+            "clr": 2.3589970511120004
+          },
+          "warm_start_hp": {
+            "lr": 9.874474027437563,
+            "tlr": 0.01585248780014119,
+            "clr": 1.946916700756774
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.01,
+              "high": 10.0,
+              "log": true
+            },
+            "clr": {
+              "low": 0.3,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        },
+        "rank64_Cideal": {
+          "rank": 64,
+          "c_tile": "ideal",
+          "n_trials": 70,
+          "best_acc": 97.56,
+          "mean_acc": 97.232,
+          "median_acc": 97.3,
+          "worst_acc": 96.63,
+          "best_hp": {
+            "lr": 0.23373668568634204,
+            "tlr": 0.43733873053341726,
+            "clr": 2.7972543026262624
+          },
+          "warm_start_hp": {
+            "lr": 8.613343047148854,
+            "tlr": 0.12424821330515963,
+            "clr": 1.238968443337964
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.01,
+              "high": 10.0,
+              "log": true
+            },
+            "clr": {
+              "low": 0.3,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        },
+        "rank64_Crram": {
+          "rank": 64,
+          "c_tile": "rram",
+          "n_trials": 70,
+          "best_acc": 96.15,
+          "mean_acc": 95.496,
+          "median_acc": 95.58,
+          "worst_acc": 93.95,
+          "best_hp": {
+            "lr": 7.712313973927457,
+            "tlr": 0.010327801211415615,
+            "clr": 0.6267242129736367
+          },
+          "warm_start_hp": {
+            "lr": 0.1971438883377861,
+            "tlr": 0.5911706434666502,
+            "clr": 0.712054778462765
+          },
+          "search_space": {
+            "lr": {
+              "low": 0.1,
+              "high": 10.0,
+              "log": true
+            },
+            "tlr": {
+              "low": 0.01,
+              "high": 10.0,
+              "log": true
+            },
+            "clr": {
+              "low": 0.3,
+              "high": 10.0,
+              "log": true
+            }
+          }
+        }
+      },
+      "tikitaka_v1": {
+        "norank_Cecram": {
+          "rank": null,
+          "c_tile": "ecram",
+          "n_trials": 70,
+          "best_acc": 98.26,
+          "mean_acc": 97.822,
+          "median_acc": 97.88,
+          "worst_acc": 97.09,
+          "best_hp": {
+            "transfer_lr": 0.8696625706343035,
+            "fast_lr": 0.01523800917736066,
+            "classifier_lr": 3.636356245405595
+          },
+          "warm_start_hp": {
+            "transfer_lr": 0.1986297779880433,
+            "fast_lr": 0.08493944117865279,
+            "classifier_lr": 2.6534666636132616
+          },
+          "search_space": {
+            "transfer_lr": {
+              "low": 0.05,
+              "high": 10.0,
+              "log": true
+            },
+            "fast_lr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "classifier_lr": {
+              "low": 0.05,
+              "high": 4.0,
+              "log": true
+            }
+          }
+        },
+        "norank_Cideal": {
+          "rank": null,
+          "c_tile": "ideal",
+          "n_trials": 70,
+          "best_acc": 96.11,
+          "mean_acc": 94.758,
+          "median_acc": 95.77,
+          "worst_acc": 75.07,
+          "best_hp": {
+            "transfer_lr": 1.4456067236528036,
+            "fast_lr": 0.01175262305110635,
+            "classifier_lr": 1.569169582330775
+          },
+          "warm_start_hp": {
+            "transfer_lr": 7.202231985605065,
+            "fast_lr": 0.03083861823307431,
+            "classifier_lr": 1.9263008322842758
+          },
+          "search_space": {
+            "transfer_lr": {
+              "low": 0.05,
+              "high": 10.0,
+              "log": true
+            },
+            "fast_lr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "classifier_lr": {
+              "low": 0.05,
+              "high": 4.0,
+              "log": true
+            }
+          }
+        },
+        "norank_Crram": {
+          "rank": null,
+          "c_tile": "rram",
+          "n_trials": 70,
+          "best_acc": 17.4,
+          "mean_acc": 13.398,
+          "median_acc": 13.64,
+          "worst_acc": 9.84,
+          "best_hp": {
+            "transfer_lr": 0.22773091320329814,
+            "fast_lr": 0.8657396092766249,
+            "classifier_lr": 1.125116166736364
+          },
+          "warm_start_hp": {
+            "transfer_lr": 8.833999845429917,
+            "fast_lr": 0.7195663870389868,
+            "classifier_lr": 0.3915804549852191
+          },
+          "search_space": {
+            "transfer_lr": {
+              "low": 0.05,
+              "high": 10.0,
+              "log": true
+            },
+            "fast_lr": {
+              "low": 0.01,
+              "high": 1.0,
+              "log": true
+            },
+            "classifier_lr": {
+              "low": 0.05,
+              "high": 4.0,
+              "log": true
+            }
+          }
+        }
+      }
+    }
+  }
+}
