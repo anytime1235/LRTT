@@ -1,0 +1,19 @@
+{
+  "best_f1": 94.01,
+  "best_params": {
+    "learning_rate": 0.241430323617674,
+    "transfer_lr": 0.0003930287588171119,
+    "transfer_every": 10,
+    "rank_exp": 3,
+    "fast_lr": 0.48942483074992155,
+    "tau_sec": 0.0,
+    "ab_dw_min": 0.001981,
+    "ab_desired_bl": 31,
+    "a_reset_std": 600000.0,
+    "b_reset_std": 1e-30,
+    "c_dw_min": 0.001,
+    "c_desired_bl": 31,
+    "out_noise": 0.0,
+    "ab_weight_scaling_omega": 0.0
+  }
+}

@@ -1,0 +1,9 @@
+reinit_mode,af_ratio,unr,best_val_acc,n_complete
+gauss_a_zero,0,0,97.390,60
+gauss_a_zero,1,1,97.330,60
+gauss_a_zero,10,10,97.140,60
+gauss_a_zero,100,100,94.010,60
+gauss_b_zero,0,0,97.480,60
+gauss_b_zero,1,1,97.380,60
+gauss_b_zero,10,10,97.250,60
+gauss_b_zero,100,100,94.040,60
