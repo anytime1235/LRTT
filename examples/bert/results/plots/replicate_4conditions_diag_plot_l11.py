@@ -46,10 +46,23 @@ def load_runs(diag_dir):
     return runs
 
 
+_KEY_ALIAS = {
+    # Modern (C_eff) key name first, legacy (C_raw) fallback for older JSONs.
+    "norm_C_raw":    ("norm_C_eff",   "norm_C_raw"),
+    "delta_C_raw":   ("delta_C_eff",  "delta_C_raw"),
+    "erank_C":       ("erank_C_eff",  "erank_C"),
+}
+
+
 def get_steps(d, key):
+    keys_to_try = _KEY_ALIAS.get(key, (key,))
     steps, vals = [], []
     for r in d[TILE_KEY]["steps"]:
-        v = r.get(key)
+        v = None
+        for k in keys_to_try:
+            v = r.get(k)
+            if v is not None:
+                break
         if v is not None:
             steps.append(r["step"]); vals.append(v)
     return np.array(steps), np.array(vals)

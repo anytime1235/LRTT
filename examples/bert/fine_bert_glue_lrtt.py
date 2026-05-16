@@ -247,6 +247,51 @@ LORA_TARGET_MODULES = {
 ENABLE_DIAGNOSTIC = True   # False = no diagnostic overhead, fast training
 DIAG_EPOCHS = 0            # 0 = all epochs, N = first N epochs only
 
+# Per-layer tile selection. Reuses LORA_TARGET_MODULES vocabulary.
+#
+# Shorthand string:
+#   "first_last"  → first & last LRTT-converted layer × LORA_TARGET modules
+#   "all"         → every LRTT-converted layer × LORA_TARGET modules
+#
+# Explicit dict {layer_idx: module_selector}, module_selector being:
+#   "match"             — inherit LORA_TARGET (= this layer's LRTT-converted modules)
+#   key from LORA_TARGET_MODULES — "qkvo"|"qkv"|"qonly"|"konly"|"vonly"|"ffn"|"dense"|"all"
+#   list of module names — e.g. ["query", "key"]
+#
+# Examples:
+#   {0: "qkvo", 11: "qkvo"}                       # layer 0,11 × {q,k,v,o}
+#   {0: "match", 6: "match", 11: "match"}         # layers 0,6,11 (each = LORA_TARGET)
+#   {0: "qonly", 11: "qkvo"}                      # heterogeneous per layer
+#   {0: ["query","key"], 11: "match"}             # explicit module names
+#
+# Intersection rule: actual monitored set = LRTT-converted ∩ selected layers ∩ selected modules.
+# Empty intersection → warning + skip.
+DIAG_TILES = "first_last"
+
+# Rate limits (steps; <=0 means every step)
+ERANK_RATE_LIMIT_STEPS = 0    # erank/SVD cost gate
+HIST_RATE_STEPS = 500         # weight + signal histogram cadence (GLUE tasks vary widely; 500 = a few hist samples per epoch)
+
+# Per-group on/off. Each tracked tile records only the enabled groups.
+DIAG_GROUPS = {
+    "g1_norms":        True,   # ||A||, ||B||, ||AB||, ||C_eff||
+    "g2_minmax":       True,   # A/B/C_eff signed min/max
+    "g3_mean":         True,   # signed mean(A/B/C_eff)
+    "g3b_mean_abs":    True,   # mean(|A|), mean(|B|), mean(|C_eff|)
+    "g3c_weight_hist": False,  # hist(A/B/C_eff) — HIST_RATE_STEPS; cost↑ default OFF
+    "g4_deltas":       True,   # ||delta_A||, ||delta_B||, ||delta_C_eff||, ||delta_AB||
+    "g5a_erank_ab":    True,   # erank A, B, AB; sigma1_AB
+    "g5b_erank_c":     True,   # erank C_eff, C_delta; sigma1_C_*
+    "g6a_cells":       False,  # individual cell values (default OFF)
+    "g6b_cell_deltas": False,  # individual cell deltas (default OFF)
+    "g7_cosines":      True,   # transfer-event cosines + norm_G_accum etc.
+    "g8_signal_abs":   True,   # xa/xb/da/db abs mean+max
+    "g10_signal_hist": False,  # xa/xb/da/db hist — HIST_RATE_STEPS; default OFF
+    "g11a_xc_dc_abs":  True,   # xc/dc abs mean+max (transfer events)
+    "g11c_xc_dc_hist": False,  # xc/dc hist — HIST_RATE_STEPS; default OFF
+    "g11d_xfer_meta":  True,   # transfer_lr_c, transfer_n_calls
+}
+
 # Data subset sizes (0 = use full dataset)
 TRAIN_SUBSET_SIZE = 0
 EVAL_SUBSET_SIZE = 0
@@ -918,49 +963,76 @@ def _make_cell_indices(shape, n=10):
     return indices
 
 
-def find_first_lrtt_tile(model):
-    """Find the first LRTT tile in the model."""
-    for name, mod in model.named_modules():
-        if hasattr(mod, 'controller'):
-            return name, mod
-    raise RuntimeError("No LRTT tile found in model")
+def _expand_lora_target(key):
+    """Resolve LORA_TARGET_MODULES[key] to a list of module-name substrings.
+    None → match all modules. Tuple form (include, exclude) → return include list."""
+    if key not in LORA_TARGET_MODULES:
+        raise ValueError(f"Unknown LORA target key: {key!r}")
+    val = LORA_TARGET_MODULES[key]
+    if val is None:
+        return None
+    if isinstance(val, tuple):
+        return list(val[0])
+    return list(val)
 
 
-def find_last_lrtt_tile(model):
-    """Find the last LRTT tile in the model."""
-    last_name, last_tile = None, None
-    for name, mod in model.named_modules():
-        if hasattr(mod, 'controller'):
-            last_name, last_tile = name, mod
-    if last_tile is None:
-        raise RuntimeError("No LRTT tile found in model")
-    return last_name, last_tile
+def _short_tile_name(full_name):
+    """Convert e.g. 'bert.encoder.layer.0.attention.self.query.analog_module' → 'L0.attention.self.query'."""
+    import re
+    m = re.search(r"layer\.(\d+)\.(.+?)(?:\.analog_module)?$", full_name)
+    return f"L{m.group(1)}.{m.group(2)}" if m else full_name
 
 
-def find_target_lrtt_tiles(model, layer_indices=(0, 6, 11),
-                            sublayers=("query", "key", "value", "attention.output")):
-    """Find LRTT tiles for specific layers and sublayers.
+def resolve_diag_tiles(model, diag_tiles_cfg, lora_target_key):
+    """Resolve DIAG_TILES config to ordered dict {short_name: (full_name, module)}.
 
-    Returns:
-        dict mapping short_name → (full_name, module)
-        e.g. "L0_query" → ("bert.encoder.layer.0.attention.self.query.analog_module", tile)
+    diag_tiles_cfg :
+        "first_last"           — first & last LRTT-converted tile
+        "all"                  — every LRTT-converted tile
+        {layer_idx: selector}  — per-layer selector, where selector is:
+            "match"            — inherit LORA_TARGET (this layer's LRTT modules)
+            key from LORA_TARGET_MODULES — "qkvo"|"qkv"|"qonly"|"konly"|"vonly"|"ffn"|"dense"|"all"
+            list of module name substrings — e.g. ["query", "key"]
+
+    Returns ordered dict; empty set → warning printed, returns {}.
     """
-    tiles = {}
-    for name, mod in model.named_modules():
-        if not hasattr(mod, 'controller'):
-            continue
-        for li in layer_indices:
-            for sl in sublayers:
-                # Match patterns like "layer.0.attention.self.query" or "layer.0.attention.output.dense"
-                layer_str = f"layer.{li}."
-                if layer_str in name and sl in name:
-                    short = f"L{li}_{sl.split('.')[-1]}"
-                    tiles[short] = (name, mod)
-    return tiles
+    all_lrtt = [(n, m) for n, m in model.named_modules() if hasattr(m, 'controller')]
+    if not all_lrtt:
+        raise RuntimeError("No LRTT tile found in model")
+
+    if diag_tiles_cfg == "first_last":
+        if len(all_lrtt) == 1:
+            return {"only": all_lrtt[0]}
+        return {"first": all_lrtt[0], "last": all_lrtt[-1]}
+    if diag_tiles_cfg == "all":
+        return {_short_tile_name(n): (n, m) for n, m in all_lrtt}
+
+    if not isinstance(diag_tiles_cfg, dict):
+        raise ValueError(
+            f"DIAG_TILES must be 'first_last' | 'all' | dict, got {diag_tiles_cfg!r}")
+
+    out = {}
+    for layer_idx, mod_sel in diag_tiles_cfg.items():
+        if mod_sel == "match":
+            pats = _expand_lora_target(lora_target_key)
+        elif isinstance(mod_sel, str):
+            pats = _expand_lora_target(mod_sel)
+        elif isinstance(mod_sel, (list, tuple)):
+            pats = list(mod_sel)
+        else:
+            raise ValueError(
+                f"Invalid module selector for layer {layer_idx}: {mod_sel!r}")
+        layer_str = f"layer.{layer_idx}."
+        for n, m in all_lrtt:
+            if layer_str in n and (pats is None or any(p in n for p in pats)):
+                out[_short_tile_name(n)] = (n, m)
+    if not out:
+        print(f"WARNING: DIAG_TILES resolved to empty set "
+              f"(LORA_TARGET={lora_target_key!r}, DIAG_TILES={diag_tiles_cfg!r})")
+    return out
 
 
 def sample_cells(weight_matrix, cell_indices):
-    """Extract values at fixed cell positions from a weight matrix."""
     values = []
     for r, c in cell_indices:
         if r < weight_matrix.shape[0] and c < weight_matrix.shape[1]:
@@ -979,107 +1051,196 @@ def get_raw_C(tile_c):
 
 
 def snapshot_weights(tile):
-    """Snapshot A, B, C weights before optimizer step."""
+    """Pre-step snapshot of (A, B, C_eff). C_raw tracking dropped — all deltas
+    now use C_eff (matches transfer-scale semantics)."""
     return (
         tile.tile_a.get_weights()[0].clone().detach(),
         tile.tile_b.get_weights()[0].clone().detach(),
         tile.tile_c.get_weights()[0].clone().detach(),
-        get_raw_C(tile.tile_c).clone().detach(),
     )
 
 
-def collect_tile_diagnostics(tile, C_prev_raw, A_before, B_before, C_before,
-                             C_raw_before, step, prev_num_transfers,
-                             A_ci, B_ci, C_ci, A_pre_transfer=None,
-                             C_initial_eff=None):
-    """Collect all diagnostic data for one tile at one step."""
+def collect_tile_diagnostics(tile, A_before, B_before, C_eff_before, step,
+                             prev_num_transfers, A_ci, B_ci, C_ci,
+                             A_pre_transfer=None, C_initial_eff=None,
+                             compute_erank=True, compute_weight_hist=False,
+                             groups=None):
+    """Thin orchestrator: dispatches to per-group helpers based on `groups` flags."""
+    if groups is None:
+        groups = DIAG_GROUPS
     controller = tile.controller
     A = A_pre_transfer if A_pre_transfer is not None else tile.tile_a.get_weights()[0]
     B = tile.tile_b.get_weights()[0]
     C_eff = tile.tile_c.get_weights()[0]
-    C_raw = get_raw_C(tile.tile_c)
+    AB = A @ B
 
-    norm_A = torch.norm(A).item()
-    norm_B = torch.norm(B).item()
-    norm_C_raw = torch.norm(C_raw).item()
-    norm_AB = torch.norm(A @ B).item()
-
-    delta_C_raw = torch.norm(C_raw - C_prev_raw).item() if C_prev_raw is not None else 0.0
-    delta_A = torch.norm(A - A_before).item() if A_before is not None else 0.0
-    delta_B = torch.norm(B - B_before).item() if B_before is not None else 0.0
-    delta_C_raw_step = torch.norm(C_raw - C_raw_before).item() if C_raw_before is not None else 0.0
-
-    A_cells = sample_cells(A, A_ci)
-    B_cells = sample_cells(B, B_ci)
-    C_cells = sample_cells(C_raw, C_ci)
-
-    A_grad_cells, B_grad_cells, C_grad_cells = [], [], []
-    if A_before is not None:
-        A_grad_cells = sample_cells(A - A_before, A_ci)
-    if B_before is not None:
-        B_grad_cells = sample_cells(B - B_before, B_ci)
-    if C_raw_before is not None:
-        C_grad_cells = sample_cells(C_raw - C_raw_before, C_ci)
-
-    transfer_counter = controller.transfer_counter
     num_transfers = controller.num_transfers
-    is_transfer = num_transfers > prev_num_transfers
-
     record = {
         "step": step,
-        "norm_A": norm_A, "norm_B": norm_B,
-        "norm_C_raw": norm_C_raw, "norm_AB": norm_AB,
-        "A_eff_min": A.min().item(), "A_eff_max": A.max().item(),
-        "B_eff_min": B.min().item(), "B_eff_max": B.max().item(),
-        "C_eff_min": C_eff.min().item(), "C_eff_max": C_eff.max().item(),
-        "C_raw_min": C_raw.min().item(), "C_raw_max": C_raw.max().item(),
-        "A_cells": A_cells, "B_cells": B_cells, "C_cells": C_cells,
-        "A_grad_cells": A_grad_cells, "B_grad_cells": B_grad_cells,
-        "C_grad_cells": C_grad_cells,
-        "delta_A": delta_A, "delta_B": delta_B, "delta_C_raw": delta_C_raw_step,
-        "transfer_counter": transfer_counter,
-        "num_transfers": num_transfers, "is_transfer": is_transfer,
-        "erank_C": _effective_rank(C_eff),
-        "erank_C_delta": _effective_rank(C_eff - C_initial_eff) if C_initial_eff is not None else 0.0,
+        "transfer_counter": controller.transfer_counter,
+        "num_transfers": num_transfers,
+        "is_transfer": num_transfers > prev_num_transfers,
     }
-    return record, C_raw.clone().detach(), num_transfers
+    if groups.get("g1_norms"):
+        record.update(_diag_g1_norms(A, B, AB, C_eff))
+    if groups.get("g2_minmax"):
+        record.update(_diag_g2_minmax(A, B, C_eff))
+    if groups.get("g3_mean"):
+        record.update(_diag_g3_mean_signed(A, B, C_eff))
+    if groups.get("g3b_mean_abs"):
+        record.update(_diag_g3b_mean_abs(A, B, C_eff))
+    if groups.get("g3c_weight_hist") and compute_weight_hist:
+        record.update(_diag_g3c_weight_hist(A, B, C_eff))
+    if groups.get("g4_deltas"):
+        AB_before = (A_before @ B_before) if (A_before is not None and B_before is not None) else None
+        record.update(_diag_g4_deltas(A, B, AB, C_eff,
+                                      A_before, B_before, AB_before, C_eff_before))
+    if compute_erank:
+        if groups.get("g5a_erank_ab"):
+            record.update(_diag_g5a_erank_ab(A, B, AB))
+        if groups.get("g5b_erank_c"):
+            record.update(_diag_g5b_erank_c(C_eff, C_initial_eff))
+    if groups.get("g6a_cells"):
+        record.update(_diag_g6a_cells(A, B, C_eff, A_ci, B_ci, C_ci))
+    if groups.get("g6b_cell_deltas"):
+        record.update(_diag_g6b_cell_deltas(A, B, C_eff,
+                                            A_before, B_before, C_eff_before,
+                                            A_ci, B_ci, C_ci))
+    return record, num_transfers
 
 
-def _compute_multi_mean(multi_logs):
-    """Compute per-step mean of numeric metrics across all tracked tiles."""
-    # Get all tile keys that have data
-    keys_with_data = [k for k, v in multi_logs.items() if v]
-    if not keys_with_data:
-        return []
-    n_steps = len(multi_logs[keys_with_data[0]])
-    # Numeric fields to average
-    fields = ["norm_A", "norm_B", "norm_C_raw", "norm_AB",
-              "A_eff_min", "A_eff_max", "B_eff_min", "B_eff_max",
-              "C_eff_min", "C_eff_max", "C_raw_min", "C_raw_max",
-              "erank_C", "erank_C_delta"]
-    mean_log = []
-    for i in range(n_steps):
-        rec = {"step": multi_logs[keys_with_data[0]][i]["step"]}
-        for f in fields:
-            vals = [multi_logs[k][i].get(f, 0) for k in keys_with_data]
-            rec[f] = sum(vals) / len(vals)
-        mean_log.append(rec)
-    return mean_log
+def _svd_stats(M):
+    """Return (effective_rank, sigma_1). sigma_1 is the largest singular value
+    of M (unfiltered; 0.0 if M is empty)."""
+    s = torch.linalg.svdvals(M.float().cuda())
+    if len(s) == 0:
+        return 0.0, 0.0
+    sigma1 = s[0].item()
+    s_filt = s[s > 1e-10]
+    if len(s_filt) == 0:
+        return 0.0, sigma1
+    p = s_filt / s_filt.sum()
+    entropy = -(p * torch.log(p)).sum()
+    return entropy.exp().item(), sigma1
 
 
 def _effective_rank(M):
-    """Compute effective rank = exp(entropy of normalized singular values)."""
-    s = torch.linalg.svdvals(M.float().cuda())
-    s = s[s > 1e-10]
-    if len(s) == 0:
-        return 0.0
-    p = s / s.sum()
-    entropy = -(p * torch.log(p)).sum()
-    return entropy.exp().item()
+    """Legacy wrapper kept for backward compatibility."""
+    return _svd_stats(M)[0]
+
+
+# -----------------------------------------------------------------------------
+# Per-group diagnostic helpers
+# -----------------------------------------------------------------------------
+
+def _diag_g1_norms(A, B, AB, C_eff):
+    return {
+        "norm_A":     torch.norm(A).item(),
+        "norm_B":     torch.norm(B).item(),
+        "norm_AB":    torch.norm(AB).item(),
+        "norm_C_eff": torch.norm(C_eff).item(),
+    }
+
+
+def _diag_g2_minmax(A, B, C_eff):
+    return {
+        "A_min": A.min().item(),         "A_max": A.max().item(),
+        "B_min": B.min().item(),         "B_max": B.max().item(),
+        "C_eff_min": C_eff.min().item(), "C_eff_max": C_eff.max().item(),
+    }
+
+
+def _diag_g3_mean_signed(A, B, C_eff):
+    return {
+        "mean_A":     A.mean().item(),
+        "mean_B":     B.mean().item(),
+        "mean_C_eff": C_eff.mean().item(),
+    }
+
+
+def _diag_g3b_mean_abs(A, B, C_eff):
+    return {
+        "mean_abs_A":     A.abs().mean().item(),
+        "mean_abs_B":     B.abs().mean().item(),
+        "mean_abs_C_eff": C_eff.abs().mean().item(),
+    }
+
+
+def _weight_hist_one(t, bins=50):
+    """Histogram of a weight tensor over its actual [min, max] range."""
+    flat = t.flatten().float()
+    lo = flat.min().item()
+    hi = flat.max().item()
+    if hi > lo:
+        counts = torch.histc(flat, bins=bins, min=lo, max=hi).tolist()
+        return {"counts": counts, "min": lo, "max": hi}
+    return {"counts": [float(flat.numel())] + [0.0] * (bins - 1),
+            "min": lo, "max": lo + 1.0}
+
+
+def _diag_g3c_weight_hist(A, B, C_eff, bins=50):
+    """Caller must rate-limit before invoking."""
+    return {
+        "hist_A":     _weight_hist_one(A, bins=bins),
+        "hist_B":     _weight_hist_one(B, bins=bins),
+        "hist_C_eff": _weight_hist_one(C_eff, bins=bins),
+    }
+
+
+def _diag_g4_deltas(A, B, AB, C_eff,
+                    A_before, B_before, AB_before, C_eff_before):
+    return {
+        "delta_A":     torch.norm(A - A_before).item()         if A_before is not None     else 0.0,
+        "delta_B":     torch.norm(B - B_before).item()         if B_before is not None     else 0.0,
+        "delta_AB":    torch.norm(AB - AB_before).item()       if AB_before is not None    else 0.0,
+        "delta_C_eff": torch.norm(C_eff - C_eff_before).item() if C_eff_before is not None else 0.0,
+    }
+
+
+def _diag_g5a_erank_ab(A, B, AB):
+    er_A, _      = _svd_stats(A)
+    er_B, _      = _svd_stats(B)
+    er_AB, sg_AB = _svd_stats(AB)
+    return {
+        "erank_A": er_A, "erank_B": er_B,
+        "erank_AB": er_AB, "sigma1_AB": sg_AB,
+    }
+
+
+def _diag_g5b_erank_c(C_eff, C_initial_eff):
+    er_C,  sg_C  = _svd_stats(C_eff)
+    if C_initial_eff is not None:
+        er_dC, sg_dC = _svd_stats(C_eff - C_initial_eff)
+    else:
+        er_dC, sg_dC = 0.0, 0.0
+    return {
+        "erank_C_eff":   er_C,  "sigma1_C_eff":   sg_C,
+        "erank_C_delta": er_dC, "sigma1_C_delta": sg_dC,
+    }
+
+
+def _diag_g6a_cells(A, B, C_eff, A_ci, B_ci, C_ci):
+    return {
+        "A_cells":     sample_cells(A,     A_ci),
+        "B_cells":     sample_cells(B,     B_ci),
+        "C_eff_cells": sample_cells(C_eff, C_ci),
+    }
+
+
+def _diag_g6b_cell_deltas(A, B, C_eff,
+                          A_before, B_before, C_eff_before,
+                          A_ci, B_ci, C_ci):
+    out = {}
+    if A_before is not None:
+        out["A_cell_deltas"]     = sample_cells(A - A_before,         A_ci)
+    if B_before is not None:
+        out["B_cell_deltas"]     = sample_cells(B - B_before,         B_ci)
+    if C_eff_before is not None:
+        out["C_eff_cell_deltas"] = sample_cells(C_eff - C_eff_before, C_ci)
+    return out
 
 
 def _cos_sim(a, b):
-    """Cosine similarity between two flat tensors."""
     na, nb = torch.norm(a).item(), torch.norm(b).item()
     if na > 1e-10 and nb > 1e-10:
         return torch.nn.functional.cosine_similarity(
@@ -1089,110 +1250,133 @@ def _cos_sim(a, b):
 
 def make_diagnostic_plots(log_data, output_path, tile_label="",
                           A_ci=None, B_ci=None, C_ci=None):
-    """Create 5x2 (10 panel) diagnostic plot for one tile."""
+    """Create 6x2 diagnostic plot for one tile (new schema: C_eff only)."""
     steps = [r["step"] for r in log_data]
-    norm_A = [r["norm_A"] for r in log_data]
-    norm_B = [r["norm_B"] for r in log_data]
-    norm_C_raw = [r["norm_C_raw"] for r in log_data]
-    norm_AB = [r["norm_AB"] for r in log_data]
+    norm_A = [r.get("norm_A", 0) for r in log_data]
+    norm_B = [r.get("norm_B", 0) for r in log_data]
+    norm_C_eff = [r.get("norm_C_eff", 0) for r in log_data]
+    norm_AB = [r.get("norm_AB", 0) for r in log_data]
     losses = [r.get("loss", 0.0) for r in log_data]
-
     transfer_steps = [r["step"] for r in log_data if r["is_transfer"]]
 
-    n_cells = len(log_data[0]["A_cells"])
-    A_w = [[r["A_cells"][i] for r in log_data] for i in range(n_cells)]
-    B_w = [[r["B_cells"][i] for r in log_data] for i in range(n_cells)]
-    C_w = [[r["C_cells"][i] for r in log_data] for i in range(len(log_data[0]["C_cells"]))]
-    A_g = [[r["A_grad_cells"][i] if r["A_grad_cells"] else 0.0 for r in log_data] for i in range(n_cells)]
-    B_g = [[r["B_grad_cells"][i] if r["B_grad_cells"] else 0.0 for r in log_data] for i in range(n_cells)]
-    C_g = [[r["C_grad_cells"][i] if r["C_grad_cells"] else 0.0 for r in log_data] for i in range(len(log_data[0]["C_cells"]))]
-
-    # Use provided indices for labels, else generate generic
-    a_ci = A_ci or [(i, 0) for i in range(n_cells)]
-    b_ci = B_ci or [(0, i) for i in range(n_cells)]
-    c_ci = C_ci or [(i, i) for i in range(len(log_data[0]["C_cells"]))]
-
-    A_eff_mins = [r.get("A_eff_min", r.get("A_min", 0)) for r in log_data]
-    A_eff_maxs = [r.get("A_eff_max", r.get("A_max", 0)) for r in log_data]
-    B_eff_mins = [r.get("B_eff_min", r.get("B_min", 0)) for r in log_data]
-    B_eff_maxs = [r.get("B_eff_max", r.get("B_max", 0)) for r in log_data]
-    C_eff_mins = [r.get("C_eff_min", 0) for r in log_data]
-    C_eff_maxs = [r.get("C_eff_max", 0) for r in log_data]
-    C_raw_mins = [r.get("C_raw_min", r.get("C_min", 0)) for r in log_data]
-    C_raw_maxs = [r.get("C_raw_max", r.get("C_max", 0)) for r in log_data]
+    has_cells = "A_cells" in log_data[0]
+    if has_cells:
+        n_cells = len(log_data[0]["A_cells"])
+        A_w = [[r["A_cells"][i] for r in log_data] for i in range(n_cells)]
+        B_w = [[r["B_cells"][i] for r in log_data] for i in range(n_cells)]
+        C_w = [[r["C_eff_cells"][i] for r in log_data] for i in range(len(log_data[0]["C_eff_cells"]))]
+        A_g = [[r.get("A_cell_deltas", [0]*n_cells)[i] for r in log_data] for i in range(n_cells)]
+        B_g = [[r.get("B_cell_deltas", [0]*n_cells)[i] for r in log_data] for i in range(n_cells)]
+        n_c = len(log_data[0]["C_eff_cells"])
+        C_g = [[r.get("C_eff_cell_deltas", [0]*n_c)[i] for r in log_data] for i in range(n_c)]
+        a_ci = A_ci or [(i, 0) for i in range(n_cells)]
+        b_ci = B_ci or [(0, i) for i in range(n_cells)]
+        c_ci = C_ci or [(i, i) for i in range(n_c)]
 
     fig, axes = plt.subplots(6, 2, figsize=(18, 34))
-    title_str = f"LRTT Diagnostic — {tile_label}" if tile_label else "LRTT Diagnostic"
-    fig.suptitle(title_str, fontsize=14, y=1.01)
+    fig.suptitle(f"LRTT Diagnostic — {tile_label}" if tile_label else "LRTT Diagnostic",
+                 fontsize=14, y=1.01)
 
     def tl(ax):
         for ts in transfer_steps:
             ax.axvline(x=ts, color="red", alpha=0.3, linewidth=0.8)
 
-    # (0,0) A/B/AB norms
+    A_mins = [r.get("A_min", r.get("A_eff_min", 0)) for r in log_data]
+    A_maxs = [r.get("A_max", r.get("A_eff_max", 0)) for r in log_data]
+    B_mins = [r.get("B_min", r.get("B_eff_min", 0)) for r in log_data]
+    B_maxs = [r.get("B_max", r.get("B_eff_max", 0)) for r in log_data]
+    C_eff_mins = [r.get("C_eff_min", 0) for r in log_data]
+    C_eff_maxs = [r.get("C_eff_max", 0) for r in log_data]
+
+    # (0,0) A, B norms + min/max
     ax = axes[0, 0]
     ax.plot(steps, norm_A, label="||A||", alpha=0.8)
     ax.plot(steps, norm_B, label="||B||", alpha=0.8)
     ax.plot(steps, norm_AB, label="||A@B||", alpha=0.6, linestyle="--")
     ax_mm = ax.twinx()
-    ax_mm.plot(steps, A_eff_maxs, label="A eff max", color="red", alpha=0.5, linewidth=0.7, linestyle=":")
-    ax_mm.plot(steps, A_eff_mins, label="A eff min", color="red", alpha=0.5, linewidth=0.7, linestyle="--")
-    ax_mm.plot(steps, B_eff_maxs, label="B eff max", color="blue", alpha=0.5, linewidth=0.7, linestyle=":")
-    ax_mm.plot(steps, B_eff_mins, label="B eff min", color="blue", alpha=0.5, linewidth=0.7, linestyle="--")
-    ax_mm.set_ylabel("eff min/max", fontsize=8)
+    ax_mm.plot(steps, A_maxs, label="A max", color="red", alpha=0.5, linewidth=0.7, linestyle=":")
+    ax_mm.plot(steps, A_mins, label="A min", color="red", alpha=0.5, linewidth=0.7, linestyle="--")
+    ax_mm.plot(steps, B_maxs, label="B max", color="blue", alpha=0.5, linewidth=0.7, linestyle=":")
+    ax_mm.plot(steps, B_mins, label="B min", color="blue", alpha=0.5, linewidth=0.7, linestyle="--")
+    ax_mm.set_ylabel("min/max", fontsize=8)
     tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("Norm")
-    ax.set_title("A, B, AB Norms + eff min/max (red = transfer)")
+    ax.set_title("A, B, AB Norms + min/max (red = transfer)")
     l1, la1 = ax.get_legend_handles_labels(); l2, la2 = ax_mm.get_legend_handles_labels()
     ax.legend(l1+l2, la1+la2, fontsize=6, ncol=2); ax.grid(True, alpha=0.3)
 
-    # (0,1) C norm + delta_C
+    # (0,1) ||C_eff|| + delta_C_eff
     ax = axes[0, 1]
-    ax.plot(steps, norm_C_raw, label="||C_raw||", color="green", alpha=0.8)
-    delta_C = [r["delta_C_raw"] for r in log_data]
+    ax.plot(steps, norm_C_eff, label="||C_eff||", color="green", alpha=0.8)
+    delta_C = [r.get("delta_C_eff", 0) for r in log_data]
     ax2 = ax.twinx()
-    ax2.plot(steps, delta_C, label="delta_C_raw", color="orange", alpha=0.8)
-    tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("||C_raw||", color="green")
-    ax2.set_ylabel("delta_C_raw", color="orange")
-    ax.set_title("C Norm (raw) + delta_C_raw")
+    ax2.plot(steps, delta_C, label="delta_C_eff", color="orange", alpha=0.8)
+    tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("||C_eff||", color="green")
+    ax2.set_ylabel("delta_C_eff", color="orange")
+    ax.set_title("C Norm (eff) + delta_C_eff")
     l1, la1 = ax.get_legend_handles_labels(); l2, la2 = ax2.get_legend_handles_labels()
     ax.legend(l1+l2, la1+la2, loc="upper left", fontsize=6); ax.grid(True, alpha=0.3)
 
-    # (1,0) C raw + eff min/max combined
+    # (1,0) C_eff min/max
     ax = axes[1, 0]
-    ax.plot(steps, C_raw_maxs, label="C raw max", color="red", alpha=0.8, linewidth=1.0)
-    ax.plot(steps, C_raw_mins, label="C raw min", color="red", alpha=0.8, linewidth=1.0, linestyle="--")
-    ax.plot(steps, C_eff_maxs, label="C eff max", color="purple", alpha=0.8, linewidth=1.0)
-    ax.plot(steps, C_eff_mins, label="C eff min", color="purple", alpha=0.8, linewidth=1.0, linestyle="--")
+    ax.plot(steps, C_eff_maxs, label="C_eff max", color="purple", alpha=0.8, linewidth=1.0)
+    ax.plot(steps, C_eff_mins, label="C_eff min", color="purple", alpha=0.8, linewidth=1.0, linestyle="--")
     ax.axhline(y=1.0, color="gray", linestyle=":", alpha=0.4)
     ax.axhline(y=-1.0, color="gray", linestyle=":", alpha=0.4)
     tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("Weight value")
-    ax.set_title("C weight min/max (raw=red, eff=purple)")
+    ax.set_title("C_eff weight min/max")
     ax.legend(fontsize=6, ncol=2); ax.grid(True, alpha=0.3)
 
-    # (1,1) Effective rank
-    erank_C = [r.get("erank_C", 0) for r in log_data]
-    erank_C_delta = [r.get("erank_C_delta", 0) for r in log_data]
+    # (1,1) Effective rank + sigma_1 (twin axis)
+    er_key = "erank_C_eff" if any(r.get("erank_C_eff") is not None for r in log_data) else "erank_C"
+    er_steps = [r["step"] for r in log_data if r.get(er_key) is not None]
+    erank_C = [r[er_key] for r in log_data if r.get(er_key) is not None]
+    erd_steps = [r["step"] for r in log_data if r.get("erank_C_delta") is not None]
+    erank_C_delta = [r["erank_C_delta"] for r in log_data if r.get("erank_C_delta") is not None]
     ax = axes[1, 1]
-    ax.plot(steps, erank_C, label="erank(C)", color="green", alpha=0.8, linewidth=1.0)
-    ax.plot(steps, erank_C_delta, label="erank(C - C_init)", color="blue", alpha=0.8, linewidth=1.0)
+    if er_steps:
+        ax.plot(er_steps, erank_C, label="erank(C_eff)", color="green", alpha=0.8, linewidth=1.0, marker='.', markersize=3)
+    if erd_steps:
+        ax.plot(erd_steps, erank_C_delta, label="erank(C - C_init)", color="blue", alpha=0.8, linewidth=1.0, marker='.', markersize=3)
+    # sigma_1 overlay (twin axis) — collapse signal
+    sg1_steps = [r["step"] for r in log_data if r.get("sigma1_C_eff") is not None]
+    sg1_C   = [r["sigma1_C_eff"]   for r in log_data if r.get("sigma1_C_eff") is not None]
+    sg1d_steps = [r["step"] for r in log_data if r.get("sigma1_C_delta") is not None]
+    sg1_dC  = [r["sigma1_C_delta"] for r in log_data if r.get("sigma1_C_delta") is not None]
+    if sg1_steps or sg1d_steps:
+        axs = ax.twinx()
+        if sg1_steps:
+            axs.plot(sg1_steps, sg1_C, label="sigma_1(C_eff)", color="orange", alpha=0.6, linewidth=0.8, linestyle="--", marker='.', markersize=2)
+        if sg1d_steps:
+            axs.plot(sg1d_steps, sg1_dC, label="sigma_1(C - C_init)", color="red", alpha=0.6, linewidth=0.8, linestyle="--", marker='.', markersize=2)
+        axs.set_ylabel("sigma_1", fontsize=8)
+        l1, la1 = ax.get_legend_handles_labels(); l2, la2 = axs.get_legend_handles_labels()
+        ax.legend(l1+l2, la1+la2, fontsize=6, loc="upper right")
+    else:
+        ax.legend(fontsize=7)
     tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("Effective rank")
-    ax.set_title("Effective rank of C and C delta")
-    ax.legend(fontsize=7); ax.grid(True, alpha=0.3)
+    ax.set_title("Effective rank of C_eff + sigma_1 (twin axis)")
+    ax.grid(True, alpha=0.3)
 
-    # Rows 2-4: A/B/C cells
-    for row, (ws, gs, ci, nm) in enumerate(
-            [(A_w, A_g, a_ci, "A"), (B_w, B_g, b_ci, "B"), (C_w, C_g, c_ci, "C")], start=2):
-        ax = axes[row, 0]
-        for i, s in enumerate(ws):
-            r, c = ci[i]; ax.plot(steps, s, label=f"{nm}[{r},{c}]", alpha=0.7, linewidth=0.8)
-        tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("Weight")
-        ax.set_title(f"{nm} cells: weights"); ax.legend(fontsize=6, ncol=2); ax.grid(True, alpha=0.3)
-
-        ax = axes[row, 1]
-        for i, s in enumerate(gs):
-            r, c = ci[i]; ax.plot(steps, s, label=f"d{nm}[{r},{c}]", alpha=0.7, linewidth=0.8)
-        tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("Delta")
-        ax.set_title(f"{nm} cells: delta"); ax.legend(fontsize=6, ncol=2); ax.grid(True, alpha=0.3)
+    # (2,0)-(4,1) cell weights/deltas (skipped if g6a_cells off)
+    if has_cells:
+        for row, (ws, gs, ci, nm) in enumerate(
+                [(A_w, A_g, a_ci, "A"), (B_w, B_g, b_ci, "B"), (C_w, C_g, c_ci, "C_eff")], start=2):
+            ax = axes[row, 0]
+            for i, s in enumerate(ws):
+                r, c = ci[i]; ax.plot(steps, s, label=f"{nm}[{r},{c}]", alpha=0.7, linewidth=0.8)
+            tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("Weight")
+            ax.set_title(f"{nm} cells: weights"); ax.legend(fontsize=6, ncol=2); ax.grid(True, alpha=0.3)
+            ax = axes[row, 1]
+            for i, s in enumerate(gs):
+                r, c = ci[i]; ax.plot(steps, s, label=f"d{nm}[{r},{c}]", alpha=0.7, linewidth=0.8)
+            tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("Delta")
+            ax.set_title(f"{nm} cells: delta"); ax.legend(fontsize=6, ncol=2); ax.grid(True, alpha=0.3)
+    else:
+        for row in range(2, 5):
+            for col in range(2):
+                axes[row, col].text(0.5, 0.5, "g6a_cells disabled", transform=axes[row, col].transAxes,
+                                    ha="center", va="center", fontsize=10, color="gray")
+                axes[row, col].set_xticks([]); axes[row, col].set_yticks([])
 
     # (5,0) G_accum norm (line) + tlr*AB and dC norms at transfers (scatter) + loss
     nG = [max(r.get("norm_G_accum", 1e-10), 1e-10) for r in log_data]
@@ -1242,7 +1426,7 @@ def make_diagnostic_plots(log_data, output_path, tile_label="",
 
 
 def make_xd_diagnostic_plots(log_data, output_path, tile_label=""):
-    """Create x/d distribution diagnostic plots: percentile bands + histograms."""
+    """Create x/d distribution diagnostic plots: abs mean/max + histograms."""
     if not log_data:
         return
     steps = [r['step'] for r in log_data]
@@ -1270,23 +1454,14 @@ def make_xd_diagnostic_plots(log_data, output_path, tile_label=""):
             plot_data = log_data
             plot_steps = steps
 
-        # --- Left: percentile band plot over time ---
+        # --- Left: abs mean/max over time ---
         ax = axes[row, 0]
         if plot_data:
-            p5 = [r.get(f'{prefix}_p5', 0) for r in plot_data]
-            p25 = [r.get(f'{prefix}_p25', 0) for r in plot_data]
-            p50 = [r.get(f'{prefix}_p50', 0) for r in plot_data]
-            p75 = [r.get(f'{prefix}_p75', 0) for r in plot_data]
-            p95 = [r.get(f'{prefix}_p95', 0) for r in plot_data]
             mean_vals = [r.get(f'{prefix}_abs_mean', 0) for r in plot_data]
             max_vals = [r.get(f'{prefix}_abs_max', 0) for r in plot_data]
-
-            ax.fill_between(plot_steps, p5, p95, alpha=0.15, color='blue', label='p5-p95')
-            ax.fill_between(plot_steps, p25, p75, alpha=0.3, color='blue', label='p25-p75')
-            ax.plot(plot_steps, p50, 'b-', linewidth=0.8, label='median')
-            ax.plot(plot_steps, mean_vals, 'g--', linewidth=0.6, alpha=0.7, label='mean')
-            ax.plot(plot_steps, max_vals, 'r-', linewidth=0.4, alpha=0.5, label='max')
-        ax.set_title(f'|{prefix}| percentiles — {desc}')
+            ax.plot(plot_steps, max_vals, 'r-', linewidth=0.8, label='abs max', alpha=0.8)
+            ax.plot(plot_steps, mean_vals, 'g-', linewidth=0.8, label='abs mean', alpha=0.9)
+        ax.set_title(f'|{prefix}| abs mean/max — {desc}')
         ax.set_ylabel(f'|{prefix}|')
         ax.legend(fontsize=7, loc='upper right')
         ax.grid(True, alpha=0.3)
@@ -1328,56 +1503,147 @@ def make_xd_diagnostic_plots(log_data, output_path, tile_label=""):
     print(f"Saved plot: {output_path}")
 
 
-def make_multi_tile_plots(multi_logs, mean_log, output_path):
-    """Plot key metrics across all tracked tiles + mean."""
-    if not mean_log:
+def make_weight_dynamics_plots(log_data, output_path, tile_label=""):
+    """Weight distribution evolution: mean signed, mean abs, deltas, erank, sigma_1, loss."""
+    if not log_data:
+        return
+    steps = [r["step"] for r in log_data]
+    transfer_steps = [r["step"] for r in log_data if r["is_transfer"]]
+    losses = [r.get("loss", 0.0) for r in log_data]
+
+    fig, axes = plt.subplots(4, 2, figsize=(18, 22))
+    fig.suptitle(f"Weight Dynamics — {tile_label}" if tile_label else "Weight Dynamics",
+                 fontsize=14, y=1.0)
+
+    def tl(ax):
+        for ts in transfer_steps:
+            ax.axvline(x=ts, color="red", alpha=0.3, linewidth=0.8)
+
+    def _line(ax, key, label, color, log_y=False):
+        vals = [r.get(key) for r in log_data]
+        if not any(v is not None and v != 0 for v in vals):
+            return False
+        xs = [s for s, v in zip(steps, vals) if v is not None]
+        ys = [v for v in vals if v is not None]
+        if log_y:
+            ax.semilogy(xs, ys, label=label, color=color, alpha=0.85, linewidth=0.9)
+        else:
+            ax.plot(xs, ys, label=label, color=color, alpha=0.85, linewidth=0.9)
+        return True
+
+    # (0,0) Signed mean
+    ax = axes[0, 0]
+    _line(ax, "mean_A", "mean(A)", "C0")
+    _line(ax, "mean_B", "mean(B)", "C1")
+    _line(ax, "mean_C_eff", "mean(C_eff)", "C2")
+    ax.axhline(y=0, color="gray", linestyle=":", alpha=0.4)
+    tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("Signed mean")
+    ax.set_title("Signed mean of weights"); ax.legend(fontsize=7); ax.grid(True, alpha=0.3)
+
+    # (0,1) Mean absolute value
+    ax = axes[0, 1]
+    _line(ax, "mean_abs_A", "mean(|A|)", "C0")
+    _line(ax, "mean_abs_B", "mean(|B|)", "C1")
+    _line(ax, "mean_abs_C_eff", "mean(|C_eff|)", "C2")
+    tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("mean(|w|)")
+    ax.set_title("Mean absolute value of weights"); ax.legend(fontsize=7); ax.grid(True, alpha=0.3)
+
+    # (1,0) Delta norms — A, B, AB (log)
+    ax = axes[1, 0]
+    _line(ax, "delta_A",  "||delta_A||",  "C0", log_y=True)
+    _line(ax, "delta_B",  "||delta_B||",  "C1", log_y=True)
+    _line(ax, "delta_AB", "||delta_AB||", "C3", log_y=True)
+    tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("Delta norm (log)")
+    ax.set_title("Per-step delta norms (A, B, AB)"); ax.legend(fontsize=7); ax.grid(True, alpha=0.3)
+
+    # (1,1) Delta C_eff (separate panel — transfer-driven, different scale)
+    ax = axes[1, 1]
+    _line(ax, "delta_C_eff", "||delta_C_eff||", "C2")
+    tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("||delta_C_eff||")
+    ax.set_title("delta_C_eff (transfer-induced)"); ax.legend(fontsize=7); ax.grid(True, alpha=0.3)
+
+    # (2,0) Erank — A, B, AB
+    ax = axes[2, 0]
+    for key, lbl, color in [("erank_A", "erank(A)", "C0"),
+                            ("erank_B", "erank(B)", "C1"),
+                            ("erank_AB", "erank(AB)", "C3")]:
+        recs = [(r["step"], r.get(key)) for r in log_data if r.get(key) is not None]
+        if recs:
+            xs, ys = zip(*recs)
+            ax.plot(xs, ys, label=lbl, color=color, alpha=0.85,
+                    linewidth=0.9, marker=".", markersize=3)
+    tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("Effective rank")
+    ax.set_title("Effective rank of A, B, AB"); ax.legend(fontsize=7); ax.grid(True, alpha=0.3)
+
+    # (2,1) sigma_1 — AB, C_eff, C_delta
+    ax = axes[2, 1]
+    for key, lbl, color in [("sigma1_AB",      "sigma_1(AB)",      "C3"),
+                            ("sigma1_C_eff",   "sigma_1(C_eff)",   "C2"),
+                            ("sigma1_C_delta", "sigma_1(C - C_init)", "C4")]:
+        recs = [(r["step"], r.get(key)) for r in log_data if r.get(key) is not None]
+        if recs:
+            xs, ys = zip(*recs)
+            ax.plot(xs, ys, label=lbl, color=color, alpha=0.85,
+                    linewidth=0.9, marker=".", markersize=3)
+    tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("sigma_1")
+    ax.set_title("Largest singular values"); ax.legend(fontsize=7); ax.grid(True, alpha=0.3)
+
+    # (3,0) Loss
+    ax = axes[3, 0]
+    ax.plot(steps, losses, label="loss", color="gray", alpha=0.9)
+    tl(ax); ax.set_xlabel("Step"); ax.set_ylabel("Loss")
+    ax.set_title("Training loss"); ax.legend(fontsize=7); ax.grid(True, alpha=0.3)
+
+    # (3,1) reserved
+    axes[3, 1].text(0.5, 0.5, "(reserved)", transform=axes[3, 1].transAxes,
+                    ha="center", va="center", fontsize=10, color="gray")
+    axes[3, 1].set_xticks([]); axes[3, 1].set_yticks([])
+
+    plt.tight_layout(rect=[0, 0, 1, 0.99])
+    plt.savefig(output_path, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"Saved plot: {output_path}")
+
+
+def make_weight_hist_plots(log_data, output_path, tile_label=""):
+    """Weight histogram evolution overlay (hist_A/B/C_eff). Skips when g3c not enabled."""
+    if not log_data:
+        return
+    hist_recs = [r for r in log_data
+                 if all(k in r for k in ("hist_A", "hist_B", "hist_C_eff"))]
+    if not hist_recs:
         return
 
-    metrics = [
-        ("norm_A", "||A|| (pre-transfer)"),
-        ("norm_AB", "||A@B||"),
-        ("erank_C", "Effective Rank of C"),
-        ("erank_C_delta", "Effective Rank of C - C_init"),
-        ("A_eff_max", "A weight max"),
-        ("C_raw_max", "C raw conductance max"),
-    ]
+    fig, axes = plt.subplots(3, 1, figsize=(12, 14))
+    fig.suptitle(f"Weight Histogram Evolution — {tile_label}" if tile_label
+                 else "Weight Histogram Evolution", fontsize=14, y=0.995)
 
-    fig, axes = plt.subplots(3, 2, figsize=(16, 14))
-    fig.suptitle("Multi-Tile Diagnostic Comparison", fontsize=14, y=1.01)
+    n_hist = len(hist_recs)
+    sample_idx = sorted(set(min(i, n_hist - 1) for i in
+                            [0, n_hist // 4, n_hist // 2, 3 * n_hist // 4, n_hist - 1]))
+    colors = plt.cm.viridis(np.linspace(0.15, 0.95, len(sample_idx)))
 
-    # Color map for tiles
-    tile_keys = sorted(multi_logs.keys())
-    colors = plt.cm.tab20(range(len(tile_keys)))
+    for ax, key, label in [(axes[0], "hist_A", "A"),
+                           (axes[1], "hist_B", "B"),
+                           (axes[2], "hist_C_eff", "C_eff")]:
+        for ci, idx in enumerate(sample_idx):
+            h = hist_recs[idx][key]
+            counts = h["counts"]
+            edges = np.linspace(h["min"], h["max"], len(counts) + 1)
+            centers = (edges[:-1] + edges[1:]) / 2
+            total = sum(counts)
+            if total > 0:
+                normed = [c / total for c in counts]
+                ax.plot(centers, normed, color=colors[ci], linewidth=1.0,
+                        label=f"step {hist_recs[idx]['step']}", alpha=0.85)
+        ax.set_xlabel(f"{label} weight value")
+        ax.set_ylabel("Density")
+        ax.set_title(f"{label} weight distribution over time ({n_hist} hist samples)")
+        ax.legend(fontsize=7)
+        ax.grid(True, alpha=0.3)
 
-    for idx, (field, title) in enumerate(metrics):
-        ax = axes[idx // 2, idx % 2]
-
-        # Plot each tile
-        for i, k in enumerate(tile_keys):
-            steps_data = multi_logs[k]
-            if not steps_data:
-                continue
-            steps = [s["step"] for s in steps_data]
-            vals = [s.get(field, 0) for s in steps_data]
-            ax.plot(steps, vals, color=colors[i], alpha=0.4, linewidth=0.7, label=k)
-
-        # Plot mean
-        steps = [s["step"] for s in mean_log]
-        vals = [s.get(field, 0) for s in mean_log]
-        ax.plot(steps, vals, color="black", linewidth=2.0, label="mean")
-
-        ax.set_xlabel("Step")
-        ax.set_ylabel(title)
-        ax.set_title(title)
-
-    # Single legend outside
-    handles, labels = axes[0, 0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="lower center", ncol=7, fontsize=7,
-               bbox_to_anchor=(0.5, -0.02))
-
-    plt.tight_layout(rect=[0, 0.04, 1, 0.98])
+    plt.tight_layout(rect=[0, 0, 1, 0.98])
     plt.savefig(output_path, dpi=150, bbox_inches="tight")
-    plt.savefig(output_path.replace(".png", ".svg"), bbox_inches="tight")
     plt.close()
     print(f"Saved plot: {output_path}")
 
@@ -1482,74 +1748,36 @@ def main():
     # =========================================================================
     # Diagnostic setup (skipped if ENABLE_DIAGNOSTIC=False)
     # =========================================================================
-    first_gc, last_gc = {}, {}
-    first_log, last_log = [], []
-    first_C_prev_raw, last_C_prev_raw = None, None
-    first_C_initial_eff, last_C_initial_eff = None, None
-    first_prev_nt, last_prev_nt = 0, 0
-    first_name = last_name = ""
-    first_tile = last_tile = None
+    diag_state = {}
     A_CI = B_CI = C_CI = []
     A_shape = B_shape = C_shape = ()
 
     if ENABLE_DIAGNOSTIC:
-        first_name, first_tile = find_first_lrtt_tile(model)
-        last_name, last_tile = find_last_lrtt_tile(model)
+        # Resolve cell-indices from any one selected tile's shape (all share shape family)
+        _resolved = resolve_diag_tiles(model, DIAG_TILES, LORA_TARGET)
+        if _resolved:
+            _ref_tile = next(iter(_resolved.values()))[1]
+            A_shape = tuple(_ref_tile.tile_a.get_weights()[0].shape)
+            B_shape = tuple(_ref_tile.tile_b.get_weights()[0].shape)
+            C_shape = tuple(_ref_tile.tile_c.get_weights()[0].shape)
+            A_CI = _make_cell_indices(A_shape)
+            B_CI = _make_cell_indices(B_shape)
+            C_CI = _make_cell_indices(C_shape)
 
-        # Enable controller-level diagnostics for transfer delta tracking
-        first_tile.controller.enable_diagnostics = True
-        last_tile.controller.enable_diagnostics = True
-
-        A_shape = tuple(first_tile.tile_a.get_weights()[0].shape)
-        B_shape = tuple(first_tile.tile_b.get_weights()[0].shape)
-        C_shape = tuple(first_tile.tile_c.get_weights()[0].shape)
-        A_CI = _make_cell_indices(A_shape)
-        B_CI = _make_cell_indices(B_shape)
-        C_CI = _make_cell_indices(C_shape)
-
-        # Capture initial C weights for effective rank of delta
-        first_C_initial_eff = first_tile.tile_c.get_weights()[0].clone().detach()
-        last_C_initial_eff = last_tile.tile_c.get_weights()[0].clone().detach()
-
-        print(f"\nDiag tile (first): {first_name}  A{A_shape} B{B_shape} C{C_shape}")
-        print(f"Diag tile (last):  {last_name}")
+        for _sn, (_fn, _mod) in _resolved.items():
+            _mod.controller.enable_diagnostics = True
+            diag_state[_sn] = {
+                "tile": _mod, "full_name": _fn,
+                "gc": {}, "log": [],
+                "prev_nt": 0, "last_erank_step": -10**9,
+                "whist_count": 0,
+                "C_initial_eff": _mod.tile_c.get_weights()[0].clone().detach(),
+                "A_CI": A_CI, "B_CI": B_CI, "C_CI": C_CI,
+            }
+        print(f"\nDiag tiles (DIAG_TILES={DIAG_TILES!r}): {len(diag_state)} tile(s); shapes A{A_shape} B{B_shape} C{C_shape}")
+        for _sn in diag_state:
+            print(f"  - {_sn}: {diag_state[_sn]['full_name']}")
         print(f"Diag epochs: {'all' if DIAG_EPOCHS == 0 else f'first {DIAG_EPOCHS}'}")
-
-        # Multi-tile tracking: layer 0, 6, 11 × qkvo
-        multi_tiles = find_target_lrtt_tiles(model)
-        multi_logs = {k: [] for k in multi_tiles}
-        multi_C_initial = {}
-        for k, (tname, tmod) in multi_tiles.items():
-            multi_C_initial[k] = tmod.tile_c.get_weights()[0].clone().detach()
-            tmod.controller.enable_diagnostics = True
-            print(f"  Multi-diag: {k} → {tname}")
-
-        def _collect_multi_tile_metrics(step):
-            """Collect lightweight metrics for all tracked tiles."""
-            for k, (tname, tmod) in multi_tiles.items():
-                A = tmod.tile_a.get_weights()[0]
-                B = tmod.tile_b.get_weights()[0]
-                C_eff = tmod.tile_c.get_weights()[0]
-                C_raw = get_raw_C(tmod.tile_c)
-                ctrl = tmod.controller
-                rec = {
-                    "step": step,
-                    "norm_A": torch.norm(A).item(),
-                    "norm_B": torch.norm(B).item(),
-                    "norm_C_raw": torch.norm(C_raw).item(),
-                    "norm_AB": torch.norm(A @ B).item(),
-                    "mean_A": A.mean().item(), "mean_B": B.mean().item(),
-                    "mean_C_raw": C_raw.mean().item(), "mean_C_eff": C_eff.mean().item(),
-                    "A_eff_min": A.min().item(), "A_eff_max": A.max().item(),
-                    "B_eff_min": B.min().item(), "B_eff_max": B.max().item(),
-                    "C_eff_min": C_eff.min().item(), "C_eff_max": C_eff.max().item(),
-                    "C_raw_min": C_raw.min().item(), "C_raw_max": C_raw.max().item(),
-                    "num_transfers": ctrl.num_transfers,
-                    "is_transfer": False,
-                }
-                if multi_logs[k]:
-                    rec["is_transfer"] = ctrl.num_transfers > multi_logs[k][-1]["num_transfers"]
-                multi_logs[k].append(rec)
 
         def _install_hook(diag_tile, device, gc_dict):
             d_size, x_size = diag_tile.tile_c.get_weights()[0].shape
@@ -1574,6 +1802,10 @@ def main():
                 with torch.no_grad():
                     x_2d = x_b.reshape(-1, x_b.shape[-1])
                     d_2d = d_a.reshape(-1, d_a.shape[-1])
+                    # Guard: with grad_accum>1 + FI, tile_a/b process groups
+                    # independently so x_b and d_a may come from different
+                    # micro-batches with different seq lengths (dynamic padding)
+                    # Truncate to the shorter batch dim so G_accum is always updated
                     min_batch = min(d_2d.shape[0], x_2d.shape[0])
                     gc_dict['G_accum'] = gc_dict['G_accum'] + d_2d[:min_batch].t() @ x_2d[:min_batch]
                     A = diag_tile.tile_a.get_weights()[0].to(device)
@@ -1591,19 +1823,12 @@ def main():
                     gc_dict['da_abs_mean'], gc_dict['da_abs_max'] = _abs_stats(d_a.to(device))
                     gc_dict['xb_abs_mean'], gc_dict['xb_abs_max'] = _abs_stats(x_b.to(device))
                     gc_dict['db_abs_mean'], gc_dict['db_abs_max'] = _abs_stats(d_b.to(device))
-                    # Percentiles (p5, p25, p50, p75, p95)
-                    _pcts = torch.tensor([0.05, 0.25, 0.5, 0.75, 0.95], device=device)
-                    for _prefix, _t in [('xa', x_a), ('da', d_a), ('xb', x_b), ('db', d_b)]:
-                        _flat = _t.to(device).abs().flatten()
-                        _q = torch.quantile(_flat.float(), _pcts).tolist()
-                        gc_dict[f'{_prefix}_p5'] = _q[0]
-                        gc_dict[f'{_prefix}_p25'] = _q[1]
-                        gc_dict[f'{_prefix}_p50'] = _q[2]
-                        gc_dict[f'{_prefix}_p75'] = _q[3]
-                        gc_dict[f'{_prefix}_p95'] = _q[4]
-                    # Histogram (every 100 steps)
+                    # Signal histogram (rate-limited by HIST_RATE_STEPS, gated by g10)
                     gc_dict['_capture_count'] = gc_dict.get('_capture_count', 0) + 1
-                    if gc_dict['_capture_count'] % 100 == 1:
+                    _do_hist = (DIAG_GROUPS.get('g10_signal_hist', False)
+                                and HIST_RATE_STEPS > 0
+                                and (gc_dict['_capture_count'] - 1) % HIST_RATE_STEPS == 0)
+                    if _do_hist:
                         _hists = {}
                         for _prefix, _t in [('xa', x_a), ('da', d_a), ('xb', x_b), ('db', d_b)]:
                             _flat = _t.to(device).abs().flatten().float()
@@ -1643,8 +1868,6 @@ def main():
             def _compute_transfer_stats(gc_dict):
                 """Compute xc/dc stats from accumulated tensors."""
                 with torch.no_grad():
-                    _pcts = torch.tensor([0.05, 0.25, 0.5, 0.75, 0.95],
-                                         device=device)
                     xc_list = gc_dict['_transfer_xc_all']
                     dc_list = gc_dict['_transfer_dc_all']
                     if xc_list:
@@ -1652,24 +1875,25 @@ def main():
                         dc_cat = torch.cat(dc_list, dim=0).to(device)
                         gc_dict['xc_abs_mean'], gc_dict['xc_abs_max'] = _abs_stats(xc_cat)
                         gc_dict['dc_abs_mean'], gc_dict['dc_abs_max'] = _abs_stats(dc_cat)
-                        for _prefix, _t in [('xc', xc_cat), ('dc', dc_cat)]:
-                            _flat = _t.abs().flatten()
-                            _q = torch.quantile(_flat.float(), _pcts).tolist()
-                            gc_dict[f'{_prefix}_p5'] = _q[0]
-                            gc_dict[f'{_prefix}_p25'] = _q[1]
-                            gc_dict[f'{_prefix}_p50'] = _q[2]
-                            gc_dict[f'{_prefix}_p75'] = _q[3]
-                            gc_dict[f'{_prefix}_p95'] = _q[4]
-                        _hists_c = {}
-                        for _prefix, _t in [('xc', xc_cat), ('dc', dc_cat)]:
-                            _flat = _t.abs().flatten().float()
-                            _max_val = _flat.max().item()
-                            if _max_val > 0:
-                                _counts = torch.histc(_flat, bins=50, min=0, max=_max_val).tolist()
-                                _hists_c[_prefix] = {'counts': _counts, 'min': 0.0, 'max': _max_val}
-                            else:
-                                _hists_c[_prefix] = {'counts': [float(_flat.numel())] + [0.0]*49, 'min': 0.0, 'max': 1.0}
-                        gc_dict['_transfer_hist'] = _hists_c
+                        # Transfer histogram (rate-limited by HIST_RATE_STEPS in transfer-call units, gated by g11c)
+                        gc_dict['_transfer_hist_count'] = gc_dict.get('_transfer_hist_count', 0) + 1
+                        _do_xfer_hist = (DIAG_GROUPS.get('g11c_xc_dc_hist', False)
+                                         and HIST_RATE_STEPS > 0
+                                         and (gc_dict['_transfer_hist_count'] - 1) % HIST_RATE_STEPS == 0)
+                        if _do_xfer_hist:
+                            _hists_c = {}
+                            for _prefix, _t in [('xc', xc_cat), ('dc', dc_cat)]:
+                                _flat = _t.abs().flatten().float()
+                                _max_val = _flat.max().item()
+                                if _max_val > 0:
+                                    _counts = torch.histc(_flat, bins=50, min=0, max=_max_val).tolist()
+                                    _hists_c[_prefix] = {'counts': _counts, 'min': 0.0, 'max': _max_val}
+                                else:
+                                    _hists_c[_prefix] = {'counts': [float(_flat.numel())] + [0.0]*49, 'min': 0.0, 'max': 1.0}
+                            gc_dict['_transfer_hist'] = _hists_c
+                            gc_dict['_transfer_hist_ready'] = True
+                        else:
+                            gc_dict['_transfer_hist_ready'] = False
                         gc_dict['transfer_lr_c'] = gc_dict['_transfer_lr_c']
                         gc_dict['transfer_n_calls'] = len(xc_list)
                         del xc_cat, dc_cat
@@ -1766,9 +1990,10 @@ def main():
 
                 ctrl.ab_weight_update = hooked
 
-        _install_hook(first_tile, DEVICE, first_gc)
-        _install_hook(last_tile, DEVICE, last_gc)
-        print("Gradient tracking hooks installed")
+        # Install hooks on every tile in diag_state
+        for _sn, _s in diag_state.items():
+            _install_hook(_s["tile"], DEVICE, _s["gc"])
+        print(f"Gradient tracking hooks installed on {len(diag_state)} tile(s)")
 
     # Initial evaluation
     init_acc, init_val_loss = evaluate_model(model, eval_loader)
@@ -1809,11 +2034,9 @@ def main():
             if (micro_step + 1) % GRAD_ACCUM_STEPS == 0:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
-                # Diagnostic: snapshot before optimizer step
                 diag_active = ENABLE_DIAGNOSTIC and (DIAG_EPOCHS == 0 or epoch <= DIAG_EPOCHS)
                 if diag_active:
-                    first_snap = snapshot_weights(first_tile)
-                    last_snap = snapshot_weights(last_tile)
+                    snaps = {sn: snapshot_weights(s["tile"]) for sn, s in diag_state.items()}
 
                 optimizer.step()
                 scheduler.step()
@@ -1821,97 +2044,85 @@ def main():
                 global_step += 1
 
                 if diag_active:
-                    # --- Collect diagnostics ---
-                    for tile, snap, gcd, log_list, prev_state in [
-                        (first_tile, first_snap, first_gc, first_log, "first"),
-                        (last_tile, last_snap, last_gc, last_log, "last"),
-                    ]:
-                        A_bef, B_bef, C_bef, Craw_bef = snap
+                    for sn, s in diag_state.items():
+                        tile = s["tile"]
+                        gcd = s["gc"]
+                        A_bef, B_bef, Ceff_bef = snaps[sn]
                         A_pre = gcd.pop('_A_pre_transfer', None)
-                        if prev_state == "first":
-                            rec, first_C_prev_raw, first_prev_nt = collect_tile_diagnostics(
-                                tile, first_C_prev_raw, A_bef, B_bef, C_bef, Craw_bef,
-                                global_step, first_prev_nt, A_CI, B_CI, C_CI,
-                                A_pre_transfer=A_pre, C_initial_eff=first_C_initial_eff)
-                        else:
-                            rec, last_C_prev_raw, last_prev_nt = collect_tile_diagnostics(
-                                tile, last_C_prev_raw, A_bef, B_bef, C_bef, Craw_bef,
-                                global_step, last_prev_nt, A_CI, B_CI, C_CI,
-                                A_pre_transfer=A_pre, C_initial_eff=last_C_initial_eff)
+                        _is_xfer = tile.controller.num_transfers > s["prev_nt"]
+                        _do_erank = (ERANK_RATE_LIMIT_STEPS <= 0) or (
+                            _is_xfer and (global_step - s["last_erank_step"]) >= ERANK_RATE_LIMIT_STEPS
+                        )
+                        if _do_erank:
+                            s["last_erank_step"] = global_step
+                        s["whist_count"] += 1
+                        _do_whist = (HIST_RATE_STEPS > 0
+                                     and (s["whist_count"] - 1) % HIST_RATE_STEPS == 0)
+                        rec, s["prev_nt"] = collect_tile_diagnostics(
+                            tile, A_bef, B_bef, Ceff_bef,
+                            global_step, s["prev_nt"], s["A_CI"], s["B_CI"], s["C_CI"],
+                            A_pre_transfer=A_pre, C_initial_eff=s["C_initial_eff"],
+                            compute_erank=_do_erank, compute_weight_hist=_do_whist)
                         rec["loss"] = loss.item() * GRAD_ACCUM_STEPS
+
+                        # Hook-based fields (only populated for tiles with hooks installed)
                         rec["norm_G_accum"] = gcd.get('norm_G_accum', 0.0)
                         rec["norm_AB_pre"] = gcd.get('norm_AB_pre', 0.0)
                         rec["cos_AB_G"] = gcd.get('cos_AB_G', 0.0)
                         # tile_a sees (XB, d_raw); tile_b sees (x_raw, DA)
-                        rec["xa_abs_mean"] = gcd.get('xa_abs_mean', 0.0)
-                        rec["xa_abs_max"] = gcd.get('xa_abs_max', 0.0)
-                        rec["da_abs_mean"] = gcd.get('da_abs_mean', 0.0)
-                        rec["da_abs_max"] = gcd.get('da_abs_max', 0.0)
-                        rec["xb_abs_mean"] = gcd.get('xb_abs_mean', 0.0)
-                        rec["xb_abs_max"] = gcd.get('xb_abs_max', 0.0)
-                        rec["db_abs_mean"] = gcd.get('db_abs_mean', 0.0)
-                        rec["db_abs_max"] = gcd.get('db_abs_max', 0.0)
-                        # Percentiles
-                        for _pf in ['xa', 'da', 'xb', 'db']:
-                            for _pp in ['p5', 'p25', 'p50', 'p75', 'p95']:
-                                rec[f'{_pf}_{_pp}'] = gcd.get(f'{_pf}_{_pp}', 0.0)
-                        # Histogram (only when captured)
+                        for _pf in ("xa", "xb", "da", "db"):
+                            rec[f"{_pf}_abs_mean"] = gcd.get(f"{_pf}_abs_mean", 0.0)
+                            rec[f"{_pf}_abs_max"]  = gcd.get(f"{_pf}_abs_max",  0.0)
                         if gcd.get('_hist_ready'):
                             rec['xd_hist'] = gcd['_last_hist']
-                        # Transfer C tile x/d diagnostics (recorded at transfer steps)
+
+                        # Transfer-event-only fields
                         if rec["is_transfer"]:
-                            rec['xc_abs_mean'] = gcd.get('xc_abs_mean', 0.0)
-                            rec['xc_abs_max'] = gcd.get('xc_abs_max', 0.0)
-                            rec['dc_abs_mean'] = gcd.get('dc_abs_mean', 0.0)
-                            rec['dc_abs_max'] = gcd.get('dc_abs_max', 0.0)
-                            rec['transfer_lr_c'] = gcd.get('transfer_lr_c', 0.0)
+                            for _pf in ("xc", "dc"):
+                                rec[f"{_pf}_abs_mean"] = gcd.get(f"{_pf}_abs_mean", 0.0)
+                                rec[f"{_pf}_abs_max"]  = gcd.get(f"{_pf}_abs_max",  0.0)
+                            rec['transfer_lr_c']    = gcd.get('transfer_lr_c', 0.0)
                             rec['transfer_n_calls'] = gcd.get('transfer_n_calls', 0)
-                            for _pf in ['xc', 'dc']:
-                                for _pp in ['p5', 'p25', 'p50', 'p75', 'p95']:
-                                    rec[f'{_pf}_{_pp}'] = gcd.get(f'{_pf}_{_pp}', 0.0)
-                            if gcd.get('_transfer_hist'):
+                            if gcd.get('_transfer_hist_ready') and gcd.get('_transfer_hist'):
                                 rec['xc_dc_hist'] = gcd['_transfer_hist']
 
-                        with torch.no_grad():
-                            # Cosines and norms only at transfer steps (G_accum resets per transfer)
-                            if rec["is_transfer"]:
+                            with torch.no_grad():
                                 C_eff_after = tile.tile_c.get_weights()[0].to(DEVICE)
-                                C_eff_bef = snap[2].to(DEVICE)  # C_before from snapshot (effective)
+                                C_eff_bef   = Ceff_bef.to(DEVICE)
                                 delta_C_mat = C_eff_after - C_eff_bef
                                 ctrl_delta = tile.controller.last_transfer_delta
                                 tlr_AB = ctrl_delta.to(DEVICE) if ctrl_delta is not None else torch.zeros_like(delta_C_mat)
                                 dC_f = delta_C_mat.flatten()
-                                G_f = gcd.get('G_accum', torch.zeros_like(delta_C_mat)).flatten()
+                                G_f  = gcd.get('G_accum', torch.zeros_like(delta_C_mat)).flatten()
                                 tlr_f = tlr_AB.flatten()
-                                rec["cos_dC_G"] = _cos_sim(dC_f, G_f)
-                                rec["cos_tlrAB_G"] = _cos_sim(tlr_f, G_f)
-                                rec["cos_dC_tlrAB"] = _cos_sim(dC_f, tlr_f)
-                                rec["norm_dC_step"] = torch.norm(delta_C_mat).item()
-                                rec["norm_tlrAB"] = torch.norm(tlr_AB).item()
+                                rec["cos_dC_G"]      = _cos_sim(dC_f, G_f)
+                                rec["cos_tlrAB_G"]   = _cos_sim(tlr_f, G_f)
+                                rec["cos_dC_tlrAB"]  = _cos_sim(dC_f, tlr_f)
+                                rec["norm_dC_step"]  = torch.norm(delta_C_mat).item()
+                                rec["norm_tlrAB"]    = torch.norm(tlr_AB).item()
 
-                        if rec["is_transfer"]:
-                            gcd['G_accum'] = torch.zeros_like(gcd['G_accum'])
+                            if 'G_accum' in gcd:
+                                gcd['G_accum'] = torch.zeros_like(gcd['G_accum'])
 
-                        log_list.append(rec)
+                        s["log"].append(rec)
 
-                    # Override snap A with pre-transfer values for next step's A_before
-                    A_pre_first = first_gc.get('_A_pre_transfer')
-                    if A_pre_first is not None:
-                        first_snap = (A_pre_first,) + first_snap[1:]
-                    A_pre_last = last_gc.get('_A_pre_transfer')
-                    if A_pre_last is not None:
-                        last_snap = (A_pre_last,) + last_snap[1:]
+                        # Override snap A with pre-transfer values for next step's A_before
+                        A_pre_now = gcd.get('_A_pre_transfer')
+                        if A_pre_now is not None:
+                            snaps[sn] = (A_pre_now,) + snaps[sn][1:]
 
-                    # Multi-tile metrics
-                    with torch.no_grad():
-                        _collect_multi_tile_metrics(global_step)
-
+                    # Progress bar (first/last preferred when DIAG_TILES="first_last")
+                    _first_rec = diag_state["first"]["log"][-1] if "first" in diag_state else None
+                    _last_rec  = diag_state["last"]["log"][-1]  if "last"  in diag_state else None
                     tag = ""
-                    if first_log[-1]["is_transfer"]: tag += " [T1]"
-                    if last_log[-1]["is_transfer"]: tag += " [T2]"
+                    if _first_rec and _first_rec.get("is_transfer"): tag += " [T1]"
+                    if _last_rec  and _last_rec.get("is_transfer"):  tag += " [T2]"
+                    _ref = _first_rec or _last_rec or next(iter(s["log"][-1] for s in diag_state.values()), {})
                     pbar.set_postfix_str(
-                        f"loss={loss.item() * GRAD_ACCUM_STEPS:.4f} ||A||={first_log[-1]['norm_A']:.3f} "
-                        f"T1={first_log[-1]['num_transfers']} T2={last_log[-1]['num_transfers']}{tag}")
+                        f"loss={loss.item() * GRAD_ACCUM_STEPS:.4f} "
+                        f"||A||={_ref.get('norm_A', 0):.3f} "
+                        f"T1={_first_rec.get('num_transfers', 0) if _first_rec else 0} "
+                        f"T2={_last_rec.get('num_transfers', 0) if _last_rec else 0}{tag}")
                 else:
                     pbar.set_postfix(loss=f"{loss.item() * GRAD_ACCUM_STEPS:.4f}")
 
@@ -1920,8 +2131,8 @@ def main():
 
         # Deactivate hooks after DIAG_EPOCHS
         if ENABLE_DIAGNOSTIC and DIAG_EPOCHS > 0 and epoch == DIAG_EPOCHS:
-            first_gc['active'] = False
-            last_gc['active'] = False
+            for _s in diag_state.values():
+                _s["gc"]["active"] = False
             print(f"Diagnostic collection stopped after epoch {epoch}")
 
         train_loss = total_loss / num_batches if num_batches > 0 else 0.0
@@ -1980,85 +2191,85 @@ def main():
     # =========================================================================
     # Save diagnostic outputs
     # =========================================================================
-    if ENABLE_DIAGNOSTIC and first_log:
+    _any_log = any(s["log"] for s in diag_state.values()) if ENABLE_DIAGNOSTIC and diag_state else False
+    if ENABLE_DIAGNOSTIC and _any_log:
         stamp = f"te{TRANSFER_EVERY}_r{LRTT_RANK}_{TRANSFER_METHOD}"
-        first_transfers = [r["step"] for r in first_log if r["is_transfer"]]
-        last_transfers = [r["step"] for r in last_log if r["is_transfer"]]
-        diag_steps = len(first_log)
-        print(f"\nDiag: {diag_steps}/{global_step} steps, T1={len(first_transfers)}, T2={len(last_transfers)}")
+        diag_steps_total = max(len(s["log"]) for s in diag_state.values())
+        _xfer_counts = {sn: sum(1 for r in s["log"] if r["is_transfer"]) for sn, s in diag_state.items()}
+        print(f"\nDiag: {diag_steps_total}/{global_step} steps, "
+              f"transfers={ {sn: c for sn, c in _xfer_counts.items()} }")
+
+        # Build per-tile dict for JSON
+        tiles_out = {}
+        for sn, s in diag_state.items():
+            xfer_steps = [r["step"] for r in s["log"] if r["is_transfer"]]
+            tiles_out[sn] = {
+                "name": s["full_name"],
+                "A_shape": list(A_shape), "B_shape": list(B_shape), "C_shape": list(C_shape),
+                "A_cell_indices": s["A_CI"], "B_cell_indices": s["B_CI"], "C_cell_indices": s["C_CI"],
+                "total_transfers": len(xfer_steps), "transfer_steps": xfer_steps,
+                "steps": s["log"],
+            }
+
+        # Output JSON: new "tiles" dict, plus first_tile/last_tile aliases for backward compat
+        output = {
+            "config": {
+                "learning_rate": LEARNING_RATE, "transfer_lr": TRANSFER_LR,
+                "transfer_every": TRANSFER_EVERY, "lrtt_rank": LRTT_RANK,
+                "fast_lr": FAST_LR, "auto_scale_mode": AUTO_SCALE_MODE, "reinit_mode": REINIT_MODE,
+                "transfer_method": TRANSFER_METHOD, "optimizer": OPTIMIZER,
+                "batch_size": BATCH_SIZE, "n_epochs": N_EPOCHS,
+                "diag_epochs": DIAG_EPOCHS,
+                "diag_tiles": DIAG_TILES if isinstance(DIAG_TILES, str) else {str(k): v for k, v in DIAG_TILES.items()},
+                "diag_groups": dict(DIAG_GROUPS),
+            },
+            "task": TASK_NAME, "metric": metric_name,
+            "best_metric": best_acc, "best_epoch": best_epoch,
+            "epoch_history": epoch_history,
+            "total_steps": global_step, "diag_steps": diag_steps_total,
+            "tiles": tiles_out,
+        }
+        if "first" in tiles_out: output["first_tile"] = tiles_out["first"]
+        if "last"  in tiles_out: output["last_tile"]  = tiles_out["last"]
 
         json_path = os.path.join(RESULTS, f"{TASK_NAME}_diagnostic_log_{stamp}.json")
         with open(json_path, 'w') as f:
-            json.dump({
-                "config": {
-                    "learning_rate": LEARNING_RATE, "transfer_lr": TRANSFER_LR,
-                    "transfer_every": TRANSFER_EVERY, "lrtt_rank": LRTT_RANK,
-                    "fast_lr": FAST_LR, "auto_scale_mode": AUTO_SCALE_MODE, "reinit_mode": REINIT_MODE,
-                    "transfer_method": TRANSFER_METHOD, "optimizer": OPTIMIZER,
-                    "batch_size": BATCH_SIZE, "n_epochs": N_EPOCHS,
-                    "diag_epochs": DIAG_EPOCHS,
-                },
-                "task": TASK_NAME, "metric": metric_name,
-                "best_metric": best_acc, "best_epoch": best_epoch,
-                "epoch_history": epoch_history,
-                "total_steps": global_step, "diag_steps": diag_steps,
-                "first_tile": {
-                    "name": first_name,
-                    "A_shape": list(A_shape), "B_shape": list(B_shape), "C_shape": list(C_shape),
-                    "A_cell_indices": A_CI, "B_cell_indices": B_CI, "C_cell_indices": C_CI,
-                    "total_transfers": len(first_transfers), "transfer_steps": first_transfers,
-                    "steps": first_log,
-                },
-                "last_tile": {
-                    "name": last_name,
-                    "A_shape": list(A_shape), "B_shape": list(B_shape), "C_shape": list(C_shape),
-                    "A_cell_indices": A_CI, "B_cell_indices": B_CI, "C_cell_indices": C_CI,
-                    "total_transfers": len(last_transfers), "transfer_steps": last_transfers,
-                    "steps": last_log,
-                },
-                # Multi-tile data
-                "multi_tiles": {k: {"name": multi_tiles[k][0], "steps": multi_logs[k]}
-                                for k in multi_tiles if multi_logs[k]},
-                # Mean across all multi-tiles per step
-                "multi_mean": _compute_multi_mean(multi_logs) if any(multi_logs.values()) else [],
-            }, f, indent=2)
+            json.dump(output, f, indent=2)
         print(f"Saved: {json_path}")
 
-        make_diagnostic_plots(first_log,
-            os.path.join(RESULTS, f"{TASK_NAME}_diag_first_{stamp}.png"),
-            tile_label=f"First tile ({first_name})", A_ci=A_CI, B_ci=B_CI, C_ci=C_CI)
-        make_diagnostic_plots(last_log,
-            os.path.join(RESULTS, f"{TASK_NAME}_diag_last_{stamp}.png"),
-            tile_label=f"Last tile ({last_name})", A_ci=A_CI, B_ci=B_CI, C_ci=C_CI)
+        # Per-tile plots (4 kinds per tile)
+        for sn, s in diag_state.items():
+            label = f"{sn} tile ({s['full_name']})"
+            make_diagnostic_plots(s["log"],
+                os.path.join(RESULTS, f"{TASK_NAME}_diag_{sn}_{stamp}.png"),
+                tile_label=label,
+                A_ci=s["A_CI"], B_ci=s["B_CI"], C_ci=s["C_CI"])
+            make_weight_dynamics_plots(s["log"],
+                os.path.join(RESULTS, f"{TASK_NAME}_weight_dyn_{sn}_{stamp}.png"),
+                tile_label=label)
+            make_weight_hist_plots(s["log"],
+                os.path.join(RESULTS, f"{TASK_NAME}_weight_hist_{sn}_{stamp}.png"),
+                tile_label=label)
+            make_xd_diagnostic_plots(s["log"],
+                os.path.join(RESULTS, f"{TASK_NAME}_diag_xd_{sn}_{stamp}.png"),
+                tile_label=label)
 
-        # x/d distribution plots
-        make_xd_diagnostic_plots(first_log,
-            os.path.join(RESULTS, f"{TASK_NAME}_diag_xd_first_{stamp}.png"),
-            tile_label=f"First tile ({first_name})")
-        make_xd_diagnostic_plots(last_log,
-            os.path.join(RESULTS, f"{TASK_NAME}_diag_xd_last_{stamp}.png"),
-            tile_label=f"Last tile ({last_name})")
-
-        # Multi-tile comparison plot
-        if any(multi_logs.values()):
-            make_multi_tile_plots(
-                multi_logs, _compute_multi_mean(multi_logs),
-                os.path.join(RESULTS, f"{TASK_NAME}_diag_multi_{stamp}.png"))
-
+        # Per-epoch plots (still only emit for first/last when present)
         steps_per_epoch = len(train_loader) // GRAD_ACCUM_STEPS
         diag_ep = DIAG_EPOCHS if DIAG_EPOCHS > 0 else N_EPOCHS
         for ep in range(1, diag_ep + 1):
             s0, s1 = (ep-1)*steps_per_epoch, ep*steps_per_epoch
-            ef, el = first_log[s0:s1], last_log[s0:s1]
-            if not ef: break
-            make_diagnostic_plots(ef,
-                os.path.join(RESULTS, f"{TASK_NAME}_diag_first_{stamp}_ep{ep}.png"),
-                tile_label=f"First tile ({first_name}) — Epoch {ep}",
-                A_ci=A_CI, B_ci=B_CI, C_ci=C_CI)
-            make_diagnostic_plots(el,
-                os.path.join(RESULTS, f"{TASK_NAME}_diag_last_{stamp}_ep{ep}.png"),
-                tile_label=f"Last tile ({last_name}) — Epoch {ep}",
-                A_ci=A_CI, B_ci=B_CI, C_ci=C_CI)
+            for sn in ("first", "last"):
+                if sn not in diag_state:
+                    continue
+                ss = diag_state[sn]
+                slc = ss["log"][s0:s1]
+                if not slc:
+                    break
+                make_diagnostic_plots(slc,
+                    os.path.join(RESULTS, f"{TASK_NAME}_diag_{sn}_{stamp}_ep{ep}.png"),
+                    tile_label=f"{sn} tile ({ss['full_name']}) — Epoch {ep}",
+                    A_ci=ss["A_CI"], B_ci=ss["B_CI"], C_ci=ss["C_CI"])
 
     # Memory cleanup
     del model, optimizer, scheduler
