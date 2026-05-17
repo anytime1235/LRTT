@@ -251,7 +251,7 @@ SPLIT_AB_PARAMS = {
     'dw_min': False,
     'multilevel': False,
     'tau_sec': False,
-    'reset_std': False,
+    'reset_std': True,
     'desired_bl': False,
     'weight_scaling_omega': False,
 }
@@ -1372,11 +1372,11 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         fast_lr = 1.0            # fixed (no effect)
         a_tau_sec = b_tau_sec = 0.0    # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 9e-3, 5e0, log=True)
-        transfer_every = trial.suggest_int('transfer_every', 1, 20, log=True)
-        rank_exp = trial.suggest_int('rank_exp', 5, 5)
+        transfer_lr = trial.suggest_float('transfer_lr', 7e-3, 4e1, log=True)
+        transfer_every = trial.suggest_int('transfer_every', 1, 1e3, log=True)
+        rank_exp = trial.suggest_int('rank_exp', 0, 6)
         rank = 2 ** rank_exp
-        fast_lr = trial.suggest_float('fast_lr', 1e-2, 5e0, log=True)
+        fast_lr = trial.suggest_float('fast_lr', 1e-2, 2e1, log=True)
         # tau_sec → device.lifetime is per-tile splittable. Default shared.
         if SPLIT_AB_PARAMS.get('tau_sec', False):
             a_tau_sec = trial.suggest_float('a_tau_sec', 0, 0, log=False)
@@ -1392,7 +1392,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         a_dw_min = trial.suggest_float('a_dw_min', 0.0004883, 0.0004883, log=True)
         b_dw_min = trial.suggest_float('b_dw_min', 0.0004883, 0.0004883, log=True)
     else:
-        ab_dw_min = trial.suggest_float('ab_dw_min', 0.0004883, 0.0004883, log=True)  # default: 6t1c value
+        ab_dw_min = trial.suggest_float('ab_dw_min', 6e-6, 1e-2, log=True)  # default: 6t1c value
         a_dw_min = b_dw_min = ab_dw_min
 
     # desired_bl: per-tile splittable (a_desired_bl / b_desired_bl override the
@@ -1412,7 +1412,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
             a_multilevel = trial.suggest_int('a_multilevel', 12, 12)
             b_multilevel = trial.suggest_int('b_multilevel', 12, 12)
         else:
-            ab_multilevel = trial.suggest_int('ab_multilevel', 12, 12)
+            ab_multilevel = trial.suggest_int('ab_multilevel', 6, 14)
             a_multilevel = b_multilevel = ab_multilevel
     else:
         a_multilevel = b_multilevel = None
@@ -1420,15 +1420,15 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
     # reset_std: per-tile splittable (B's reset_std is the inherent floor noise, also
     # used as the random Gaussian σ for gauss_b_* reinit modes).
     if SPLIT_AB_PARAMS.get('reset_std', False):
-        a_reset_std = trial.suggest_float('a_reset_std', 0.0, 0.0, log=False)
-        b_reset_std = trial.suggest_float('b_reset_std', 0.0, 0.0, log=False)
+        a_reset_std = trial.suggest_float('a_reset_std', 1e-30, 1e-30, log=False)
+        b_reset_std = trial.suggest_float('b_reset_std', 1e30, 1e30, log=False)
     else:
         ab_reset_std = trial.suggest_float('ab_reset_std', 0.0, 0.0, log=False)
         a_reset_std = b_reset_std = ab_reset_std
 
     # C tile pulsed transfer params (only meaningful for onehot/direct)
     if TRANSFER_METHOD in ("onehot", "direct") and not OPT_CONFIG['no_transfer']:
-        c_dw_min = trial.suggest_float('c_dw_min', 0.001953, 0.001953, log=True)
+        c_dw_min = trial.suggest_float('c_dw_min', 1e-3, 4e-2, log=True)
         c_desired_bl = trial.suggest_int('c_desired_bl', 31, 31)
     else:
         c_dw_min = 0.001   # default (unused for "set")
@@ -1525,6 +1525,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         print(f"  ab_dw_min={a_dw_min:.4e}, ab_desired_bl={ab_desired_bl}{_ml_str}")
     else:
         print(f"  a_dw_min={a_dw_min:.4e}, b_dw_min={b_dw_min:.4e}, ab_desired_bl={ab_desired_bl}, multilevel a/b={a_multilevel}/{b_multilevel}")
+    print(f"  a_reset_std={a_reset_std:.4e}, b_reset_std={b_reset_std:.4e}")
     if TRANSFER_METHOD in ("onehot", "direct"):
         print(f"  c_dw_min={c_dw_min:.4e}, c_desired_bl={c_desired_bl}")
     print(f"{'='*70}")
