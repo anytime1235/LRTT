@@ -1,9 +1,11 @@
 # LRTT-v2 BERT/SQuAD 4-Server Sweep — Setup & Run Guide
 
 LRTT-v2 (row-coordinate **selector** + **shuffled-cycle** blockwise transfer)
-BERT-base / SQuAD v1.1 finetuning, swept across **4 servers** by
-**HP-region partition** (disjoint learning-rate shards), 2D grid over
-`learning_rate × transfer_lr`.
+BERT-base / SQuAD v1.1 finetuning, swept across **4 servers**: the LR range
+is split into 4 equal log sub-ranges and each server runs an **independent
+TPE search** over (`learning_rate`, `transfer_lr`) within its sub-range.
+Training regime (optimizer / warmup / min-lr / batch) matches
+`experiments/paper/paper_experiment.py`.
 
 Analog arrays: **Core array AND Auxiliary array both 10-bit ConstantStepDevice**
 (`dw_min = 2/1024 = 0.001953125`).
@@ -82,8 +84,13 @@ export LRTT_RESULTS=/abs/path/to/results
 | Rank / block | `--rank 32` (= selector block size) |
 | Core array | 10-bit `ConstantStepDevice` (`dw_min=0.001953125`) |
 | Auxiliary array (A, B) | 10-bit `ConstantStepDevice` (`dw_min=0.001953125`) |
-| transfer_every | `1` (transfer every step; `units_in_mbatch=True`) |
-| Epochs / batch | `2` / `16` |
+| transfer_every | `3` |
+| Batch / grad-accum | `--batch-size 16` × `--grad-accum-steps 3` = **effective 48** (paper regime) |
+| Epochs | `5` |
+| Optimizer | **AnalogAdam** (paper_experiment.py) |
+| Warmup | ratio `0.05`, applied to **all** param groups (`--no-analog-only-warmup`, paper behavior) |
+| min_lr_rate | `0.5` (linear decay to 50% of peak; paper default, hardcoded) |
+| Weight decay | `0` ; Seed `42` |
 | Data | full SQuAD v1.1 (omit `--train-subset`/`--eval-subset`) |
 
 Also digitally trained alongside the analog QKVO tiles: `qa_outputs` head and
@@ -95,8 +102,8 @@ LRs**:
 
 | Param group | LR | Swept by |
 |---|---|---|
-| analog LRTT auxiliary tiles (QKVO A/B) | `learning_rate` | `--lr-grid` |
-| digital `qa_outputs` + LayerNorm | `classifier_lr` | `--classifier-lr` (fixed) or `--classifier-lr-range` (sweep) |
+| analog LRTT auxiliary tiles (QKVO A/B) | `learning_rate` | **TPE** over this server's LR sub-range |
+| digital `qa_outputs` + LayerNorm (same LR) | `classifier_lr` | fixed `2e-3` (`--classifier-lr`) |
 
 Mechanism (aihwkit-specific): the analog tile LR is taken from the
 optimizer's top-level `lr=` (`defaults["lr"]`) because
@@ -107,23 +114,23 @@ If `--classifier-lr` is **omitted**, behavior falls back to a single shared
 `learning_rate` (old behavior). `transfer_lr` is a separate device-level B→C
 transfer LR (not an optimizer LR).
 
-### Sweep grid (2D, HP-region partitioned)
+### Sweep strategy: per-server TPE over a 1/4 LR sub-range
 
-- **LR grid (8 values, log-spaced):**
-  `1e-4 3.16e-4 1e-3 3.16e-3 1e-2 3.16e-2 1e-1 3.16e-1`
-- **transfer_lr grid (7 values):** `0.1 0.3 1.0 3.0 10.0 30.0 100.0`
+The **full LR range** `[1e-4, 3.16e-1]` is split into **4 equal log
+sub-ranges**; each server runs an **independent TPE search** within its own
+sub-range. `transfer_lr` is TPE-searched over the **full**
+`--tpe-tlr-range` on every server. Per-server TPE seed = `42 + server_id`.
 
-The LR grid is split **round-robin across 4 servers** (each server owns 2 LR
-values spanning low+high), and every server sweeps the **full** TLR grid:
+| Server (`--server-id`) | LR sub-range (TPE searches within) |
+|---|---|
+| 0 | `[1.00e-4, 7.50e-4]` |
+| 1 | `[7.50e-4, 5.62e-3]` |
+| 2 | `[5.62e-3, 4.21e-2]` |
+| 3 | `[4.21e-2, 3.16e-1]` |
 
-| Server (`--server-id`) | LR shard | Trials (LR×TLR) |
-|---|---|---|
-| 0 | `1e-4`, `1e-2` | 2 × 7 = 14 |
-| 1 | `3.16e-4`, `3.16e-2` | 14 |
-| 2 | `1e-3`, `1e-1` | 14 |
-| 3 | `3.16e-3`, `3.16e-1` | 14 |
-
-Total = **56 trials** (8 LR × 7 TLR), no overlap, no shared DB.
+`learning_rate` (= analog LRTT auxiliary LR) and `transfer_lr` are the two
+TPE-searched dimensions. `--n-trials` per server is chosen by you (e.g. 25
+→ 100 total across 4 servers). No grid, no overlap, no shared DB.
 
 ---
 
@@ -138,44 +145,56 @@ cd LRTT
   --mode lrtt_v2 \
   --lora-target qkv --rank 32 --selector-policy shuffled_cycle \
   --lrtt-device-type constant_step --lrtt-weight-bits 10 \
-  --transfer-every 1 --epochs 2 --batch-size 16 \
+  --transfer-every 3 --epochs 5 \
+  --optimizer AnalogAdam \
+  --warmup-ratio 0.05 --no-analog-only-warmup \
+  --batch-size 16 --grad-accum-steps 3 \
   --classifier-lr 2e-3 \
-  --lr-grid 1e-4 3.16e-4 1e-3 3.16e-3 1e-2 3.16e-2 1e-1 3.16e-1 \
-  --tlr-grid 0.1 0.3 1.0 3.0 10.0 30.0 100.0 \
+  --lr-range 1e-4 3.16e-1 \
+  --tpe-tlr-range 0.1 100.0 \
+  --n-trials 25 \
   --num-servers 4 --server-id <0|1|2|3> \
-  --study-name lrttv2_qkvo_cs10_r32te1 \
+  --study-name lrttv2_qkvo_cs10_r32te3 \
   2>&1 | tee experiments/bert_squad_lrttv2/logs/sweep_srv<0|1|2|3>.log
 ```
 
 - `--server-id` is the **only** value that differs between servers.
-- `--classifier-lr 2e-3` activates analog/digital LR separation: the
-  `--lr-grid` sweeps the **analog LRTT auxiliary** LR; the digital
-  `qa_outputs`/LayerNorm use the fixed **`2e-3`, which is the original
-  TikiTaka script's SQuAD LR** (`SQUAD_LR = 2e-3`, the "SQuAD default"
-  constant). Replace with `--classifier-lr-range <lo> <hi>` to sweep it
-  instead, or **omit it** for a single shared LR (old behavior).
+- `--lr-range 1e-4 3.16e-1` is the **full** LR range; the script
+  auto-assigns this server its 1/4 log sub-range (table above) and runs TPE
+  inside it. `--tpe-tlr-range 0.1 100.0` is TPE-searched in full on every
+  server.
+- `--batch-size 16 --grad-accum-steps 3` → **effective batch 48** (paper
+  regime): `loss/=3`, `optimizer.step()` only every 3 micro-batches.
+- `--classifier-lr 2e-3` separates LR: analog LRTT auxiliary tiles use the
+  TPE-searched `learning_rate`; digital `qa_outputs` **and** LayerNorm share
+  the fixed `2e-3` (= original TikiTaka `SQUAD_LR`). classifier_lr == ln_lr
+  (they are one digital group).
+- `--optimizer AnalogAdam --warmup-ratio 0.05 --no-analog-only-warmup`
+  matches `paper_experiment.py`: AnalogAdam, linear warmup (ratio 0.05)
+  applied to **all** param groups, linear decay to `min_lr_rate=0.5`
+  (hardcoded, = paper default), seed 42, weight_decay 0.
+- `--n-trials 25` → 25 TPE trials/server (≈100 total). Tune as needed.
 - Each server writes its own study + SQLite DB:
-  `results/optuna_lrttv2_qkvo_cs10_r32te1_srv<k>of4.db`
+  `results/optuna_lrttv2_qkvo_cs10_r32te3_srv<k>of4.db`
   and `results/all_trials_bert_squad.json`.
-- `n_trials` is derived automatically from the grid (no `--n-trials` needed).
 
-> Runtime note: full SQuAD + 2 epochs ≈ thousands of steps **per trial** ×
-> 14 trials/server. To smoke-test the pipeline first, add
-> `--train-subset 1500 --eval-subset 400 --epochs 1` (then drop them for the
-> real sweep). Grids are fully overridable via `--lr-grid` / `--tlr-grid`.
+> Runtime note: full SQuAD + 5 epochs ≈ tens of thousands of optimizer steps
+> **per trial**. To smoke-test the pipeline first, add
+> `--train-subset 1500 --eval-subset 400 --epochs 1 --n-trials 1` (then drop
+> them for the real sweep).
 
 ---
 
 ## 4. Merge results (after all servers finish)
 
-Copy each server's `results/optuna_lrttv2_qkvo_cs10_r32te1_srv<k>of4.db` (or
+Copy each server's `results/optuna_lrttv2_qkvo_cs10_r32te3_srv<k>of4.db` (or
 the per-server `all_trials_bert_squad.json`) to one machine, then:
 
 ```bash
 ~/.venv310/bin/python - <<'PY'
 import json, glob, optuna
 rows=[]
-for db in glob.glob("optuna_lrttv2_qkvo_cs10_r32te1_srv*of4.db"):
+for db in glob.glob("optuna_lrttv2_qkvo_cs10_r32te3_srv*of4.db"):
     name=db[len("optuna_"):-3]
     st=optuna.load_study(study_name=name, storage=f"sqlite:///{db}")
     for t in st.trials:
@@ -190,8 +209,9 @@ print("best:", rows[0] if rows else "none", "| total", len(rows))
 PY
 ```
 
-The combined 8×7 grid is reconstructed exactly (HP-region partition → disjoint
-union with no duplicate cells).
+The 4 servers' TPE searches cover disjoint LR sub-ranges (their union = the
+full `[1e-4, 3.16e-1]` range); merging gives the global best across the whole
+range with no overlap.
 
 ---
 
@@ -199,11 +219,11 @@ union with no duplicate cells).
 
 - **Shuffle coverage:** BERT hidden = 768, block = rank = 32 → one
   `shuffled_cycle` = 768/32 = **24 transfers** before the row permutation
-  reshuffles (768 % 32 = 0, no partial block). With `transfer_every=1`
-  (transfer + selector advance every step) and full SQuAD (~5.5k steps/epoch
-  ×2), the permutation reshuffles roughly every 24 steps → hundreds of
-  reshuffles per trial.
-- Changing only `--server-id` keeps every other factor identical, so results
-  across servers are directly comparable.
+  reshuffles (768 % 32 = 0, no partial block). With `transfer_every=3` and
+  full SQuAD × 5 epochs there are far more than 24 transfers per trial, so
+  the selector reshuffle path is exercised many times.
+- Changing only `--server-id` keeps every other factor identical (same
+  optimizer/warmup/seed/data), so results across servers are directly
+  comparable and the 4 LR sub-ranges tile the full range.
 - `--mode tiki` (default) reproduces the original TikiTaka script behavior
   unchanged; LRTT-v2 applies only with `--mode lrtt_v2`.

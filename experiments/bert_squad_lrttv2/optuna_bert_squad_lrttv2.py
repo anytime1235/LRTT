@@ -1177,9 +1177,14 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
             _reserved = torch.cuda.memory_reserved() / 1024**3
             print(f"  [GPU] After model+optimizer: alloc={_alloc:.2f}GB, reserved={_reserved:.2f}GB")
 
-        num_training_steps = len(train_loader) * N_EPOCHS
+        _grad_accum = max(1, int(OPT_CONFIG.get('grad_accum_steps', 1)))
+        _opt_steps_per_epoch = len(train_loader) // _grad_accum
+        num_training_steps = _opt_steps_per_epoch * N_EPOCHS
         warmup_steps = int(num_training_steps * WARMUP_RATIO)
         _warmup_analog_only = OPT_CONFIG.get('analog_only_warmup', True)
+        print(f"  [GRAD-ACCUM] batch={BATCH_SIZE} x accum={_grad_accum} "
+              f"= effective {BATCH_SIZE * _grad_accum} | "
+              f"opt steps/epoch={_opt_steps_per_epoch}")
         scheduler = get_linear_schedule_with_min_lr(
             optimizer,
             num_warmup_steps=warmup_steps,
@@ -1208,11 +1213,16 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
             num_batches = 0
 
             pbar = tqdm(train_loader, desc=f"Trial {trial.number} Ep{epoch}", leave=False)
-            for batch in pbar:
-                global_step += 1
+            for _micro_idx, batch in enumerate(pbar):
+                _window_start = (_micro_idx % _grad_accum == 0)
+                _is_boundary = ((_micro_idx + 1) % _grad_accum == 0)
+
+                if _window_start:
+                    global_step += 1  # one global_step per optimizer step
+                    optimizer.zero_grad()
                 _diag_active = _diag_update and _diag_tracker and global_step <= _diag_steps
 
-                if _diag_active:
+                if _diag_active and _window_start:
                     _diag_tracker.snapshot_before()
 
                 input_ids = batch['input_ids'].to(DEVICE)
@@ -1220,61 +1230,66 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
                 start_positions = batch['start_positions'].to(DEVICE)
                 end_positions = batch['end_positions'].to(DEVICE)
 
-                optimizer.zero_grad()
                 outputs = model(
                     input_ids=input_ids, attention_mask=attention_mask,
                     start_positions=start_positions, end_positions=end_positions,
                 )
-                loss = outputs.loss
+                # paper_experiment.py regime: scale loss by 1/grad_accum so the
+                # accumulated gradient over the window ~ a single effective-batch
+                # update. Analog tiles: AnalogContext accumulates one
+                # input/grad pair per backward; optimizer.step() at the window
+                # boundary concatenates them -> one effective-batch tile update.
+                loss = outputs.loss / _grad_accum
                 loss.backward()
 
-                # Digital-only grad clipping (AnalogContext .grad does not affect tile update)
-                from aihwkit.optim.context import AnalogContext as _AC
-                _digital_params = [p for p in model.parameters()
-                                   if not isinstance(p, _AC) and p.grad is not None]
-                if _digital_params:
-                    torch.nn.utils.clip_grad_norm_(_digital_params, max_norm=1.0)
+                if _is_boundary:
+                    # Digital-only grad clipping (AnalogContext .grad does not affect tile update)
+                    from aihwkit.optim.context import AnalogContext as _AC
+                    _digital_params = [p for p in model.parameters()
+                                       if not isinstance(p, _AC) and p.grad is not None]
+                    if _digital_params:
+                        torch.nn.utils.clip_grad_norm_(_digital_params, max_norm=1.0)
 
-                # Per-tile analog grad clip+floor (GPU-only, no .item() sync)
-                if CLIP_ANALOG_GRAD and LORA_TARGET != "none":
-                    from aihwkit.optim.context import AnalogContext
-                    _max = ANALOG_TILE_MAX_NORM
-                    _min = ANALOG_TILE_MIN_NORM
-                    for p in model.parameters():
-                        if isinstance(p, AnalogContext) and p.analog_grad_output:
-                            for i, go in enumerate(p.analog_grad_output):
-                                tile_norm = go.detach().norm()
-                                scale = torch.where(
-                                    tile_norm > _max, _max / (tile_norm + 1e-6),
-                                    torch.where(
-                                        (tile_norm < _min) & (tile_norm > 1e-10),
-                                        _min / (tile_norm + 1e-6),
-                                        tile_norm.new_ones(()),
-                                    ),
-                                )
-                                p.analog_grad_output[i] = go * scale
+                    # Per-tile analog grad clip+floor (GPU-only, no .item() sync)
+                    if CLIP_ANALOG_GRAD and LORA_TARGET != "none":
+                        from aihwkit.optim.context import AnalogContext
+                        _max = ANALOG_TILE_MAX_NORM
+                        _min = ANALOG_TILE_MIN_NORM
+                        for p in model.parameters():
+                            if isinstance(p, AnalogContext) and p.analog_grad_output:
+                                for i, go in enumerate(p.analog_grad_output):
+                                    tile_norm = go.detach().norm()
+                                    scale = torch.where(
+                                        tile_norm > _max, _max / (tile_norm + 1e-6),
+                                        torch.where(
+                                            (tile_norm < _min) & (tile_norm > 1e-10),
+                                            _min / (tile_norm + 1e-6),
+                                            tile_norm.new_ones(()),
+                                        ),
+                                    )
+                                    p.analog_grad_output[i] = go * scale
 
-                if _diag_active:
-                    _current_lr = optimizer.param_groups[0]['lr']
-                    _diag_tracker.record_signals(
-                        global_step, model, lr=_current_lr,
-                        clip_analog_grad=CLIP_ANALOG_GRAD,
-                        max_norm=ANALOG_TILE_MAX_NORM, min_norm=ANALOG_TILE_MIN_NORM,
-                    )
+                    if _diag_active:
+                        _current_lr = optimizer.param_groups[0]['lr']
+                        _diag_tracker.record_signals(
+                            global_step, model, lr=_current_lr,
+                            clip_analog_grad=CLIP_ANALOG_GRAD,
+                            max_norm=ANALOG_TILE_MAX_NORM, min_norm=ANALOG_TILE_MIN_NORM,
+                        )
 
-                scheduler.step()
-                # Sync analog tile lr with scheduler before update
-                from aihwkit.optim.context import AnalogContext as _AC_sync
-                for _pg in optimizer.param_groups:
-                    for _p in _pg['params']:
-                        if isinstance(_p, _AC_sync):
-                            _p.analog_tile.set_learning_rate(_pg['lr'])
-                optimizer.step()
+                    scheduler.step()
+                    # Sync analog tile lr with scheduler before update
+                    from aihwkit.optim.context import AnalogContext as _AC_sync
+                    for _pg in optimizer.param_groups:
+                        for _p in _pg['params']:
+                            if isinstance(_p, _AC_sync):
+                                _p.analog_tile.set_learning_rate(_pg['lr'])
+                    optimizer.step()
 
-                if _diag_active:
-                    _diag_tracker.record_after(global_step)
+                    if _diag_active:
+                        _diag_tracker.record_after(global_step)
 
-                loss_val = loss.item()
+                loss_val = loss.item() * _grad_accum  # report unscaled loss
                 total_loss += loss_val
                 num_batches += 1
                 pbar.set_postfix(loss=f"{loss_val:.4f}")
@@ -1550,6 +1565,11 @@ def main():
     parser.add_argument('--tlr-grid', type=float, nargs='+', default=None,
                         help='Explicit transfer_lr grid values (GridSampler). '
                              'Swept in full on every server.')
+    parser.add_argument('--grad-accum-steps', type=int, default=1,
+                        help='Gradient accumulation steps. Effective batch = '
+                             'batch_size * grad_accum_steps (paper regime: '
+                             '16 x 3 = 48). loss/=accum, optimizer.step() only '
+                             'on accumulation boundary.')
     parser.add_argument('--num-servers', type=int, default=1,
                         help='Total servers sharing this sweep (LR grid is split N ways)')
     parser.add_argument('--server-id', type=int, default=0,
@@ -1566,6 +1586,7 @@ def main():
     OPT_CONFIG['cap_rho'] = args.cap_rho
     OPT_CONFIG['lrtt_device_type'] = args.lrtt_device_type
     OPT_CONFIG['lrtt_weight_bits'] = args.lrtt_weight_bits
+    OPT_CONFIG['grad_accum_steps'] = max(1, int(args.grad_accum_steps))
 
     # --- HP-region partition: split LR grid disjointly across servers ---
     _server_lr_grid = None
@@ -1650,6 +1671,27 @@ def main():
     if args.tpe_tlr_range:
         TPE_TLR_RANGE = tuple(args.tpe_tlr_range)
 
+    # --- Per-server TPE sweep-range partition ---------------------------
+    # Split the full LR range into num_servers EQUAL log sub-ranges; each
+    # server runs an independent TPE search within its own 1/N sub-range
+    # (transfer_lr is TPE-searched over the full --tpe-tlr-range on every
+    # server). No grid, no shared storage. Skipped if an explicit --lr-grid
+    # or a fixed --lr was given.
+    if (OPT_CONFIG.get('lr_grid') is None
+            and OPT_CONFIG.get('lr_range') is not None
+            and args.num_servers > 1):
+        if not (0 <= args.server_id < args.num_servers):
+            parser.error(f"--server-id must be in [0, {args.num_servers})")
+        _flo, _fhi = float(OPT_CONFIG['lr_range'][0]), float(OPT_CONFIG['lr_range'][1])
+        _ratio = (_fhi / _flo) ** (1.0 / args.num_servers)
+        _slo = _flo * (_ratio ** args.server_id)
+        _shi = _flo * (_ratio ** (args.server_id + 1))
+        OPT_CONFIG['lr_range'] = [_slo, _shi]
+        print(f"[TPE-SHARD] server {args.server_id}/{args.num_servers}: "
+              f"LR sub-range [{_slo:.3e}, {_shi:.3e}] of full "
+              f"[{_flo:.3e}, {_fhi:.3e}] (equal log split) | "
+              f"transfer_lr TPE over {TPE_TLR_RANGE} | n_trials={args.n_trials}")
+
     from datetime import datetime
     timestamp = datetime.now().strftime("%m%d_%H%M")
     study_name = args.study_name or f"bert_squad_tiki_{timestamp}"
@@ -1726,7 +1768,11 @@ def main():
         print(f"[GRID] server {args.server_id}/{args.num_servers}: "
               f"{len(_grid_lr)} LR x {len(_grid_tlr)} TLR = {n_trials_eff} trials")
     else:
-        sampler = optuna.samplers.TPESampler(seed=SEED)
+        # Per-server TPE seed so the 4 servers explore independently
+        # (each within its own LR sub-range).
+        sampler = optuna.samplers.TPESampler(seed=SEED + args.server_id)
+        print(f"[TPE] server {args.server_id}/{args.num_servers}: "
+              f"TPESampler(seed={SEED + args.server_id}), n_trials={n_trials_eff}")
 
     # Pruner: MedianPruner
     prune_warmup = max(1, N_EPOCHS // 3)
