@@ -139,7 +139,7 @@ cd LRTT
   --lora-target qkv --rank 32 --selector-policy shuffled_cycle \
   --lrtt-device-type constant_step --lrtt-weight-bits 10 \
   --transfer-every 1 --epochs 2 --batch-size 16 \
-  --classifier-lr 3e-5 \
+  --classifier-lr 2e-3 \
   --lr-grid 1e-4 3.16e-4 1e-3 3.16e-3 1e-2 3.16e-2 1e-1 3.16e-1 \
   --tlr-grid 0.1 0.3 1.0 3.0 10.0 30.0 100.0 \
   --num-servers 4 --server-id <0|1|2|3> \
@@ -148,11 +148,12 @@ cd LRTT
 ```
 
 - `--server-id` is the **only** value that differs between servers.
-- `--classifier-lr 3e-5` activates analog/digital LR separation: the
+- `--classifier-lr 2e-3` activates analog/digital LR separation: the
   `--lr-grid` sweeps the **analog LRTT auxiliary** LR; the digital
-  `qa_outputs`/LayerNorm use the fixed `3e-5`. Tune this value as needed, or
-  replace with `--classifier-lr-range <lo> <hi>` to sweep it too (adds a 3rd
-  grid axis), or **omit it** for a single shared LR (old behavior).
+  `qa_outputs`/LayerNorm use the fixed **`2e-3`, which is the original
+  TikiTaka script's SQuAD LR** (`SQUAD_LR = 2e-3`, the "SQuAD default"
+  constant). Replace with `--classifier-lr-range <lo> <hi>` to sweep it
+  instead, or **omit it** for a single shared LR (old behavior).
 - Each server writes its own study + SQLite DB:
   `results/optuna_lrttv2_qkvo_cs10_r32te1_srv<k>of4.db`
   and `results/all_trials_bert_squad.json`.
