@@ -151,7 +151,7 @@ cd LRTT
   --batch-size 16 --grad-accum-steps 3 \
   --classifier-lr 2e-3 \
   --lr-range 1e-4 3.16e-1 \
-  --tpe-tlr-range 0.1 100.0 \
+  --tpe-tlr-range 1e-3 100 \
   --min-lr-rate 0.05 \
   --n-trials 25 \
   --num-servers 4 --server-id <0|1|2|3> \
@@ -162,11 +162,12 @@ cd LRTT
 - `--server-id` is the **only** value that differs between servers.
 - `--lr-range 1e-4 3.16e-1` is the **full** LR range; the script
   auto-assigns this server its 1/4 log sub-range (table above) and runs TPE
-  inside it. `--tpe-tlr-range 0.1 100.0` is the `transfer_lr` range,
-  TPE-searched **in full (log) on every server**. For `--mode lrtt_v2` the
-  TikiTaka-v2 `scale_transfer_lr` heuristic (which would cap the upper at
-  `1/learning_rate`, coupling it to lr per trial/server) is **force-disabled**
-  so transfer_lr uses the literal `[0.1, 100.0]` range consistently.
+  inside it. `--tpe-tlr-range 1e-3 100` is the `transfer_lr` range
+  (**10⁻³ – 10²**, log), TPE-searched **in full on every server**. For
+  `--mode lrtt_v2` the TikiTaka-v2 `scale_transfer_lr` heuristic (which would
+  cap the upper at `1/learning_rate`, coupling it to lr per trial/server) is
+  **force-disabled** so transfer_lr uses the literal `[1e-3, 100]` range
+  consistently across all 4 servers.
 - `--batch-size 16 --grad-accum-steps 3` → **effective batch 48** (paper
   regime): `loss/=3`, `optimizer.step()` only every 3 micro-batches.
 - `--classifier-lr 2e-3` separates LR: analog LRTT auxiliary tiles use the
