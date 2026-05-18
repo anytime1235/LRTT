@@ -83,6 +83,8 @@ from aihwkit.simulator.configs import FloatingPointRPUConfig
 from aihwkit.simulator.configs.devices import FloatingPointDevice
 from aihwkit.simulator.configs.lrtt_config import PythonLRTTRPUConfig
 from aihwkit.simulator.configs.lrtt_python import PythonLRTTDevice
+from aihwkit.optim.context import AnalogContext
+from aihwkit.optim.analog_optimizer import AnalogOptimizerMixin
 
 from collections import Counter
 
@@ -1242,40 +1244,63 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
                     input_ids=input_ids, attention_mask=attention_mask,
                     start_positions=start_positions, end_positions=end_positions,
                 )
-                # paper_experiment.py regime: scale loss by 1/grad_accum so the
-                # accumulated gradient over the window ~ a single effective-batch
-                # update. Analog tiles: AnalogContext accumulates one
-                # input/grad pair per backward; optimizer.step() at the window
-                # boundary concatenates them -> one effective-batch tile update.
+                # Digital params: standard grad accumulation (loss/=accum,
+                # grads sum over the window, one step at the boundary).
                 loss = outputs.loss / _grad_accum
                 loss.backward()
 
+                # --- Analog grad-accum: paper_experiment.py memory fix ---
+                # With grad_accum>1, do NOT let AnalogContext accumulate
+                # (x, d) tensors across micro-batches (that piles 3x[N,feat]
+                # per tile x 48 tiles -> OOM, and leaks across trials).
+                # Instead apply each tile's analog update immediately per
+                # micro-batch and p.reset() to free analog_input/grad. The
+                # analog optimizer part of the boundary step is then skipped.
+                if _grad_accum > 1:
+                    with torch.no_grad():
+                        for p in model.parameters():
+                            if not isinstance(p, AnalogContext):
+                                continue
+                            if not p.requires_grad:
+                                p.reset()
+                                continue
+                            if p.use_torch_update or not p.has_gradient():
+                                continue
+                            # Optional per-tile analog grad clip+floor
+                            if CLIP_ANALOG_GRAD and LORA_TARGET != "none" and p.analog_grad_output:
+                                _mx, _mn = ANALOG_TILE_MAX_NORM, ANALOG_TILE_MIN_NORM
+                                for i, go in enumerate(p.analog_grad_output):
+                                    tn = go.detach().norm()
+                                    sc = torch.where(
+                                        tn > _mx, _mx / (tn + 1e-6),
+                                        torch.where((tn < _mn) & (tn > 1e-10),
+                                                    _mn / (tn + 1e-6), tn.new_ones(())))
+                                    p.analog_grad_output[i] = go * sc
+                            analog_tile = p.analog_tile
+                            runtime = analog_tile.get_runtime()
+                            if p.use_indexed:
+                                for x_i, d_i in zip(p.analog_input, p.analog_grad_output):
+                                    analog_tile.update_indexed(
+                                        x_i.to(analog_tile.device) if runtime.offload_input else x_i,
+                                        d_i.to(analog_tile.device) if runtime.offload_gradient else d_i,
+                                    )
+                            else:
+                                x_input = torch.cat(p.analog_input,
+                                                    axis=-1 if analog_tile.in_trans else 0)
+                                d_input = torch.cat(p.analog_grad_output,
+                                                    axis=-1 if analog_tile.out_trans else 0)
+                                analog_tile.update(
+                                    x_input.to(analog_tile.device) if runtime.offload_input else x_input,
+                                    d_input.to(analog_tile.device) if runtime.offload_gradient else d_input,
+                                )
+                            p.reset()  # free analog_ctx -> memory bounded to 1 micro-batch
+
                 if _is_boundary:
-                    # Digital-only grad clipping (AnalogContext .grad does not affect tile update)
-                    from aihwkit.optim.context import AnalogContext as _AC
+                    # Digital-only grad clipping
                     _digital_params = [p for p in model.parameters()
-                                       if not isinstance(p, _AC) and p.grad is not None]
+                                       if not isinstance(p, AnalogContext) and p.grad is not None]
                     if _digital_params:
                         torch.nn.utils.clip_grad_norm_(_digital_params, max_norm=1.0)
-
-                    # Per-tile analog grad clip+floor (GPU-only, no .item() sync)
-                    if CLIP_ANALOG_GRAD and LORA_TARGET != "none":
-                        from aihwkit.optim.context import AnalogContext
-                        _max = ANALOG_TILE_MAX_NORM
-                        _min = ANALOG_TILE_MIN_NORM
-                        for p in model.parameters():
-                            if isinstance(p, AnalogContext) and p.analog_grad_output:
-                                for i, go in enumerate(p.analog_grad_output):
-                                    tile_norm = go.detach().norm()
-                                    scale = torch.where(
-                                        tile_norm > _max, _max / (tile_norm + 1e-6),
-                                        torch.where(
-                                            (tile_norm < _min) & (tile_norm > 1e-10),
-                                            _min / (tile_norm + 1e-6),
-                                            tile_norm.new_ones(()),
-                                        ),
-                                    )
-                                    p.analog_grad_output[i] = go * scale
 
                     if _diag_active:
                         _current_lr = optimizer.param_groups[0]['lr']
@@ -1286,13 +1311,23 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
                         )
 
                     scheduler.step()
-                    # Sync analog tile lr with scheduler before update
-                    from aihwkit.optim.context import AnalogContext as _AC_sync
+                    # Sync analog tile lr with scheduler
                     for _pg in optimizer.param_groups:
                         for _p in _pg['params']:
-                            if isinstance(_p, _AC_sync):
+                            if isinstance(_p, AnalogContext):
                                 _p.analog_tile.set_learning_rate(_pg['lr'])
-                    optimizer.step()
+
+                    if _grad_accum > 1:
+                        # Analog updates already applied per micro-batch above:
+                        # run only the digital optimizer + analog post-step.
+                        super(AnalogOptimizerMixin, optimizer).step()
+                        for _pg in optimizer.param_groups:
+                            for _p in _pg['params']:
+                                if isinstance(_p, AnalogContext) and _p.requires_grad:
+                                    if hasattr(_p.analog_tile, 'post_update_step'):
+                                        _p.analog_tile.post_update_step()
+                    else:
+                        optimizer.step()  # grad_accum==1: analog + digital
 
                     if _diag_active:
                         _diag_tracker.record_after(global_step)

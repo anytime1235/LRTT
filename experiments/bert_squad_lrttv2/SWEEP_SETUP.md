@@ -232,6 +232,12 @@ range with no overlap.
 
 ## 5. Notes
 
+- **grad-accum memory:** with `--grad-accum-steps>1` the analog tile
+  update is applied per micro-batch and `AnalogContext.reset()` frees
+  `analog_input/grad` every micro-batch (paper_experiment.py method); the
+  boundary step runs digital-only (`super().step()`+`post_update_step`).
+  Prevents the analog-ctx accumulation that OOM'd across the eval/epoch
+  and trial->trial boundaries. Verified: 2 trials complete in one process.
 - **Shuffle coverage:** BERT hidden = 768, block = rank = 32 → one
   `shuffled_cycle` = 768/32 = **24 transfers** before the row permutation
   reshuffles (768 % 32 = 0, no partial block). With `transfer_every=3` and
