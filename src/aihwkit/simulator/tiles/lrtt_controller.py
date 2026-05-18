@@ -1376,6 +1376,15 @@ class LRTTController:
         if out_trans:
             d = d.t()
 
+        # Collapse any leading dims to 2D. Transformer layers feed
+        # [batch, seq, feat]; the selector path does manual index_select/mask
+        # algebra on the feature axis and requires a 2D [N, feat] view (the
+        # tile-delegating lora/reconstruction paths handle N-D implicitly).
+        if x.dim() > 2:
+            x = x.reshape(-1, x.shape[-1])
+        if d.dim() > 2:
+            d = d.reshape(-1, d.shape[-1])
+
         # Lazy selector init (e.g., when v2 mode was switched on after construction)
         if self.selector_indices is None:
             self._init_selector_state()
