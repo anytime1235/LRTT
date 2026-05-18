@@ -1042,7 +1042,15 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         elif TPE_TLR_RANGE[0] == TPE_TLR_RANGE[1]:
             transfer_lr = TPE_TLR_RANGE[0]
         else:
+            # scale_transfer_lr (tlr_upper = 1/lr) is a TikiTaka-v2
+            # (ChoppedTransferCompound) heuristic. For LRTT-v2 the
+            # PythonLRTTDevice.transfer_lr is a direct device parameter, so it
+            # must be TPE-searched over the literal --tpe-tlr-range (not
+            # coupled to learning_rate, which would make the range differ per
+            # server/trial).
             _scale_tlr = OPT_CONFIG.get('scale_transfer_lr', OPT_CONFIG.get('use_v2', False))
+            if OPT_CONFIG.get('mode') == 'lrtt_v2':
+                _scale_tlr = False
             if _scale_tlr:
                 _tlr_upper = 1.0 / learning_rate
             else:
@@ -1065,7 +1073,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
     # transfer_every: fixed at 1 (uim=True -> every mini-batch)
     transfer_every = OPT_CONFIG.get('transfer_every_override', 1)
 
-    min_lr_rate = 0.5  # decay to 50% of peak lr
+    min_lr_rate = OPT_CONFIG.get('min_lr_rate', 0.5)  # fraction of peak LR (paper default 0.5)
 
     if OPT_CONFIG['tune_wd']:
         weight_decay = trial.suggest_float('weight_decay', 1e-7, 1e-2, log=True)
@@ -1570,6 +1578,10 @@ def main():
                              'batch_size * grad_accum_steps (paper regime: '
                              '16 x 3 = 48). loss/=accum, optimizer.step() only '
                              'on accumulation boundary.')
+    parser.add_argument('--min-lr-rate', type=float, default=0.5,
+                        help='LR scheduler floor as a fraction of peak LR '
+                             '(paper_experiment.py default 0.5; decays linearly '
+                             'to min_lr_rate * peak).')
     parser.add_argument('--num-servers', type=int, default=1,
                         help='Total servers sharing this sweep (LR grid is split N ways)')
     parser.add_argument('--server-id', type=int, default=0,
@@ -1587,6 +1599,7 @@ def main():
     OPT_CONFIG['lrtt_device_type'] = args.lrtt_device_type
     OPT_CONFIG['lrtt_weight_bits'] = args.lrtt_weight_bits
     OPT_CONFIG['grad_accum_steps'] = max(1, int(args.grad_accum_steps))
+    OPT_CONFIG['min_lr_rate'] = args.min_lr_rate
 
     # --- HP-region partition: split LR grid disjointly across servers ---
     _server_lr_grid = None
@@ -1737,7 +1750,7 @@ def main():
     print(f"  Weight decay  : {'tuned' if OPT_CONFIG['tune_wd'] else '0 (fixed)'}")
     print(f"  Warmup ratio  : {WARMUP_RATIO:.4f}")
     print(f"  Warmup target : {'analog tile ONLY (classifier/LayerNorm -> no warmup, full LR from step 0)' if _analog_only_warmup else 'all param groups'}")
-    print(f"  min_lr_rate   : 0.5 (decay to 50% of peak LR)")
+    print(f"  min_lr_rate   : {OPT_CONFIG.get('min_lr_rate', 0.5)} (decay to that fraction of peak LR)")
     print(f"  LORA target   : {LORA_TARGET} -> {get_target_module_names(LORA_TARGET)}")
     _target_cfg_str = 'IdealDevice' if TARGET_IDEAL else f"SingleRPU({OPT_CONFIG.get('device_type', 'softbounds')}, dw_min={OPT_CONFIG.get('dw_min', 'default')})" if TARGET_ANALOG else 'TikiTaka'
     print(f"  Target config : {_target_cfg_str}")
