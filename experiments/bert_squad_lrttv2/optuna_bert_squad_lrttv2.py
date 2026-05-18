@@ -1123,37 +1123,41 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
 
         model = create_model(params)
 
-        if TARGET_IDEAL or TARGET_ANALOG or OPT_CONFIG.get('nontarget_ideal', False):
-            # IdealDevice: separate LR for analog tiles vs digital params
-            _cls_lr = classifier_lr
-            if _cls_lr is not None:
-                from aihwkit.optim.context import AnalogContext as _AC2
-                analog_params = [p for p in model.parameters() if isinstance(p, _AC2) and p.requires_grad]
-                digital_params = [p for p in model.parameters() if not isinstance(p, _AC2) and p.requires_grad]
-                param_groups = [
-                    {"params": analog_params, "lr": learning_rate},
-                    {"params": digital_params, "lr": _cls_lr},
-                ]
-                if optimizer_name == "AnalogSGD":
-                    optimizer = AnalogSGD(
-                        param_groups,
-                        weight_decay=weight_decay, momentum=momentum, nesterov=nesterov,
-                    )
-                else:
-                    optimizer = AnalogAdam(
-                        param_groups, weight_decay=weight_decay,
-                    )
+        # Separate LR for analog (LRTT/TikiTaka auxiliary tiles) vs digital
+        # (classifier qa_outputs + LayerNorm) whenever a classifier_lr is
+        # provided. Works for ALL modes incl. --mode lrtt_v2 (previously this
+        # split was gated to IdealDevice/SingleRPU targets only). With
+        # classifier_lr=None the behavior is unchanged: a single learning_rate.
+        _cls_lr = classifier_lr
+        if _cls_lr is not None:
+            from aihwkit.optim.context import AnalogContext as _AC2
+            analog_params = [p for p in model.parameters()
+                             if isinstance(p, _AC2) and p.requires_grad]
+            digital_params = [p for p in model.parameters()
+                              if not isinstance(p, _AC2) and p.requires_grad]
+            # aihwkit specifics: regroup_param_groups() rebuilds one group per
+            # analog tile WITHOUT an explicit lr, so every analog tile's LR is
+            # taken from optimizer.defaults["lr"] (the top-level lr=). The
+            # digital group keeps its own lr (used by torch SGD/Adam for the
+            # non-analog params). Hence:
+            #   top-level lr  = learning_rate  -> analog (LRTT auxiliary) LR
+            #   digital group = classifier_lr  -> classifier/LayerNorm LR
+            param_groups = [
+                {"params": analog_params},                  # -> defaults lr (learning_rate)
+                {"params": digital_params, "lr": _cls_lr},   # -> classifier_lr
+            ]
+            if optimizer_name == "AnalogSGD":
+                optimizer = AnalogSGD(
+                    param_groups, lr=learning_rate,
+                    weight_decay=weight_decay, momentum=momentum, nesterov=nesterov,
+                )
             else:
-                if optimizer_name == "AnalogSGD":
-                    optimizer = AnalogSGD(
-                        model.parameters(), lr=learning_rate,
-                        weight_decay=weight_decay, momentum=momentum, nesterov=nesterov,
-                    )
-                else:
-                    optimizer = AnalogAdam(
-                        model.parameters(), lr=learning_rate, weight_decay=weight_decay,
-                    )
-            optimizer.regroup_param_groups()
+                optimizer = AnalogAdam(
+                    param_groups, lr=learning_rate, weight_decay=weight_decay,
+                )
+            print(f"  [LR-SPLIT] analog(LRTT aux) lr={learning_rate:.3e} | "
+                  f"digital(classifier/LayerNorm) lr={_cls_lr:.3e} | "
+                  f"analog params={len(analog_params)}, digital params={len(digital_params)}")
         else:
             if optimizer_name == "AnalogSGD":
                 optimizer = AnalogSGD(
@@ -1164,7 +1168,9 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
                 optimizer = AnalogAdam(
                     model.parameters(), lr=learning_rate, weight_decay=weight_decay,
                 )
-            optimizer.regroup_param_groups()
+            print(f"  [LR-SINGLE] shared lr={learning_rate:.3e} "
+                  f"(no classifier_lr -> analog & digital share LR)")
+        optimizer.regroup_param_groups()
 
         if torch.cuda.is_available():
             _alloc = torch.cuda.memory_allocated() / 1024**3

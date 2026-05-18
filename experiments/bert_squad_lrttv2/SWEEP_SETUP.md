@@ -87,11 +87,25 @@ export LRTT_RESULTS=/abs/path/to/results
 | Data | full SQuAD v1.1 (omit `--train-subset`/`--eval-subset`) |
 
 Also digitally trained alongside the analog QKVO tiles: `qa_outputs` head and
-LayerNorm. **NOTE:** in `--mode lrtt_v2` the optimizer uses a *single*
-`learning_rate` for both the analog LRTT (auxiliary) params and these digital
-params — analog/digital LR are **not** split (the separate param-group path
-only activates for IdealDevice/SingleRPU targets). `transfer_lr` is the
-separate B→C transfer LR (device-level, not an optimizer LR).
+LayerNorm.
+
+**LR separation (now active for `--mode lrtt_v2`):** when `--classifier-lr`
+(or `--classifier-lr-range`) is given, the optimizer uses **two separate
+LRs**:
+
+| Param group | LR | Swept by |
+|---|---|---|
+| analog LRTT auxiliary tiles (QKVO A/B) | `learning_rate` | `--lr-grid` |
+| digital `qa_outputs` + LayerNorm | `classifier_lr` | `--classifier-lr` (fixed) or `--classifier-lr-range` (sweep) |
+
+Mechanism (aihwkit-specific): the analog tile LR is taken from the
+optimizer's top-level `lr=` (`defaults["lr"]`) because
+`regroup_param_groups()` rebuilds one group per analog tile without an
+explicit lr; the digital group keeps its own `classifier_lr`. Verified:
+analog tile LR == `learning_rate`, digital group lr == `classifier_lr`.
+If `--classifier-lr` is **omitted**, behavior falls back to a single shared
+`learning_rate` (old behavior). `transfer_lr` is a separate device-level B→C
+transfer LR (not an optimizer LR).
 
 ### Sweep grid (2D, HP-region partitioned)
 
@@ -125,6 +139,7 @@ cd LRTT
   --lora-target qkv --rank 32 --selector-policy shuffled_cycle \
   --lrtt-device-type constant_step --lrtt-weight-bits 10 \
   --transfer-every 1 --epochs 2 --batch-size 16 \
+  --classifier-lr 3e-5 \
   --lr-grid 1e-4 3.16e-4 1e-3 3.16e-3 1e-2 3.16e-2 1e-1 3.16e-1 \
   --tlr-grid 0.1 0.3 1.0 3.0 10.0 30.0 100.0 \
   --num-servers 4 --server-id <0|1|2|3> \
@@ -133,6 +148,11 @@ cd LRTT
 ```
 
 - `--server-id` is the **only** value that differs between servers.
+- `--classifier-lr 3e-5` activates analog/digital LR separation: the
+  `--lr-grid` sweeps the **analog LRTT auxiliary** LR; the digital
+  `qa_outputs`/LayerNorm use the fixed `3e-5`. Tune this value as needed, or
+  replace with `--classifier-lr-range <lo> <hi>` to sweep it too (adds a 3rd
+  grid axis), or **omit it** for a single shared LR (old behavior).
 - Each server writes its own study + SQLite DB:
   `results/optuna_lrttv2_qkvo_cs10_r32te1_srv<k>of4.db`
   and `results/all_trials_bert_squad.json`.
