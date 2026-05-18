@@ -116,17 +116,17 @@ transfer LR (not an optimizer LR).
 
 ### Sweep strategy: per-server TPE over a 1/4 LR sub-range
 
-The **full LR range** `[1e-4, 3.16e-1]` is split into **4 equal log
+The **full LR range** `[1e-4, 1.0]` is split into **4 equal log
 sub-ranges**; each server runs an **independent TPE search** within its own
 sub-range. `transfer_lr` is TPE-searched over the **full**
 `--tpe-tlr-range` on every server. Per-server TPE seed = `42 + server_id`.
 
 | Server (`--server-id`) | LR sub-range (TPE searches within) |
 |---|---|
-| 0 | `[1.00e-4, 7.50e-4]` |
-| 1 | `[7.50e-4, 5.62e-3]` |
-| 2 | `[5.62e-3, 4.21e-2]` |
-| 3 | `[4.21e-2, 3.16e-1]` |
+| 0 | `[1e-4, 1e-3]` |
+| 1 | `[1e-3, 1e-2]` |
+| 2 | `[1e-2, 1e-1]` |
+| 3 | `[1e-1, 1.0]` |
 
 `learning_rate` (= analog LRTT auxiliary LR) and `transfer_lr` are the two
 TPE-searched dimensions. `--n-trials` per server is chosen by you (e.g. 25
@@ -150,7 +150,7 @@ cd LRTT
   --warmup-ratio 0.05 --no-analog-only-warmup \
   --batch-size 16 --grad-accum-steps 3 \
   --classifier-lr 2e-3 \
-  --lr-range 1e-4 3.16e-1 \
+  --lr-range 1e-4 1.0 \
   --tpe-tlr-range 1e-3 100 \
   --min-lr-rate 0.05 \
   --prune-at-epoch 2 --prune-f1-threshold 80 \
@@ -161,7 +161,7 @@ cd LRTT
 ```
 
 - `--server-id` is the **only** value that differs between servers.
-- `--lr-range 1e-4 3.16e-1` is the **full** LR range; the script
+- `--lr-range 1e-4 1.0` is the **full** LR range; the script
   auto-assigns this server its 1/4 log sub-range (table above) and runs TPE
   inside it. `--tpe-tlr-range 1e-3 100` is the `transfer_lr` range
   (**10⁻³ – 10²**, log), TPE-searched **in full on every server**. For
@@ -224,7 +224,7 @@ PY
 ```
 
 The 4 servers' TPE searches cover disjoint LR sub-ranges (their union = the
-full `[1e-4, 3.16e-1]` range); merging gives the global best across the whole
+full `[1e-4, 1.0]` range); merging gives the global best across the whole
 range with no overlap.
 
 ---
