@@ -79,15 +79,19 @@ export LRTT_RESULTS=/abs/path/to/results
 | Target layers | `--lora-target qkv` → attention **Q, K, V, O** (48 modules) |
 | LRTT-v2 mode | `update_mode=selector_reconstruction` |
 | Selector | `selector_policy=shuffled_cycle`, `selector_axis=row` |
-| Rank / block | `--rank 8` (= selector block size) |
+| Rank / block | `--rank 32` (= selector block size) |
 | Core array | 10-bit `ConstantStepDevice` (`dw_min=0.001953125`) |
 | Auxiliary array (A, B) | 10-bit `ConstantStepDevice` (`dw_min=0.001953125`) |
-| transfer_every | `3` (steps; `units_in_mbatch=True`) |
+| transfer_every | `1` (transfer every step; `units_in_mbatch=True`) |
 | Epochs / batch | `2` / `16` |
 | Data | full SQuAD v1.1 (omit `--train-subset`/`--eval-subset`) |
 
 Also digitally trained alongside the analog QKVO tiles: `qa_outputs` head and
-LayerNorm (standard QA finetuning). FFN + embeddings are frozen.
+LayerNorm. **NOTE:** in `--mode lrtt_v2` the optimizer uses a *single*
+`learning_rate` for both the analog LRTT (auxiliary) params and these digital
+params — analog/digital LR are **not** split (the separate param-group path
+only activates for IdealDevice/SingleRPU targets). `transfer_lr` is the
+separate B→C transfer LR (device-level, not an optimizer LR).
 
 ### Sweep grid (2D, HP-region partitioned)
 
@@ -118,19 +122,19 @@ Run the **same command on all 4 servers**, changing only `--server-id`
 cd LRTT
 ~/.venv310/bin/python -u experiments/bert_squad_lrttv2/optuna_bert_squad_lrttv2.py \
   --mode lrtt_v2 \
-  --lora-target qkv --rank 8 --selector-policy shuffled_cycle \
+  --lora-target qkv --rank 32 --selector-policy shuffled_cycle \
   --lrtt-device-type constant_step --lrtt-weight-bits 10 \
-  --transfer-every 3 --epochs 2 --batch-size 16 \
+  --transfer-every 1 --epochs 2 --batch-size 16 \
   --lr-grid 1e-4 3.16e-4 1e-3 3.16e-3 1e-2 3.16e-2 1e-1 3.16e-1 \
   --tlr-grid 0.1 0.3 1.0 3.0 10.0 30.0 100.0 \
   --num-servers 4 --server-id <0|1|2|3> \
-  --study-name lrttv2_qkvo_cs10 \
+  --study-name lrttv2_qkvo_cs10_r32te1 \
   2>&1 | tee experiments/bert_squad_lrttv2/logs/sweep_srv<0|1|2|3>.log
 ```
 
 - `--server-id` is the **only** value that differs between servers.
 - Each server writes its own study + SQLite DB:
-  `results/optuna_lrttv2_qkvo_cs10_srv<k>of4.db`
+  `results/optuna_lrttv2_qkvo_cs10_r32te1_srv<k>of4.db`
   and `results/all_trials_bert_squad.json`.
 - `n_trials` is derived automatically from the grid (no `--n-trials` needed).
 
@@ -143,14 +147,14 @@ cd LRTT
 
 ## 4. Merge results (after all servers finish)
 
-Copy each server's `results/optuna_lrttv2_qkvo_cs10_srv<k>of4.db` (or the
-per-server `all_trials_bert_squad.json`) to one machine, then:
+Copy each server's `results/optuna_lrttv2_qkvo_cs10_r32te1_srv<k>of4.db` (or
+the per-server `all_trials_bert_squad.json`) to one machine, then:
 
 ```bash
 ~/.venv310/bin/python - <<'PY'
 import json, glob, optuna
 rows=[]
-for db in glob.glob("optuna_lrttv2_qkvo_cs10_srv*of4.db"):
+for db in glob.glob("optuna_lrttv2_qkvo_cs10_r32te1_srv*of4.db"):
     name=db[len("optuna_"):-3]
     st=optuna.load_study(study_name=name, storage=f"sqlite:///{db}")
     for t in st.trials:
@@ -172,11 +176,12 @@ union with no duplicate cells).
 
 ## 5. Notes
 
-- **Shuffle coverage:** BERT hidden = 768, block = rank = 8 → one
-  `shuffled_cycle` = 768/8 = **96 transfers** before the row permutation
-  reshuffles. With `transfer_every=3` and full SQuAD (~5.5k steps/epoch ×2),
-  there are ≫96 transfers per trial, so the selector reshuffle path is
-  exercised many times.
+- **Shuffle coverage:** BERT hidden = 768, block = rank = 32 → one
+  `shuffled_cycle` = 768/32 = **24 transfers** before the row permutation
+  reshuffles (768 % 32 = 0, no partial block). With `transfer_every=1`
+  (transfer + selector advance every step) and full SQuAD (~5.5k steps/epoch
+  ×2), the permutation reshuffles roughly every 24 steps → hundreds of
+  reshuffles per trial.
 - Changing only `--server-id` keeps every other factor identical, so results
   across servers are directly comparable.
 - `--mode tiki` (default) reproduces the original TikiTaka script behavior
