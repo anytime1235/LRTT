@@ -153,7 +153,8 @@ cd LRTT
   --lr-range 1e-4 3.16e-1 \
   --tpe-tlr-range 1e-3 100 \
   --min-lr-rate 0.05 \
-  --n-trials 25 \
+  --prune-at-epoch 2 --prune-f1-threshold 80 \
+  --n-trials 50 \
   --num-servers 4 --server-id <0|1|2|3> \
   --study-name lrttv2_qkvo_cs10_r32te3 \
   2>&1 | tee experiments/bert_squad_lrttv2/logs/sweep_srv<0|1|2|3>.log
@@ -179,7 +180,14 @@ cd LRTT
   applied to **all** param groups, seed 42, weight_decay 0. **Deviation:**
   `--min-lr-rate 0.05` (paper default is 0.5) — LR decays to 5% of peak by
   request.
-- `--n-trials 25` → 25 TPE trials/server (≈100 total). Tune as needed.
+- `--n-trials 50` → 50 TPE trials/server (200 total across 4 servers).
+- `--prune-at-epoch 2 --prune-f1-threshold 80`: a trial whose eval **F1 ≤ 80%
+  at epoch 2** is pruned and TPE moves to the next point. While this gate is
+  active the Optuna MedianPruner is replaced by `NopPruner` (the gate is the
+  only auto-prune). **Early stopping stays ON** (manual break, patience 2:
+  stop if F1 doesn't improve for 2 consecutive epochs). So a trial runs up to
+  5 epochs unless: epoch-2 F1 ≤ 80 (prune), 2-epoch no-improve (early stop),
+  or loss diverges.
 - Each server writes its own study + SQLite DB:
   `results/optuna_lrttv2_qkvo_cs10_r32te3_srv<k>of4.db`
   and `results/all_trials_bert_squad.json`.

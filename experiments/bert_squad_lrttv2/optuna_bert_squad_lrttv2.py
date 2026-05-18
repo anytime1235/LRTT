@@ -1330,7 +1330,19 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
             trial.report(eval_f1, epoch)
             trial.set_user_attr(f"train_loss_epoch_{epoch}", train_loss)
 
-            # Early stopping
+            # Hard prune gate: at --prune-at-epoch, if F1 <= threshold, prune
+            # this trial so TPE moves on to the next search point.
+            _pae = OPT_CONFIG.get('prune_at_epoch', 0)
+            _pf1 = OPT_CONFIG.get('prune_f1_threshold', 0.0)
+            if _pae and epoch == _pae and eval_f1 <= _pf1:
+                tqdm.write(f"[Trial {trial.number}] Pruned at epoch {epoch} "
+                           f"(F1 {eval_f1:.2f}% <= {_pf1:.2f}% threshold) "
+                           f"-> next TPE trial")
+                trial.set_user_attr("pruned_reason",
+                                    f"epoch{epoch}_f1<={_pf1}")
+                raise optuna.exceptions.TrialPruned()
+
+            # Early stopping (manual break, independent of the Optuna pruner)
             if epochs_without_improvement >= EARLY_STOP_PATIENCE:
                 tqdm.write(f"[Trial {trial.number}] Early stopping at epoch {epoch} "
                           f"(no improvement for {EARLY_STOP_PATIENCE} epochs)")
@@ -1582,6 +1594,15 @@ def main():
                         help='LR scheduler floor as a fraction of peak LR '
                              '(paper_experiment.py default 0.5; decays linearly '
                              'to min_lr_rate * peak).')
+    parser.add_argument('--prune-at-epoch', type=int, default=0,
+                        help='Hard prune gate: at this epoch (1-indexed), if '
+                             'eval F1 <= --prune-f1-threshold, prune the trial '
+                             'and let TPE move to the next one. 0 = disabled. '
+                             'When >0 the Optuna MedianPruner is replaced by '
+                             'NopPruner so this gate is the only auto-prune.')
+    parser.add_argument('--prune-f1-threshold', type=float, default=0.0,
+                        help='F1 (%%) threshold for --prune-at-epoch (prune if '
+                             'eval F1 <= this value at that epoch).')
     parser.add_argument('--num-servers', type=int, default=1,
                         help='Total servers sharing this sweep (LR grid is split N ways)')
     parser.add_argument('--server-id', type=int, default=0,
@@ -1600,6 +1621,8 @@ def main():
     OPT_CONFIG['lrtt_weight_bits'] = args.lrtt_weight_bits
     OPT_CONFIG['grad_accum_steps'] = max(1, int(args.grad_accum_steps))
     OPT_CONFIG['min_lr_rate'] = args.min_lr_rate
+    OPT_CONFIG['prune_at_epoch'] = args.prune_at_epoch
+    OPT_CONFIG['prune_f1_threshold'] = args.prune_f1_threshold
 
     # --- HP-region partition: split LR grid disjointly across servers ---
     _server_lr_grid = None
@@ -1787,15 +1810,25 @@ def main():
         print(f"[TPE] server {args.server_id}/{args.num_servers}: "
               f"TPESampler(seed={SEED + args.server_id}), n_trials={n_trials_eff}")
 
-    # Pruner: MedianPruner
+    # Pruner: when the hard --prune-at-epoch gate is active, use NopPruner so
+    # the explicit gate is the ONLY automatic prune (predictable). Early
+    # stopping (manual break, patience=2) stays active regardless. Otherwise
+    # fall back to MedianPruner.
     prune_warmup = max(1, N_EPOCHS // 3)
+    if args.prune_at_epoch and args.prune_at_epoch > 0:
+        _pruner = optuna.pruners.NopPruner()
+        print(f"[PRUNE] hard gate: epoch {args.prune_at_epoch} F1 <= "
+              f"{args.prune_f1_threshold:.2f}% -> prune (MedianPruner OFF; "
+              f"early-stopping patience={EARLY_STOP_PATIENCE} ON)")
+    else:
+        _pruner = optuna.pruners.MedianPruner(
+            n_startup_trials=5,
+            n_warmup_steps=prune_warmup,
+        )
     study = optuna.create_study(
         study_name=study_name, storage=storage, direction="maximize",
         sampler=sampler,
-        pruner=optuna.pruners.MedianPruner(
-            n_startup_trials=5,
-            n_warmup_steps=prune_warmup,
-        ),
+        pruner=_pruner,
         load_if_exists=True,
     )
     print(f"  Early stop patience: {EARLY_STOP_PATIENCE}, "
