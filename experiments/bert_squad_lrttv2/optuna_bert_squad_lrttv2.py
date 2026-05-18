@@ -1438,7 +1438,7 @@ def print_study_summary(study):
 # =============================================================================
 
 def main():
-    global BATCH_SIZE, N_EPOCHS, WARMUP_RATIO, LORA_TARGET, HEAD_LAYER, MAX_SEQ_LENGTH, SQUAD_LR, TARGET_IDEAL, TARGET_ANALOG
+    global BATCH_SIZE, EVAL_BATCH_SIZE, N_EPOCHS, WARMUP_RATIO, LORA_TARGET, HEAD_LAYER, MAX_SEQ_LENGTH, SQUAD_LR, TARGET_IDEAL, TARGET_ANALOG
 
     parser = argparse.ArgumentParser(description="Optuna sweep for BERT-base SQuAD TikiTaka")
     parser.add_argument('--study-name', type=str, default=None,
@@ -1462,6 +1462,10 @@ def main():
                         help='Enable nesterov tuning')
     parser.add_argument('--batch-size', type=int, default=BATCH_SIZE,
                         help=f'Batch size (default: {BATCH_SIZE})')
+    parser.add_argument('--eval-batch-size', type=int, default=EVAL_BATCH_SIZE,
+                        help=f'Eval batch size (default: {EVAL_BATCH_SIZE}). '
+                             f'Large values spike analog-tile CUDA memory at '
+                             f'the eval->next-epoch boundary; lower to avoid OOM.')
     parser.add_argument('--epochs', type=int, default=N_EPOCHS,
                         help=f'Number of epochs (default: {N_EPOCHS})')
     parser.add_argument('--warmup-ratio', type=float, default=WARMUP_RATIO,
@@ -1643,6 +1647,7 @@ def main():
     if args.tlr_grid is not None:
         OPT_CONFIG['tlr_grid'] = sorted(set(args.tlr_grid))
     BATCH_SIZE = args.batch_size
+    EVAL_BATCH_SIZE = args.eval_batch_size
     N_EPOCHS = args.epochs
     WARMUP_RATIO = args.warmup_ratio
     LORA_TARGET = args.lora_target

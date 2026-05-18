@@ -86,6 +86,7 @@ export LRTT_RESULTS=/abs/path/to/results
 | Auxiliary array (A, B) | 10-bit `ConstantStepDevice` (`dw_min=0.001953125`) |
 | transfer_every | `3` |
 | Batch / grad-accum | `--batch-size 16` × `--grad-accum-steps 3` = **effective 48** (paper regime) |
+| Eval batch | `--eval-batch-size 16` (256 spikes analog-tile CUDA memory at the eval→next-epoch boundary → OOM; 16 fixes it) |
 | Epochs | `5` |
 | Optimizer | **AnalogAdam** (paper_experiment.py) |
 | Warmup | ratio `0.05`, applied to **all** param groups (`--no-analog-only-warmup`, paper behavior) |
@@ -148,7 +149,7 @@ cd LRTT
   --transfer-every 3 --epochs 5 \
   --optimizer AnalogAdam \
   --warmup-ratio 0.05 --no-analog-only-warmup \
-  --batch-size 16 --grad-accum-steps 3 \
+  --batch-size 16 --grad-accum-steps 3 --eval-batch-size 16 \
   --classifier-lr 2e-3 \
   --lr-range 1e-4 1.0 \
   --tpe-tlr-range 1e-3 100 \
@@ -156,7 +157,7 @@ cd LRTT
   --prune-at-epoch 2 --prune-f1-threshold 80 \
   --n-trials 50 \
   --num-servers 4 --server-id <0|1|2|3> \
-  --study-name lrttv2_qkvo_cs10_r32te3 \
+  --study-name lrttv2_qkvo_cs10_r32te3_evb16 \
   2>&1 | tee experiments/bert_squad_lrttv2/logs/sweep_srv<0|1|2|3>.log
 ```
 
@@ -189,7 +190,7 @@ cd LRTT
   5 epochs unless: epoch-2 F1 ≤ 80 (prune), 2-epoch no-improve (early stop),
   or loss diverges.
 - Each server writes its own study + SQLite DB:
-  `results/optuna_lrttv2_qkvo_cs10_r32te3_srv<k>of4.db`
+  `results/optuna_lrttv2_qkvo_cs10_r32te3_evb16_srv<k>of4.db`
   and `results/all_trials_bert_squad.json`.
 
 > Runtime note: full SQuAD + 5 epochs ≈ tens of thousands of optimizer steps
@@ -201,14 +202,14 @@ cd LRTT
 
 ## 4. Merge results (after all servers finish)
 
-Copy each server's `results/optuna_lrttv2_qkvo_cs10_r32te3_srv<k>of4.db` (or
+Copy each server's `results/optuna_lrttv2_qkvo_cs10_r32te3_evb16_srv<k>of4.db` (or
 the per-server `all_trials_bert_squad.json`) to one machine, then:
 
 ```bash
 ~/.venv310/bin/python - <<'PY'
 import json, glob, optuna
 rows=[]
-for db in glob.glob("optuna_lrttv2_qkvo_cs10_r32te3_srv*of4.db"):
+for db in glob.glob("optuna_lrttv2_qkvo_cs10_r32te3_evb16_srv*of4.db"):
     name=db[len("optuna_"):-3]
     st=optuna.load_study(study_name=name, storage=f"sqlite:///{db}")
     for t in st.trials:
