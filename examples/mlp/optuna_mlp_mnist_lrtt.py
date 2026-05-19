@@ -260,7 +260,7 @@ SPLIT_AB_PARAMS = {
     'dw_min': False,
     'multilevel': False,
     'tau_sec': False,
-    'reset_std': True,
+    'reset_std': False,
     'desired_bl': False,
     'weight_scaling_omega': False,
 }
@@ -1159,7 +1159,7 @@ def objective(trial, train_loader, val_loader):
         torch.cuda.empty_cache()
 
     # Hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 8e-2, 5e1, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 1e-4, 1e2, log=True)
 
     # LRTT parameters: skip sweep if --no-transfer (A/B frozen, no transfer happens)
     if OPT_CONFIG['no_transfer']:
@@ -1170,11 +1170,11 @@ def objective(trial, train_loader, val_loader):
         fast_lr = 1.0            # fixed (no effect)
         a_tau_sec = b_tau_sec = 0.0    # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 3e-6, 2e-3, log=True)
+        transfer_lr = trial.suggest_float('transfer_lr', 1e-5, 1e2, log=True)
         transfer_every = trial.suggest_int('transfer_every', 10, 10, log=True)
-        rank_exp = trial.suggest_int('rank_exp', 6, 6)
+        rank_exp = trial.suggest_int('rank_exp', 3, 3)
         rank = 2 ** rank_exp
-        fast_lr = trial.suggest_float('fast_lr', 6e-3, 4e0, log=True)
+        fast_lr = trial.suggest_float('fast_lr', 1e-3, 1e2, log=True)
         # tau_sec → device.lifetime is per-tile splittable. Default shared (single ab variable).
         if SPLIT_AB_PARAMS.get('tau_sec', False):
             a_tau_sec = trial.suggest_float('a_tau_sec', 0, 0, log=False)
@@ -1220,9 +1220,9 @@ def objective(trial, train_loader, val_loader):
     # sweep a single ab_reset_std applied to both tiles (ablation use case).
     if SPLIT_AB_PARAMS.get('reset_std', True):
         a_reset_std = trial.suggest_float('a_reset_std', 1e-30, 1e-30, log=True)
-        b_reset_std = trial.suggest_float('b_reset_std', 6e-2, 3e5, log=True)
+        b_reset_std = trial.suggest_float('b_reset_std', 1e-30, 1e-30, log=True)
     else:
-        ab_reset_std = trial.suggest_float('ab_reset_std', 0.0, 0.0, log=True)
+        ab_reset_std = trial.suggest_float('ab_reset_std', 1e-30, 1e-30, log=True)
         a_reset_std = b_reset_std = ab_reset_std
 
     # C tile pulsed transfer params (only meaningful for onehot/direct)

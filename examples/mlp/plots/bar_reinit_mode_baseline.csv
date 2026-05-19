@@ -1,0 +1,4 @@
+reinit_mode,best_val_acc,n_complete
+gauss_a_zero,97.890,1905
+gauss_b_zero,97.860,1625
+fix_b_zero,94.410,854
