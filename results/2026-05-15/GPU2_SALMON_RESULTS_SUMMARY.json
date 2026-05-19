@@ -1,8 +1,11 @@
 {
   "generated_at": "2026-05-15",
+  "updated_at": "2026-05-19",
+  "gpu": 2,
+  "gpu_role": "gpu2 = EcRamPreset machine (per CORE8_4GPU_SPLIT.md); all runs in this file ran on this host (CUDA_VISIBLE_DEVICES=0 -> A100-SXM4-40GB MIG 3g.20gb)",
   "project": "SALMON (core-8 analog SGD with student-assistant DPU)",
   "task": "CIFAR-10, ResNet18, 300 epochs, seed=12345",
-  "summary": "8 runs total. Tikitaka variant (analog fast tile + analog transfer) at fast_lr=1.0/transfer_lr=0.1 reached the highest test acc 74.12%, vs ecram_off (no SA) baseline 44.30% \u2014 +29.82 pp.",
+  "summary": "12 runs total. Tikitaka + DPU int8_qat at fast_lr=1.0/transfer_lr=0.1 reached the highest test acc 74.12%, vs ecram_off (no SA) baseline 44.30% \u2014 +29.82 pp. Added 2026-05-19: SA-OFF/dpu_off tikitaka companion sweep (4 runs); its best cell fast_lr=1.0/transfer_lr=0.1 reaches 68.94% vs matched off_lr01 baseline 52.34% \u2014 +16.60 pp.",
   "groupings": {
     "baselines (sa_enabled=false)": [
       "core8_ecram_off",
@@ -17,6 +20,12 @@
       "core8_tikitaka_ecram_fast01_tr10",
       "core8_tikitaka_ecram_fast10_tr01",
       "core8_tikitaka_ecram_fast10_tr10"
+    ],
+    "Tikitaka + SA off / DPU off (fast_lr x transfer_lr) [added 2026-05-19]": [
+      "core8_tikitaka_ecram_off_fast01_tr01",
+      "core8_tikitaka_ecram_off_fast01_tr10",
+      "core8_tikitaka_ecram_off_fast10_tr01",
+      "core8_tikitaka_ecram_off_fast10_tr10"
     ]
   },
   "runs": [
@@ -163,12 +172,99 @@
       "log_dir": "/root/SALMON/logs/core8_tikitaka_ecram_fast10_tr10/runs/2026-05-13_19-59-08",
       "tikitaka_fast_lr": 1.0,
       "tikitaka_transfer_lr": 1.0
+    },
+    {
+      "run_id": "core8_tikitaka_ecram_off_fast01_tr01",
+      "gpu": 2,
+      "timestamp": "2026-05-15_06-45-14",
+      "rpu_preset": "EcRamPreset (tikitaka)",
+      "sa_enabled": false,
+      "dpu_precision": "off",
+      "optimizer_lr": 0.01,
+      "seed": 12345,
+      "model": "resnet18",
+      "dataset": "cifar10",
+      "epochs": 300,
+      "best_val_backbone_acc": 0.672,
+      "best_val_epoch": 274,
+      "test_backbone_acc": 0.661,
+      "test_loss": 0.9594,
+      "log_dir": "/root/SALMON/logs/core8_tikitaka_ecram_off_fast01_tr01/runs/2026-05-15_06-45-14",
+      "tikitaka_fast_lr": 0.1,
+      "tikitaka_transfer_lr": 0.1,
+      "dispatch_log": "/root/SALMON/logs/_tikitaka_off_dispatch.log"
+    },
+    {
+      "run_id": "core8_tikitaka_ecram_off_fast01_tr10",
+      "gpu": 2,
+      "timestamp": "2026-05-15_14-52-56",
+      "rpu_preset": "EcRamPreset (tikitaka)",
+      "sa_enabled": false,
+      "dpu_precision": "off",
+      "optimizer_lr": 0.01,
+      "seed": 12345,
+      "model": "resnet18",
+      "dataset": "cifar10",
+      "epochs": 300,
+      "best_val_backbone_acc": 0.5168,
+      "best_val_epoch": 67,
+      "test_backbone_acc": 0.512,
+      "test_loss": 1.3435,
+      "log_dir": "/root/SALMON/logs/core8_tikitaka_ecram_off_fast01_tr10/runs/2026-05-15_14-52-56",
+      "tikitaka_fast_lr": 0.1,
+      "tikitaka_transfer_lr": 1.0,
+      "dispatch_log": "/root/SALMON/logs/_tikitaka_off_dispatch.log"
+    },
+    {
+      "run_id": "core8_tikitaka_ecram_off_fast10_tr01",
+      "gpu": 2,
+      "timestamp": "2026-05-16_04-08-13",
+      "rpu_preset": "EcRamPreset (tikitaka)",
+      "sa_enabled": false,
+      "dpu_precision": "off",
+      "optimizer_lr": 0.01,
+      "seed": 12345,
+      "model": "resnet18",
+      "dataset": "cifar10",
+      "epochs": 300,
+      "best_val_backbone_acc": 0.6926,
+      "best_val_epoch": 268,
+      "test_backbone_acc": 0.6894,
+      "test_loss": 0.8832,
+      "log_dir": "/root/SALMON/logs/core8_tikitaka_ecram_off_fast10_tr01/runs/2026-05-16_04-08-13",
+      "tikitaka_fast_lr": 1.0,
+      "tikitaka_transfer_lr": 0.1,
+      "is_best_of_off_sweep": true,
+      "dispatch_log": "/root/SALMON/logs/_tikitaka_off_dispatch.log"
+    },
+    {
+      "run_id": "core8_tikitaka_ecram_off_fast10_tr10",
+      "gpu": 2,
+      "timestamp": "2026-05-16_13-11-10",
+      "rpu_preset": "EcRamPreset (tikitaka)",
+      "sa_enabled": false,
+      "dpu_precision": "off",
+      "optimizer_lr": 0.01,
+      "seed": 12345,
+      "model": "resnet18",
+      "dataset": "cifar10",
+      "epochs": 300,
+      "best_val_backbone_acc": 0.6014,
+      "best_val_epoch": 105,
+      "test_backbone_acc": 0.5952,
+      "test_loss": 1.1523,
+      "log_dir": "/root/SALMON/logs/core8_tikitaka_ecram_off_fast10_tr10/runs/2026-05-16_13-11-10",
+      "tikitaka_fast_lr": 1.0,
+      "tikitaka_transfer_lr": 1.0,
+      "dispatch_log": "/root/SALMON/logs/_tikitaka_off_dispatch.log"
     }
   ],
   "notes": [
     "All runs train ResNet18 on CIFAR-10 with EcRamPreset for the analog backbone, optimizer=AnalogSGD+CosineAnnealing(T_max=300, eta_min=0.001), momentum=0.9.",
     "Pairs of runs use optimizer.lr \u2208 {0.10, 0.01}; lr=0.01 wins in every comparable pair.",
     "Tikitaka runs sweep fast_lr \u00d7 transfer_lr \u2208 {0.1, 1.0}\u00b2, holding optimizer.lr=0.01, dpu_precision=int8_qat.",
-    "results/core8_dpu_precision_summary.{csv,md} on disk are an unfilled template \u2014 actual metrics are in csv/version_0/metrics.csv under each run dir."
+    "results/core8_dpu_precision_summary.{csv,md} on disk are an unfilled template \u2014 actual metrics are in csv/version_0/metrics.csv under each run dir.",
+    "Added 2026-05-19 (GPU2): core8_tikitaka_ecram_off_* \u2014 SA-OFF/dpu_off tikitaka companion sweep (scripts/run_core8_tikitaka_ecram_off.sh). Same EcRamPreset + AnalogSGD + cosine, opt.lr=0.01, sa_enabled=false, dpu_precision=off; fast_lr \u00d7 transfer_lr \u2208 {0.1,1.0}\u00b2. Ran on the gpu2 host 2026-05-15\u21922026-05-16, dispatch logs/_tikitaka_off_dispatch.log.",
+    "Off-sweep result: best cell fast_lr=1.0/transfer_lr=0.1 \u2192 test 68.94% (val 69.26% @ ep268), vs matched core8_ecram_off_lr01 baseline 52.34% \u2192 +16.60 pp from the analog fast tile alone (no SA, no DPU). High transfer_lr=1.0 collapses training (early-best ep67/105), same pattern as the int8_qat sweep."
   ]
 }
