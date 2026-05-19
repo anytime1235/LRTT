@@ -322,13 +322,24 @@ def _bits_to_dw_min(weight_bits, w_min=-1.0, w_max=1.0):
     return (w_max - w_min) / float(2 ** int(weight_bits))
 
 
-def _make_lrtt_tile_device(device_type, weight_bits):
-    """Build one analog array device for an LRTT tile (Core or Auxiliary)."""
+def _make_lrtt_tile_device(device_type, weight_bits, w_max=None):
+    """Build one analog array device for an LRTT tile (Core or Auxiliary).
+
+    If `w_max` is given, the device keeps the SAME bit-resolution
+    (n_states = 2**weight_bits) but rescales the symmetric weight range
+    [-w_max, +w_max], so dw_min = (2*w_max) / 2**weight_bits. Lowering w_max
+    therefore lowers (refines) dw_min while staying weight_bits-bit.
+    Example (10-bit): w_max=1.0 -> dw_min=2/1024=1.953e-3 (current);
+    w_max=0.01 -> dw_min=0.02/1024=1.953e-5 (100x finer).
+    If `w_max` is None, legacy behaviour: w_max=+/-1, dw_min=2/2**bits.
+    """
     if device_type == "constant_step":
+        _wmax = 1.0 if w_max is None else float(w_max)
+        _dw = (2.0 * _wmax) / float(2 ** int(weight_bits))
         return ConstantStepDevice(
-            dw_min=_bits_to_dw_min(weight_bits),
-            w_max=1.0,
-            w_min=-1.0,
+            dw_min=_dw,
+            w_max=_wmax,
+            w_min=-_wmax,
             dw_min_dtod=0.0,
             dw_min_std=0.0,
             up_down=0.0,
@@ -343,7 +354,8 @@ def _make_lrtt_tile_device(device_type, weight_bits):
 
 def create_lrtt_v2_config(rank, transfer_every, transfer_lr,
                           selector_policy="shuffled_cycle", cap_rho=1.0,
-                          device_type="constant_step", weight_bits=10):
+                          device_type="constant_step", weight_bits=10,
+                          aux_w_max=None):
     """Create an LRTT-v2 (row-coordinate selector + blockwise transfer) RPU config.
 
     Selector/shuffle controller logic mirrors the known-good
@@ -353,9 +365,12 @@ def create_lrtt_v2_config(rank, transfer_every, transfer_lr,
     device_type='constant_step', weight_bits=10 -> ConstantStepDevice with
     dw_min = 2/1024 (10-bit Core array AND 10-bit Auxiliary array).
     """
+    # Core (C) keeps the fixed legacy resolution (w_max=+/-1, 10-bit).
+    # Aux (A, B) -- the learning low-rank arrays -- get a swept, refined
+    # dw_min via a shrunk symmetric range w_max (10-bit preserved).
     core = _make_lrtt_tile_device(device_type, weight_bits)
-    aux_a = _make_lrtt_tile_device(device_type, weight_bits)
-    aux_b = _make_lrtt_tile_device(device_type, weight_bits)
+    aux_a = _make_lrtt_tile_device(device_type, weight_bits, w_max=aux_w_max)
+    aux_b = _make_lrtt_tile_device(device_type, weight_bits, w_max=aux_w_max)
     dev = PythonLRTTDevice(
         rank=rank,
         transfer_every=transfer_every,
@@ -545,6 +560,7 @@ def create_model(params):
         # LRTT-v2: row-coordinate selector + shuffled-cycle blockwise transfer
         _v2_dev = OPT_CONFIG.get('lrtt_device_type', 'constant_step')
         _v2_bits = OPT_CONFIG.get('lrtt_weight_bits', 10)
+        _aux_wmax = params.get("aux_w_max", None)
         lrtt_config = create_lrtt_v2_config(
             rank=int(params["rank"]),
             transfer_every=int(params["transfer_every"]),
@@ -553,15 +569,20 @@ def create_model(params):
             cap_rho=params.get("cap_rho", 1.0),
             device_type=_v2_dev,
             weight_bits=_v2_bits,
+            aux_w_max=_aux_wmax,
         )
         lrtt_exclude = [n for n in all_linear_names if n not in tikitaka_layers]
         model = convert_to_analog(model, lrtt_config, exclude_modules=lrtt_exclude)
         tikitaka_count = sum(1 for m in model.modules() if isinstance(m, AnalogLinear))
-        _dwm = _bits_to_dw_min(_v2_bits) if _v2_dev == 'constant_step' else None
+        _dwm_core = _bits_to_dw_min(_v2_bits) if _v2_dev == 'constant_step' else None
+        _dwm_aux = ((2.0 * float(_aux_wmax)) / float(2 ** int(_v2_bits))
+                    if (_aux_wmax is not None and _v2_dev == 'constant_step') else _dwm_core)
         print(f"  [LRTT-v2] {tikitaka_count} target layers -> selector_reconstruction "
               f"(policy={params.get('selector_policy', 'shuffled_cycle')}, "
-              f"rank={int(params['rank'])}, Core+Aux={_v2_dev}"
-              f"{f'/{_v2_bits}bit(dw_min={_dwm:.6g})' if _dwm else ''})")
+              f"rank={int(params['rank'])}, transfer_every={int(params['transfer_every'])}, "
+              f"Core={_v2_dev}/{_v2_bits}bit(wmax=1,dw_min={_dwm_core:.6g}) "
+              f"Aux={_v2_dev}/{_v2_bits}bit(wmax={float(_aux_wmax) if _aux_wmax else 1.0:.4g},"
+              f"dw_min={_dwm_aux:.6g}))")
     elif tikitaka_layers and LORA_TARGET != "none" and TARGET_IDEAL:
         # IdealDevice: FP32 trainable analog (no noop hook)
         ideal_config = create_ideal_config()
@@ -1072,8 +1093,25 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         else:
             desired_bl = OPT_CONFIG.get('desired_bl', 1)
 
-    # transfer_every: fixed at 1 (uim=True -> every mini-batch)
-    transfer_every = OPT_CONFIG.get('transfer_every_override', 1)
+    # transfer_every: sweep (int, log) when a range is configured, else fixed.
+    _te_range = OPT_CONFIG.get('transfer_every_range', None)
+    if _te_range is not None and int(_te_range[0]) != int(_te_range[1]):
+        transfer_every = trial.suggest_int(
+            'transfer_every', int(_te_range[0]), int(_te_range[1]), log=True)
+    else:
+        transfer_every = OPT_CONFIG.get('transfer_every_override', 1)
+
+    # aux_w_max: sweep (float, log) the symmetric weight bound of the learning
+    # Aux (A/B) tiles. 10-bit is preserved; dw_min = 2*w_max/1024, so lowering
+    # w_max refines dw_min. Range is configured via --aux-wmax-range.
+    _awm_range = OPT_CONFIG.get('aux_wmax_range', None)
+    if _awm_range is not None and float(_awm_range[0]) != float(_awm_range[1]):
+        aux_w_max = trial.suggest_float(
+            'aux_w_max', float(_awm_range[0]), float(_awm_range[1]), log=True)
+    elif _awm_range is not None:
+        aux_w_max = float(_awm_range[0])
+    else:
+        aux_w_max = None
 
     min_lr_rate = OPT_CONFIG.get('min_lr_rate', 0.5)  # fraction of peak LR (paper default 0.5)
 
@@ -1099,6 +1137,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         "transfer_lr": transfer_lr,
         "fast_lr": fast_lr,
         "desired_bl": desired_bl,
+        "aux_w_max": aux_w_max,
         # LRTT-v2 selector/shuffle params (fixed via CLI for the validation run)
         "rank": OPT_CONFIG.get("rank", 8),
         "selector_policy": OPT_CONFIG.get("selector_policy", "shuffled_cycle"),
@@ -1564,6 +1603,16 @@ def main():
                         help='Disable auto_scale')
     parser.add_argument('--transfer-every', type=int, default=None,
                         help='Override transfer_every (default: 1)')
+    parser.add_argument('--transfer-every-range', type=int, nargs=2, default=None,
+                        metavar=('LO', 'HI'),
+                        help='Sweep transfer_every as suggest_int(LO,HI,log=True). '
+                             'Overrides --transfer-every when set.')
+    parser.add_argument('--aux-wmax-range', type=float, nargs=2, default=None,
+                        metavar=('LO', 'HI'),
+                        help='Sweep the symmetric weight bound w_max of the '
+                             'learning Aux (A/B) LRTT-v2 tiles as '
+                             'suggest_float(LO,HI,log=True). 10-bit preserved; '
+                             'dw_min = 2*w_max/1024. e.g. 0.01 1.0')
     parser.add_argument('--uim', action='store_true', dest='units_in_mbatch', default=True,
                         help='units_in_mbatch=True (default)')
     parser.add_argument('--no-uim', action='store_false', dest='units_in_mbatch',
@@ -1723,6 +1772,10 @@ def main():
     OPT_CONFIG['shared_lr'] = args.shared_lr
     if args.transfer_every is not None:
         OPT_CONFIG['transfer_every_override'] = args.transfer_every
+    if args.transfer_every_range is not None:
+        OPT_CONFIG['transfer_every_range'] = args.transfer_every_range
+    if args.aux_wmax_range is not None:
+        OPT_CONFIG['aux_wmax_range'] = args.aux_wmax_range
     OPT_CONFIG['units_in_mbatch'] = args.units_in_mbatch
     OPT_CONFIG['desired_bl'] = args.desired_bl
     if args.bl_sweep is not None:
