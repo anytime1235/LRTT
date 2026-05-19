@@ -355,7 +355,7 @@ def _make_lrtt_tile_device(device_type, weight_bits, w_max=None):
 def create_lrtt_v2_config(rank, transfer_every, transfer_lr,
                           selector_policy="shuffled_cycle", cap_rho=1.0,
                           device_type="constant_step", weight_bits=10,
-                          aux_w_max=None):
+                          aux_w_max=None, selector_reset_b_on_advance=True):
     """Create an LRTT-v2 (row-coordinate selector + blockwise transfer) RPU config.
 
     Selector/shuffle controller logic mirrors the known-good
@@ -382,7 +382,7 @@ def create_lrtt_v2_config(rank, transfer_every, transfer_lr,
         selector_axis="row",
         selector_policy=selector_policy,         # 'shuffled_cycle' -> reshuffle each cycle
         selector_seed=0,
-        selector_reset_b_on_advance=True,
+        selector_reset_b_on_advance=selector_reset_b_on_advance,
         cap_stabilizer_enabled=True,
         cap_rho=cap_rho,
         cap_compensate_transfer=True,
@@ -570,6 +570,8 @@ def create_model(params):
             device_type=_v2_dev,
             weight_bits=_v2_bits,
             aux_w_max=_aux_wmax,
+            selector_reset_b_on_advance=OPT_CONFIG.get(
+                'selector_reset_b_on_advance', True),
         )
         lrtt_exclude = [n for n in all_linear_names if n not in tikitaka_layers]
         model = convert_to_analog(model, lrtt_config, exclude_modules=lrtt_exclude)
@@ -1624,6 +1626,14 @@ def main():
                              'learning Aux (A/B) LRTT-v2 tiles as '
                              'suggest_float(LO,HI,log=True). 10-bit preserved; '
                              'dw_min = 2*w_max/1024. e.g. 0.01 1.0')
+    parser.add_argument('--no-selector-reset-b', action='store_true', default=False,
+                        help='LRTT-v2 ablation: do NOT zero the Aux B buffer '
+                             'after each blockwise transfer '
+                             '(selector_reset_b_on_advance=False). B then keeps '
+                             'accumulating across selector blocks/cycles instead '
+                             'of restarting from zero (prior content is also '
+                             're-transferred). Default False = paper behavior '
+                             '(B reset to 0 after every transfer).')
     parser.add_argument('--uim', action='store_true', dest='units_in_mbatch', default=True,
                         help='units_in_mbatch=True (default)')
     parser.add_argument('--no-uim', action='store_false', dest='units_in_mbatch',
@@ -1787,6 +1797,10 @@ def main():
         OPT_CONFIG['transfer_every_range'] = args.transfer_every_range
     if args.aux_wmax_range is not None:
         OPT_CONFIG['aux_wmax_range'] = args.aux_wmax_range
+    # LRTT-v2: B reset on transfer is ON by default (paper behavior); the
+    # --no-selector-reset-b ablation flips it off so B accumulates across
+    # selector blocks/cycles.
+    OPT_CONFIG['selector_reset_b_on_advance'] = not args.no_selector_reset_b
     OPT_CONFIG['units_in_mbatch'] = args.units_in_mbatch
     OPT_CONFIG['desired_bl'] = args.desired_bl
     if args.bl_sweep is not None:
