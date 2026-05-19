@@ -13,7 +13,14 @@
       "seed": 12345
     },
     "venv": "/root/.venv310/bin/python",
-    "snapshot_date": "2026-05-15"
+    "snapshot_date": "2026-05-15",
+    "last_updated": "2026-05-19",
+    "gpu": {
+      "node": "this host (A100-SXM4-40GB)",
+      "cuda_visible_devices": 0,
+      "index": 0,
+      "note": "All experiments in this file ran on GPU 0 (CUDA_VISIBLE_DEVICES=0, MIG 3g.20gb instance enumerating as device 0). Verified from scripts/run_core8_gpu0.sh, scripts/run_tt1_gpu0.sh and logs/_gpu0_*.log ('LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]'). MIG fallback UUID MIG-5f657128-1500-56b1-bd6b-dce2c3cbeaef."
+    }
   },
   "experiments": {
     "core8_dpu_precision_sweep": {
@@ -100,6 +107,7 @@
         "Aggressive (INT4) quantization compounds with non-ideal device dynamics"
       ],
       "infra": {
+        "gpu": 0,
         "int4_qat_support_added": "2026-05-09",
         "int4_qat_files": [
           "src/models/components/dpu_quant.py::prepare_dpu_int4_qat",
@@ -134,14 +142,16 @@
     },
     "tt1_fast_transfer_sweep": {
       "design": "Replace single-tile RPU preset with TransferCompound (TikiTaka v1); 3 best baseline cells x (fast_lr x transfer_lr in {0.1, 1.0}^2)",
+      "gpu": 0,
       "launched_utc": "2026-05-12T09:09:00Z",
+      "completed_utc": "2026-05-19T05:05:35Z",
       "scale_transfer_lr": false,
       "planned_runs": 12,
-      "completed_runs": 5,
-      "crashed_runs": 1,
-      "not_launched_runs": 6,
-      "dispatcher_pid_2535996_alive": false,
-      "host_gpu_status": "nvidia-smi reports 'Failed to initialize NVML: Unknown Error' — GPU lost",
+      "completed_runs": 12,
+      "crashed_runs": 0,
+      "not_launched_runs": 0,
+      "sweep_status": "ALL DONE (logs/_gpu0_tt1_dispatch.log: '[GPU0] 2026-05-19 05:05:35 TT1 SWEEP ALL DONE')",
+      "note_on_crash": "tt1_idealized_int8_qat_f01_t10 crashed once on 2026-05-15T02:35:04Z (Lightning 'No supported gpu backend found!' — transient MIG-only state on GPU 0). Dispatcher resumed 2026-05-15 06:13 and the run completed successfully (run_timestamp 2026-05-15_06-13-03).",
       "cells": [
         {
           "cell_tag": "idealized_off",
@@ -241,35 +251,110 @@
           "cell_tag": "idealized_int8_qat",
           "fast_lr": 0.1,
           "transfer_lr": 1.0,
-          "status": "crashed",
-          "crash_utc": "2026-05-15T02:35:04Z",
-          "error": "lightning.fabric.utilities.exceptions.MisconfigurationException: No supported gpu backend found!",
-          "metrics_csv_present": false,
-          "run_timestamp": "2026-05-15_02-35-04"
+          "status": "completed",
+          "test_acc": 0.7477,
+          "test_loss": 0.7303,
+          "best_val_acc": 0.7574,
+          "delta_vs_baseline_pp": -12.39,
+          "run_timestamp": "2026-05-15_06-13-03",
+          "note": "First attempt 2026-05-15_02-35-04 crashed (GPU backend); succeeded on dispatcher resume."
         },
-        {"task_name": "tt1_idealized_int8_qat_f10_t01", "cell_tag": "idealized_int8_qat", "fast_lr": 1.0, "transfer_lr": 0.1, "status": "not_launched"},
-        {"task_name": "tt1_idealized_int8_qat_f10_t10", "cell_tag": "idealized_int8_qat", "fast_lr": 1.0, "transfer_lr": 1.0, "status": "not_launched"},
-        {"task_name": "tt1_ecram_int4_qat_f01_t01", "cell_tag": "ecram_int4_qat", "fast_lr": 0.1, "transfer_lr": 0.1, "status": "not_launched"},
-        {"task_name": "tt1_ecram_int4_qat_f01_t10", "cell_tag": "ecram_int4_qat", "fast_lr": 0.1, "transfer_lr": 1.0, "status": "not_launched"},
-        {"task_name": "tt1_ecram_int4_qat_f10_t01", "cell_tag": "ecram_int4_qat", "fast_lr": 1.0, "transfer_lr": 0.1, "status": "not_launched"},
-        {"task_name": "tt1_ecram_int4_qat_f10_t10", "cell_tag": "ecram_int4_qat", "fast_lr": 1.0, "transfer_lr": 1.0, "status": "not_launched"}
+        {
+          "task_name": "tt1_idealized_int8_qat_f10_t01",
+          "cell_tag": "idealized_int8_qat",
+          "fast_lr": 1.0,
+          "transfer_lr": 0.1,
+          "status": "completed",
+          "test_acc": 0.8046,
+          "test_loss": 0.5835,
+          "best_val_acc": 0.8178,
+          "delta_vs_baseline_pp": -6.70,
+          "run_timestamp": "2026-05-15_20-23-11"
+        },
+        {
+          "task_name": "tt1_idealized_int8_qat_f10_t10",
+          "cell_tag": "idealized_int8_qat",
+          "fast_lr": 1.0,
+          "transfer_lr": 1.0,
+          "status": "completed",
+          "test_acc": 0.8063,
+          "test_loss": 0.5714,
+          "best_val_acc": 0.8128,
+          "delta_vs_baseline_pp": -6.53,
+          "run_timestamp": "2026-05-16_11-56-56",
+          "cell_best": true
+        },
+        {
+          "task_name": "tt1_ecram_int4_qat_f01_t01",
+          "cell_tag": "ecram_int4_qat",
+          "fast_lr": 0.1,
+          "transfer_lr": 0.1,
+          "status": "completed",
+          "test_acc": 0.7223,
+          "test_loss": 0.7866,
+          "best_val_acc": 0.7316,
+          "delta_vs_baseline_pp": 14.27,
+          "run_timestamp": "2026-05-17_03-18-03"
+        },
+        {
+          "task_name": "tt1_ecram_int4_qat_f01_t10",
+          "cell_tag": "ecram_int4_qat",
+          "fast_lr": 0.1,
+          "transfer_lr": 1.0,
+          "status": "completed",
+          "test_acc": 0.6028,
+          "test_loss": 1.107,
+          "best_val_acc": 0.6106,
+          "delta_vs_baseline_pp": 2.32,
+          "run_timestamp": "2026-05-17_13-01-21"
+        },
+        {
+          "task_name": "tt1_ecram_int4_qat_f10_t01",
+          "cell_tag": "ecram_int4_qat",
+          "fast_lr": 1.0,
+          "transfer_lr": 0.1,
+          "status": "completed",
+          "test_acc": 0.747,
+          "test_loss": 0.7239,
+          "best_val_acc": 0.7514,
+          "delta_vs_baseline_pp": 16.74,
+          "run_timestamp": "2026-05-18_03-41-05",
+          "cell_best": true,
+          "sweep_headline": true
+        },
+        {
+          "task_name": "tt1_ecram_int4_qat_f10_t10",
+          "cell_tag": "ecram_int4_qat",
+          "fast_lr": 1.0,
+          "transfer_lr": 1.0,
+          "status": "completed",
+          "test_acc": 0.6758,
+          "test_loss": 0.9098,
+          "best_val_acc": 0.6836,
+          "delta_vs_baseline_pp": 9.62,
+          "run_timestamp": "2026-05-18_14-31-40"
+        }
       ],
       "key_observations": [
-        "All 4 idealized_off TT1 runs lose 14-22pp vs baseline (0.8173) — current LR grid cannot recover single-tile idealized_off under TikiTaka v1",
-        "Within idealized_off: fast_lr=1.0 > 0.1 (+5.9 to +6.1pp); transfer_lr=1.0 > 0.1 (smaller effect, +1.9 to +2.1pp); (f=1.0, t=1.0) is corner-best",
-        "At (f=0.1, t=0.1): SA+int8_qat vs off delta = +14.34pp (test) / +14.90pp (val); core-8 baseline delta at same SA/dpu config = +5.43pp -> TikiTaka amplifies the gap ~2.6x",
-        "ecram_int4_qat cell (the headline hypothesis: TikiTaka recovers EcRam int4_qat collapse) has 0 runs completed"
+        "HEADLINE CONFIRMED: TikiTaka v1 recovers the EcRam int4_qat collapse. All 4 ecram_int4_qat runs beat the single-tile baseline (0.5796); best tt1_ecram_int4_qat_f10_t01 = 0.7470 (+16.74pp), val 0.7514. The original sweep hypothesis holds.",
+        "TikiTaka helps the weak device but hurts the good one: idealized_off -14 to -22pp vs 0.8173, idealized_int8_qat -6.5 to -13.3pp vs 0.8716, while ecram_int4_qat is +2.3 to +16.7pp vs 0.5796. Net: TransferCompound recovers degraded device dynamics but adds no benefit (and costs accuracy) when the single tile is already near-ideal.",
+        "Operating point is consistent across all 3 cells: fast_lr=1.0 >> fast_lr=0.1 universally; with fast_lr=1.0, transfer_lr=0.1 is best for ecram_int4_qat (0.7470 > 0.6758) and essentially tied for idealized_int8_qat (0.8046 vs 0.8063). This matches the independent GPU2/GPU3 core8_tikitaka_ecram sweep (best at fast_lr=1.0, transfer_lr=0.1).",
+        "Worst combo is fast_lr=0.1, transfer_lr=1.0 in every cell (idealized_off 0.6135, idealized_int8_qat 0.7477 is the exception — actually 2nd-worst there, ecram 0.6028 worst).",
+        "idealized_int8_qat cell best is f10_t10 0.8063 (-6.53pp) — TikiTaka closes most but not all of the gap to the 0.8716 single-tile INT8-QAT baseline.",
+        "Grid does NOT need upward extension for the ecram_int4_qat hypothesis (the prior 5/15 recommendation): fast_lr=1.0/transfer_lr=0.1 already recovers it well; transfer_lr>0.1 monotonically degrades ecram."
       ],
       "infra": {
+        "gpu": 0,
         "factory": "src/utils/rpu_factory.py::build_tikitaka_v1_rpu_config(preset, fast_lr, transfer_lr, scale_transfer_lr)",
         "dispatcher": "scripts/run_tt1_gpu0.sh",
         "dispatcher_log": "logs/_gpu0_tt1_dispatch.log",
-        "per_run_wall_h": "12-15"
+        "per_run_wall_h": "12-15",
+        "completion_marker": "[GPU0] 2026-05-19 05:05:35 TT1 SWEEP ALL DONE"
       },
-      "resume_actions": [
-        "Restore host GPU/driver; verify nvidia-smi returns normal output",
-        "Modify dispatcher (or branch) to skip the 5 completed task_names and restart from the crashed cell or the next not_launched cell",
-        "ecram_int4_qat 4 runs are the core hypothesis test"
+      "follow_up_actions": [
+        "Sweep is complete (12/12) — no resume needed.",
+        "Recommended next: SA ablation on tt1_ecram_int4_qat_f10_t01 (sa_enabled=false) to isolate how much of the +16.74pp recovery is TransferCompound vs the SA/DPU path.",
+        "Optionally fill results/core8_dpu_precision_summary.{csv,md} via scripts/collect_core8_results.py to consolidate single-tile + TT1 in one table."
       ]
     }
   }

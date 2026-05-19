@@ -4,7 +4,8 @@
 - Backbone: ResNet18, CIFAR-10
 - Trainer: 300 epochs, batch 128, AnalogSGD lr+momentum 0.9, cosine annealing (eta_min = lr/100), seed 12345
 - Venv: `/root/.venv310/bin/python`
-- 본 문서 작성 시점: 2026-05-15
+- **GPU: 0** (`CUDA_VISIBLE_DEVICES=0`, A100-SXM4-40GB의 MIG 3g.20gb instance가 device 0으로 enumerate). `scripts/run_core8_gpu0.sh`, `scripts/run_tt1_gpu0.sh`, `logs/_gpu0_*.log`의 `LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]`로 검증. 이 문서의 **모든 실험(core-8 idealized/ecram_int4 + TT1)은 GPU 0에서 실행**됨. MIG fallback UUID `MIG-5f657128-1500-56b1-bd6b-dce2c3cbeaef`.
+- 본 문서 작성 시점: 2026-05-15 · **최종 갱신: 2026-05-19 (TT1 sweep 12/12 완료 반영)**
 
 ---
 
@@ -48,27 +49,49 @@ DPU precision (`off / fp32 / fp16 / int8_qat / int4_qat`) × RPU preset (`Ideali
 - 2026-05-12 09:09 UTC GPU0 sequential dispatcher 시작
 - `scale_transfer_lr=False` (절대 transfer_lr)
 
-### 현재 상태: 5 완료 / 1 크래시 / 6 미실행
+### 현재 상태: **12 / 12 완료** (sweep ALL DONE, GPU 0, 2026-05-19 05:05 UTC)
 
-| task_name | cell baseline | fast_lr | transfer_lr | test/acc | best val/acc | Δ vs baseline |
-|---|---|---|---|---|---|---|
-| tt1_idealized_off_f01_t01 | 0.8173 | 0.1 | 0.1 | 0.5950 | 0.6118 | −22.23 pp |
-| tt1_idealized_off_f01_t10 | 0.8173 | 0.1 | 1.0 | 0.6135 | 0.6220 | −20.38 pp |
-| tt1_idealized_off_f10_t01 | 0.8173 | 1.0 | 0.1 | 0.6540 | 0.6668 | −16.33 pp |
-| tt1_idealized_off_f10_t10 | 0.8173 | 1.0 | 1.0 | **0.6747** | 0.6834 | −14.26 pp |
-| tt1_idealized_int8_qat_f01_t01 | 0.8716 | 0.1 | 0.1 | **0.7384** | 0.7608 | −13.32 pp |
-| tt1_idealized_int8_qat_f01_t10 | 0.8716 | 0.1 | 1.0 | — (crashed) | — | — |
+`logs/_gpu0_tt1_dispatch.log` 마지막 줄: `[GPU0] 2026-05-19 05:05:35 TT1 SWEEP ALL DONE`. 5/15 스냅샷의 1 크래시(`tt1_idealized_int8_qat_f01_t10`)는 dispatcher 재개(2026-05-15 06:13) 후 정상 완료됨.
 
-### 크래시 / 미실행
-- `tt1_idealized_int8_qat_f01_t10`: 2026-05-15 02:35:04 UTC 시작 → 5초 후 `MisconfigurationException: No supported gpu backend found!`로 실패. `metrics.csv` 미생성. `nvidia-smi`가 `Failed to initialize NVML: Unknown Error` 반환 → 호스트 GPU 손실.
-- Dispatcher PID 2535996은 이미 종료됨.
-- 미실행 6개: `idealized_int8_qat × {f10_t01, f10_t10}`, `ecram_int4_qat × {f01_t01, f01_t10, f10_t01, f10_t10}` (ecram_int4_qat 셀 전체 미시작)
+#### idealized_off 셀 (baseline 0.8173)
+
+| task_name | fast_lr | transfer_lr | test/acc | best val/acc | Δ vs baseline |
+|---|---|---|---|---|---|
+| tt1_idealized_off_f01_t01 | 0.1 | 0.1 | 0.5950 | 0.6118 | −22.23 pp |
+| tt1_idealized_off_f01_t10 | 0.1 | 1.0 | 0.6135 | 0.6220 | −20.38 pp |
+| tt1_idealized_off_f10_t01 | 1.0 | 0.1 | 0.6540 | 0.6668 | −16.33 pp |
+| tt1_idealized_off_f10_t10 | 1.0 | 1.0 | **0.6747** | 0.6834 | −14.26 pp |
+
+#### idealized_int8_qat 셀 (baseline 0.8716)
+
+| task_name | fast_lr | transfer_lr | test/acc | best val/acc | Δ vs baseline |
+|---|---|---|---|---|---|
+| tt1_idealized_int8_qat_f01_t01 | 0.1 | 0.1 | 0.7384 | 0.7608 | −13.32 pp |
+| tt1_idealized_int8_qat_f01_t10 | 0.1 | 1.0 | 0.7477 | 0.7574 | −12.39 pp |
+| tt1_idealized_int8_qat_f10_t01 | 1.0 | 0.1 | 0.8046 | 0.8178 | −6.70 pp |
+| tt1_idealized_int8_qat_f10_t10 | 1.0 | 1.0 | **0.8063** | 0.8128 | −6.53 pp |
+
+> `f01_t10`은 2026-05-15 02:35 1차 크래시(GPU backend, MIG-only 전이) 후 06:13 재개에서 정상 완료 (`run_timestamp 2026-05-15_06-13-03`).
+
+#### ecram_int4_qat 셀 (baseline 0.5796, lr=0.01) — **원 가설의 핵심**
+
+| task_name | fast_lr | transfer_lr | test/acc | best val/acc | Δ vs baseline |
+|---|---|---|---|---|---|
+| tt1_ecram_int4_qat_f01_t01 | 0.1 | 0.1 | 0.7223 | 0.7316 | **+14.27 pp** |
+| tt1_ecram_int4_qat_f01_t10 | 0.1 | 1.0 | 0.6028 | 0.6106 | +2.32 pp |
+| tt1_ecram_int4_qat_f10_t01 | 1.0 | 0.1 | **0.7470** | 0.7514 | **+16.74 pp** ★ sweep headline |
+| tt1_ecram_int4_qat_f10_t10 | 1.0 | 1.0 | 0.6758 | 0.6836 | +9.62 pp |
 
 ### 핵심 관찰
-- **idealized_off 4셀 모두 baseline 대비 14–22pp 손실**. 현 격자에서는 TikiTaka v1으로 단일-타일 idealized_off 회복 불가
-- **(f01, t01)에서 SA+int8_qat vs off Δ = +14.34pp** (core-8 동일 비교 +5.43pp의 약 2.6배). TikiTaka의 보수적 transfer 영역에서 off 셀이 더 크게 망가지고, INT8-QAT가 손실을 일부 흡수
-- **fast_lr = transfer_lr = 1.0이 idealized_off 셀에서 최우수**. 다른 셀로 일반화될 가능성. 격자를 위로 더 확장할 필요
-- ecram_int4_qat 셀 회복 여부(원 가설의 핵심)는 **아직 검증 불가** — 전체 4 run 미실행
+- **★ 원 가설 확정: TikiTaka v1이 EcRam int4_qat 붕괴를 회복.** ecram_int4_qat 4 run 모두 단일-타일 baseline(0.5796) 초과. 최고 `tt1_ecram_int4_qat_f10_t01 = 0.7470 (+16.74pp)`, val 0.7514.
+- **TikiTaka는 약한 device는 살리고 좋은 device는 손해.** idealized_off −14~−22pp, idealized_int8_qat −6.5~−13.3pp(여전히 0.8716 회복 못함), ecram_int4_qat +2.3~+16.7pp. 즉 TransferCompound는 비이상 device dynamics를 복구하지만 단일-타일이 이미 near-ideal일 때는 이득 없음(오히려 손실).
+- **operating point는 3셀 공통**: `fast_lr=1.0 ≫ fast_lr=0.1` 항상; fast_lr=1.0일 때 ecram은 transfer_lr=0.1이 명백히 우수(0.7470 > 0.6758), idealized_int8_qat은 사실상 무차별(0.8046 vs 0.8063). 독립적인 GPU2/GPU3 core8_tikitaka_ecram sweep(최적 f=1.0/t=0.1)과 일치.
+- 최악 조합은 대체로 `fast_lr=0.1, transfer_lr=1.0` (ecram 0.6028로 셀 최저).
+- **격자 상향 확장 불필요**(5/15의 권고 폐기): ecram_int4_qat 가설은 f=1.0/t=0.1에서 이미 잘 회복되고 transfer_lr>0.1은 ecram을 단조 악화시킴.
+
+### 후속 권장 (sweep 완료, 재개 불필요)
+1. `tt1_ecram_int4_qat_f10_t01`에 `sa_enabled=false` ablation → +16.74pp 회복 중 TransferCompound vs SA/DPU 경로 기여 분리
+2. `scripts/collect_core8_results.py`로 `results/core8_dpu_precision_summary.{csv,md}` 채워 단일-타일 + TT1 통합 테이블화
 
 ### 인프라
 - Factory: `src/utils/rpu_factory.py::build_tikitaka_v1_rpu_config(preset, fast_lr, transfer_lr, scale_transfer_lr)`
@@ -76,10 +99,8 @@ DPU precision (`off / fp32 / fp16 / int8_qat / int4_qat`) × RPU preset (`Ideali
 - 로그: `logs/_gpu0_tt1_dispatch.log`, 개별 run은 `logs/<task_name>/runs/<timestamp>/`
 - Per-run wall time ≈ 12–15 h (단일-타일 core-8 ≈ 8 h보다 transfer 오버헤드)
 
-### 재개 시 필요 조치
-1. 호스트 GPU/드라이버 복구 (`nvidia-smi` 정상 출력 확인)
-2. Dispatcher 수정 또는 분기: 완료된 5 run의 task_name과 중복되지 않도록 6번째 셀부터 재시작
-3. Baseline ecram_int4_qat (0.5796) 대비 ecram TT1 셀의 변화가 sweep의 핵심 가설
+### 재개 시 필요 조치 — 해결 완료 (2026-05-19)
+> ~~호스트 GPU 복구 후 6번째 셀부터 재시작~~ — dispatcher가 2026-05-15 06:13 자동 재개되어 나머지 7 run을 순차 완료, 2026-05-19 05:05 UTC sweep 전체 종료. 추가 조치 불필요. 후속 권장은 §2 참조.
 
 ---
 
