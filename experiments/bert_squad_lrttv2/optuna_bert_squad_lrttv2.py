@@ -1093,11 +1093,22 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         else:
             desired_bl = OPT_CONFIG.get('desired_bl', 1)
 
-    # transfer_every: sweep (int, log) when a range is configured, else fixed.
+    # transfer_every: sweep when a range is configured, else fixed.
+    # transfer_counter increments per micro-batch (units_in_mbatch=False on the
+    # lrtt_v2 path), so transfer_every is in micro-batch units. With gradient
+    # accumulation, 1 optimizer step = grad_accum micro-batches. We constrain
+    # transfer_every to an exact multiple of grad_accum so the analog transfer
+    # / B-reset / selector-advance stay phase-locked to the effective-batch
+    # (optimizer-step) boundary instead of drifting within the accum window.
     _te_range = OPT_CONFIG.get('transfer_every_range', None)
     if _te_range is not None and int(_te_range[0]) != int(_te_range[1]):
-        transfer_every = trial.suggest_int(
-            'transfer_every', int(_te_range[0]), int(_te_range[1]), log=True)
+        _ga = max(1, int(OPT_CONFIG.get('grad_accum_steps', 1)))
+        _lo, _hi = int(_te_range[0]), int(_te_range[1])
+        _mult_lo = max(1, (_lo + _ga - 1) // _ga)   # ceil(lo/ga)
+        _mult_hi = max(_mult_lo, _hi // _ga)          # floor(hi/ga)
+        _te_mult = trial.suggest_int(
+            'transfer_every_xGA', _mult_lo, _mult_hi, log=True)
+        transfer_every = _ga * _te_mult               # always a multiple of grad_accum
     else:
         transfer_every = OPT_CONFIG.get('transfer_every_override', 1)
 
