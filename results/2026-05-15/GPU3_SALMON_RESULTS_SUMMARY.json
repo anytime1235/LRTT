@@ -12,6 +12,7 @@
     "final_val_backbone_acc": 0.2768,
     "test_backbone_acc": null,
     "test_backbone_loss": null,
+    "gpu": 3,
     "log_dir": "/root/SALMON/logs/core8_ecram_fp32/runs/2026-05-09_09-21-41/csv"
   },
   {
@@ -27,6 +28,7 @@
     "final_val_backbone_acc": 0.5756,
     "test_backbone_acc": 0.584,
     "test_backbone_loss": 1.1545,
+    "gpu": 3,
     "log_dir": "/root/SALMON/logs/core8_ecram_fp32_lr01/runs/2026-05-12_08-55-21/csv"
   },
   {
@@ -42,6 +44,7 @@
     "final_val_backbone_acc": 0.5824,
     "test_backbone_acc": 0.5756,
     "test_backbone_loss": 1.1659,
+    "gpu": 3,
     "log_dir": "/root/SALMON/logs/core8_ecram_fp16_lr01/runs/2026-05-12_17-23-58/csv"
   },
   {
@@ -59,6 +62,7 @@
     "final_val_backbone_acc": 0.7078,
     "test_backbone_acc": 0.7052,
     "test_backbone_loss": 0.829,
+    "gpu": 3,
     "log_dir": "/root/SALMON/logs/core8_tikitaka_ecram_f01_t01/runs/2026-05-13_01-44-06/csv"
   },
   {
@@ -76,6 +80,7 @@
     "final_val_backbone_acc": 0.568,
     "test_backbone_acc": 0.5904,
     "test_backbone_loss": 1.1389,
+    "gpu": 3,
     "log_dir": "/root/SALMON/logs/core8_tikitaka_ecram_f01_t10/runs/2026-05-13_10-41-12/csv"
   },
   {
@@ -93,6 +98,7 @@
     "final_val_backbone_acc": 0.7494,
     "test_backbone_acc": 0.7475,
     "test_backbone_loss": 0.7417,
+    "gpu": 3,
     "log_dir": "/root/SALMON/logs/core8_tikitaka_ecram_f10_t01/runs/2026-05-14_00-42-05/csv"
   },
   {
@@ -110,6 +116,25 @@
     "final_val_backbone_acc": 0.6422,
     "test_backbone_acc": 0.6577,
     "test_backbone_loss": 0.962,
+    "gpu": 3,
     "log_dir": "/root/SALMON/logs/core8_tikitaka_ecram_f10_t10/runs/2026-05-14_10-58-35/csv"
+  },
+  {
+    "run_id": "core8_tikitaka_ecram_f10_t01_fp16",
+    "rpu_preset": "tikitaka_ecram",
+    "sa_enabled": true,
+    "dpu_precision": "fp16",
+    "variant": "tikitaka",
+    "fast_lr": 1.0,
+    "transfer_lr": 0.1,
+    "status": "complete",
+    "timestamp": "2026-05-15_06-37-29",
+    "last_epoch": 300,
+    "best_val_backbone_acc": 0.7456,
+    "final_val_backbone_acc": 0.7414,
+    "test_backbone_acc": 0.7345,
+    "test_backbone_loss": 0.7565,
+    "gpu": 3,
+    "log_dir": "/root/SALMON/logs/core8_tikitaka_ecram_f10_t01_fp16/runs/2026-05-15_06-37-29/csv"
   }
 ]
