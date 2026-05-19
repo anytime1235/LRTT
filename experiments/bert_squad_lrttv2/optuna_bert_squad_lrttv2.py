@@ -388,7 +388,16 @@ def create_lrtt_v2_config(rank, transfer_every, transfer_lr,
         cap_compensate_transfer=True,
         unit_cell_devices=[aux_a, aux_b, core],
     )
-    return PythonLRTTRPUConfig(device=dev)
+    rpu = PythonLRTTRPUConfig(device=dev)
+    # paper_experiment.py parity: optional ideal forward/backward IO
+    # (paper config: io_perfect=true, io_bits=0). Honors the existing
+    # --forward-perfect / --backward-perfect flags for these LRTT-v2 /
+    # half_vera / half_vera_selector modes (previously only wired for tiki).
+    if OPT_CONFIG.get('forward_perfect', False):
+        rpu.forward.is_perfect = True
+    if OPT_CONFIG.get('backward_perfect', False):
+        rpu.backward.is_perfect = True
+    return rpu
 
 
 def create_half_vera_config(rank, transfer_every, transfer_lr,
@@ -425,7 +434,16 @@ def create_half_vera_config(rank, transfer_every, transfer_lr,
         cap_compensate_transfer=True,
         unit_cell_devices=[aux_a, aux_b, core],
     )
-    return PythonLRTTRPUConfig(device=dev)
+    rpu = PythonLRTTRPUConfig(device=dev)
+    # paper_experiment.py parity: optional ideal forward/backward IO
+    # (paper config: io_perfect=true, io_bits=0). Honors the existing
+    # --forward-perfect / --backward-perfect flags for these LRTT-v2 /
+    # half_vera / half_vera_selector modes (previously only wired for tiki).
+    if OPT_CONFIG.get('forward_perfect', False):
+        rpu.forward.is_perfect = True
+    if OPT_CONFIG.get('backward_perfect', False):
+        rpu.backward.is_perfect = True
+    return rpu
 
 
 def create_half_vera_selector_config(
@@ -477,7 +495,16 @@ def create_half_vera_selector_config(
         cap_compensate_transfer=True,
         unit_cell_devices=[aux_a, aux_b, core],
     )
-    return PythonLRTTRPUConfig(device=dev)
+    rpu = PythonLRTTRPUConfig(device=dev)
+    # paper_experiment.py parity: optional ideal forward/backward IO
+    # (paper config: io_perfect=true, io_bits=0). Honors the existing
+    # --forward-perfect / --backward-perfect flags for these LRTT-v2 /
+    # half_vera / half_vera_selector modes (previously only wired for tiki).
+    if OPT_CONFIG.get('forward_perfect', False):
+        rpu.forward.is_perfect = True
+    if OPT_CONFIG.get('backward_perfect', False):
+        rpu.backward.is_perfect = True
+    return rpu
 
 
 def create_single_rpu_config(dw_min=None, device_type="softbounds"):
