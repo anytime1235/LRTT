@@ -308,6 +308,48 @@ class PythonLRTTDevice(_PrintableMixin):
     sra_reset_b_on_transfer: bool = True
     """Reset B to zero after every transfer (residual buffer cleanup)."""
 
+    # === half-VeRA (update_mode='half_vera') ===
+    half_vera_enabled: bool = False
+    """Force half-VeRA behavior (trainable per-rank Lambda_d, frozen A_bar).
+    Implied when update_mode='half_vera'."""
+
+    lambda_d_lr: float = 1.0e-2
+    """Learning rate for the trainable per-rank vector Lambda_d (half-VeRA)."""
+
+    lambda_d_init: float = 0.1
+    """Initial constant value for Lambda_d (VeRA d_init analogue)."""
+
+    # === Selector half-VeRA (update_mode='half_vera_selector') ===
+    selector_gain_init: float = 1.0
+    """Initial per-output-row transfer gain s (1.0 = identical to selector-v2)."""
+
+    selector_gain_lr: float = 1.0e-3
+    """Learning rate eta_s for the persistent per-row transfer gain s."""
+
+    selector_gain_momentum: float = 0.9
+    """Momentum beta_s for the s surrogate optimizer."""
+
+    selector_gain_wd: float = 1.0e-3
+    """Weight decay lambda_s pulling s toward 1.0."""
+
+    selector_gain_min: float = 0.25
+    """Lower clip bound for s (positivity + stability)."""
+
+    selector_gain_max: float = 4.0
+    """Upper clip bound for s."""
+
+    # === grad_topk selector policy (selector_policy='grad_topk') ===
+    selector_score_beta: float = 0.9
+    """EMA factor for the per-row backprop-error-energy score."""
+
+    selector_score_metric: str = "sq"
+    """Per-row error energy: 'sq' (mean d^2, ~||G_i||^2 proxy, software-best)
+    or 'abs' (mean |d|, pulse-count analogue, hardware-friendly)."""
+
+    selector_staleness_coef: float = 0.0
+    """Staleness bonus added to score for never/long-unselected rows
+    (0 = pure greedy TopK; >0 guards against permanent starvation)."""
+
     sra_b_reset_mode: str = "set_zero"
     """B reset semantics under SRA: 'set_zero' | 'reset_columns' | 'none'.
     Default 'set_zero' achieves exact zero on FP/simulator. 'reset_columns' uses the
@@ -442,6 +484,7 @@ class PythonLRTTDevice(_PrintableMixin):
             "lora", "reconstruction", "selector_reconstruction", "selector_v2",
             "stochastic_reset_anchor", "sra_reconstruction",
             "random_anchor_reconstruction", "sra_v2",
+            "half_vera", "half_vera_selector",
         ]
         if self.update_mode not in valid_update_modes:
             raise ValueError(f"update_mode must be one of {valid_update_modes}, got '{self.update_mode}'")
@@ -454,7 +497,7 @@ class PythonLRTTDevice(_PrintableMixin):
         # Validate LRTT-v2 selector parameters
         if self.selector_axis != "row":
             raise ValueError(f"selector_axis must be 'row' (only row selector supported), got '{self.selector_axis}'")
-        valid_selector_policies = ["cyclic", "shuffled_cycle", "random"]
+        valid_selector_policies = ["cyclic", "shuffled_cycle", "random", "grad_topk"]
         if self.selector_policy not in valid_selector_policies:
             raise ValueError(f"selector_policy must be one of {valid_selector_policies}, got '{self.selector_policy}'")
         if self.selector_block_size is not None and self.selector_block_size <= 0:
@@ -507,6 +550,7 @@ class PythonLRTTDevice(_PrintableMixin):
         sra_update_modes = (
             "stochastic_reset_anchor", "sra_reconstruction",
             "random_anchor_reconstruction", "sra_v2",
+            "half_vera",
         )
         if self.update_mode in sra_update_modes:
             if self.forward_inject:
@@ -518,6 +562,19 @@ class PythonLRTTDevice(_PrintableMixin):
                 raise ValueError(
                     f"SRA update_mode '{self.update_mode}' requires transfer_method "
                     f"in ('stochastic_anchor', 'sra'), got '{self.transfer_method}'."
+                )
+
+        # Selector half-VeRA: forward = C only; transfer must be blockwise.
+        if self.update_mode == "half_vera_selector":
+            if self.forward_inject:
+                raise ValueError(
+                    "half_vera_selector requires forward_inject=False "
+                    "(forward = C only; B/s are transfer-side state)."
+                )
+            if self.transfer_method != "blockwise":
+                raise ValueError(
+                    "half_vera_selector requires transfer_method='blockwise', "
+                    f"got '{self.transfer_method}'."
                 )
 
         # Validate reconstruction parameters
@@ -685,6 +742,22 @@ class PythonLRTTDevice(_PrintableMixin):
             'sra_pulse_scramble_steps': self.sra_pulse_scramble_steps,
             'sra_pulse_scramble_lr': self.sra_pulse_scramble_lr,
             'sra_seed': self.sra_seed,
+            # half-VeRA
+            'half_vera_enabled': (self.half_vera_enabled
+                                  or self.update_mode == "half_vera"),
+            'lambda_d_lr': self.lambda_d_lr,
+            'lambda_d_init': self.lambda_d_init,
+            # Selector half-VeRA
+            'selector_gain_init': self.selector_gain_init,
+            'selector_gain_lr': self.selector_gain_lr,
+            'selector_gain_momentum': self.selector_gain_momentum,
+            'selector_gain_wd': self.selector_gain_wd,
+            'selector_gain_min': self.selector_gain_min,
+            'selector_gain_max': self.selector_gain_max,
+            # grad_topk selector policy
+            'selector_score_beta': self.selector_score_beta,
+            'selector_score_metric': self.selector_score_metric,
+            'selector_staleness_coef': self.selector_staleness_coef,
         }
         return kwargs
     

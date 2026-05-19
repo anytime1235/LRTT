@@ -391,6 +391,95 @@ def create_lrtt_v2_config(rank, transfer_every, transfer_lr,
     return PythonLRTTRPUConfig(device=dev)
 
 
+def create_half_vera_config(rank, transfer_every, transfer_lr,
+                            lambda_d_lr=1.0e-2, lambda_d_init=0.1,
+                            device_type="constant_step", weight_bits=10,
+                            aux_w_max=None):
+    """half-VeRA RPU config: SRA-LRTT-v2 with a trainable per-rank vector Lambda_d.
+
+    A_bar = frozen random anchor (never resampled), B = full-gradient trained
+    via the SRA surrogate (no selector subsampling), Lambda_d = trainable
+    per-rank scale. Transfer consolidates C += transfer_lr * (A_bar diag(Lambda_d)) B
+    via the validated stochastic_anchor transfer. forward_inject is forbidden
+    (enforced by the SRA-v2 family guard) -- forward = C only.
+    """
+    core = _make_lrtt_tile_device(device_type, weight_bits)
+    aux_a = _make_lrtt_tile_device(device_type, weight_bits, w_max=aux_w_max)
+    aux_b = _make_lrtt_tile_device(device_type, weight_bits, w_max=aux_w_max)
+    dev = PythonLRTTDevice(
+        rank=rank,
+        transfer_every=transfer_every,
+        transfer_lr=transfer_lr,
+        update_mode="half_vera",                 # SRA path + trainable Lambda_d
+        transfer_method="stochastic_anchor",     # required by SRA-v2 family
+        forward_inject=False,                    # hard: forward = C only
+        b_init_mode="zero",
+        sra_anchor_source="kaiming_uniform",     # VeRA-faithful frozen A_bar init
+        sra_resample_on_transfer=True,           # controller guards this off for half_vera
+        sra_reset_b_on_transfer=True,            # B is the fast accumulator
+        half_vera_enabled=True,
+        lambda_d_lr=lambda_d_lr,
+        lambda_d_init=lambda_d_init,
+        cap_stabilizer_enabled=True,
+        cap_rho=1.0,
+        cap_compensate_transfer=True,
+        unit_cell_devices=[aux_a, aux_b, core],
+    )
+    return PythonLRTTRPUConfig(device=dev)
+
+
+def create_half_vera_selector_config(
+        rank, transfer_every, transfer_lr,
+        selector_gain_lr=1.0e-3, selector_gain_init=1.0,
+        selector_gain_momentum=0.9, selector_gain_wd=1.0e-3,
+        selector_gain_min=0.25, selector_gain_max=4.0,
+        selector_policy="shuffled_cycle",
+        selector_score_beta=0.9, selector_score_metric="sq",
+        selector_staleness_coef=0.0,
+        device_type="constant_step", weight_bits=10, aux_w_max=None):
+    """Selector half-VeRA: selector-v2 + learned per-output-row transfer gain s.
+
+    A side = one-hot selector (NOT random projection): the selected-row
+    gradient is preserved exactly -> cumulative dC is full-rank capable
+    (block-coordinate LRTT, not a fixed rank-r random subspace). B = raw
+    selected-row gradient buffer (NO gain in the B update). s in R^{d_out}
+    is a persistent learned transfer gain applied only at transfer:
+        C[R,:] += transfer_lr * diag(s_R) * B
+    s is trained by a first-order transfer surrogate read from B_old.
+    forward = C only (forward_inject=False, enforced).
+    """
+    core = _make_lrtt_tile_device(device_type, weight_bits)
+    aux_a = _make_lrtt_tile_device(device_type, weight_bits, w_max=aux_w_max)
+    aux_b = _make_lrtt_tile_device(device_type, weight_bits, w_max=aux_w_max)
+    dev = PythonLRTTDevice(
+        rank=rank,
+        transfer_every=transfer_every,
+        transfer_lr=transfer_lr,
+        update_mode="half_vera_selector",        # selector-v2 + learned s gate
+        transfer_method="blockwise",             # required by half_vera_selector
+        forward_inject=False,                    # hard: forward = C only
+        b_init_mode="zero",
+        selector_axis="row",
+        selector_policy=selector_policy,         # shuffled_cycle: uniform row visits
+        selector_seed=0,
+        selector_reset_b_on_advance=True,
+        selector_gain_init=selector_gain_init,
+        selector_gain_lr=selector_gain_lr,
+        selector_gain_momentum=selector_gain_momentum,
+        selector_gain_wd=selector_gain_wd,
+        selector_gain_min=selector_gain_min,
+        selector_gain_max=selector_gain_max,
+        selector_score_beta=selector_score_beta,
+        selector_score_metric=selector_score_metric,
+        selector_staleness_coef=selector_staleness_coef,
+        cap_stabilizer_enabled=True,
+        cap_rho=0.99,
+        cap_compensate_transfer=True,
+        unit_cell_devices=[aux_a, aux_b, core],
+    )
+    return PythonLRTTRPUConfig(device=dev)
+
+
 def create_single_rpu_config(dw_min=None, device_type="softbounds"):
     """Create Single RPU configuration for analog layers.
 
@@ -585,6 +674,62 @@ def create_model(params):
               f"Core={_v2_dev}/{_v2_bits}bit(wmax=1,dw_min={_dwm_core:.6g}) "
               f"Aux={_v2_dev}/{_v2_bits}bit(wmax={float(_aux_wmax) if _aux_wmax else 1.0:.4g},"
               f"dw_min={_dwm_aux:.6g}))")
+    elif tikitaka_layers and LORA_TARGET != "none" and OPT_CONFIG.get('mode') == 'half_vera':
+        # half-VeRA: frozen random A_bar + trainable per-rank Lambda_d, B
+        # full-gradient via SRA surrogate, direct stochastic_anchor transfer.
+        _v2_dev = OPT_CONFIG.get('lrtt_device_type', 'constant_step')
+        _v2_bits = OPT_CONFIG.get('lrtt_weight_bits', 10)
+        _aux_wmax = params.get("aux_w_max", None)
+        hv_config = create_half_vera_config(
+            rank=int(params["rank"]),
+            transfer_every=int(params["transfer_every"]),
+            transfer_lr=params["transfer_lr"],
+            lambda_d_lr=params["lambda_d_lr"],
+            lambda_d_init=params["lambda_d_init"],
+            device_type=_v2_dev,
+            weight_bits=_v2_bits,
+            aux_w_max=_aux_wmax,
+        )
+        hv_exclude = [n for n in all_linear_names if n not in tikitaka_layers]
+        model = convert_to_analog(model, hv_config, exclude_modules=hv_exclude)
+        tikitaka_count = sum(1 for m in model.modules() if isinstance(m, AnalogLinear))
+        print(f"  [half-VeRA] {tikitaka_count} target layers -> half_vera "
+              f"(rank={int(params['rank'])}, transfer_every={int(params['transfer_every'])}, "
+              f"transfer_lr={params['transfer_lr']:.3g}, "
+              f"lambda_d_lr={params['lambda_d_lr']:.3g}, "
+              f"lambda_d_init={params['lambda_d_init']:.3g}, forward=C-only)")
+    elif tikitaka_layers and LORA_TARGET != "none" and OPT_CONFIG.get('mode') == 'half_vera_selector':
+        # Selector half-VeRA: one-hot selector (true-gradient, full-rank
+        # capable) + learned per-row transfer gain s. forward = C only.
+        _v2_dev = OPT_CONFIG.get('lrtt_device_type', 'constant_step')
+        _v2_bits = OPT_CONFIG.get('lrtt_weight_bits', 10)
+        _aux_wmax = params.get("aux_w_max", None)
+        hvs_config = create_half_vera_selector_config(
+            rank=int(params["rank"]),
+            transfer_every=int(params["transfer_every"]),
+            transfer_lr=params["transfer_lr"],
+            selector_gain_lr=params["selector_gain_lr"],
+            selector_gain_init=params["selector_gain_init"],
+            selector_gain_momentum=OPT_CONFIG.get('selector_gain_momentum', 0.9),
+            selector_gain_wd=OPT_CONFIG.get('selector_gain_wd', 1.0e-3),
+            selector_gain_min=OPT_CONFIG.get('selector_gain_min', 0.25),
+            selector_gain_max=OPT_CONFIG.get('selector_gain_max', 4.0),
+            selector_policy=params.get("selector_policy", "shuffled_cycle"),
+            selector_score_beta=OPT_CONFIG.get('selector_score_beta', 0.9),
+            selector_score_metric=OPT_CONFIG.get('selector_score_metric', 'sq'),
+            selector_staleness_coef=OPT_CONFIG.get('selector_staleness_coef', 0.0),
+            device_type=_v2_dev,
+            weight_bits=_v2_bits,
+            aux_w_max=_aux_wmax,
+        )
+        hvs_exclude = [n for n in all_linear_names if n not in tikitaka_layers]
+        model = convert_to_analog(model, hvs_config, exclude_modules=hvs_exclude)
+        tikitaka_count = sum(1 for m in model.modules() if isinstance(m, AnalogLinear))
+        print(f"  [half-VeRA-sel] {tikitaka_count} target layers -> half_vera_selector "
+              f"(rank={int(params['rank'])}, transfer_every={int(params['transfer_every'])}, "
+              f"transfer_lr={params['transfer_lr']:.3g}, "
+              f"s_lr={params['selector_gain_lr']:.3g}, s_init={params['selector_gain_init']:.3g}, "
+              f"forward=C-only)")
     elif tikitaka_layers and LORA_TARGET != "none" and TARGET_IDEAL:
         # IdealDevice: FP32 trainable analog (no noop hook)
         ideal_config = create_ideal_config()
@@ -1074,7 +1219,9 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
             # coupled to learning_rate, which would make the range differ per
             # server/trial).
             _scale_tlr = OPT_CONFIG.get('scale_transfer_lr', OPT_CONFIG.get('use_v2', False))
-            if OPT_CONFIG.get('mode') == 'lrtt_v2':
+            if OPT_CONFIG.get('mode') in ('lrtt_v2', 'half_vera', 'half_vera_selector'):
+                # PythonLRTTDevice.transfer_lr is a direct device parameter for
+                # these modes -> search the literal --tpe-tlr-range (not 1/lr).
                 _scale_tlr = False
             if _scale_tlr:
                 _tlr_upper = 1.0 / learning_rate
@@ -1126,6 +1273,24 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
     else:
         aux_w_max = None
 
+    # half-VeRA: trainable per-rank Lambda_d hyperparameters (sweep or fixed).
+    _ldlr_range = OPT_CONFIG.get('lambda_d_lr_range', None)
+    if _ldlr_range is not None and float(_ldlr_range[0]) != float(_ldlr_range[1]):
+        lambda_d_lr = trial.suggest_float(
+            'lambda_d_lr', float(_ldlr_range[0]), float(_ldlr_range[1]), log=True)
+    else:
+        lambda_d_lr = float(OPT_CONFIG.get('lambda_d_lr', 1.0e-2))
+    lambda_d_init = float(OPT_CONFIG.get('lambda_d_init', 0.1))
+
+    # Selector half-VeRA: per-row transfer-gain s hyperparameters (sweep/fixed).
+    _sglr_range = OPT_CONFIG.get('selector_gain_lr_range', None)
+    if _sglr_range is not None and float(_sglr_range[0]) != float(_sglr_range[1]):
+        selector_gain_lr = trial.suggest_float(
+            'selector_gain_lr', float(_sglr_range[0]), float(_sglr_range[1]), log=True)
+    else:
+        selector_gain_lr = float(OPT_CONFIG.get('selector_gain_lr', 1.0e-3))
+    selector_gain_init = float(OPT_CONFIG.get('selector_gain_init', 1.0))
+
     min_lr_rate = OPT_CONFIG.get('min_lr_rate', 0.5)  # fraction of peak LR (paper default 0.5)
 
     if OPT_CONFIG['tune_wd']:
@@ -1150,6 +1315,10 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         "transfer_lr": transfer_lr,
         "fast_lr": fast_lr,
         "desired_bl": desired_bl,
+        "lambda_d_lr": lambda_d_lr,
+        "lambda_d_init": lambda_d_init,
+        "selector_gain_lr": selector_gain_lr,
+        "selector_gain_init": selector_gain_init,
         "aux_w_max": aux_w_max,
         # LRTT-v2 selector/shuffle params (fixed via CLI for the validation run)
         "rank": OPT_CONFIG.get("rank", 8),
@@ -1671,14 +1840,51 @@ def main():
     parser.add_argument('--eval-subset', type=int, default=0,
                         help='Limit eval data size (0 = full dataset)')
     parser.add_argument('--mode', type=str, default='tiki',
-                        choices=['tiki', 'lrtt_v2'],
-                        help='Target-layer config: tiki (TikiTaka, default) or '
-                             'lrtt_v2 (LRTT-v2 row-selector + shuffled-cycle transfer)')
+                        choices=['tiki', 'lrtt_v2', 'half_vera', 'half_vera_selector'],
+                        help='Target-layer config: tiki (TikiTaka, default), '
+                             'lrtt_v2 (LRTT-v2 row-selector + shuffled-cycle transfer), '
+                             'half_vera (frozen random A_bar + trainable per-rank '
+                             'Lambda_d, SRA-surrogate B, direct transfer, forward=C-only), '
+                             'or half_vera_selector (one-hot selector + raw-gradient B + '
+                             'learned per-row transfer gain s; forward=C-only)')
+    parser.add_argument('--selector-gain-lr', type=float, default=1.0e-3,
+                        help='Selector half-VeRA per-row gain s lr eta_s. Default 1e-3')
+    parser.add_argument('--selector-gain-lr-range', type=float, nargs=2, default=None,
+                        metavar=('LO', 'HI'),
+                        help='Sweep s lr as suggest_float(LO,HI,log=True).')
+    parser.add_argument('--selector-gain-init', type=float, default=1.0,
+                        help='Selector half-VeRA s init (1.0 = selector-v2). Default 1.0')
+    parser.add_argument('--selector-gain-momentum', type=float, default=0.9,
+                        help='s surrogate momentum beta_s. Default 0.9')
+    parser.add_argument('--selector-gain-wd', type=float, default=1.0e-3,
+                        help='s weight decay lambda_s (pull to 1). Default 1e-3')
+    parser.add_argument('--selector-gain-min', type=float, default=0.25,
+                        help='s lower clip bound. Default 0.25')
+    parser.add_argument('--selector-gain-max', type=float, default=4.0,
+                        help='s upper clip bound. Default 4.0')
+    parser.add_argument('--lambda-d-lr', type=float, default=1.0e-2,
+                        help='half-VeRA Lambda_d learning rate (fixed). Default 1e-2')
+    parser.add_argument('--lambda-d-lr-range', type=float, nargs=2, default=None,
+                        metavar=('LO', 'HI'),
+                        help='Sweep Lambda_d lr as suggest_float(LO,HI,log=True).')
+    parser.add_argument('--lambda-d-init', type=float, default=0.1,
+                        help='half-VeRA Lambda_d init constant (VeRA d_init). Default 0.1')
     parser.add_argument('--rank', type=int, default=8,
                         help='LRTT-v2 LoRA rank (= selector block size). Default: 8')
     parser.add_argument('--selector-policy', type=str, default='shuffled_cycle',
-                        choices=['shuffled_cycle', 'cyclic', 'random'],
-                        help='LRTT-v2 selector schedule (default: shuffled_cycle)')
+                        choices=['shuffled_cycle', 'cyclic', 'random', 'grad_topk'],
+                        help='LRTT-v2 selector schedule (default: shuffled_cycle). '
+                             'grad_topk = pick TopK rows by per-row backprop-error '
+                             'energy EMA (AIMC-friendly Gauss-Southwell proxy).')
+    parser.add_argument('--selector-score-beta', type=float, default=0.9,
+                        help='grad_topk: EMA factor for per-row error score. 0.9')
+    parser.add_argument('--selector-score-metric', type=str, default='sq',
+                        choices=['sq', 'abs'],
+                        help="grad_topk score: 'sq' (mean d^2, software-best) or "
+                             "'abs' (mean |d|, hardware/pulse-count). Default sq")
+    parser.add_argument('--selector-staleness-coef', type=float, default=0.0,
+                        help='grad_topk: staleness bonus vs starvation '
+                             '(0 = pure greedy TopK). Default 0.0')
     parser.add_argument('--cap-rho', type=float, default=1.0,
                         help='LRTT-v2 capacitor leak factor rho (1.0 = disabled)')
     parser.add_argument('--lrtt-device-type', type=str, default='constant_step',
@@ -1723,8 +1929,23 @@ def main():
     TRAIN_SUBSET_SIZE = args.train_subset
     EVAL_SUBSET_SIZE = args.eval_subset
     OPT_CONFIG['mode'] = args.mode
+    OPT_CONFIG['lambda_d_lr'] = args.lambda_d_lr
+    OPT_CONFIG['lambda_d_init'] = args.lambda_d_init
+    if args.lambda_d_lr_range is not None:
+        OPT_CONFIG['lambda_d_lr_range'] = args.lambda_d_lr_range
+    OPT_CONFIG['selector_gain_lr'] = args.selector_gain_lr
+    OPT_CONFIG['selector_gain_init'] = args.selector_gain_init
+    OPT_CONFIG['selector_gain_momentum'] = args.selector_gain_momentum
+    OPT_CONFIG['selector_gain_wd'] = args.selector_gain_wd
+    OPT_CONFIG['selector_gain_min'] = args.selector_gain_min
+    OPT_CONFIG['selector_gain_max'] = args.selector_gain_max
+    if args.selector_gain_lr_range is not None:
+        OPT_CONFIG['selector_gain_lr_range'] = args.selector_gain_lr_range
     OPT_CONFIG['rank'] = args.rank
     OPT_CONFIG['selector_policy'] = args.selector_policy
+    OPT_CONFIG['selector_score_beta'] = args.selector_score_beta
+    OPT_CONFIG['selector_score_metric'] = args.selector_score_metric
+    OPT_CONFIG['selector_staleness_coef'] = args.selector_staleness_coef
     OPT_CONFIG['cap_rho'] = args.cap_rho
     OPT_CONFIG['lrtt_device_type'] = args.lrtt_device_type
     OPT_CONFIG['lrtt_weight_bits'] = args.lrtt_weight_bits

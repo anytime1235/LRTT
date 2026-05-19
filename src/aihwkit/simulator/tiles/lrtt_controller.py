@@ -180,6 +180,19 @@ class LRTTController:
         self._selector_gen = torch.Generator(device='cpu')
         self._selector_gen.manual_seed(int(selector_seed))
 
+        # === grad_topk selector policy state ===
+        # AIMC-friendly Gauss-Southwell proxy: per-output-row backprop-error
+        # energy EMA (NOT the full row-gradient ||d_i^T X|| -> that would be an
+        # O(T*d_out*d_in) digital outer product). e_i = mean(d_i^2) is an
+        # O(T*d_out) row reduction; ranking ~ ||G_i||^2 when X scale is stable
+        # (LayerNorm). At each transfer boundary R = TopK(score, block_size).
+        self.selector_score: Optional[Tensor] = None      # [d_size] EMA
+        self.selector_score_beta: float = 0.9
+        self.selector_score_metric: str = "sq"            # 'sq' (d^2) | 'abs'
+        self.selector_staleness_coef: float = 0.0         # 0 = pure TopK
+        self._selector_last_used: Optional[Tensor] = None  # [d_size] step idx
+        self._selector_step: int = 0
+
         # === LRTT-v2 Capacitor stabilizer state ===
         self.cap_stabilizer_enabled = cap_stabilizer_enabled
         self.cap_compensate_transfer = cap_compensate_transfer
@@ -304,6 +317,31 @@ class LRTTController:
         self._sra_gen = torch.Generator(device="cpu")
         self._sra_gen.manual_seed(int(self.sra_seed))
 
+        # === half-VeRA state ===
+        # half-VeRA = SRA-LRTT-v2 with a *trainable per-rank vector* Lambda_d
+        # replacing the scalar anchor gain. Anchor A_bar stays frozen
+        # (no resample); B is full-gradient trained via the SRA surrogate;
+        # transfer consolidates C += transfer_lr * (A_bar @ diag(Lambda_d)) @ B.
+        # forward_inject is forbidden (inherited from the SRA-v2 family guard).
+        self.half_vera_enabled: bool = False
+        self.lambda_d: Optional[Tensor] = None      # [rank], trainable scale
+        self.lambda_d_lr: float = 1.0e-2            # Lambda_d learning rate
+        self.lambda_d_init: float = 0.1             # init constant (VeRA d_init)
+
+        # === Selector half-VeRA state (update_mode='half_vera_selector') ===
+        # Persistent per-output-row transfer gain s in R^{d_out}. NOT used in
+        # the B update (B stores the raw selected-row gradient). Applied only at
+        # transfer: C[R,:] += eta_T * diag(s_R) * B. Trained by a first-order
+        # transfer surrogate read from B_old (pre-update) -> no self-term.
+        self.selector_gain: Optional[Tensor] = None       # [d_out], lazy init
+        self.selector_gain_m: Optional[Tensor] = None      # momentum buffer
+        self.selector_gain_init: float = 1.0
+        self.selector_gain_lr: float = 1.0e-3
+        self.selector_gain_momentum: float = 0.9
+        self.selector_gain_wd: float = 1.0e-3              # pull s -> 1
+        self.selector_gain_min: float = 0.25
+        self.selector_gain_max: float = 4.0
+
         # === Hardware Mode Flag ===
         self._hardware_mode: Optional[bool] = None
         """Cache for hardware mode detection (use_manual_scaling=True)."""
@@ -315,8 +353,72 @@ class LRTTController:
             self._init_selector_state()
 
     def _is_selector_v2(self) -> bool:
-        """Return True when running in LRTT-v2 selector reconstruction mode."""
-        return self.update_mode in ("selector_reconstruction", "selector_v2")
+        """Return True when running in LRTT-v2 selector reconstruction mode.
+
+        'half_vera_selector' is in this family: it reuses the selector update
+        (B accumulates the full selected-row gradient, NO gain in the B update),
+        the blockwise transfer, the selector-state init, and forward=C-only.
+        The only addition is a persistent learned per-output-row transfer gain
+        vector s applied at transfer time (C[R,:] += eta_T * diag(s_R) * B).
+        """
+        return self.update_mode in (
+            "selector_reconstruction", "selector_v2", "half_vera_selector",
+        )
+
+    def _is_half_vera_selector(self) -> bool:
+        """Selector-based half-VeRA: selector-v2 + learned per-row transfer gain.
+
+        rank=block_size one-hot selector (NOT a random projection), so the
+        selected-row gradient is preserved exactly and cumulative dC is
+        full-rank capable (block-coordinate LRTT). s is trained by a
+        first-order transfer surrogate read from B_old (pre-update)."""
+        return self.update_mode == "half_vera_selector"
+
+    def _selector_gain_vec(self, device) -> Tensor:
+        """Lazily init / return the persistent per-output-row gain s [d_size]."""
+        if self.selector_gain is None:
+            self.selector_gain = torch.full(
+                (self.d_size,), float(self.selector_gain_init),
+                device=device, dtype=self.dtype,
+            )
+            self.selector_gain_m = torch.zeros(
+                (self.d_size,), device=device, dtype=self.dtype,
+            )
+        if self.selector_gain.device != device:
+            self.selector_gain = self.selector_gain.to(device)
+            self.selector_gain_m = self.selector_gain_m.to(device)
+        return self.selector_gain
+
+    def _update_selector_gain(self, x: Tensor, d_sel: Tensor) -> None:
+        """Selector half-VeRA: update persistent per-row gain s_R from the
+        first-order transfer surrogate, read from B_old (BEFORE the B update).
+
+            h_old = X @ B_old^T                       # [N, b]
+            g_s   = mean_batch(d_sel ⊙ h_old) + wd·(s_R − 1)
+            m     = β·m + (1−β)·g_s ;  s_R ← clip(s_R − η_s·m, s_min, s_max)
+
+        No gain enters the B update; s is transfer-only and persists across
+        selector advances.
+        """
+        with torch.no_grad():
+            dev = d_sel.device
+            s_full = self._selector_gain_vec(dev)
+            idx = self.selector_indices.to(device=dev, dtype=torch.long)
+            h_old = self.tile_b.forward(x)                  # [N, b] = X @ B_old^T
+            if h_old.device != dev:
+                h_old = h_old.to(dev)
+            g_s = (d_sel * h_old).reshape(-1, idx.numel()).mean(0)   # [b]
+            s_sel = s_full.index_select(0, idx)
+            g_s = g_s + float(self.selector_gain_wd) * (s_sel - 1.0)
+            m_sel = self.selector_gain_m.index_select(0, idx)
+            m_new = (float(self.selector_gain_momentum) * m_sel
+                     + (1.0 - float(self.selector_gain_momentum)) * g_s)
+            s_new = torch.clamp(
+                s_sel - float(self.selector_gain_lr) * m_new,
+                float(self.selector_gain_min), float(self.selector_gain_max),
+            )
+            self.selector_gain_m[idx] = m_new
+            self.selector_gain[idx] = s_new
 
     def _is_sra_v2(self) -> bool:
         """Return True when running in SRA-LRTT-v2 (Stochastic Reset-Anchor) mode.
@@ -330,7 +432,28 @@ class LRTTController:
         return self.update_mode in (
             "stochastic_reset_anchor", "sra_reconstruction",
             "random_anchor_reconstruction", "sra_v2",
+            "half_vera",
         )
+
+    def _is_half_vera(self) -> bool:
+        """half-VeRA: SRA-v2 anchor frozen + trainable per-rank vector Lambda_d.
+
+        Reuses the SRA-v2 update/transfer/forward-guard path; only the scalar
+        anchor gain is generalized to a trainable vector and the anchor is
+        never resampled (A_bar permanently frozen random).
+        """
+        return self.update_mode == "half_vera" or self.half_vera_enabled
+
+    def _half_vera_lambda(self, device) -> Tensor:
+        """Lazily init and return the trainable per-rank vector Lambda_d [rank]."""
+        if self.lambda_d is None:
+            self.lambda_d = torch.full(
+                (self.rank,), float(self.lambda_d_init),
+                device=device, dtype=self.dtype,
+            )
+        if self.lambda_d.device != device:
+            self.lambda_d = self.lambda_d.to(device)
+        return self.lambda_d
 
     def _is_hardware_mode(self) -> bool:
         """Check if tiles are in hardware mode (use_manual_scaling=True).
@@ -615,7 +738,10 @@ class LRTTController:
         if b <= 0 or b > self.d_size:
             raise ValueError(f"Invalid selector block size {b} for d_size={self.d_size}")
 
-        if (self.d_size % b) != 0 and not self.selector_allow_partial_block:
+        # grad_topk picks TopK(b) of d_size every window -> no divisibility need.
+        if (self.selector_policy != "grad_topk"
+                and (self.d_size % b) != 0
+                and not self.selector_allow_partial_block):
             raise ValueError(
                 f"d_size={self.d_size} must be divisible by selector_block_size={b}. "
                 "Set selector_allow_partial_block=True to use masked partial blocks."
@@ -623,6 +749,19 @@ class LRTTController:
 
         self.selector_ptr = 0
         self.selector_cycle = 0
+        if self.selector_policy == "grad_topk":
+            # Lazy score buffers; deterministic warm-start block until the
+            # first window populates the per-row error-energy EMA.
+            dev = self.device
+            self.selector_score = torch.zeros(self.d_size, device=dev, dtype=self.dtype)
+            self._selector_last_used = torch.zeros(
+                self.d_size, device=dev, dtype=torch.long)
+            self._selector_step = 0
+            self.selector_indices = torch.arange(
+                b, device=dev, dtype=torch.long)
+            self.selector_valid_mask = torch.ones(
+                b, device=dev, dtype=self.dtype)
+            return
         self._refresh_selector_permutation()
         self._set_selector_from_ptr()
 
@@ -671,8 +810,64 @@ class LRTTController:
         self.selector_indices = idx.to(device=self.device, dtype=torch.long)
         self.selector_valid_mask = mask.to(device=self.device, dtype=self.dtype)
 
+    def _update_selector_score(self, d: Tensor) -> None:
+        """grad_topk: EMA of per-output-row backprop-error energy (AIMC-friendly
+        Gauss-Southwell proxy). d is the FULL [N, d_size] error (pre-select).
+
+            e_i = mean_{batch,seq}(d_i^2)        ('sq', default; ~||G_i||^2 proxy)
+                  or mean(|d_i|)                 ('abs'; pulse-count analogue)
+            score_i <- beta*score_i + (1-beta)*e_i
+
+        Cost O(N*d_size) row reduction -- no outer product, AIMC-defensible.
+        """
+        if self.selector_policy != "grad_topk":
+            return
+        with torch.no_grad():
+            dd = d.detach()
+            if dd.dim() > 2:
+                dd = dd.reshape(-1, dd.shape[-1])
+            if self.selector_score_metric == "abs":
+                e = dd.abs().mean(0)
+            else:
+                e = (dd * dd).mean(0)                  # [d_size]
+            if self.selector_score is None or self.selector_score.numel() != e.numel():
+                self.selector_score = torch.zeros_like(e)
+            if self.selector_score.device != e.device:
+                self.selector_score = self.selector_score.to(e.device)
+            b = float(self.selector_score_beta)
+            self.selector_score.mul_(b).add_(e, alpha=(1.0 - b))
+            self._selector_step += 1
+
+    def _select_grad_topk_block(self) -> None:
+        """Pick the next block = TopK(block_size) of the per-row score EMA
+        (optionally + staleness bonus to avoid permanent starvation)."""
+        b = self.selector_block_size
+        dev = self.device
+        score = self.selector_score
+        if score is None:
+            self.selector_indices = torch.arange(b, device=dev, dtype=torch.long)
+            self.selector_valid_mask = torch.ones(b, device=dev, dtype=self.dtype)
+            return
+        rank_val = score
+        if self.selector_staleness_coef > 0.0 and self._selector_last_used is not None:
+            stale = (float(self._selector_step)
+                     - self._selector_last_used.to(score.device).float())
+            rank_val = score + float(self.selector_staleness_coef) * stale
+        idx = torch.topk(rank_val, b, largest=True, sorted=False).indices
+        idx = idx.to(device=dev, dtype=torch.long)
+        if self._selector_last_used is not None:
+            self._selector_last_used[idx] = int(self._selector_step)
+        self.selector_indices = idx
+        self.selector_valid_mask = torch.ones(b, device=dev, dtype=self.dtype)
+
     def _advance_selector(self) -> None:
         """Move to the next row block. Reshuffle the permutation at cycle end."""
+        if self.selector_policy == "grad_topk":
+            # Re-select at every transfer boundary by the score EMA. B-row
+            # binding is respected: re-selection only happens here (post-B-reset).
+            self._select_grad_topk_block()
+            return
+
         if self.selector_policy == "random":
             # Random policy resamples each call; pointer is meaningless.
             self._set_selector_from_ptr()
@@ -923,6 +1118,24 @@ class LRTTController:
                         dtype=torch.float32,
                     )
                 ).to(device=self._sra_active_device(), dtype=self.dtype)
+                self.tile_a.set_weights(A_raw)
+
+            elif source == "kaiming_uniform":
+                # VeRA-faithful frozen anchor: PyTorch kaiming_uniform_(a=sqrt(5))
+                # on A_bar [d_size, rank]. bound = sqrt(6/((1+a^2)*fan_in)) with
+                # a=sqrt(5) -> (1+a^2)=6, fan_in=rank -> bound = 1/sqrt(rank).
+                # Uniform shape + 1/sqrt(rank) scaling gives rank-consistent A.B
+                # variance (the VeRA initialization rationale). Deterministic via
+                # the seeded _sra_gen. _sra_cache_anchor() then RMS-normalizes to
+                # the target (a constant rescale that preserves the Kaiming shape
+                # and rank scaling); trainable Lambda_d absorbs residual scale.
+                _fan_in = max(1, int(self.rank))
+                _bound = math.sqrt(6.0 / (6.0 * float(_fan_in)))
+                A_raw = torch.empty(
+                    self.d_size, self.rank, device="cpu", dtype=torch.float32
+                ).uniform_(-_bound, _bound, generator=self._sra_gen).to(
+                    device=self._sra_active_device(), dtype=self.dtype
+                )
                 self.tile_a.set_weights(A_raw)
 
             elif source == "pulse_scramble":
@@ -1389,6 +1602,12 @@ class LRTTController:
         if self.selector_indices is None:
             self._init_selector_state()
 
+        # grad_topk: update the per-row error-energy EMA from the FULL d
+        # (pre-select). Cheap O(N*d_size) reduction; used to pick the next
+        # block at the upcoming transfer boundary (Gauss-Southwell proxy).
+        if self.selector_policy == "grad_topk":
+            self._update_selector_score(d)
+
         # 1) Gather the selected row block of d as the projected error.
         d_sel = d.index_select(dim=1, index=self.selector_indices)  # [batch, b]
         if self.selector_valid_mask is not None:
@@ -1406,6 +1625,14 @@ class LRTTController:
         # 3) Capacitor leakage applied to the OLD B *before* adding new gradient.
         # This realizes B_{t+1} = rho * B_t - lr_eff * d_sel.T @ x exactly.
         self._apply_capacitor_leak_before_b_update()
+
+        # 3b) Selector half-VeRA: update the persistent per-row transfer gain
+        # s_R AFTER the capacitor leak (so B_old reflects rho*B, matching what
+        # transfer actually consumes) and BEFORE the B update (no self-term).
+        # s is NOT applied to the B update -- B keeps the raw selected-row
+        # gradient; s is consumed only at transfer time.
+        if self._is_half_vera_selector():
+            self._update_selector_gain(x, d_sel)
 
         # 4) Apply the analog pulsed update on tile_b only. tile_a is never touched.
         lr_b_old = self.tile_b.get_learning_rate()
@@ -1489,7 +1716,15 @@ class LRTTController:
                 # Mathematically clean self-correlated anchor (default).
                 # Move anchor to the tile's device explicitly.
                 A = self.sra_anchor_scaled.to(tile_dev)
-                d_proj = d @ A  # [batch, rank]
+                if self._is_half_vera():
+                    # half-VeRA: A_eff = A_bar @ diag(Lambda_d).
+                    # p = d @ A_bar (projection on frozen random dirs);
+                    # d_proj = p * Lambda_d (column-scaled error for B).
+                    lam = self._half_vera_lambda(tile_dev)
+                    _hv_p = d @ A                       # [*, rank]
+                    d_proj = _hv_p * lam.view(1, -1)    # [*, rank]
+                else:
+                    d_proj = d @ A  # [batch, rank]
 
         # 4) Apply the analog pulsed update on tile_b: B += -lr_eff * d_proj.T @ x.
         lr_b_old = self.tile_b.get_learning_rate()
@@ -1501,6 +1736,17 @@ class LRTTController:
                 self.tile_b.update(x, d_proj)
         finally:
             self.tile_b.set_learning_rate(lr_b_old)
+
+        # 4b) half-VeRA: train Lambda_d under the SRA surrogate.
+        # ∂L/∂Lambda_d[k] = mean_batch( (d @ A_bar)[:,k] * (B·x)[:,k] ).
+        if self._is_half_vera():
+            with torch.no_grad():
+                h = self.tile_b.forward(x)                 # [*, rank] = B·x
+                if h.device != _hv_p.device:
+                    h = h.to(_hv_p.device)
+                g_lam = (_hv_p * h).reshape(-1, self.rank).mean(0)  # [rank]
+                lam = self._half_vera_lambda(_hv_p.device)
+                self.lambda_d = lam - float(self.lambda_d_lr) * g_lam
 
         self.num_b_updates += 1
 
@@ -1709,6 +1955,16 @@ class LRTTController:
             if self.selector_valid_mask is not None:
                 B_rows = B_rows * self.selector_valid_mask.view(-1, 1)
 
+            # 1b) Selector half-VeRA: apply the learned per-row transfer gain
+            # s_R to the selected B rows -> C[R,:] += eta_T * diag(s_R) * B.
+            # s persists across selector advances (NOT reset with B).
+            if self._is_half_vera_selector():
+                s_full = self._selector_gain_vec(B_rows.device)
+                _idx = self.selector_indices.to(
+                    device=B_rows.device, dtype=torch.long)
+                s_sel = s_full.index_select(0, _idx)
+                B_rows = B_rows * s_sel.view(-1, 1)
+
             # 2) Reconstruct selector as one-hot routing matrix.
             sign = -1.0 if self.transfer_lr > 0 else 1.0
             D_selector = self._make_selector_onehot(sign=sign)  # [b, d_size]
@@ -1771,6 +2027,10 @@ class LRTTController:
                 B = B.to(tile_dev)
             # Anchor must be aligned with tile_c's update path.
             A = self.sra_anchor_scaled.to(tile_dev)    # [d_size, rank]
+            if self._is_half_vera():
+                # half-VeRA: consolidate A_eff = A_bar @ diag(Lambda_d).
+                lam = self._half_vera_lambda(tile_dev)
+                A = A * lam.view(1, -1)                 # [d_size, rank]
 
             old_lr_c = self.tile_c.get_learning_rate()
             cap_gain = self._cap_transfer_gain()
@@ -1810,7 +2070,8 @@ class LRTTController:
         # CRITICAL: do NOT call self.reinit() in SRA mode (mirrors selector-v2 cleanup).
         if self.sra_reset_b_on_transfer:
             self._reset_sra_b_buffer()
-        if self.sra_resample_on_transfer:
+        # half-VeRA: A_bar is permanently frozen random -> never resample.
+        if self.sra_resample_on_transfer and not self._is_half_vera():
             self._reset_sra_anchor()
 
     def _ab_weight_transfer_direct(self) -> None:

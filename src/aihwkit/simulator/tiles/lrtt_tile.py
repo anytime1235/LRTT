@@ -354,6 +354,25 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         self.controller.sra_seed = post_init.get("sra_seed", 0)
         # Re-seed the controller's CPU generator to reflect the post-init seed.
         self.controller._sra_gen.manual_seed(int(self.controller.sra_seed))
+        # half-VeRA: trainable per-rank Lambda_d hyperparameters.
+        self.controller.half_vera_enabled = post_init.get("half_vera_enabled", False)
+        self.controller.lambda_d_lr = post_init.get("lambda_d_lr", 1.0e-2)
+        self.controller.lambda_d_init = post_init.get("lambda_d_init", 0.1)
+        # Selector half-VeRA: persistent per-output-row transfer gain s.
+        self.controller.selector_gain_init = post_init.get("selector_gain_init", 1.0)
+        self.controller.selector_gain_lr = post_init.get("selector_gain_lr", 1.0e-3)
+        self.controller.selector_gain_momentum = post_init.get(
+            "selector_gain_momentum", 0.9)
+        self.controller.selector_gain_wd = post_init.get("selector_gain_wd", 1.0e-3)
+        self.controller.selector_gain_min = post_init.get("selector_gain_min", 0.25)
+        self.controller.selector_gain_max = post_init.get("selector_gain_max", 4.0)
+        # grad_topk selector policy
+        self.controller.selector_score_beta = post_init.get(
+            "selector_score_beta", 0.9)
+        self.controller.selector_score_metric = post_init.get(
+            "selector_score_metric", "sq")
+        self.controller.selector_staleness_coef = post_init.get(
+            "selector_staleness_coef", 0.0)
 
         # LRTT-v2 invariant: tile_b is allocated [rank, x_size], so the selector
         # block_size must equal rank when v2 mode is active. The config layer
