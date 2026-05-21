@@ -1361,7 +1361,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         torch.cuda.empty_cache()
 
     # Hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 1e-4, 5e-2, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 1e-4, 7e-3, log=True)
 
     # LRTT parameters: skip sweep if --no-transfer (A/B frozen, no transfer happens)
     if OPT_CONFIG['no_transfer']:
@@ -1372,11 +1372,11 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         fast_lr = 1.0            # fixed (no effect)
         a_tau_sec = b_tau_sec = 0.0    # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 7e-3, 4e1, log=True)
-        transfer_every = trial.suggest_int('transfer_every', 1, 1e3, log=True)
+        transfer_lr = trial.suggest_float('transfer_lr', 4e-3, 6e1, log=True)
+        transfer_every = trial.suggest_int('transfer_every', 1, 4e2, log=True)
         rank_exp = trial.suggest_int('rank_exp', 0, 6)
         rank = 2 ** rank_exp
-        fast_lr = trial.suggest_float('fast_lr', 1e-2, 2e1, log=True)
+        fast_lr = trial.suggest_float('fast_lr', 7e-2, 3e1, log=True)
         # tau_sec → device.lifetime is per-tile splittable. Default shared.
         if SPLIT_AB_PARAMS.get('tau_sec', False):
             a_tau_sec = trial.suggest_float('a_tau_sec', 0, 0, log=False)
@@ -1392,7 +1392,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         a_dw_min = trial.suggest_float('a_dw_min', 0.0004883, 0.0004883, log=True)
         b_dw_min = trial.suggest_float('b_dw_min', 0.0004883, 0.0004883, log=True)
     else:
-        ab_dw_min = trial.suggest_float('ab_dw_min', 6e-6, 1e-2, log=True)  # default: 6t1c value
+        ab_dw_min = trial.suggest_float('ab_dw_min', 6e-6, 7e-3, log=True)  # default: 6t1c value
         a_dw_min = b_dw_min = ab_dw_min
 
     # desired_bl: per-tile splittable (a_desired_bl / b_desired_bl override the
@@ -1412,7 +1412,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
             a_multilevel = trial.suggest_int('a_multilevel', 12, 12)
             b_multilevel = trial.suggest_int('b_multilevel', 12, 12)
         else:
-            ab_multilevel = trial.suggest_int('ab_multilevel', 6, 14)
+            ab_multilevel = trial.suggest_int('ab_multilevel', 2, 14)
             a_multilevel = b_multilevel = ab_multilevel
     else:
         a_multilevel = b_multilevel = None
@@ -1420,10 +1420,10 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
     # reset_std: per-tile splittable (B's reset_std is the inherent floor noise, also
     # used as the random Gaussian σ for gauss_b_* reinit modes).
     if SPLIT_AB_PARAMS.get('reset_std', False):
-        a_reset_std = trial.suggest_float('a_reset_std', 1e-30, 1e-30, log=False)
-        b_reset_std = trial.suggest_float('b_reset_std', 1e30, 1e30, log=False)
+        a_reset_std = trial.suggest_float('a_reset_std', 1e-30, 1e-30, log=True)
+        b_reset_std = trial.suggest_float('b_reset_std', 1e-8, 1e5, log=True)
     else:
-        ab_reset_std = trial.suggest_float('ab_reset_std', 0.0, 0.0, log=False)
+        ab_reset_std = trial.suggest_float('ab_reset_std', 0.0, 0.0, log=True)
         a_reset_std = b_reset_std = ab_reset_std
 
     # C tile pulsed transfer params (only meaningful for onehot/direct)
