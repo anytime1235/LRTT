@@ -71,7 +71,7 @@ def apply_config(src, cond):
     src = patch(src, "OUT_NOISE", "0.0")
     # Diagnostic ON; rate-limit erank to every ~10 steps to save SVD time
     src = patch(src, "ENABLE_DIAGNOSTIC", "True")
-    src = patch(src, "MULTI_TILE_DIAG", "False")  # original Phase 2 schema (first/last tile only)
+    src = patch(src, "DIAG_TILES", '"first_last"')  # original Phase 2 schema (first/last tile only); renamed from MULTI_TILE_DIAG
     src = patch(src, "ERANK_RATE_LIMIT_STEPS", "10")
     src = patch(src, "TRAIN_SUBSET_SIZE", "0")
     src = patch(src, "EVAL_SUBSET_SIZE", "0")
@@ -83,6 +83,12 @@ def apply_config(src, cond):
     src = patch(src, "TRANSFER_LR", repr(HYPER["tlr"]))
     src = patch(src, "TRANSFER_EVERY", str(HYPER["te"]))
     src = patch(src, "FAST_LR", repr(HYPER["fast_lr"]))
+    # Enable weight histogram (hist_A / hist_B / hist_C_eff at HIST_RATE_STEPS cadence)
+    src = src.replace(
+        '"g3c_weight_hist": False,',
+        '"g3c_weight_hist": True,',
+        1,
+    )
     return src
 
 

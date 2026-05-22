@@ -1,0 +1,5 @@
+condition,f1,exit_code,source_summary
+no_noise,83.4800,0,summary_20260519_144344.json
+a_only,83.2800,0,summary_20260519_144344.json
+b_only,84.6200,0,summary_20260519_144344.json
+both,77.8700,0,summary_20260519_144344.json
