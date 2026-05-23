@@ -731,7 +731,8 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode,
                        scale_transfer_lr=True,
                        fi_continuous_alpha=False,
                        ab_pulse_type='default',
-                       lora_alpha=1.0):
+                       lora_alpha=1.0,
+                       a_density=1.0, b_density=1.0):
     """Create LRTT RPU configuration for analog layers.
 
     Per-tile splittable params (a_X / b_X). When SPLIT_AB_PARAMS[key] is False the
@@ -788,6 +789,8 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode,
     device_config.transfer_method = TRANSFER_METHOD
     device_config.update_mode = "lora"
     device_config.a_init_mode = "zero"
+    device_config.a_density = a_density
+    device_config.b_density = b_density
     device_config.forward_inject = FORWARD_INJECT
     device_config.no_adc_ab_projection = OPT_CONFIG.get('no_adc_ab_proj', False)
     device_config.auto_scale_mode = auto_scale_mode
@@ -965,6 +968,8 @@ def create_model(params):
             fi_continuous_alpha=OPT_CONFIG['fi_continuous_alpha'],
             lora_alpha=params["lora_alpha"],
             ab_pulse_type=OPT_CONFIG['ab_pulse_type'],
+            a_density=params.get("a_density", 1.0),
+            b_density=params.get("b_density", 1.0),
         )
 
         # Convert to analog with exclusions (only LRTT targets get converted)
@@ -1353,6 +1358,17 @@ def objective(trial, train_loader, eval_loader, tokenizer):
     else:
         reinit_mode = trial.suggest_categorical('reinit_mode', ['standard', 'decay', 'hybrid'])
 
+    # Density sweep only for sparse_*_zero modes; otherwise fixed at 1.0 (unused).
+    if reinit_mode == 'sparse_a_zero':
+        a_density = trial.suggest_float('a_density', 0.01, 1.0, log=True)
+        b_density = 1.0
+    elif reinit_mode == 'sparse_b_zero':
+        a_density = 1.0
+        b_density = trial.suggest_float('b_density', 0.01, 1.0, log=True)
+    else:
+        a_density = 1.0
+        b_density = 1.0
+
     # optimizer: always use config value
     optimizer_name = OPT_CONFIG['optimizer']
 
@@ -1362,6 +1378,8 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         "transfer_lr": transfer_lr,
         "fast_lr": fast_lr,
         "reinit_mode": reinit_mode,
+        "a_density": a_density,
+        "b_density": b_density,
         "a_tau_sec": a_tau_sec,
         "b_tau_sec": b_tau_sec,
         "a_dw_min": a_dw_min,
@@ -1690,7 +1708,11 @@ def main():
     parser.add_argument('--reinit-mode', type=str, default=None,
                         choices=['standard', 'decay', 'hybrid',
                                  'orthogonal_zero', 'orthogonal_decay',
-                                 'gauss_b_zero', 'gauss_b_decay'],
+                                 'gauss_b_zero', 'gauss_b_decay',
+                                 'gauss_a_zero', 'gauss_a_decay',
+                                 'selector_b_zero', 'selector_b_decay',
+                                 'selector_a_zero', 'selector_a_decay',
+                                 'sparse_a_zero', 'sparse_b_zero'],
                         help='Fix reinit mode (default: tune among standard/decay/hybrid)')
     parser.add_argument('--batch-size', type=int, default=32,
                         help='Batch size (default: 32)')

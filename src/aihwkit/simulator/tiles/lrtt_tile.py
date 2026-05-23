@@ -315,6 +315,8 @@ class LRTTSimulatorTile(SimulatorTile, Module):
             lora_alpha=self.lora_alpha,
             reinit_gain=self.reinit_gain,
             reinit_mode=getattr(self.lrtt_config, "reinit_mode", "standard"),
+            a_density=getattr(self.lrtt_config, "a_density", 1.0),
+            b_density=getattr(self.lrtt_config, "b_density", 1.0),
             a_init_mode=getattr(
                 self.lrtt_config, "a_init_mode", "zero"
             ),  # A matrix initialization mode

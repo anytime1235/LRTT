@@ -60,6 +60,8 @@ class LRTTController:
         lora_alpha: float = 1.0,
         reinit_gain: float = 1.0,
         reinit_mode: str = "standard",
+        a_density: float = 1.0,  # density for sparse_a_zero (fraction nonzero in ±1 Rademacher)
+        b_density: float = 1.0,  # density for sparse_b_zero
         a_init_mode: str = "zero",  # "zero" or "kaiming"
         b_init_mode: str = "kaiming",  # "kaiming" or "zero"
         correct_gradient_magnitudes: bool = False,
@@ -140,6 +142,8 @@ class LRTTController:
         self.lora_alpha = lora_alpha
         self.reinit_gain = reinit_gain
         self.reinit_mode = reinit_mode
+        self.a_density = a_density
+        self.b_density = b_density
         self.a_init_mode = a_init_mode
         self.b_init_mode = b_init_mode
         self.correct_gradient_magnitudes = correct_gradient_magnitudes
@@ -715,13 +719,45 @@ class LRTTController:
                 # else: B unchanged, 6T1C capacitor decay handles it
                 self._a_frozen = True
 
+            elif self.reinit_mode == "sparse_b_zero":
+                # A=0, B=sparse ±1 Rademacher every transfer.
+                # B[i,j] = +1 w.p. p/2, -1 w.p. p/2, 0 w.p. 1-p; p = self.b_density.
+                # p=1 → dense Rademacher; p→0 → very sparse (selector-like).
+                # No magnitude scaling — transfer_lr absorbs effective norm √p.
+                _reset_tile(self.tile_a)
+                p = self.b_density
+                rand = torch.rand(self.rank, self.x_size, device=self.device, dtype=self.dtype)
+                neg = -torch.ones_like(rand)
+                pos = torch.ones_like(rand)
+                zero = torch.zeros_like(rand)
+                B_sparse = torch.where(rand < p / 2, neg,
+                            torch.where(rand < p, pos, zero))
+                _set_raw(self.tile_b, B_sparse)
+                self._b_frozen = True
+
+            elif self.reinit_mode == "sparse_a_zero":
+                # Mirror of sparse_b_zero (A↔B swapped):
+                # A=sparse ±1 Rademacher every transfer, B=0.
+                # A[i,j] = +1 w.p. p/2, -1 w.p. p/2, 0 w.p. 1-p; p = self.a_density.
+                p = self.a_density
+                rand = torch.rand(self.d_size, self.rank, device=self.device, dtype=self.dtype)
+                neg = -torch.ones_like(rand)
+                pos = torch.ones_like(rand)
+                zero = torch.zeros_like(rand)
+                A_sparse = torch.where(rand < p / 2, neg,
+                            torch.where(rand < p, pos, zero))
+                _set_raw(self.tile_a, A_sparse)
+                _reset_tile(self.tile_b)
+                self._a_frozen = True
+
             else:
                 raise ValueError(f"Unknown reinit_mode: {self.reinit_mode}. "
                                  f"Must be 'standard', 'decay', 'hybrid', 'orthogonal_zero', "
                                  f"'orthogonal_decay', 'gauss_b_zero', 'gauss_b_decay', "
                                  f"'gauss_a_zero', 'gauss_a_decay', "
                                  f"'selector_b_zero', 'selector_b_decay', "
-                                 f"'selector_a_zero', or 'selector_a_decay'")
+                                 f"'selector_a_zero', 'selector_a_decay', "
+                                 f"'sparse_a_zero', or 'sparse_b_zero'")
 
         # Apply device clipping if available
         if hasattr(self.tile_a, 'clip_weights'):

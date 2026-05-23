@@ -186,6 +186,8 @@ AUTO_SCALE_MODE = "none"  # Auto-scale mode: "none", "shared", or "separate"
 CORRECT_GRADIENT_MAGNITUDES = False  # Correct transfer magnitude by dividing by effective A/B LR
 REINIT_MODE = "hybrid"
 REINIT_GAIN = 1.0
+A_DENSITY = 1.0  # for sparse_a_zero: fraction of nonzero entries in A (±1 Rademacher)
+B_DENSITY = 1.0  # for sparse_b_zero: fraction of nonzero entries in B
 TRANSFER_METHOD = "set"  # "onehot", "direct", or "set"
 C_DW_MIN = 0.001         # C tile dw_min (relevant for onehot/direct transfer)
 C_DESIRED_BL = 31        # C tile desired_bl (relevant for onehot/direct transfer)
@@ -540,6 +542,8 @@ def create_lrtt_config():
     device_config.transfer_method = TRANSFER_METHOD
     device_config.update_mode = "lora"
     device_config.a_init_mode = "zero"
+    device_config.a_density = A_DENSITY
+    device_config.b_density = B_DENSITY
     device_config.forward_inject = FORWARD_INJECT
     device_config.fi_continuous_alpha = FI_CONTINUOUS_ALPHA
     device_config.no_adc_ab_projection = NO_ADC_AB_PROJ

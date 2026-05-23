@@ -95,7 +95,15 @@ class PythonLRTTDevice(_PrintableMixin):
     - 'selector_b_decay': A first-init only (then 6T1C decay), B=fresh row-coordinate selector every transfer
     - 'selector_a_zero': A=fresh column-coordinate selector (rank one-hot cols over d_size) every transfer, B=0
     - 'selector_a_decay': A=fresh selector every transfer, B=0 first-init only (then 6T1C decay) (mirror of selector_b_decay)
+    - 'sparse_b_zero': A=0, B=sparse ±1 Rademacher (each entry ±1 w.p. b_density/2 each, 0 w.p. 1-b_density) every transfer
+    - 'sparse_a_zero': A=sparse ±1 Rademacher (each entry ±1 w.p. a_density/2 each, 0 w.p. 1-a_density) every transfer, B=0 (mirror of sparse_b_zero)
     """
+
+    a_density: float = 1.0
+    """Density (fraction of nonzero entries) for sparse_a_zero. p=1 → dense ±1 Rademacher, p<1 → sparser pattern."""
+
+    b_density: float = 1.0
+    """Density (fraction of nonzero entries) for sparse_b_zero. p=1 → dense ±1 Rademacher, p<1 → sparser pattern."""
 
     a_init_mode: str = "zero"
     """A matrix initialization mode for first reinit:
@@ -407,9 +415,16 @@ class PythonLRTTDevice(_PrintableMixin):
         # Validate reinit_mode
         valid_modes = ["standard", "decay", "hybrid", "orthogonal_zero", "orthogonal_decay",
                        "gauss_b_zero", "gauss_b_decay", "gauss_a_zero", "gauss_a_decay",
-                       "selector_b_zero", "selector_b_decay", "selector_a_zero", "selector_a_decay"]
+                       "selector_b_zero", "selector_b_decay", "selector_a_zero", "selector_a_decay",
+                       "sparse_a_zero", "sparse_b_zero"]
         if self.reinit_mode not in valid_modes:
             raise ValueError(f"reinit_mode must be one of {valid_modes}, got '{self.reinit_mode}'")
+
+        # Validate density params
+        if not (0.0 < self.a_density <= 1.0):
+            raise ValueError(f"a_density must be in (0, 1], got {self.a_density}")
+        if not (0.0 < self.b_density <= 1.0):
+            raise ValueError(f"b_density must be in (0, 1], got {self.b_density}")
 
         # Validate num_reads
         if self.num_reads < 1:

@@ -691,7 +691,8 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode,
                        a_desired_bl=None, b_desired_bl=None,
                        ab_weight_scaling_omega=0.0,
                        a_weight_scaling_omega=None, b_weight_scaling_omega=None,
-                       lora_alpha=1.0):
+                       lora_alpha=1.0,
+                       a_density=1.0, b_density=1.0):
     """Create LRTT RPU configuration for analog layers.
 
     Per-tile parameters (each can differ between A and B):
@@ -764,6 +765,8 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode,
     device_config.transfer_method = TRANSFER_METHOD
     device_config.update_mode = "lora"
     device_config.a_init_mode = "zero"
+    device_config.a_density = a_density
+    device_config.b_density = b_density
     device_config.forward_inject = FORWARD_INJECT
     device_config.no_adc_ab_projection = OPT_CONFIG.get('no_adc_ab_proj', False)
     device_config.auto_scale_mode = auto_scale_mode
@@ -941,6 +944,8 @@ def create_model(params):
             fi_continuous_alpha=OPT_CONFIG['fi_continuous_alpha'],
             lora_alpha=params["lora_alpha"],
             ab_pulse_type=OPT_CONFIG['ab_pulse_type'],
+            a_density=params.get("a_density", 1.0),
+            b_density=params.get("b_density", 1.0),
         )
 
         # Convert to analog with exclusions (only LRTT targets get converted)
@@ -1361,7 +1366,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         torch.cuda.empty_cache()
 
     # Hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 1e-4, 7e-3, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 2e-4, 6e-3, log=True)
 
     # LRTT parameters: skip sweep if --no-transfer (A/B frozen, no transfer happens)
     if OPT_CONFIG['no_transfer']:
@@ -1372,11 +1377,11 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         fast_lr = 1.0            # fixed (no effect)
         a_tau_sec = b_tau_sec = 0.0    # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 4e-3, 6e1, log=True)
-        transfer_every = trial.suggest_int('transfer_every', 1, 4e2, log=True)
+        transfer_lr = trial.suggest_float('transfer_lr', 9e-6, 3e0, log=True)
+        transfer_every = trial.suggest_int('transfer_every', 1, 5e1, log=True)
         rank_exp = trial.suggest_int('rank_exp', 0, 6)
         rank = 2 ** rank_exp
-        fast_lr = trial.suggest_float('fast_lr', 7e-2, 3e1, log=True)
+        fast_lr = trial.suggest_float('fast_lr', 7e-6, 4e1, log=True)
         # tau_sec → device.lifetime is per-tile splittable. Default shared.
         if SPLIT_AB_PARAMS.get('tau_sec', False):
             a_tau_sec = trial.suggest_float('a_tau_sec', 0, 0, log=False)
@@ -1392,7 +1397,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         a_dw_min = trial.suggest_float('a_dw_min', 0.0004883, 0.0004883, log=True)
         b_dw_min = trial.suggest_float('b_dw_min', 0.0004883, 0.0004883, log=True)
     else:
-        ab_dw_min = trial.suggest_float('ab_dw_min', 6e-6, 7e-3, log=True)  # default: 6t1c value
+        ab_dw_min = trial.suggest_float('ab_dw_min', 5e-6, 1e-2, log=True)  # default: 6t1c value
         a_dw_min = b_dw_min = ab_dw_min
 
     # desired_bl: per-tile splittable (a_desired_bl / b_desired_bl override the
@@ -1412,7 +1417,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
             a_multilevel = trial.suggest_int('a_multilevel', 12, 12)
             b_multilevel = trial.suggest_int('b_multilevel', 12, 12)
         else:
-            ab_multilevel = trial.suggest_int('ab_multilevel', 2, 14)
+            ab_multilevel = trial.suggest_int('ab_multilevel', 1, 14)
             a_multilevel = b_multilevel = ab_multilevel
     else:
         a_multilevel = b_multilevel = None
@@ -1481,6 +1486,17 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
     else:
         reinit_mode = trial.suggest_categorical('reinit_mode', ['standard', 'decay', 'hybrid'])
 
+    # Density sweep only for sparse_*_zero modes; otherwise fixed at 1.0 (unused).
+    if reinit_mode == 'sparse_a_zero':
+        a_density = trial.suggest_float('a_density', 0.01, 1.0, log=True)
+        b_density = 1.0
+    elif reinit_mode == 'sparse_b_zero':
+        a_density = 1.0
+        b_density = trial.suggest_float('b_density', 0.01, 1.0, log=True)
+    else:
+        a_density = 1.0
+        b_density = 1.0
+
     # optimizer: always use config value
     optimizer_name = OPT_CONFIG['optimizer']
 
@@ -1490,6 +1506,8 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         "transfer_lr": transfer_lr,
         "fast_lr": fast_lr,
         "reinit_mode": reinit_mode,
+        "a_density": a_density,
+        "b_density": b_density,
         "a_tau_sec": a_tau_sec,
         "b_tau_sec": b_tau_sec,
         "a_dw_min": a_dw_min,
@@ -1526,6 +1544,8 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
     else:
         print(f"  a_dw_min={a_dw_min:.4e}, b_dw_min={b_dw_min:.4e}, ab_desired_bl={ab_desired_bl}, multilevel a/b={a_multilevel}/{b_multilevel}")
     print(f"  a_reset_std={a_reset_std:.4e}, b_reset_std={b_reset_std:.4e}")
+    if reinit_mode in ('sparse_a_zero', 'sparse_b_zero'):
+        print(f"  a_density={a_density:.4f}, b_density={b_density:.4f}")
     if TRANSFER_METHOD in ("onehot", "direct"):
         print(f"  c_dw_min={c_dw_min:.4e}, c_desired_bl={c_desired_bl}")
     print(f"{'='*70}")
@@ -1807,7 +1827,8 @@ def main():
                                  'gauss_b_zero', 'gauss_b_decay',
                                  'gauss_a_zero', 'gauss_a_decay',
                                  'selector_b_zero', 'selector_b_decay',
-                                 'selector_a_zero', 'selector_a_decay'],
+                                 'selector_a_zero', 'selector_a_decay',
+                                 'sparse_a_zero', 'sparse_b_zero'],
                         help='Fix reinit mode (default: tune among standard/decay/hybrid)')
     parser.add_argument('--batch-size', type=int, default=32,
                         help='Batch size (default: 32)')
