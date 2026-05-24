@@ -97,6 +97,8 @@ class PythonLRTTDevice(_PrintableMixin):
     - 'selector_a_decay': A=fresh selector every transfer, B=0 first-init only (then 6T1C decay) (mirror of selector_b_decay)
     - 'sparse_b_zero': A=0, B=sparse ±1 Rademacher (each entry ±1 w.p. b_density/2 each, 0 w.p. 1-b_density) every transfer
     - 'sparse_a_zero': A=sparse ±1 Rademacher (each entry ±1 w.p. a_density/2 each, 0 w.p. 1-a_density) every transfer, B=0 (mirror of sparse_b_zero)
+    - 'binary_b_zero': A=0, B=Bernoulli {0,1} (each entry 1 w.p. b_density, 0 w.p. 1-b_density) every transfer
+    - 'binary_a_zero': A=Bernoulli {0,1} (each entry 1 w.p. a_density, 0 w.p. 1-a_density) every transfer, B=0 (mirror of binary_b_zero)
     """
 
     a_density: float = 1.0
@@ -416,7 +418,8 @@ class PythonLRTTDevice(_PrintableMixin):
         valid_modes = ["standard", "decay", "hybrid", "orthogonal_zero", "orthogonal_decay",
                        "gauss_b_zero", "gauss_b_decay", "gauss_a_zero", "gauss_a_decay",
                        "selector_b_zero", "selector_b_decay", "selector_a_zero", "selector_a_decay",
-                       "sparse_a_zero", "sparse_b_zero"]
+                       "sparse_a_zero", "sparse_b_zero",
+                       "binary_a_zero", "binary_b_zero"]
         if self.reinit_mode not in valid_modes:
             raise ValueError(f"reinit_mode must be one of {valid_modes}, got '{self.reinit_mode}'")
 

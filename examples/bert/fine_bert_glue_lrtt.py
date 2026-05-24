@@ -25,7 +25,7 @@ Inline flags (edit directly in script):
     TRANSFER_METHOD = "onehot"      # Transfer method: "onehot" | "direct" | "set"
     FAST_LR = 1.0                   # Fast LR for A/B updates
     AUTO_SCALE_MODE = "none"        # Auto-scale: "none" | "shared" | "separate"
-    REINIT_MODE = "hybrid"          # Reinit mode: "standard" | "decay" | "hybrid" | "orthogonal_zero" | "orthogonal_decay" | "gauss_b_zero" | "gauss_b_decay"
+    REINIT_MODE = "hybrid"          # Reinit mode: "standard" | "decay" | "hybrid" | "orthogonal_zero" | "orthogonal_decay" | "gauss_b_zero" | "gauss_b_decay" | "gauss_a_zero" | "gauss_a_decay" | "selector_b_zero" | "selector_b_decay" | "selector_a_zero" | "selector_a_decay" | "sparse_a_zero" | "sparse_b_zero" | "binary_a_zero" | "binary_b_zero"
     REINIT_GAIN = 1.0               # Reinitialization gain
     TAU_SEC = 0.0                   # 6T1C retention (0 = no decay)
     DYNAMIC_TE = False              # Enable dynamic transfer every

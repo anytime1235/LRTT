@@ -19,7 +19,12 @@ All flags:
         --no-nesterov               # Disable nesterov tuning (fix to False, SGD only)
         --reinit-mode <str>         # Fix reinit mode: standard | decay | hybrid |
                                     #   orthogonal_zero | orthogonal_decay |
-                                    #   gauss_b_zero | gauss_b_decay
+                                    #   gauss_b_zero | gauss_b_decay |
+                                    #   gauss_a_zero | gauss_a_decay |
+                                    #   selector_b_zero | selector_b_decay |
+                                    #   selector_a_zero | selector_a_decay |
+                                    #   sparse_a_zero | sparse_b_zero |
+                                    #   binary_a_zero | binary_b_zero
                                     #   (default: tune among standard/decay/hybrid)
         --batch-size <int>          # Batch size (default: 64)
         --grad-accum-steps <int>    # Gradient accumulation steps (default: 1)
@@ -1486,13 +1491,13 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
     else:
         reinit_mode = trial.suggest_categorical('reinit_mode', ['standard', 'decay', 'hybrid'])
 
-    # Density sweep only for sparse_*_zero modes; otherwise fixed at 1.0 (unused).
-    if reinit_mode == 'sparse_a_zero':
-        a_density = trial.suggest_float('a_density', 0.01, 1.0, log=True)
+    # Density sweep for sparse_*_zero / binary_*_zero modes; otherwise fixed at 1.0 (unused).
+    if reinit_mode in ('sparse_a_zero', 'binary_a_zero'):
+        a_density = trial.suggest_float('a_density', 0.05, 1.0, log=True)
         b_density = 1.0
-    elif reinit_mode == 'sparse_b_zero':
+    elif reinit_mode in ('sparse_b_zero', 'binary_b_zero'):
         a_density = 1.0
-        b_density = trial.suggest_float('b_density', 0.01, 1.0, log=True)
+        b_density = trial.suggest_float('b_density', 0.05, 1.0, log=True)
     else:
         a_density = 1.0
         b_density = 1.0
@@ -1544,7 +1549,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
     else:
         print(f"  a_dw_min={a_dw_min:.4e}, b_dw_min={b_dw_min:.4e}, ab_desired_bl={ab_desired_bl}, multilevel a/b={a_multilevel}/{b_multilevel}")
     print(f"  a_reset_std={a_reset_std:.4e}, b_reset_std={b_reset_std:.4e}")
-    if reinit_mode in ('sparse_a_zero', 'sparse_b_zero'):
+    if reinit_mode in ('sparse_a_zero', 'sparse_b_zero', 'binary_a_zero', 'binary_b_zero'):
         print(f"  a_density={a_density:.4f}, b_density={b_density:.4f}")
     if TRANSFER_METHOD in ("onehot", "direct"):
         print(f"  c_dw_min={c_dw_min:.4e}, c_desired_bl={c_desired_bl}")
@@ -1828,7 +1833,8 @@ def main():
                                  'gauss_a_zero', 'gauss_a_decay',
                                  'selector_b_zero', 'selector_b_decay',
                                  'selector_a_zero', 'selector_a_decay',
-                                 'sparse_a_zero', 'sparse_b_zero'],
+                                 'sparse_a_zero', 'sparse_b_zero',
+                                 'binary_a_zero', 'binary_b_zero'],
                         help='Fix reinit mode (default: tune among standard/decay/hybrid)')
     parser.add_argument('--batch-size', type=int, default=32,
                         help='Batch size (default: 32)')

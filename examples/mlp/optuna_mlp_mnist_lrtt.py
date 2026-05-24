@@ -22,7 +22,9 @@ All flags:
                                     #   gauss_b_zero | gauss_b_decay |
                                     #   gauss_a_zero | gauss_a_decay |
                                     #   selector_b_zero | selector_b_decay |
-                                    #   selector_a_zero | selector_a_decay
+                                    #   selector_a_zero | selector_a_decay |
+                                    #   sparse_a_zero | sparse_b_zero |
+                                    #   binary_a_zero | binary_b_zero
                                     #   (default: tune among standard/decay/hybrid)
         --batch-size <int>          # Batch size (default: 128)
         --grad-accum-steps <int>    # Gradient accumulation steps (default: 1)
@@ -1283,11 +1285,11 @@ def objective(trial, train_loader, val_loader):
     else:
         reinit_mode = trial.suggest_categorical('reinit_mode', ['standard', 'decay', 'hybrid'])
 
-    # Density sweep only for sparse_*_zero modes; otherwise fixed at 1.0 (unused).
-    if reinit_mode == 'sparse_a_zero':
+    # Density sweep for sparse_*_zero / binary_*_zero modes; otherwise fixed at 1.0 (unused).
+    if reinit_mode in ('sparse_a_zero', 'binary_a_zero'):
         a_density = trial.suggest_float('a_density', 0.01, 1.0, log=True)
         b_density = 1.0
-    elif reinit_mode == 'sparse_b_zero':
+    elif reinit_mode in ('sparse_b_zero', 'binary_b_zero'):
         a_density = 1.0
         b_density = trial.suggest_float('b_density', 0.01, 1.0, log=True)
     else:
@@ -1331,7 +1333,7 @@ def objective(trial, train_loader, val_loader):
     print(f"  rank={rank}, transfer_every={transfer_every}, transfer_lr={transfer_lr:.4e}")
     print(f"  fast_lr={fast_lr:.2e}, lr={learning_rate:.2e}, wd={weight_decay:.2e}")
     print(f"  momentum={momentum:.2f}, nesterov={nesterov}, reinit_mode={reinit_mode}")
-    if reinit_mode in ('sparse_a_zero', 'sparse_b_zero'):
+    if reinit_mode in ('sparse_a_zero', 'sparse_b_zero', 'binary_a_zero', 'binary_b_zero'):
         print(f"  a_density={a_density:.4f}, b_density={b_density:.4f}")
     if a_tau_sec == b_tau_sec:
         print(f"  tau_sec={a_tau_sec:.1f}, optimizer={optimizer_name}")
@@ -1614,7 +1616,8 @@ def main():
                                  'gauss_a_zero', 'gauss_a_decay',
                                  'selector_b_zero', 'selector_b_decay',
                                  'selector_a_zero', 'selector_a_decay',
-                                 'sparse_a_zero', 'sparse_b_zero'],
+                                 'sparse_a_zero', 'sparse_b_zero',
+                                 'binary_a_zero', 'binary_b_zero'],
                         help='Fix reinit mode (default: tune among standard/decay/hybrid)')
     parser.add_argument('--batch-size', type=int, default=32,
                         help='Batch size (default: 32)')

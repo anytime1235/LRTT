@@ -750,6 +750,28 @@ class LRTTController:
                 _reset_tile(self.tile_b)
                 self._a_frozen = True
 
+            elif self.reinit_mode == "binary_b_zero":
+                # A=0, B=Bernoulli {0, 1} every transfer.
+                # B[i,j] = 1 w.p. q, 0 w.p. 1-q; q = self.b_density.
+                # Unipolar variant of sparse_b_zero (no negative values; non-zero mean = q).
+                _reset_tile(self.tile_a)
+                q = self.b_density
+                rand = torch.rand(self.rank, self.x_size, device=self.device, dtype=self.dtype)
+                B_binary = (rand < q).to(self.dtype)
+                _set_raw(self.tile_b, B_binary)
+                self._b_frozen = True
+
+            elif self.reinit_mode == "binary_a_zero":
+                # Mirror of binary_b_zero:
+                # A=Bernoulli {0, 1} every transfer, B=0.
+                # A[i,j] = 1 w.p. q, 0 w.p. 1-q; q = self.a_density.
+                q = self.a_density
+                rand = torch.rand(self.d_size, self.rank, device=self.device, dtype=self.dtype)
+                A_binary = (rand < q).to(self.dtype)
+                _set_raw(self.tile_a, A_binary)
+                _reset_tile(self.tile_b)
+                self._a_frozen = True
+
             else:
                 raise ValueError(f"Unknown reinit_mode: {self.reinit_mode}. "
                                  f"Must be 'standard', 'decay', 'hybrid', 'orthogonal_zero', "
@@ -757,7 +779,8 @@ class LRTTController:
                                  f"'gauss_a_zero', 'gauss_a_decay', "
                                  f"'selector_b_zero', 'selector_b_decay', "
                                  f"'selector_a_zero', 'selector_a_decay', "
-                                 f"'sparse_a_zero', or 'sparse_b_zero'")
+                                 f"'sparse_a_zero', 'sparse_b_zero', "
+                                 f"'binary_a_zero', or 'binary_b_zero'")
 
         # Apply device clipping if available
         if hasattr(self.tile_a, 'clip_weights'):
