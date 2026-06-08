@@ -1940,6 +1940,28 @@ def main():
                     gc_dict['cos_AB_G'] = (torch.nn.functional.cosine_similarity(
                         AB_flat.unsqueeze(0), G_flat.unsqueeze(0)).item()
                         if gc_dict['norm_AB_pre'] > 1e-10 and gc_dict['norm_G_accum'] > 1e-10 else 0.0)
+                    # G temporal coherence (bilinear unstable mode test)
+                    _G_norm = gc_dict['norm_G_accum']
+                    if gc_dict.get('G_prev_flat') is not None and _G_norm > 1e-10:
+                        _Gp = gc_dict['G_prev_flat']
+                        _Gp_norm = gc_dict.get('G_prev_norm', 0.0)
+                        if _Gp_norm > 1e-10:
+                            gc_dict['cos_G_prev'] = (G_flat @ _Gp).item() / (_G_norm * _Gp_norm)
+                        else:
+                            gc_dict['cos_G_prev'] = 0.0
+                    else:
+                        gc_dict['cos_G_prev'] = 0.0
+                    gc_dict['G_prev_flat'] = G_flat.detach().clone()
+                    gc_dict['G_prev_norm'] = _G_norm
+                    # sigma_1(G) and dominance ratio sigma_1 / ||G||_F (top-mode participation)
+                    if _G_norm > 1e-10:
+                        _svals = torch.linalg.svdvals(gc_dict['G_accum'].float())
+                        _s1 = _svals[0].item()
+                        gc_dict['sigma1_G'] = _s1
+                        gc_dict['sigma1_G_ratio'] = _s1 / _G_norm
+                    else:
+                        gc_dict['sigma1_G'] = 0.0
+                        gc_dict['sigma1_G_ratio'] = 0.0
                     # tile_a sees (XB, d_raw); tile_b sees (x_raw, DA)
                     gc_dict['xa_abs_mean'], gc_dict['xa_abs_max'] = _abs_stats(x_a.to(device))
                     gc_dict['da_abs_mean'], gc_dict['da_abs_max'] = _abs_stats(d_a.to(device))
@@ -2200,6 +2222,10 @@ def main():
                         rec["norm_G_accum"] = gcd.get('norm_G_accum', 0.0)
                         rec["norm_AB_pre"] = gcd.get('norm_AB_pre', 0.0)
                         rec["cos_AB_G"] = gcd.get('cos_AB_G', 0.0)
+                        # G temporal coherence (bilinear unstable mode test)
+                        rec["cos_G_prev"]      = gcd.get('cos_G_prev', 0.0)
+                        rec["sigma1_G"]        = gcd.get('sigma1_G', 0.0)
+                        rec["sigma1_G_ratio"]  = gcd.get('sigma1_G_ratio', 0.0)
                         # tile_a sees (XB, d_raw); tile_b sees (x_raw, DA)
                         for _pf in ("xa", "xb", "da", "db"):
                             rec[f"{_pf}_abs_mean"] = gcd.get(f"{_pf}_abs_mean", 0.0)
