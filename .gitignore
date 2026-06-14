@@ -209,3 +209,7 @@ cuda-keyring_*.deb*
 
 # Optuna zombie-cleanup locks
 **/_zombie_cleanup_*.lock
+
+# New plots/analysis/ structure (post-reorganization 6/14)
+examples/bert/results/plots/analysis/*/diag_*.json
+examples/bert/results/plots/analysis/*/diag_collapse_*.json
