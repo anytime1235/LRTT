@@ -384,7 +384,42 @@ not cleanly separable. Still consistent with bilinear mechanism (cascade existen
 Need to re-run with ideal-optimal hyperparams to get a working baseline first,
 then identify the natural ~14% collapse rate cases (per optuna data).
 
-## Refined verdict on bilinear hypothesis (as of 6/14)
+## Investigation J — Ideal device with T267 ideal-optimal hyperparams (6/15)
+
+**Question**: Same as Inv. I, but with the *correct* ideal-optimal hyperparams from the
+abml optuna log (T267: LR=0.00328, transfer_lr=0.25, fast_lr=0.3, te=2, abml=10).
+
+**Design**: 4 GPUs × seed 42-45, all devices = constantstepideal. Source defaults already
+T267; V2 script only patches experiment-level settings + seed (no hyperparam override).
+
+**Output**: `analysis/12_ideal_v2_t267_ideal_optimal_hyperparams__seed42-45_20260615/`
+
+**Result** — **4/4 normal training, no collapse**:
+
+| Seed | F1 best | L11 max ‖A·B‖ | L11 max ‖G‖_F |
+|---|---|---|---|
+| 42 | 84.81 | 6.4 | 0.86 |
+| 43 | 84.77 | 5.5 | 1.08 |
+| 44 | 84.20 | 5.7 | 0.86 |
+| 45 | 84.82 | 5.7 | 0.95 |
+
+Mean F1 = 84.65 ± 0.27 (matches optuna best 84.98). ‖G‖_F max stays well below
+threshold (≈ 3.37 at η=0.3, σ_ratio≈0.99). V1 vs V2 comparison plot in folder.
+
+**Implications**:
+- V1's 4/4 failure was driven entirely by hyperparam mismatch (transfer_lr 2.6× too low,
+  abml=None vs T267's abml=10, etc.), NOT bilinear instability per se.
+- V2 supports the "threshold-not-crossed → no collapse" direction of bilinear hypothesis,
+  but does NOT verify the reverse direction (0/4 positive collapses to inspect).
+- Binomial P(0/4 | p=0.14) ≈ 55% → consistent with optuna's ~14% natural-collapse rate.
+  Need 10-20+ seeds to reliably catch one.
+
+**Next steps** (queued for after paper-figure work):
+- fast_lr push on ideal+T267 base (analog of Inv. H) → force cascade on ideal device
+- 10-20 seed sweep at T267 → catch the ~14% natural collapse, inspect ‖G‖_F trace
+- abml=None ablation at otherwise T267 settings → does multilevel update suppress cascade?
+
+## Refined verdict on bilinear hypothesis (as of 6/15)
 
 What is **strongly supported**:
 - Bilinear unstable mode `1 + η·σ_1(G)` controls cascade dynamics
@@ -448,7 +483,8 @@ plots/
     08_gcoh_seedstats__6t1cgamma__minimal_diag__seed43_44_45_20260513/             Investigation F
     09_gcoh_fi_true__6t1cgamma__seed42_20260513/                                   Investigation G
     10_gcoh_fastlr_push__6t1cgamma__flr0p474_0p7_1p0__seed42_20260608/             Investigation H
-    11_ideal_multiseed_w_6t1cgamma_hyperparams__seed42-45_20260614/                Investigation I
+    11_ideal_multiseed_w_6t1cgamma_hyperparams__seed42-45_20260614/                Investigation I (confounded)
+    12_ideal_v2_t267_ideal_optimal_hyperparams__seed42-45_20260615/                Investigation J (V2 corrected)
     _global_outputs/   COLLAPSE_VERIFICATION_REPORT.md, lora_vs_lrtt plots, threshold plot
     _etc_misc/         older miscellaneous analysis (not used in paper)
 ```
