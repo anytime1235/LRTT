@@ -592,7 +592,37 @@ def _create_c_device(dw_min=0.001):
     )
 
 
-def create_frozen_analog_config(lrtt_config=None, out_noise=0.0):
+def _bits_to_res(bits):
+    """Convert a converter bit-count to aihwkit resolution (1/steps).
+
+    None / <2  → no override (keep current inp_res/out_res: aihwkit default or NO_QUANT).
+    N>=2       → 1/(2**N - 2)  (N-bit signed converter).
+    """
+    if bits is None or bits < 2:
+        return None
+    return 1.0 / (2 ** bits - 2)
+
+
+def _apply_quant_bits(rpu_config, dac_bits, adc_bits):
+    """Override forward/backward DAC (inp_res) and ADC (out_res) from bit-counts.
+
+    Applied in BOTH create_lrtt_config and the create_frozen_analog_config standalone
+    branch so every analog path (LRTT layers AND none-mode frozen layers) gets identical
+    quantization. The derived frozen branch inherits via deepcopy of forward/backward.
+    Has no effect under is_perfect (aihwkit ignores all IOParameters then).
+    """
+    dac_res = _bits_to_res(dac_bits)
+    if dac_res is not None:
+        rpu_config.forward.inp_res = dac_res
+        rpu_config.backward.inp_res = dac_res
+    adc_res = _bits_to_res(adc_bits)
+    if adc_res is not None:
+        rpu_config.forward.out_res = adc_res
+        rpu_config.backward.out_res = adc_res
+    return rpu_config
+
+
+def create_frozen_analog_config(lrtt_config=None, out_noise=0.0, dac_bits=None, adc_bits=None):
     """Create analog config for non-LRTT encoder layers (frozen analog).
 
     If lrtt_config is provided, derived from its C tile settings.
@@ -623,6 +653,7 @@ def create_frozen_analog_config(lrtt_config=None, out_noise=0.0):
             rpu_config.forward.out_res = -1
             rpu_config.backward.inp_res = -1
             rpu_config.backward.out_res = -1
+        _apply_quant_bits(rpu_config, dac_bits, adc_bits)
         if BACKWARD_OUT_BOUND != 12.0:
             rpu_config.backward.out_bound = BACKWARD_OUT_BOUND
     return rpu_config
@@ -638,7 +669,8 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, 
                        ab_dw_min=0.001981, ab_desired_bl=31,
                        ab_multilevel=None,
                        lora_alpha=1.0,
-                       a_density=1.0, b_density=1.0):
+                       a_density=1.0, b_density=1.0,
+                       dac_bits=None, adc_bits=None):
     """Create LRTT RPU configuration for analog layers."""
     ab_device = _create_ab_device(tau_sec=tau_sec, dw_min=ab_dw_min, multilevel=ab_multilevel)
     c_device = _create_c_device(dw_min=c_dw_min)
@@ -718,6 +750,7 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode, 
         rpu_config.forward.out_res = -1
         rpu_config.backward.inp_res = -1
         rpu_config.backward.out_res = -1
+    _apply_quant_bits(rpu_config, dac_bits, adc_bits)
 
     if BACKWARD_OUT_BOUND != 12.0:
         rpu_config.backward.out_bound = BACKWARD_OUT_BOUND
@@ -852,6 +885,8 @@ def create_model(params):
             ab_pulse_type=OPT_CONFIG['ab_pulse_type'],
             a_density=params.get("a_density", 1.0),
             b_density=params.get("b_density", 1.0),
+            dac_bits=params.get("dac_bits"),
+            adc_bits=params.get("adc_bits"),
         )
 
         # Convert to analog with exclusions (only LRTT targets get converted)
@@ -875,6 +910,8 @@ def create_model(params):
         frozen_config = create_frozen_analog_config(
             lrtt_config if LORA_TARGET != "none" else None,
             out_noise=params.get("out_noise", 0.0),
+            dac_bits=params.get("dac_bits"),
+            adc_bits=params.get("adc_bits"),
         )
         frozen_exclude = ["albert.pooler"]
         if not EMBEDDING_ANALOG:
@@ -1385,11 +1422,19 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         c_dw_min = 0.001   # default (unused for "set")
         c_desired_bl = None
 
-    # IO / mapping params
-    if IO_NOISE:
-        out_noise = trial.suggest_float('out_noise', 0.0, 0.0)
-    else:
+    # IO non-idealities — swept by default; collapse a range to a single value to fix it.
+    # --is-perfect makes the analog read ideal (all IO ignored) so nothing is swept;
+    # --no-io-noise / --no-quant disable output noise / DAC-ADC quantization individually.
+    if IS_PERFECT or not IO_NOISE:
         out_noise = 0.0
+    else:
+        out_noise = trial.suggest_float('out_noise', 0.0, 0.0)
+    if IS_PERFECT or NO_QUANT:
+        dac_bits = 0
+        adc_bits = 0
+    else:
+        dac_bits = trial.suggest_int('dac_bits', 8, 8)
+        adc_bits = trial.suggest_int('adc_bits', 8, 8)
     ab_weight_scaling_omega = trial.suggest_float('ab_weight_scaling_omega', 0.0, 0.0)
 
     # lora_alpha: only sweep when forward_inject is ON and fi_continuous_alpha is OFF
@@ -1453,6 +1498,8 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         "c_dw_min": c_dw_min,
         "c_desired_bl": c_desired_bl,
         "out_noise": out_noise,
+        "dac_bits": dac_bits,
+        "adc_bits": adc_bits,
         "ab_weight_scaling_omega": ab_weight_scaling_omega,
         "lora_alpha": lora_alpha,
     }

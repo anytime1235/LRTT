@@ -149,6 +149,8 @@ FORWARD_INJECT = False      # If True, enable forward noise injection
 FI_CONTINUOUS_ALPHA = False # If True, use continuous alpha for forward injection
 IS_PERFECT = False          # If True, forward/backward use ideal FP matmul (no ADC/DAC/noise)
 NO_QUANT = False            # If True, disable DAC/ADC quantization (inp_res/out_res → -1)
+DAC_BITS = 8             # DAC (inp_res) bits. None=keep aihwkit default (~7-bit); N→res=1/(2**N-2)
+ADC_BITS = 8             # ADC (out_res) bits. None=keep aihwkit default (~9-bit); N→res=1/(2**N-2)
 OUT_NOISE = 0.0             # Forward out_noise value
 AB_WEIGHT_SCALING_OMEGA = 0.0  # A/B tile weight scaling omega
 
@@ -421,6 +423,36 @@ def _create_c_device(dw_min=None, reset_std=0.0):
     )
 
 
+def _bits_to_res(bits):
+    """Convert a converter bit-count to aihwkit resolution (1/steps).
+
+    None / <2  → no override (keep current inp_res/out_res: aihwkit default or NO_QUANT).
+    N>=2       → 1/(2**N - 2)  (N-bit signed converter).
+    """
+    if bits is None or bits < 2:
+        return None
+    return 1.0 / (2 ** bits - 2)
+
+
+def _apply_quant_bits(rpu_config, dac_bits, adc_bits):
+    """Override forward/backward DAC (inp_res) and ADC (out_res) from bit-counts.
+
+    Applied in BOTH create_lrtt_config and the create_frozen_analog_config standalone
+    branch so every analog path (LRTT layers AND none-mode frozen layers) gets identical
+    quantization. The derived frozen branch inherits via deepcopy of forward/backward.
+    Has no effect under is_perfect (aihwkit ignores all IOParameters then).
+    """
+    dac_res = _bits_to_res(dac_bits)
+    if dac_res is not None:
+        rpu_config.forward.inp_res = dac_res
+        rpu_config.backward.inp_res = dac_res
+    adc_res = _bits_to_res(adc_bits)
+    if adc_res is not None:
+        rpu_config.forward.out_res = adc_res
+        rpu_config.backward.out_res = adc_res
+    return rpu_config
+
+
 def create_frozen_analog_config(lrtt_config=None, out_noise=0.0):
     """Create analog config for non-LRTT encoder layers (frozen analog).
 
@@ -452,6 +484,7 @@ def create_frozen_analog_config(lrtt_config=None, out_noise=0.0):
             rpu_config.forward.out_res = -1
             rpu_config.backward.inp_res = -1
             rpu_config.backward.out_res = -1
+        _apply_quant_bits(rpu_config, DAC_BITS, ADC_BITS)
         if BACKWARD_OUT_BOUND != 12.0:
             rpu_config.backward.out_bound = BACKWARD_OUT_BOUND
     return rpu_config
@@ -537,6 +570,7 @@ def create_lrtt_config():
         rpu_config.forward.out_res = -1
         rpu_config.backward.inp_res = -1
         rpu_config.backward.out_res = -1
+    _apply_quant_bits(rpu_config, DAC_BITS, ADC_BITS)
 
     if BACKWARD_OUT_BOUND != 12.0:
         rpu_config.backward.out_bound = BACKWARD_OUT_BOUND
