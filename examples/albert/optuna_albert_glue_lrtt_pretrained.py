@@ -1300,7 +1300,7 @@ def objective(trial, train_loader, eval_loader, tokenizer):
         transfer_every = 999999999
         rank_exp = 2             # fixed (A=0 init, no effect)
         rank = 4
-        fast_lr = 1.0            # fixed (no effect)
+        fast_lr = 1e-30          # ~0: A/B inert in notrans, skip pulse update (0.0 rejected by device)
         tau_sec = 0.0            # fixed
     else:
         transfer_lr = trial.suggest_float('transfer_lr', 1e-5, 1e1, log=True)

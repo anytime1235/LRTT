@@ -509,7 +509,7 @@ def create_lrtt_config():
         rank=LRTT_RANK,
         transfer_every=te,
         lora_alpha=1.0,
-        fast_lr=FAST_LR,
+        fast_lr=(FAST_LR if not NO_TRANSFER else 1e-30),
         reinit_gain=b_reinit_gain,
         reinit_mode=REINIT_MODE,
         unit_cell_devices=[a_device, b_device, c_device],

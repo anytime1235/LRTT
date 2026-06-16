@@ -256,7 +256,7 @@ SPLIT_AB_PARAMS = {
     'dw_min': False,
     'multilevel': False,
     'tau_sec': False,
-    'reset_std': True,
+    'reset_std': False,
     'desired_bl': False,
     'weight_scaling_omega': False,
 }
@@ -1416,7 +1416,9 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         transfer_every = 999999999
         rank_exp = 2             # fixed (A=0 init, no effect)
         rank = 4
-        fast_lr = 1.0            # fixed (no effect)
+        fast_lr = 1e-30          # ~0: A/B never transfer/forward here, so make the per-step
+                                 # A/B pulse update ~0-BL (≈10x faster, ab_dw_min no longer
+                                 # affects speed). 0.0 is rejected by PythonLRTTDevice (fast_lr>0).
         a_tau_sec = b_tau_sec = 0.0    # fixed
     else:
         transfer_lr = trial.suggest_float('transfer_lr', 9e-6, 3e0, log=True)
@@ -1439,7 +1441,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         a_dw_min = trial.suggest_float('a_dw_min', 0.0004883, 0.0004883, log=True)
         b_dw_min = trial.suggest_float('b_dw_min', 0.0004883, 0.0004883, log=True)
     else:
-        ab_dw_min = trial.suggest_float('ab_dw_min', 5e-6, 1e-2, log=True)  # default: 6t1c value
+        ab_dw_min = trial.suggest_float('ab_dw_min', 1e-2, 1e-2, log=True)  # default: 6t1c value
         a_dw_min = b_dw_min = ab_dw_min
 
     # desired_bl: per-tile splittable (a_desired_bl / b_desired_bl override the
@@ -1459,7 +1461,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
             a_multilevel = trial.suggest_int('a_multilevel', 12, 12)
             b_multilevel = trial.suggest_int('b_multilevel', 12, 12)
         else:
-            ab_multilevel = trial.suggest_int('ab_multilevel', 1, 14)
+            ab_multilevel = trial.suggest_int('ab_multilevel', 10, 10)
             a_multilevel = b_multilevel = ab_multilevel
     else:
         a_multilevel = b_multilevel = None
@@ -1467,15 +1469,15 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
     # reset_std: per-tile splittable (B's reset_std is the inherent floor noise, also
     # used as the random Gaussian σ for gauss_b_* reinit modes).
     if SPLIT_AB_PARAMS.get('reset_std', False):
-        a_reset_std = trial.suggest_float('a_reset_std', 1e-30, 1e-30, log=True)
-        b_reset_std = trial.suggest_float('b_reset_std', 1e-8, 1e5, log=True)
+        a_reset_std = trial.suggest_float('a_reset_std', 0.0, 0.0, log=True)
+        b_reset_std = trial.suggest_float('b_reset_std', 0.0, 0.0, log=True)
     else:
-        ab_reset_std = trial.suggest_float('ab_reset_std', 0.0, 0.0, log=True)
+        ab_reset_std = trial.suggest_float('ab_reset_std', 1e-30, 1e-30, log=True)
         a_reset_std = b_reset_std = ab_reset_std
 
     # C tile pulsed transfer params (only meaningful for onehot/direct)
     if TRANSFER_METHOD in ("onehot", "direct") and not OPT_CONFIG['no_transfer']:
-        c_dw_min = trial.suggest_float('c_dw_min', 1e-3, 4e-2, log=True)
+        c_dw_min = trial.suggest_float('c_dw_min', 0.001, 0.001, log=True)
         c_desired_bl = trial.suggest_int('c_desired_bl', 31, 31)
     else:
         c_dw_min = 0.001   # default (unused for "set")
@@ -1487,7 +1489,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
     if IS_PERFECT or not IO_NOISE:
         out_noise = 0.0
     else:
-        out_noise = trial.suggest_float('out_noise', 0.0, 0.0)
+        out_noise = trial.suggest_float('out_noise', 0.06, 0.06)
     if IS_PERFECT or NO_QUANT:
         dac_bits = 0
         adc_bits = 0
