@@ -161,7 +161,7 @@ TE_WARMUP_SCHEDULE = []
 # LoRA target options: which layers have trainable A/B tiles
 # - none: no LRTT layers (fully digital baseline)
 # - linear1: only the input projection (classifier output head always digital)
-NO_ADC_AB_PROJ = False  # If True, remove ADC between A/B projections
+AB_IO_PERFECT = False  # If True, A/B tiles fully ideal (no out_noise/ADC/DAC)
 LEARN_OUT_SCALING = False  # If True, C tile out_scaling is trainable
 LORA_TARGET = "linear1"  # default
 HEAD_LAYER = "train"  # "train" or "freeze" for output head (classifier)
@@ -471,7 +471,7 @@ def create_lrtt_config():
     device_config.b_density = B_DENSITY
     device_config.forward_inject = FORWARD_INJECT
     device_config.fi_continuous_alpha = FI_CONTINUOUS_ALPHA
-    device_config.no_adc_ab_projection = NO_ADC_AB_PROJ
+    device_config.ab_io_perfect = AB_IO_PERFECT
     device_config.c_desired_bl = C_DESIRED_BL
     device_config.auto_scale_mode = AUTO_SCALE_MODE
     device_config.correct_gradient_magnitudes = CORRECT_GRADIENT_MAGNITUDES

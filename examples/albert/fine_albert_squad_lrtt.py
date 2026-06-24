@@ -177,7 +177,7 @@ TE_WARMUP_SCHEDULE = []
 # - qkv: only query, key, value
 # - ffn: attention.dense + ffn + ffn_output
 # - all: all encoder linear layers
-NO_ADC_AB_PROJ = False  # If True, remove ADC between A/B projections
+AB_IO_PERFECT = False  # If True, A/B tiles fully ideal (no out_noise/ADC/DAC)
 LEARN_OUT_SCALING = True  # If True, C tile out_scaling is trainable
 LORA_TARGET = "qkv"  # default
 HEAD_LAYER = "train"  # "train" or "freeze" for qa_outputs layer
@@ -539,7 +539,7 @@ def create_lrtt_config():
     device_config.b_density = B_DENSITY
     device_config.forward_inject = FORWARD_INJECT
     device_config.fi_continuous_alpha = FI_CONTINUOUS_ALPHA
-    device_config.no_adc_ab_projection = NO_ADC_AB_PROJ
+    device_config.ab_io_perfect = AB_IO_PERFECT
     device_config.c_desired_bl = C_DESIRED_BL
     device_config.auto_scale_mode = AUTO_SCALE_MODE
     device_config.correct_gradient_magnitudes = CORRECT_GRADIENT_MAGNITUDES

@@ -236,18 +236,25 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         mapping_a = mapping_a_override if mapping_a_override is not None else mapping_ab
         mapping_b = mapping_b_override if mapping_b_override is not None else mapping_ab
 
-        # A/B tile IO: optionally remove ADC/DAC between B and A projections
+        # A/B tile IO: optionally make the low-rank A and B reads fully ideal
+        # (digital-adapter model: no out_noise / ADC / DAC / bound on A & B
+        # forward and backward). The visible C tile stays non-ideal.
         from copy import deepcopy
-        no_adc_ab_proj = getattr(self.lrtt_config, 'no_adc_ab_projection', False)
+        ab_io_perfect = getattr(self.lrtt_config, 'ab_io_perfect', False)
 
+        forward_a = rpu_config.forward
         backward_a = rpu_config.backward
-        if no_adc_ab_proj:
-            backward_a = deepcopy(rpu_config.backward)
-            backward_a.out_res = -1  # Remove ADC at A backward output (between A and B)
+        forward_b = rpu_config.forward
+        backward_b = rpu_config.backward
+        if ab_io_perfect:
+            forward_a = deepcopy(rpu_config.forward);   forward_a.is_perfect = True
+            backward_a = deepcopy(rpu_config.backward); backward_a.is_perfect = True
+            forward_b = deepcopy(rpu_config.forward);   forward_b.is_perfect = True
+            backward_b = deepcopy(rpu_config.backward); backward_b.is_perfect = True
 
         rpu_config_a = SingleRPUConfig(
             device=unit_devices[0],
-            forward=rpu_config.forward,
+            forward=forward_a,
             backward=backward_a,
             update=update_a,
             tile_class=tile_class_a,
@@ -255,15 +262,10 @@ class LRTTSimulatorTile(SimulatorTile, Module):
         )
         self.tile_a = rpu_config_a.tile_class(d_size, self.rank, rpu_config_a)
 
-        forward_b = rpu_config.forward
-        if no_adc_ab_proj:
-            forward_b = deepcopy(rpu_config.forward)
-            forward_b.out_res = -1  # Remove ADC at B forward output
-
         rpu_config_b = SingleRPUConfig(
             device=unit_devices[1],
             forward=forward_b,
-            backward=rpu_config.backward,
+            backward=backward_b,
             update=update_b,
             tile_class=tile_class_b,
             mapping=mapping_b,

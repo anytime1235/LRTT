@@ -258,9 +258,11 @@ class PythonLRTTDevice(_PrintableMixin):
     If False, transfer_every is in mat-vec units (TE=1 → every sample).
     Matches TikiTaka convention."""
 
-    no_adc_ab_projection: bool = False
-    """If True, remove ADC/DAC quantization between A/B projections.
-    B output and A backward output pass through at full precision."""
+    ab_io_perfect: bool = False
+    """If True, make the low-rank A and B tile reads fully ideal
+    (is_perfect: no out_noise / ADC / DAC / bound on A & B forward and
+    backward). Models the A/B low-rank update as a digital adapter while
+    keeping the visible C tile non-ideal."""
     
     correct_gradient_magnitudes: bool = False
     """If True, divide transfer LR by the fast effective LR (lr_eff_a/b or geomean).

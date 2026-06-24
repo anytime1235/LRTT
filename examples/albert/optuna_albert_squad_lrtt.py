@@ -38,7 +38,7 @@ All flags:
         --lora-target <str>         # LoRA target: none | qonly | konly | vonly | qkv | qkvo | ffn | all (default: qkv)
         --head-layer <str>          # qa_outputs: train | freeze (default: train)
         --no-transfer               # Disable LRTT transfer (A/B frozen, skip LRTT param sweep)
-        --no-adc-ab-proj            # Remove ADC/DAC between A/B projections (full precision)
+        --ab-io-perfect            # Make A/B tiles fully ideal (no out_noise/ADC/DAC)
         --no-learn-out-scaling      # Disable trainable out_scaling on C tile
         --encoder-analog            # Non-LRTT encoder layers: frozen analog instead of digital
         --embedding-analog          # Embedding projection: frozen analog instead of digital
@@ -298,7 +298,7 @@ OPT_CONFIG = {
     'tune_nesterov': False,  # nesterov = False (fixed)
     'reinit_mode': None,    # None = tune, or 'standard'/'decay'/'hybrid' = fixed
     'no_transfer': False,   # If True, disable transfer (transfer_every = inf)
-    'no_adc_ab_proj': False,  # If True, remove ADC/DAC between A/B projections
+    'ab_io_perfect': False,  # If True, A/B tiles fully ideal (no out_noise/ADC/DAC)
     'learn_out_scaling': True,  # If True, C tile out_scaling is trainable
     'auto_scale_mode': 'none',
     'correct_gradient_magnitudes': False,
@@ -356,8 +356,8 @@ def get_study_name_suffix():
     if OPT_CONFIG['no_transfer']:
         suffix += "_notrans"
 
-    if OPT_CONFIG.get('no_adc_ab_proj', False):
-        suffix += "_noadc"
+    if OPT_CONFIG.get('ab_io_perfect', False):
+        suffix += "_abperf"
 
     if not OPT_CONFIG.get('learn_out_scaling', True):
         suffix += "_noos"
@@ -788,7 +788,7 @@ def create_lrtt_config(rank, transfer_every, transfer_lr, fast_lr, reinit_mode,
     device_config.a_density = a_density
     device_config.b_density = b_density
     device_config.forward_inject = FORWARD_INJECT
-    device_config.no_adc_ab_projection = OPT_CONFIG.get('no_adc_ab_proj', False)
+    device_config.ab_io_perfect = OPT_CONFIG.get('ab_io_perfect', False)
     device_config.auto_scale_mode = auto_scale_mode
     device_config.correct_gradient_magnitudes = correct_gradient_magnitudes
     device_config.transfer_rank_schedule = transfer_rank_schedule
@@ -1459,7 +1459,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         a_reset_std = trial.suggest_float('a_reset_std', 0.0, 0.0, log=False)
         b_reset_std = trial.suggest_float('b_reset_std', 0.0, 0.0, log=False)
     else:
-        ab_reset_std = trial.suggest_float('ab_reset_std', 0.0, 0.0, log=False)
+        ab_reset_std = trial.suggest_float('ab_reset_std', 1e-30, 1e-30, log=True)
         a_reset_std = b_reset_std = ab_reset_std
 
     # C tile pulsed transfer params (only meaningful for onehot/direct)
@@ -1476,7 +1476,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
     if IS_PERFECT or not IO_NOISE:
         out_noise = 0.0
     else:
-        out_noise = trial.suggest_float('out_noise', 0.0, 0.0)
+        out_noise = trial.suggest_float('out_noise', 0.04, 0.04)
     if IS_PERFECT or NO_QUANT:
         dac_bits = 0
         adc_bits = 0
@@ -1585,6 +1585,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         print(f"  a_dw_min={a_dw_min:.4e}, b_dw_min={b_dw_min:.4e}, ab_desired_bl={ab_desired_bl}, multilevel a/b={a_multilevel}/{b_multilevel}")
     if TRANSFER_METHOD in ("onehot", "direct"):
         print(f"  c_dw_min={c_dw_min:.4e}, c_desired_bl={c_desired_bl}")
+    print(f"  IO: out_noise={out_noise:g}, dac_bits={dac_bits}, adc_bits={adc_bits}, is_perfect={IS_PERFECT}")
     print(f"{'='*70}")
 
     model = None
@@ -1902,8 +1903,8 @@ def main():
                         help='Disable DAC/ADC quantization (inp_res/out_res)')
     parser.add_argument('--no-transfer', action='store_true',
                         help='Disable transfer (set transfer_every to infinity)')
-    parser.add_argument('--no-adc-ab-proj', action='store_true',
-                        help='Use digital matmul for A/B projections (no ADC/DAC between B and A)')
+    parser.add_argument('--ab-io-perfect', action='store_true',
+                        help='Make A/B tiles fully ideal (no out_noise/ADC/DAC) - digital adapter model')
     parser.add_argument('--lora-target', type=str, default=LORA_TARGET,
                         choices=['none', 'qonly', 'konly', 'vonly', 'qkv', 'qkvo', 'ffn', 'all'],
                         help='LoRA target: none, qonly, konly, vonly, qkv, qkvo, ffn, all (default: qkv)')
@@ -1963,7 +1964,7 @@ def main():
     OPT_CONFIG['tune_momentum'] = not args.no_momentum
     OPT_CONFIG['tune_nesterov'] = not args.no_nesterov
     OPT_CONFIG['no_transfer'] = args.no_transfer
-    OPT_CONFIG['no_adc_ab_proj'] = args.no_adc_ab_proj
+    OPT_CONFIG['ab_io_perfect'] = args.ab_io_perfect
     OPT_CONFIG['learn_out_scaling'] = not args.no_learn_out_scaling
     OPT_CONFIG['auto_scale_mode'] = args.auto_scale_mode
     OPT_CONFIG['correct_gradient_magnitudes'] = args.correct_gradient_magnitudes
