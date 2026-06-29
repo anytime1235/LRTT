@@ -282,6 +282,20 @@ LORA_TARGET_MODULES = {
     "all": None,  # None means all encoder layers (no filtering) (~6 shared layers)
 }
 
+# Per-module IO bit override (MANUALLY EDIT; None = use the swept dac_bits/adc_bits).
+# Set ADC(out_res)/DAC(inp_res) bits per module TYPE — e.g. give FFN higher precision
+# than attention. Applied at build time to each matched tile's forward+backward
+# inp_res(DAC)/out_res(ADC). Example FFN 10-bit ADC: set 'ffn'/'ffn_output' adc=10.
+# Keys match ALBERT's module-name substrings (see _module_io_key).
+LAYER_IO_BITS = {
+    'query':            {'dac': None, 'adc': None},
+    'key':              {'dac': None, 'adc': None},
+    'value':            {'dac': None, 'adc': None},
+    'attention.dense':  {'dac': None, 'adc': None},   # attention output (O) projection
+    'ffn':              {'dac': None, 'adc': None},    # FFN1 (pre-GELU)
+    'ffn_output':       {'dac': None, 'adc': None},    # FFN2 (pre-LayerNorm)
+}
+
 # Data subset sizes (0 = use full dataset)
 TRAIN_SUBSET_SIZE = 0
 EVAL_SUBSET_SIZE = 0
@@ -377,6 +391,21 @@ def get_study_name_suffix():
         suffix += f"_abpt-{OPT_CONFIG['ab_pulse_type']}"
     if OPT_CONFIG.get('ab_multilevel', False):
         suffix += "_abml"
+
+    # Per-module IO bits marker (LAYER_IO_BITS overrides) — keeps differing per-layer
+    # bit configs in separate studies. e.g. FFN 10-bit ADC -> _lio-f1a10-f2a10.
+    if _any_layer_io_override():
+        _abbr = {'query': 'q', 'key': 'k', 'value': 'v', 'attention.dense': 'o',
+                 'ffn': 'f1', 'ffn_output': 'f2'}
+        _parts = []
+        for _k in ['query', 'key', 'value', 'attention.dense', 'ffn', 'ffn_output']:
+            _b = LAYER_IO_BITS.get(_k, {})
+            _d, _a = _b.get('dac'), _b.get('adc')
+            if _d is not None or _a is not None:
+                _parts.append(_abbr[_k] + (f"d{_d}" if _d is not None else "")
+                              + (f"a{_a}" if _a is not None else ""))
+        if _parts:
+            suffix += "_lio-" + "-".join(_parts)
 
     # Add lora target (always include for clarity)
     suffix += f"_{LORA_TARGET}"
@@ -622,6 +651,45 @@ def _apply_quant_bits(rpu_config, dac_bits, adc_bits):
     return rpu_config
 
 
+def _module_io_key(name):
+    """Map an ALBERT Linear module name to its LAYER_IO_BITS key (None if unmatched).
+
+    ALBERT module names (shared across layer groups):
+      ...attention.query / .key / .value  → query / key / value
+      ...attention.dense                   → attention.dense (attention output O proj)
+      ...ffn_output                        → ffn_output (FFN2; checked before 'ffn')
+      ...ffn                               → ffn (FFN1)
+    embedding_hidden_mapping_in / qa_outputs / pooler are not LAYER_IO_BITS keys.
+    """
+    if 'attention.query' in name:
+        return 'query'
+    if 'attention.key' in name:
+        return 'key'
+    if 'attention.value' in name:
+        return 'value'
+    if 'attention.dense' in name:
+        return 'attention.dense'
+    if name.endswith('ffn_output'):  # FFN2 — must precede the 'ffn' check ('ffn' substring)
+        return 'ffn_output'
+    if name.endswith('ffn'):  # FFN1
+        return 'ffn'
+    return None
+
+
+def _resolve_io_bits(name, default_dac, default_adc):
+    """Per-module (dac, adc) bits from LAYER_IO_BITS, falling back to defaults when None."""
+    b = LAYER_IO_BITS.get(_module_io_key(name) or '', {})
+    dac, adc = b.get('dac'), b.get('adc')
+    return (dac if dac is not None else default_dac,
+            adc if adc is not None else default_adc)
+
+
+def _any_layer_io_override():
+    """True if any LAYER_IO_BITS entry sets a non-default (non-None) dac/adc bit-count."""
+    return any((b.get('dac') is not None or b.get('adc') is not None)
+               for b in LAYER_IO_BITS.values())
+
+
 def create_frozen_analog_config(lrtt_config=None, out_noise=0.0, dac_bits=None, adc_bits=None):
     """Create analog config for non-LRTT encoder layers (frozen analog).
 
@@ -636,6 +704,9 @@ def create_frozen_analog_config(lrtt_config=None, out_noise=0.0, dac_bits=None, 
         rpu_config.mapping = deepcopy(lrtt_config.device.mapping_c)
         rpu_config.forward = deepcopy(lrtt_config.forward)
         rpu_config.backward = deepcopy(lrtt_config.backward)
+        # Apply (possibly FFN-specific) bits, overriding the inherited qkvo quantization.
+        # No-op when dac_bits/adc_bits match the inherited values (default path).
+        _apply_quant_bits(rpu_config, dac_bits, adc_bits)
     else:
         rpu_config = SingleRPUConfig(device=_create_c_device())
         rpu_config.mapping = MappingParameter(
@@ -889,8 +960,23 @@ def create_model(params):
             adc_bits=params.get("adc_bits"),
         )
 
-        # Convert to analog with exclusions (only LRTT targets get converted)
-        model = convert_to_analog(model, lrtt_config, exclude_modules=exclude_modules)
+        # Convert to analog with exclusions (only LRTT targets get converted).
+        # Per-module IO bits: with LAYER_IO_BITS overrides, convert each bit-group in its
+        # own pass (build-time bits — post-conversion override does NOT propagate to tiles).
+        if not _any_layer_io_override():
+            model = convert_to_analog(model, lrtt_config, exclude_modules=exclude_modules)
+        else:
+            import copy as _copy
+            _lrtt_targets = [_n for _n in all_linear_names if _n not in exclude_modules]
+            _groups = {}
+            for _n in _lrtt_targets:
+                _key = _resolve_io_bits(_n, params.get("dac_bits"), params.get("adc_bits"))
+                _groups.setdefault(_key, []).append(_n)
+            for (_gd, _ga), _names in _groups.items():
+                _cfg = _copy.deepcopy(lrtt_config)
+                _apply_quant_bits(_cfg, _gd, _ga)
+                _excl = [_n for _n in all_linear_names if _n not in _names]
+                model = convert_to_analog(model, _cfg, exclude_modules=_excl)
 
         # Count analog layers
         analog_count = sum(1 for m in model.modules() if isinstance(m, AnalogLinear))
@@ -907,12 +993,7 @@ def create_model(params):
                 for tile in m.analog_tiles():
                     existing_tile_ids.add(id(tile))
 
-        frozen_config = create_frozen_analog_config(
-            lrtt_config if LORA_TARGET != "none" else None,
-            out_noise=params.get("out_noise", 0.0),
-            dac_bits=params.get("dac_bits"),
-            adc_bits=params.get("adc_bits"),
-        )
+        _lc = lrtt_config if LORA_TARGET != "none" else None
         frozen_exclude = ["albert.pooler"]
         if not EMBEDDING_ANALOG:
             frozen_exclude.append("albert.encoder.embedding_hidden_mapping_in")
@@ -922,7 +1003,26 @@ def create_model(params):
             for name in all_linear_names:
                 if "encoder" in name and "embedding_hidden_mapping_in" not in name:
                     frozen_exclude.append(name)
-        model = convert_to_analog(model, frozen_config, exclude_modules=frozen_exclude)
+        if not _any_layer_io_override():
+            frozen_config = create_frozen_analog_config(
+                _lc, out_noise=params.get("out_noise", 0.0),
+                dac_bits=params.get("dac_bits"), adc_bits=params.get("adc_bits"),
+            )
+            model = convert_to_analog(model, frozen_config, exclude_modules=frozen_exclude)
+        else:
+            # Per-module IO bits for frozen-analog layers: group by resolved bits.
+            # Already-converted LRTT tiles are AnalogLinear and skipped by convert_to_analog.
+            _ftargets = [_n for _n in all_linear_names if _n not in frozen_exclude]
+            _groups = {}
+            for _n in _ftargets:
+                _key = _resolve_io_bits(_n, params.get("dac_bits"), params.get("adc_bits"))
+                _groups.setdefault(_key, []).append(_n)
+            for (_gd, _ga), _names in _groups.items():
+                _cfg = create_frozen_analog_config(
+                    _lc, out_noise=params.get("out_noise", 0.0), dac_bits=_gd, adc_bits=_ga,
+                )
+                _excl = [_n for _n in all_linear_names if _n not in _names]
+                model = convert_to_analog(model, _cfg, exclude_modules=_excl)
         frozen_analog_count = sum(1 for m in model.modules() if isinstance(m, AnalogLinear)) - analog_count
 
         # Hook frozen analog tile updates to no-op (prevent optimizer from modifying weights).

@@ -153,6 +153,30 @@ ADC_BITS = 8             # ADC (out_res) bits. None=keep aihwkit default (~9-bit
 OUT_NOISE = 0.0             # Forward out_noise value
 AB_WEIGHT_SCALING_OMEGA = 0.0  # A/B tile weight scaling omega
 
+# Per-module IO bit override (MANUALLY EDIT; None = use the global DAC_BITS/ADC_BITS).
+# Set ADC(out_res)/DAC(inp_res) bits per module TYPE — e.g. give FFN higher precision
+# than attention. Applied at BUILD TIME (per-group conversion pass) to each matched tile's
+# forward+backward inp_res(DAC)/out_res(ADC). All-None = byte-identical to single-pass.
+# MobileBERT module-type keys (see _module_io_key for the name→key mapping):
+#   query / key / value      - attention Q/K/V projections
+#   attention.output         - attention output (O) projection (attention.output.dense)
+#   bottleneck               - bottleneck / output.bottleneck projections (MobileBERT-specific)
+#   ffn.intermediate         - stacked FFN block intermediate (ffn.{0,1,2}.intermediate.dense, pre-GELU)
+#   ffn.output               - stacked FFN block output (ffn.{0,1,2}.output.dense)
+#   intermediate             - main FFN intermediate (intermediate.dense, pre-GELU)
+#   output.dense             - main FFN output (output.dense, pre-LayerNorm)
+LAYER_IO_BITS = {
+    'query':            {'dac': None, 'adc': None},
+    'key':              {'dac': None, 'adc': None},
+    'value':            {'dac': None, 'adc': None},
+    'attention.output': {'dac': None, 'adc': None},   # attention output (O) projection
+    'bottleneck':       {'dac': None, 'adc': None},   # bottleneck / output.bottleneck projections
+    'ffn.intermediate': {'dac': None, 'adc': None},   # stacked FFN intermediate (pre-GELU)
+    'ffn.output':       {'dac': None, 'adc': None},   # stacked FFN output
+    'intermediate':     {'dac': None, 'adc': None},   # main FFN1 (pre-GELU)
+    'output.dense':     {'dac': None, 'adc': None},   # main FFN2 (pre-LayerNorm)
+}
+
 # Pulse type
 AB_PULSE_TYPE = "default"   # "default", "none", "none_with_device", "stochastic_compressed", "mean_count", "deterministic_implicit"
 
@@ -454,13 +478,67 @@ def _apply_quant_bits(rpu_config, dac_bits, adc_bits):
     return rpu_config
 
 
-def create_frozen_analog_config(lrtt_config=None, out_noise=0.0):
+def _module_io_key(name):
+    """Map a MobileBERT Linear module name to its LAYER_IO_BITS key (None if unmatched).
+
+    MobileBERT names (per encoder layer):
+        attention.self.{query,key,value}   -> query / key / value
+        attention.output.dense             -> attention.output
+        bottleneck.{attention,input}.dense -> bottleneck
+        output.bottleneck.dense            -> bottleneck
+        ffn.{0,1,2}.intermediate.dense     -> ffn.intermediate
+        ffn.{0,1,2}.output.dense           -> ffn.output
+        intermediate.dense (not under ffn) -> intermediate
+        output.dense       (not under ffn) -> output.dense   (main FFN2)
+    Order matters: more specific patterns (ffn.* / attention.output / *bottleneck*) are
+    checked before the bare intermediate / output.dense fall-throughs.
+    """
+    if 'attention.self.query' in name:
+        return 'query'
+    if 'attention.self.key' in name:
+        return 'key'
+    if 'attention.self.value' in name:
+        return 'value'
+    if 'attention.output.dense' in name:
+        return 'attention.output'
+    if 'bottleneck' in name:  # bottleneck.attention.dense / bottleneck.input.dense / output.bottleneck.dense
+        return 'bottleneck'
+    if '.ffn.' in name and 'intermediate.dense' in name:
+        return 'ffn.intermediate'
+    if '.ffn.' in name and name.endswith('output.dense'):
+        return 'ffn.output'
+    if 'intermediate.dense' in name:  # main FFN1 (ffn.* already handled above)
+        return 'intermediate'
+    if name.endswith('output.dense'):  # main FFN2 (attention/ffn/bottleneck already handled)
+        return 'output.dense'
+    return None
+
+
+def _resolve_io_bits(name, default_dac, default_adc):
+    """Per-module (dac, adc) bits from LAYER_IO_BITS, falling back to defaults when None."""
+    b = LAYER_IO_BITS.get(_module_io_key(name) or '', {})
+    dac, adc = b.get('dac'), b.get('adc')
+    return (dac if dac is not None else default_dac,
+            adc if adc is not None else default_adc)
+
+
+def _any_layer_io_override():
+    """True if any LAYER_IO_BITS entry sets a non-default (non-None) dac/adc bit-count."""
+    return any((b.get('dac') is not None or b.get('adc') is not None)
+               for b in LAYER_IO_BITS.values())
+
+
+def create_frozen_analog_config(lrtt_config=None, out_noise=0.0, dac_bits=None, adc_bits=None):
     """Create analog config for non-LRTT encoder layers (frozen analog).
 
     If lrtt_config is provided, derived from its C tile settings.
     Otherwise, creates a standalone config with default C tile settings.
     """
     from copy import deepcopy
+    # Resolve per-call bits, falling back to the global DAC_BITS/ADC_BITS so the
+    # default (no-arg) call reproduces the original single-pass quantization exactly.
+    _dac = dac_bits if dac_bits is not None else DAC_BITS
+    _adc = adc_bits if adc_bits is not None else ADC_BITS
     if lrtt_config is not None:
         rpu_config = SingleRPUConfig(
             device=deepcopy(lrtt_config.device.unit_cell_devices[2]),
@@ -468,6 +546,9 @@ def create_frozen_analog_config(lrtt_config=None, out_noise=0.0):
         rpu_config.mapping = deepcopy(lrtt_config.device.mapping_c)
         rpu_config.forward = deepcopy(lrtt_config.forward)
         rpu_config.backward = deepcopy(lrtt_config.backward)
+        # Apply (possibly per-module) bits, overriding the inherited LRTT quantization.
+        # No-op when _dac/_adc match the inherited values (default path).
+        _apply_quant_bits(rpu_config, _dac, _adc)
     else:
         rpu_config = SingleRPUConfig(device=_create_c_device())
         rpu_config.mapping = MappingParameter(
@@ -485,7 +566,7 @@ def create_frozen_analog_config(lrtt_config=None, out_noise=0.0):
             rpu_config.forward.out_res = -1
             rpu_config.backward.inp_res = -1
             rpu_config.backward.out_res = -1
-        _apply_quant_bits(rpu_config, DAC_BITS, ADC_BITS)
+        _apply_quant_bits(rpu_config, _dac, _adc)
         if BACKWARD_OUT_BOUND != 12.0:
             rpu_config.backward.out_bound = BACKWARD_OUT_BOUND
     return rpu_config
@@ -695,7 +776,24 @@ def create_model():
         num_analog = 0
     else:
         lrtt_config = create_lrtt_config()
-        model = convert_to_analog(model, lrtt_config, exclude_modules=exclude_modules)
+
+        # Convert to analog with exclusions (only LRTT targets get converted).
+        # Per-module IO bits: with LAYER_IO_BITS overrides, convert each bit-group in its
+        # own pass (build-time bits — post-conversion override does NOT propagate to tiles).
+        if not _any_layer_io_override():
+            model = convert_to_analog(model, lrtt_config, exclude_modules=exclude_modules)
+        else:
+            import copy as _copy
+            _groups = {}
+            for _n in all_linear_names:
+                if is_lrtt_target(_n):
+                    _key = _resolve_io_bits(_n, DAC_BITS, ADC_BITS)
+                    _groups.setdefault(_key, []).append(_n)
+            for (_gd, _ga), _names in _groups.items():
+                _cfg = _copy.deepcopy(lrtt_config)
+                _apply_quant_bits(_cfg, _gd, _ga)
+                _excl = [_n for _n in all_linear_names if _n not in _names]
+                model = convert_to_analog(model, _cfg, exclude_modules=_excl)
 
         # Count analog layers
         num_analog = count_analog_layers(model)
@@ -711,9 +809,6 @@ def create_model():
                 for tile in m.analog_tiles():
                     existing_tile_ids.add(id(tile))
 
-        frozen_config = create_frozen_analog_config(
-            lrtt_config if LORA_TARGET != "none" else None,
-        )
         frozen_exclude = []
         if not EMBEDDING_ANALOG:
             frozen_exclude.append("mobilebert.embeddings.embedding_transformation")
@@ -723,7 +818,23 @@ def create_model():
             for name in all_linear_names:
                 if "encoder" in name and "embedding_transformation" not in name:
                     frozen_exclude.append(name)
-        model = convert_to_analog(model, frozen_config, exclude_modules=frozen_exclude)
+        _lc = lrtt_config if LORA_TARGET != "none" else None
+        if not _any_layer_io_override():
+            frozen_config = create_frozen_analog_config(_lc)
+            model = convert_to_analog(model, frozen_config, exclude_modules=frozen_exclude)
+        else:
+            # Per-module IO bits for frozen-analog layers: group by resolved bits and
+            # convert each group in its own pass (build-time bits).
+            _ftargets = [_n for _n in all_linear_names
+                         if _n not in frozen_exclude and not is_lrtt_target(_n)]
+            _groups = {}
+            for _n in _ftargets:
+                _key = _resolve_io_bits(_n, DAC_BITS, ADC_BITS)
+                _groups.setdefault(_key, []).append(_n)
+            for (_gd, _ga), _names in _groups.items():
+                _cfg = create_frozen_analog_config(_lc, dac_bits=_gd, adc_bits=_ga)
+                _excl = [_n for _n in all_linear_names if _n not in _names]
+                model = convert_to_analog(model, _cfg, exclude_modules=_excl)
         frozen_analog_count = count_analog_layers(model) - num_analog
 
         # Hook frozen analog tile updates to no-op (prevent optimizer from modifying weights).

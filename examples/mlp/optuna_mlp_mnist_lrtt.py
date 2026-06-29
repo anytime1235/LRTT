@@ -266,6 +266,18 @@ SPLIT_AB_PARAMS = {
     'desired_bl': False,
     'weight_scaling_omega': False,
 }
+
+# Per-module IO bit override (MANUALLY EDIT; None = use the swept dac_bits/adc_bits).
+# Set ADC(out_res)/DAC(inp_res) bits per analog Linear module — e.g. give linear1 a
+# higher/lower precision than the swept default. Applied at build time (each bit-group
+# converted in its own pass) so each matched tile's forward+backward inp_res(DAC)/
+# out_res(ADC) reflect the override. Keys are this MLP's analog Linear module names.
+# NOTE: linear1 is the only LRTT-eligible / analog-eligible layer in this 2-layer MLP
+# (the classifier head stays digital), so this feature is effectively a single-layer
+# knob here; it is kept structurally consistent with the BERT/transformer scripts.
+LAYER_IO_BITS = {
+    'linear1': {'dac': None, 'adc': None},  # input projection (the sole analog Linear)
+}
 C_DEVICE = "softboundsideal"  # "softboundsideal", "linearstepideal", "constantstep", "constantstepideal", "constantstep6t1cgamma", or "ideal"
 IO_NOISE = True  # If False, disable out_noise (resolution kept)
 FORWARD_INJECT = False  # If True, enable forward noise injection
@@ -389,6 +401,20 @@ def get_study_name_suffix():
         suffix += f"_abpt-{OPT_CONFIG['ab_pulse_type']}"
     if OPT_CONFIG.get('ab_multilevel', False):
         suffix += "_abml"
+
+    # Per-module IO bits marker (LAYER_IO_BITS overrides) — keeps differing per-layer
+    # bit configs in separate studies. e.g. linear1 10-bit ADC -> _lio-l1a10.
+    if _any_layer_io_override():
+        _abbr = {'linear1': 'l1'}
+        _parts = []
+        for _k in ['linear1']:
+            _b = LAYER_IO_BITS.get(_k, {})
+            _d, _a = _b.get('dac'), _b.get('adc')
+            if _d is not None or _a is not None:
+                _parts.append(_abbr[_k] + (f"d{_d}" if _d is not None else "")
+                              + (f"a{_a}" if _a is not None else ""))
+        if _parts:
+            suffix += "_lio-" + "-".join(_parts)
 
     # Split mode markers (only when at least one ab param is split per-tile).
     split_keys = sorted(k for k, v in SPLIT_AB_PARAMS.items() if v)
@@ -708,6 +734,31 @@ def _apply_quant_bits(rpu_config, dac_bits, adc_bits):
     return rpu_config
 
 
+def _module_io_key(name):
+    """Map an analog Linear module name to its LAYER_IO_BITS key (None if unmatched).
+
+    This MLP only has a single analog-eligible Linear layer (linear1); the classifier
+    output head stays digital and is never matched here.
+    """
+    if 'linear1' in name:
+        return 'linear1'
+    return None
+
+
+def _resolve_io_bits(name, default_dac, default_adc):
+    """Per-module (dac, adc) bits from LAYER_IO_BITS, falling back to defaults when None."""
+    b = LAYER_IO_BITS.get(_module_io_key(name) or '', {})
+    dac, adc = b.get('dac'), b.get('adc')
+    return (dac if dac is not None else default_dac,
+            adc if adc is not None else default_adc)
+
+
+def _any_layer_io_override():
+    """True if any LAYER_IO_BITS entry sets a non-default (non-None) dac/adc bit-count."""
+    return any((b.get('dac') is not None or b.get('adc') is not None)
+               for b in LAYER_IO_BITS.values())
+
+
 def create_frozen_analog_config(lrtt_config=None, out_noise=0.0, dac_bits=None, adc_bits=None):
     """Create analog config for non-LRTT linear layers (frozen analog).
 
@@ -722,6 +773,9 @@ def create_frozen_analog_config(lrtt_config=None, out_noise=0.0, dac_bits=None, 
         rpu_config.mapping = deepcopy(lrtt_config.device.mapping_c)
         rpu_config.forward = deepcopy(lrtt_config.forward)
         rpu_config.backward = deepcopy(lrtt_config.backward)
+        # Apply (possibly per-layer) bits, overriding the inherited LRTT quantization.
+        # No-op when dac_bits/adc_bits match the inherited values (default path).
+        _apply_quant_bits(rpu_config, dac_bits, adc_bits)
     else:
         rpu_config = SingleRPUConfig(device=_create_c_device())
         rpu_config.mapping = MappingParameter(
@@ -1015,8 +1069,23 @@ def create_model(params):
             adc_bits=params.get("adc_bits"),
         )
 
-        # Convert to analog with exclusions (only LRTT targets get converted)
-        model = convert_to_analog(model, lrtt_config, exclude_modules=exclude_modules)
+        # Convert to analog with exclusions (only LRTT targets get converted).
+        # Per-module IO bits: with LAYER_IO_BITS overrides, convert each bit-group in its
+        # own pass (build-time bits — post-conversion override does NOT propagate to tiles).
+        if not _any_layer_io_override():
+            model = convert_to_analog(model, lrtt_config, exclude_modules=exclude_modules)
+        else:
+            import copy as _copy
+            _groups = {}
+            for _n in all_linear_names:
+                if is_lrtt_target(_n):
+                    _key = _resolve_io_bits(_n, params.get("dac_bits"), params.get("adc_bits"))
+                    _groups.setdefault(_key, []).append(_n)
+            for (_gd, _ga), _names in _groups.items():
+                _cfg = _copy.deepcopy(lrtt_config)
+                _apply_quant_bits(_cfg, _gd, _ga)
+                _excl = [_n for _n in all_linear_names if _n not in _names]
+                model = convert_to_analog(model, _cfg, exclude_modules=_excl)
 
         # Count analog layers
         analog_count = sum(1 for m in model.modules() if isinstance(m, AnalogLinear))
@@ -1033,12 +1102,7 @@ def create_model(params):
                 for tile in m.analog_tiles():
                     existing_tile_ids.add(id(tile))
 
-        frozen_config = create_frozen_analog_config(
-            lrtt_config if LORA_TARGET != "none" else None,
-            out_noise=params.get("out_noise", 0.0),
-            dac_bits=params.get("dac_bits"),
-            adc_bits=params.get("adc_bits"),
-        )
+        _lc = lrtt_config if LORA_TARGET != "none" else None
         frozen_exclude = []
         if not HEAD_ANALOG:
             frozen_exclude.append("classifier")
@@ -1049,7 +1113,28 @@ def create_model(params):
                 frozen_exclude.append(name)            # already LRTT
             elif not ENCODER_ANALOG and "classifier" not in name:
                 frozen_exclude.append(name)            # non-LRTT linear, keep digital
-        model = convert_to_analog(model, frozen_config, exclude_modules=frozen_exclude)
+        if not _any_layer_io_override():
+            frozen_config = create_frozen_analog_config(
+                _lc,
+                out_noise=params.get("out_noise", 0.0),
+                dac_bits=params.get("dac_bits"),
+                adc_bits=params.get("adc_bits"),
+            )
+            model = convert_to_analog(model, frozen_config, exclude_modules=frozen_exclude)
+        else:
+            # Per-module IO bits for frozen-analog layers: group by resolved bits.
+            _ftargets = [_n for _n in all_linear_names
+                         if _n not in frozen_exclude and not is_lrtt_target(_n)]
+            _groups = {}
+            for _n in _ftargets:
+                _key = _resolve_io_bits(_n, params.get("dac_bits"), params.get("adc_bits"))
+                _groups.setdefault(_key, []).append(_n)
+            for (_gd, _ga), _names in _groups.items():
+                _cfg = create_frozen_analog_config(
+                    _lc, out_noise=params.get("out_noise", 0.0), dac_bits=_gd, adc_bits=_ga,
+                )
+                _excl = [_n for _n in all_linear_names if _n not in _names]
+                model = convert_to_analog(model, _cfg, exclude_modules=_excl)
         frozen_analog_count = sum(1 for m in model.modules() if isinstance(m, AnalogLinear)) - analog_count
 
         # Hook frozen analog tile updates to no-op (prevent optimizer from modifying weights).
