@@ -234,3 +234,56 @@ LRTT_vit/
 | cuda-toolkit-12-1 | 12.1 | apt (NVIDIA repo), CUDA 없을 때만 |
 
 curl -fsSL https://claude.ai/install.sh | bash
+
+---
+
+## 부록: NHN Cloud GPU 인스턴스 (B200 + NGC PyTorch 컨테이너) 특수 케이스
+
+**적용 대상**: root/sudo가 없는 관리형 클라우드 컨테이너 (NHN Cloud gpuhub 등, NGC PyTorch 이미지 기반).
+2026-07, B200×4 인스턴스(LRTT-JW)에서 검증 — 기존 결과(FFN-digital 85.78)를 85.79로 재현 확인.
+
+### 이 환경에서 위 매뉴얼을 그대로 실행하면 안 되는 이유
+
+| 매뉴얼 단계 | 문제 |
+|---|---|
+| `apt install ...` | root 권한 없음 → 전부 실패. **그리고 불필요** — build-essential, cmake, ninja, OpenBLAS, tmux, nvcc가 NGC 이미지에 내장 |
+| `cuda-toolkit-12-1` 설치 | B200(sm_100)은 **CUDA 12.8+ 필수**. NGC에 nvcc 12.8 내장 — 12.1을 깔면 오히려 빌드 불가 |
+| `torch==2.3.1+cu121` 설치 | **치명적** — cu121 휠은 sm_90까지만 지원. NGC 내장 torch(2.7.0+cu12.8)를 반드시 유지, 재설치/다운그레이드 금지 |
+| `uv pip install --system` | 시스템 site-packages 쓰기 권한 없음. uv는 `--user` 미지원 → `pip install --user` 사용 |
+| (숨은 함정) NGC pip constraint | NGC 이미지가 `PIP_CONSTRAINT`로 일부 패키지(dill==0.3.9 등)를 고정 → 의존성 해석 실패 유발. `PIP_CONSTRAINT=` 접두로 무력화 |
+
+### 절차 (§1.1~1.2 건너뜀, §1.3만 보정하여 실행)
+
+```bash
+# 1) 파이썬 의존성 (user 설치) — 아래 조합은 본 환경에서 수치 재현까지 검증됨
+PIP_CONSTRAINT= pip install --user optuna optuna-integration botorch wandb \
+    "transformers==4.55.2" "huggingface_hub==0.34.4" "datasets==3.6.0" "evaluate==0.4.3" "dill==0.3.8"
+# 주의: datasets 4.x ↔ evaluate 비호환, huggingface_hub 1.x ↔ datasets 3.x 비호환 → 위 핀 유지
+
+# 2) aihwkit editable 빌드 (§1.3 동일 + 보정 3개)
+cd <LRTT 경로>
+rm -rf _skbuild build
+export GPU_ARCH=$(nvidia-smi --query-gpu=compute_cap -i 0 --format=csv,noheader | tr -d '.')   # B200 → 100
+export CMAKE_ARGS="-GNinja -DRPU_CUDA_ARCHITECTURES=$GPU_ARCH -DCMAKE_CUDA_ARCHITECTURES=$GPU_ARCH -DCMAKE_BUILD_TYPE=Release"
+PIP_CONSTRAINT= USE_CUDA=1 pip install --user -e . --no-deps --no-build-isolation -v
+PIP_CONSTRAINT= USE_CUDA=1 python3 setup.py build_ext -j 16 --inplace
+
+# 2-1) (이 환경 quirk) build_ext --inplace가 "install target" 경고와 함께
+#      .so를 src로 복사하지 않는 경우가 있음 → 수동 복사로 마무리:
+cp _skbuild/linux-x86_64-3.12/cmake-build/src/aihwkit/simulator/rpu_base*.so src/aihwkit/simulator/
+
+# 3) 확인
+cd /tmp && python3 -c "
+import torch; from aihwkit.simulator import rpu_base
+print(torch.__version__, '| CUDA', torch.cuda.is_available(), '| aihwkit CUDA', rpu_base.cuda.is_compiled())"
+```
+
+**보정 3개의 이유** (§1.3 대비):
+- `--no-build-isolation`: 기본 격리 빌드는 pyproject의 `torch>=1.9` 때문에 **PyPI에서 다른 torch를 받아 그 헤더로 컴파일** → NGC torch와 ABI 불일치로 .so가 깨짐. 내장 torch로 빌드해야 함
+- `--no-deps`: install_requires의 `numpy<2` 등이 NGC 내장 numpy를 다운그레이드하려는 것 방지 (런타임 의존성은 1)에서 이미 충족)
+- `PIP_CONSTRAINT=`: NGC 제약 파일 우회
+
+**참고**: 위 GPU 아키텍처 표의 "B200 → GPU_ARCH=89 (PTX JIT)" 우회는 **toolkit이 12.8 미만일 때만** 필요합니다. NGC처럼 nvcc 12.8+면 자동감지값(100)의 네이티브 빌드가 정상 동작합니다.
+
+**editable 설치 전 임시 대안**: `export PYTHONPATH=<LRTT>/src` (셸/tmux 창마다 필요) 또는 user site에 경로 등록:
+`echo "<LRTT>/src" > $(python3 -c "import site; print(site.getusersitepackages())")/lrtt_src.pth`
