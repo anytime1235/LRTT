@@ -1611,7 +1611,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
     if IS_PERFECT or not IO_NOISE:
         out_noise = 0.0
     else:
-        out_noise = trial.suggest_float('out_noise', 0.0, 0.0)
+        out_noise = trial.suggest_float('out_noise', 0.04, 0.04)
     if IS_PERFECT or NO_QUANT:
         dac_bits = 0
         adc_bits = 0
