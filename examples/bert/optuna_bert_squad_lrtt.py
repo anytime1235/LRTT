@@ -1066,7 +1066,9 @@ def create_model(params):
                 _cfg = _copy.deepcopy(lrtt_config)
                 _apply_quant_bits(_cfg, _gd, _ga)
                 _excl = [_n for _n in all_linear_names if _n not in _names]
-                model = convert_to_analog(model, _cfg, exclude_modules=_excl)
+                # inplace=True: from the 2nd group on, the model already holds LRTT tiles
+                # from earlier groups; the default copy would rebuild them on CPU.
+                model = convert_to_analog(model, _cfg, exclude_modules=_excl, inplace=True)
 
         # Count analog layers
         analog_count = sum(1 for m in model.modules() if isinstance(m, AnalogLinear))
@@ -1074,7 +1076,10 @@ def create_model(params):
     # Step 1.5: Convert remaining encoder layers to frozen analog (if enabled)
     # Already-converted LRTT layers (AnalogLinear) are naturally skipped by convert_to_analog
     frozen_analog_count = 0
-    any_frozen_analog = (ENCODER_ANALOG and LORA_TARGET != "all") or HEAD_ANALOG
+    # NOTE: in BERT "allnobn" is identical to "all" (no bottleneck layers), so both must
+    # skip the frozen-conversion pass — string-comparing only "all" would send allnobn
+    # through the frozen path even though every encoder layer is already an LRTT tile.
+    any_frozen_analog = (ENCODER_ANALOG and LORA_TARGET not in ("all", "allnobn")) or HEAD_ANALOG
     if any_frozen_analog:
         # Collect existing tile IDs (LRTT sub-tiles) before frozen conversion
         existing_tile_ids = set()
@@ -1086,7 +1091,7 @@ def create_model(params):
         frozen_exclude = []
         if not HEAD_ANALOG:
             frozen_exclude.append("qa_outputs")
-        if not ENCODER_ANALOG or LORA_TARGET == "all":
+        if not ENCODER_ANALOG or LORA_TARGET in ("all", "allnobn"):
             for name in all_linear_names:
                 if "encoder" in name:
                     frozen_exclude.append(name)
@@ -1096,7 +1101,12 @@ def create_model(params):
                 _lc, out_noise=params.get("out_noise", 0.0),
                 dac_bits=params.get("dac_bits"), adc_bits=params.get("adc_bits"),
             )
-            model = convert_to_analog(model, frozen_config, exclude_modules=frozen_exclude)
+            # inplace=True is REQUIRED here: the default (inplace=False) deep-copies the
+            # model, which (a) invalidates existing_tile_ids so the frozen-hook loop below
+            # would no-op EVERY tile including LRTT A/B/C (silently disabling LRTT), and
+            # (b) rebuilds LRTT inner tiles on CPU ("x_input must be a CPU tensor" crash).
+            model = convert_to_analog(model, frozen_config, exclude_modules=frozen_exclude,
+                                      inplace=True)
         else:
             # Per-module IO bits for frozen-analog (FFN) layers: group by resolved bits.
             _ftargets = [_n for _n in all_linear_names
@@ -1110,7 +1120,9 @@ def create_model(params):
                     _lc, out_noise=params.get("out_noise", 0.0), dac_bits=_gd, adc_bits=_ga,
                 )
                 _excl = [_n for _n in all_linear_names if _n not in _names]
-                model = convert_to_analog(model, _cfg, exclude_modules=_excl)
+                # inplace=True required (see comment above): the model already holds LRTT
+                # tiles here; a copy would break tile ids and CUDA placement.
+                model = convert_to_analog(model, _cfg, exclude_modules=_excl, inplace=True)
         frozen_analog_count = sum(1 for m in model.modules() if isinstance(m, AnalogLinear)) - analog_count
 
         # Hook frozen analog tile updates to no-op (prevent optimizer from modifying weights).
@@ -1153,6 +1165,11 @@ def create_model(params):
 
         for mod_name, m in model.named_modules():
             if isinstance(m, AnalogLinear):
+                # Protect LRTT layers by MODULE NAME, not only by tile id: if any earlier
+                # convert_to_analog copied the model, all tile ids change and the id check
+                # alone would freeze LRTT tiles too (silently disabling all LRTT learning).
+                if is_lrtt_target(mod_name):
+                    continue
                 for tile in m.analog_tiles():
                     if id(tile) not in existing_tile_ids:
                         # Head analog tiles remain trainable (weight + bias)
@@ -1160,6 +1177,20 @@ def create_model(params):
                             continue
                         tile.update = _frozen_noop_update
                         tile.forward = types.MethodType(_frozen_analog_forward, tile)
+
+        # Safety net: no LRTT-target tile may end up with a no-op update. This catches
+        # any future regression of the copy/id bug at model-build time instead of
+        # producing a silently-wrong (LRTT-dead) experiment.
+        _locked_lrtt = 0
+        for _mn, _mm in model.named_modules():
+            if isinstance(_mm, AnalogLinear) and is_lrtt_target(_mn):
+                for _t in _mm.analog_tiles():
+                    if getattr(_t.update, "__name__", "") == "_frozen_noop_update":
+                        _locked_lrtt += 1
+        assert _locked_lrtt == 0, (
+            f"{_locked_lrtt} LRTT tiles were frozen-hooked (update no-op). "
+            "This disables LRTT learning entirely — check convert_to_analog inplace/copy."
+        )
 
     total_params = sum(p.numel() for p in model.parameters())
     trainable_before = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -1499,7 +1530,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         torch.cuda.empty_cache()
 
     # Hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 1e-3, 8e-3, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 8e-4, 9e-3, log=True)
 
     # LRTT parameters: skip sweep if --no-transfer (A/B frozen, no transfer happens)
     if OPT_CONFIG['no_transfer']:
@@ -1512,11 +1543,11 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
                                  # affects speed). 0.0 is rejected by PythonLRTTDevice (fast_lr>0).
         a_tau_sec = b_tau_sec = 0.0    # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 4e-4, 5e-2, log=True)
-        transfer_every = trial.suggest_int('transfer_every', 1, 5e1, log=True)
+        transfer_lr = trial.suggest_float('transfer_lr', 2e-4, 4e-2, log=True)
+        transfer_every = trial.suggest_int('transfer_every', 1, 7e1, log=True)
         rank_exp = trial.suggest_int('rank_exp', 0, 6)
         rank = 2 ** rank_exp
-        fast_lr = trial.suggest_float('fast_lr', 9e-3, 5e1, log=True)
+        fast_lr = trial.suggest_float('fast_lr', 7e-3, 9e-1, log=True)
         # tau_sec → device.lifetime is per-tile splittable. Default shared.
         if SPLIT_AB_PARAMS.get('tau_sec', False):
             a_tau_sec = trial.suggest_float('a_tau_sec', 0, 0, log=False)
@@ -1532,7 +1563,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         a_dw_min = trial.suggest_float('a_dw_min', 0.0004883, 0.0004883, log=True)
         b_dw_min = trial.suggest_float('b_dw_min', 0.0004883, 0.0004883, log=True)
     else:
-        ab_dw_min = trial.suggest_float('ab_dw_min', 8e-6, 3e-2, log=True)  # default: 6t1c value
+        ab_dw_min = trial.suggest_float('ab_dw_min', 2e-5, 6e-4, log=True)  # default: 6t1c value
         a_dw_min = b_dw_min = ab_dw_min
 
     # desired_bl: per-tile splittable (a_desired_bl / b_desired_bl override the

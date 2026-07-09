@@ -774,14 +774,14 @@ def create_model():
                 _cfg = _copy.deepcopy(lrtt_config)
                 _apply_quant_bits(_cfg, _gd, _ga)
                 _excl = [_n for _n in all_linear_names if _n not in _names]
-                model = convert_to_analog(model, _cfg, exclude_modules=_excl)
+                model = convert_to_analog(model, _cfg, exclude_modules=_excl, inplace=True)  # inplace: model may already hold LRTT tiles (copy breaks ids + CUDA placement)
 
         # Count analog layers
         num_analog = count_analog_layers(model)
 
     # Step 1.5: Convert remaining encoder layers to frozen analog (if enabled)
     frozen_analog_count = 0
-    any_frozen_analog = (ENCODER_ANALOG and LORA_TARGET != "all") or HEAD_ANALOG
+    any_frozen_analog = (ENCODER_ANALOG and LORA_TARGET not in ("all", "allnobn")) or HEAD_ANALOG
     if any_frozen_analog:
         # Collect existing tile IDs (LRTT sub-tiles) before frozen conversion
         existing_tile_ids = set()
@@ -793,14 +793,19 @@ def create_model():
         frozen_exclude = []
         if not HEAD_ANALOG:
             frozen_exclude.append("qa_outputs")
-        if not ENCODER_ANALOG or LORA_TARGET == "all":
+        if not ENCODER_ANALOG or LORA_TARGET in ("all", "allnobn"):
             for name in all_linear_names:
                 if "encoder" in name:
                     frozen_exclude.append(name)
         _lc = lrtt_config if LORA_TARGET != "none" else None
         if not _any_layer_io_override():
             frozen_config = create_frozen_analog_config(_lc)
-            model = convert_to_analog(model, frozen_config, exclude_modules=frozen_exclude)
+            # inplace=True is REQUIRED here: the default (inplace=False) deep-copies the
+            # model, which (a) invalidates existing_tile_ids so the frozen-hook loop below
+            # would no-op EVERY tile including LRTT A/B/C (silently disabling LRTT), and
+            # (b) rebuilds LRTT inner tiles on CPU ("x_input must be a CPU tensor" crash).
+            model = convert_to_analog(model, frozen_config, exclude_modules=frozen_exclude,
+                                      inplace=True)
         else:
             # Per-module IO bits for frozen-analog (FFN) layers: group by resolved bits.
             _ftargets = [_n for _n in all_linear_names
@@ -812,7 +817,7 @@ def create_model():
             for (_gd, _ga), _names in _groups.items():
                 _cfg = create_frozen_analog_config(_lc, dac_bits=_gd, adc_bits=_ga)
                 _excl = [_n for _n in all_linear_names if _n not in _names]
-                model = convert_to_analog(model, _cfg, exclude_modules=_excl)
+                model = convert_to_analog(model, _cfg, exclude_modules=_excl, inplace=True)  # inplace: model may already hold LRTT tiles (copy breaks ids + CUDA placement)
         frozen_analog_count = count_analog_layers(model) - num_analog
 
         # Hook frozen analog tile updates to no-op (prevent optimizer from modifying weights).
@@ -855,6 +860,11 @@ def create_model():
 
         for mod_name, m in model.named_modules():
             if isinstance(m, AnalogLinear):
+                # Protect LRTT layers by MODULE NAME, not only by tile id: if any earlier
+                # convert_to_analog copied the model, all tile ids change and the id check
+                # alone would freeze LRTT tiles too (silently disabling all LRTT learning).
+                if is_lrtt_target(mod_name):
+                    continue
                 for tile in m.analog_tiles():
                     if id(tile) not in existing_tile_ids:
                         # Head analog tiles remain trainable (weight + bias)
@@ -862,6 +872,20 @@ def create_model():
                             continue
                         tile.update = _frozen_noop_update
                         tile.forward = types.MethodType(_frozen_analog_forward, tile)
+
+        # Safety net: no LRTT-target tile may end up with a no-op update. This catches
+        # any regression of the copy/id bug at model-build time instead of producing
+        # a silently-wrong (LRTT-dead) experiment.
+        _locked_lrtt = 0
+        for _mn, _mm in model.named_modules():
+            if isinstance(_mm, AnalogLinear) and is_lrtt_target(_mn):
+                for _t in _mm.analog_tiles():
+                    if getattr(_t.update, "__name__", "") == "_frozen_noop_update":
+                        _locked_lrtt += 1
+        assert _locked_lrtt == 0, (
+            f"{_locked_lrtt} LRTT tiles were frozen-hooked (update no-op). "
+            "This disables LRTT learning entirely — check convert_to_analog inplace/copy."
+        )
 
     total_params = sum(p.numel() for p in model.parameters())
     trainable_before = sum(p.numel() for p in model.parameters() if p.requires_grad)
