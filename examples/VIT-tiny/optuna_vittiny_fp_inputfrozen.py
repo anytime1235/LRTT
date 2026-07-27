@@ -59,6 +59,15 @@ from tqdm import tqdm
 import optuna
 from optuna.trial import TrialState
 from optuna_integration import BoTorchSampler
+
+# Contextual dynamic-space GP: keeps the GP fitting all completed trials across
+# mid-study suggest-range edits. See examples/optuna_contextual_sampler.py.
+import os.path as _osp, sys as _sys
+for _p in (_osp.dirname(_osp.abspath(__file__)),
+           _osp.join(_osp.dirname(_osp.abspath(__file__)), '..')):
+    if _osp.isfile(_osp.join(_p, 'optuna_contextual_sampler.py')) and _p not in _sys.path:
+        _sys.path.insert(0, _p)
+from optuna_contextual_sampler import ContextualBoTorchMixin, ContextualBoTorchSampler
 import matplotlib.pyplot as plt
 
 # Default study name for persistence
@@ -617,7 +626,7 @@ def main():
         study_name=study_name,
         storage=storage,
         direction="maximize",
-        sampler=BoTorchSampler(consider_running_trials=True),
+        sampler=ContextualBoTorchSampler(consider_running_trials=True),
         pruner=optuna.pruners.NopPruner(),
         load_if_exists=True,
     )

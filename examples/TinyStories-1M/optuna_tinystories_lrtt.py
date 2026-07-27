@@ -40,6 +40,15 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, AutoConfig
 import optuna
 from optuna.trial import TrialState
 from optuna_integration import BoTorchSampler
+
+# Contextual dynamic-space GP: keeps the GP fitting all completed trials across
+# mid-study suggest-range edits. See examples/optuna_contextual_sampler.py.
+import os.path as _osp, sys as _sys
+for _p in (_osp.dirname(_osp.abspath(__file__)),
+           _osp.join(_osp.dirname(_osp.abspath(__file__)), '..')):
+    if _osp.isfile(_osp.join(_p, 'optuna_contextual_sampler.py')) and _p not in _sys.path:
+        _sys.path.insert(0, _p)
+from optuna_contextual_sampler import ContextualBoTorchMixin, ContextualBoTorchSampler
 import matplotlib.pyplot as plt
 
 
@@ -53,7 +62,7 @@ OPT_CONFIG = {
 }
 
 
-class ReinitModeFixedSampler(BoTorchSampler):
+class ReinitModeFixedSampler(ContextualBoTorchMixin, BoTorchSampler):
     """BoTorchSampler that forces reinit_mode to a specific value."""
 
     def __init__(self, fixed_reinit_mode, **kwargs):
@@ -64,7 +73,7 @@ class ReinitModeFixedSampler(BoTorchSampler):
         params = super().sample_relative(study, trial, search_space)
         if 'reinit_mode' in params:
             params['reinit_mode'] = self.fixed_reinit_mode
-        return params
+        return self._postprocess(params)
 
     def sample_independent(self, study, trial, param_name, param_distribution):
         if param_name == 'reinit_mode':
@@ -1082,7 +1091,7 @@ def main():
     if OPT_CONFIG['reinit_mode'] is not None:
         sampler = ReinitModeFixedSampler(fixed_reinit_mode=OPT_CONFIG['reinit_mode'], consider_running_trials=True)
     else:
-        sampler = BoTorchSampler(consider_running_trials=True)
+        sampler = ContextualBoTorchSampler(consider_running_trials=True)
 
     # Note: direction="minimize" for perplexity (lower is better)
     study = optuna.create_study(

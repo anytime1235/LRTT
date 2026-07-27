@@ -50,10 +50,19 @@ from tqdm import tqdm
 import optuna
 from optuna.trial import TrialState
 from optuna_integration import BoTorchSampler
+
+# Contextual dynamic-space GP: keeps the GP fitting all completed trials across
+# mid-study suggest-range edits. See examples/optuna_contextual_sampler.py.
+import os.path as _osp, sys as _sys
+for _p in (_osp.dirname(_osp.abspath(__file__)),
+           _osp.join(_osp.dirname(_osp.abspath(__file__)), '..')):
+    if _osp.isfile(_osp.join(_p, 'optuna_contextual_sampler.py')) and _p not in _sys.path:
+        _sys.path.insert(0, _p)
+from optuna_contextual_sampler import ContextualBoTorchMixin, ContextualBoTorchSampler
 import matplotlib.pyplot as plt
 
 
-class HybridSGDOnlyBoTorchSampler(BoTorchSampler):
+class HybridSGDOnlyBoTorchSampler(ContextualBoTorchMixin, BoTorchSampler):
     """BoTorchSampler that forces reinit_mode to 'hybrid' and optimizer to 'AnalogSGD'."""
 
     def sample_relative(self, study, trial, search_space):
@@ -62,7 +71,7 @@ class HybridSGDOnlyBoTorchSampler(BoTorchSampler):
             params['reinit_mode'] = 'hybrid'
         if 'optimizer' in params:
             params['optimizer'] = 'AnalogSGD'
-        return params
+        return self._postprocess(params)
 
     def sample_independent(self, study, trial, param_name, param_distribution):
         if param_name == 'reinit_mode':

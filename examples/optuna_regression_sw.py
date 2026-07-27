@@ -34,6 +34,15 @@ import argparse
 import optuna
 from optuna.trial import Trial
 from optuna.integration import BoTorchSampler
+
+# Contextual dynamic-space GP: keeps the GP fitting all completed trials across
+# mid-study suggest-range edits. See examples/optuna_contextual_sampler.py.
+import os.path as _osp, sys as _sys
+for _p in (_osp.dirname(_osp.abspath(__file__)),
+           _osp.join(_osp.dirname(_osp.abspath(__file__)), '..')):
+    if _osp.isfile(_osp.join(_p, 'optuna_contextual_sampler.py')) and _p not in _sys.path:
+        _sys.path.insert(0, _p)
+from optuna_contextual_sampler import ContextualBoTorchMixin, ContextualBoTorchSampler
 import torch
 import numpy as np
 import json
@@ -473,7 +482,7 @@ def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True,
         storage=storage,
         load_if_exists=True,  # Resume existing study if DB exists
         direction="maximize",
-        sampler=BoTorchSampler(consider_running_trials=True),
+        sampler=ContextualBoTorchSampler(consider_running_trials=True),
         pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=10),
     )
 

@@ -110,6 +110,15 @@ from optuna.trial import TrialState
 from optuna.storages import JournalStorage
 from optuna.storages.journal import JournalFileBackend
 from optuna_integration import BoTorchSampler
+
+# Contextual dynamic-space GP: keeps the GP fitting all completed trials across
+# mid-study suggest-range edits. See examples/optuna_contextual_sampler.py.
+import os.path as _osp, sys as _sys
+for _p in (_osp.dirname(_osp.abspath(__file__)),
+           _osp.join(_osp.dirname(_osp.abspath(__file__)), '..')):
+    if _osp.isfile(_osp.join(_p, 'optuna_contextual_sampler.py')) and _p not in _sys.path:
+        _sys.path.insert(0, _p)
+from optuna_contextual_sampler import ContextualBoTorchMixin, ContextualBoTorchSampler
 import matplotlib.pyplot as plt
 
 from torchvision import datasets, transforms
@@ -135,7 +144,7 @@ from aihwkit.simulator.parameters.mapping import MappingParameter
 # ConfigAwareBoTorchSampler with Periodic Exploration
 # =============================================================================
 
-class ConfigAwareBoTorchSampler(BoTorchSampler):
+class ConfigAwareBoTorchSampler(ContextualBoTorchMixin, BoTorchSampler):
     """BoTorchSampler that respects OPT_CONFIG and avoids duplicate running trials."""
 
     def _is_almost_identical_to_running(self, params, study, threshold=0.01):
@@ -186,7 +195,7 @@ class ConfigAwareBoTorchSampler(BoTorchSampler):
         # Force optimizer if fixed in config
         if 'optimizer' in params:
             params['optimizer'] = OPT_CONFIG['optimizer']
-        return params
+        return self._postprocess(params)
 
     def sample_independent(self, study, trial, param_name, param_distribution):
         if param_name == 'reinit_mode' and OPT_CONFIG['reinit_mode'] is not None:
