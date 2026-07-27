@@ -111,6 +111,7 @@ from optuna.trial import TrialState
 from optuna.storages import JournalStorage
 from optuna.storages.journal import JournalFileBackend
 from optuna_integration import BoTorchSampler
+from optuna.distributions import CategoricalDistribution, FloatDistribution, IntDistribution
 import matplotlib.pyplot as plt
 
 from transformers import (
@@ -145,7 +146,116 @@ from collections import Counter
 # =============================================================================
 
 class ConfigAwareBoTorchSampler(BoTorchSampler):
-    """BoTorchSampler that respects OPT_CONFIG and avoids duplicate running trials."""
+    """BoTorchSampler that respects OPT_CONFIG and avoids duplicate running trials.
+
+    Dynamic-space contextual GP (replaces IntersectionSearchSpace gating):
+    - GP search space = bounding box of (history values ∪ current suggest range)
+      per parameter, so trials recorded under older suggest ranges keep feeding
+      the GP even after ranges change mid-study.
+    - Acquisition is constrained to the *current* suggest region: width>0 params
+      via optimize_acqf bounds, width-0 (fixed) params via fixed_features. A
+      parameter that is fixed now but was swept before (e.g. ab_multilevel)
+      stays in the GP as a context dimension, so correlated observations from
+      other settings contribute conditionally.
+    """
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('candidates_func', self._contextual_candidates_func)
+        super().__init__(*args, **kwargs)
+        self._acq_ranges = {}    # name -> (low, high): current suggest range (width > 0)
+        self._fixed_values = {}  # name -> value: fixed (width 0) in current code
+        self._gp_space = {}      # name -> GP bounding-box distribution
+
+    def infer_relative_search_space(self, study, trial):
+        if self._study_id is None:
+            self._study_id = study._study_id
+        if self._study_id != study._study_id:
+            raise RuntimeError("BoTorchSampler cannot handle multiple studies.")
+        trials = [t for t in study.get_trials(deepcopy=False)
+                  if t.state in (TrialState.COMPLETE, TrialState.RUNNING) and t.distributions]
+        completed = [t for t in trials if t.state == TrialState.COMPLETE]
+        if not completed:
+            return {}
+        newest = max(trials, key=lambda t: t.number)
+        common = set(completed[0].params)
+        for t in completed[1:]:
+            common &= set(t.params)
+        space, acq_ranges, fixed = {}, {}, {}
+        for name in sorted(common & set(newest.distributions)):
+            cur = newest.distributions[name]
+            if isinstance(cur, CategoricalDistribution):
+                continue  # keep categorical params on the independent path
+            vals = [t.params[name] for t in completed]
+            lo, hi = min(min(vals), cur.low), max(max(vals), cur.high)
+            if lo == hi:
+                continue  # true constant: never swept, nothing for the GP
+            log = cur.log and lo > 0
+            if isinstance(cur, IntDistribution):
+                space[name] = IntDistribution(int(lo), int(hi), log=log)
+            else:
+                space[name] = FloatDistribution(float(lo), float(hi), log=log)
+            if cur.single():
+                fixed[name] = cur.low
+            else:
+                acq_ranges[name] = (cur.low, cur.high)
+        self._gp_space, self._acq_ranges, self._fixed_values = space, acq_ranges, fixed
+        return space
+
+    def _contextual_candidates_func(self, train_x, train_obj, train_con, bounds, pending_x):
+        from botorch.acquisition.logei import qLogExpectedImprovement
+        from botorch.fit import fit_gpytorch_mll
+        from botorch.models import SingleTaskGP
+        from botorch.models.transforms.outcome import Standardize
+        from botorch.optim import optimize_acqf
+        from botorch.sampling.normal import SobolQMCNormalSampler
+        from botorch.utils.transforms import normalize, unnormalize
+        from gpytorch.mlls import ExactMarginalLogLikelihood
+        from optuna._transform import _SearchSpaceTransform
+
+        train_x = normalize(train_x, bounds=bounds)
+        model = SingleTaskGP(train_x, train_obj,
+                             outcome_transform=Standardize(m=train_obj.size(-1)))
+        fit_gpytorch_mll(ExactMarginalLogLikelihood(model.likelihood, model))
+        # In-flight (RUNNING) trials enter as X_pending: the acquisition marginalizes
+        # over their unknown outcomes, so its argmax moves away from points other
+        # workers are already evaluating. Without this every concurrent worker sees
+        # the same data and gets the same argmax (herding → near-duplicate trials).
+        pending = None
+        if pending_x is not None and len(pending_x):
+            pending = normalize(pending_x, bounds=bounds)
+        acqf = qLogExpectedImprovement(
+            model=model, best_f=train_obj.max(), X_pending=pending,
+            sampler=SobolQMCNormalSampler(sample_shape=torch.Size([128])),
+        )
+
+        def to_unit(name, value, col):
+            # map a raw value to the [0,1] coordinate of its GP-box column
+            tval = float(_SearchSpaceTransform({name: self._gp_space[name]})
+                         .transform({name: value})[0])
+            lo, hi = float(bounds[0, col]), float(bounds[1, col])
+            return min(1.0, max(0.0, (tval - lo) / (hi - lo)))
+
+        acq_bounds = torch.zeros_like(bounds)
+        acq_bounds[1] = 1.0
+        fixed_features = {}
+        for col, name in enumerate(self._gp_space):
+            if name in self._fixed_values:
+                fixed_features[col] = to_unit(name, self._fixed_values[name], col)
+            else:
+                a_lo, a_hi = self._acq_ranges[name]
+                acq_bounds[0, col] = to_unit(name, a_lo, col)
+                acq_bounds[1, col] = to_unit(name, a_hi, col)
+
+        candidates, _ = optimize_acqf(
+            acq_function=acqf, bounds=acq_bounds, q=1,
+            num_restarts=10, raw_samples=512,
+            fixed_features=fixed_features or None,
+            options={"batch_limit": 5, "maxiter": 200},
+        )
+        print(f"[GP] contextual qLogEI: {train_x.size(0)} completed trials, "
+              f"{train_x.size(1)}D, pending={0 if pending is None else len(pending)} "
+              f"(fixed: {sorted(self._fixed_values)})", flush=True)
+        return unnormalize(candidates.detach(), bounds=bounds)
 
     def _is_almost_identical_to_running(self, params, study, threshold=0.01):
         """Check if params are almost identical to any running trial (within 1%)."""
@@ -177,8 +287,11 @@ class ConfigAwareBoTorchSampler(BoTorchSampler):
                     # Add ±10% jitter
                     jitter = val * random.uniform(-jitter_ratio, jitter_ratio)
                     new_val = val + jitter
-                    # Clip to bounds
-                    new_val = max(dist.low, min(dist.high, new_val))
+                    # Clip to the current suggest range (the GP box may be wider
+                    # than what suggest() accepts; out-of-range values would fall
+                    # back to independent sampling in Trial._suggest)
+                    lo, hi = self._acq_ranges.get(key, (dist.low, dist.high))
+                    new_val = max(lo, min(hi, new_val))
                     jittered[key] = new_val
         return jittered
 
@@ -195,6 +308,19 @@ class ConfigAwareBoTorchSampler(BoTorchSampler):
         # Force optimizer if fixed in config
         if 'optimizer' in params:
             params['optimizer'] = OPT_CONFIG['optimizer']
+
+        # Snap width-0 (fixed) params to their exact values: the normalize →
+        # unnormalize round-trip drifts by ~1e-12, which would fail
+        # Trial._suggest's containment check against the single-value distribution
+        for key, val in self._fixed_values.items():
+            if key in params:
+                params[key] = val
+        # Same for boundary proposals on free params: clamp to the current
+        # suggest range so a ~1e-12 overshoot doesn't demote the param to
+        # independent (random) sampling
+        for key, (lo, hi) in self._acq_ranges.items():
+            if key in params:
+                params[key] = min(max(params[key], lo), hi)
         return params
 
     def sample_independent(self, study, trial, param_name, param_distribution):
@@ -1530,7 +1656,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         torch.cuda.empty_cache()
 
     # Hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 8e-4, 9e-3, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 8e-5, 2e-2, log=True)
 
     # LRTT parameters: skip sweep if --no-transfer (A/B frozen, no transfer happens)
     if OPT_CONFIG['no_transfer']:
@@ -1543,11 +1669,11 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
                                  # affects speed). 0.0 is rejected by PythonLRTTDevice (fast_lr>0).
         a_tau_sec = b_tau_sec = 0.0    # fixed
     else:
-        transfer_lr = trial.suggest_float('transfer_lr', 2e-4, 4e-2, log=True)
-        transfer_every = trial.suggest_int('transfer_every', 1, 7e1, log=True)
-        rank_exp = trial.suggest_int('rank_exp', 0, 6)
+        transfer_lr = trial.suggest_float('transfer_lr', 5e-5, 5e-2, log=True)
+        transfer_every = trial.suggest_int('transfer_every', 1, 3e2, log=True)
+        rank_exp = trial.suggest_int('rank_exp', 5, 5)
         rank = 2 ** rank_exp
-        fast_lr = trial.suggest_float('fast_lr', 7e-3, 9e-1, log=True)
+        fast_lr = trial.suggest_float('fast_lr', 7e-2, 3e0, log=True)
         # tau_sec → device.lifetime is per-tile splittable. Default shared.
         if SPLIT_AB_PARAMS.get('tau_sec', False):
             a_tau_sec = trial.suggest_float('a_tau_sec', 0, 0, log=False)
@@ -1563,7 +1689,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
         a_dw_min = trial.suggest_float('a_dw_min', 0.0004883, 0.0004883, log=True)
         b_dw_min = trial.suggest_float('b_dw_min', 0.0004883, 0.0004883, log=True)
     else:
-        ab_dw_min = trial.suggest_float('ab_dw_min', 2e-5, 6e-4, log=True)  # default: 6t1c value
+        ab_dw_min = trial.suggest_float('ab_dw_min', 1e-5, 3e-3, log=True)  # default: 6t1c value
         a_dw_min = b_dw_min = ab_dw_min
 
     # desired_bl: per-tile splittable (a_desired_bl / b_desired_bl override the
@@ -1583,7 +1709,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
             a_multilevel = trial.suggest_int('a_multilevel', 12, 12)
             b_multilevel = trial.suggest_int('b_multilevel', 12, 12)
         else:
-            ab_multilevel = trial.suggest_int('ab_multilevel', 6, 14)
+            ab_multilevel = trial.suggest_int('ab_multilevel', 6, 6)
             a_multilevel = b_multilevel = ab_multilevel
     else:
         a_multilevel = b_multilevel = None
@@ -1599,7 +1725,7 @@ def objective(trial, train_loader, eval_features, eval_examples, tokenizer):
 
     # C tile pulsed transfer params (only meaningful for onehot/direct)
     if TRANSFER_METHOD in ("onehot", "direct") and not OPT_CONFIG['no_transfer']:
-        c_dw_min = trial.suggest_float('c_dw_min', 0.001953, 0.03125, log=True)
+        c_dw_min = trial.suggest_float('c_dw_min', 0.001953, 0.001953, log=True)
         c_desired_bl = trial.suggest_int('c_desired_bl', 31, 31)
     else:
         c_dw_min = 0.001   # default (unused for "set")
@@ -2159,7 +2285,8 @@ def main():
 
     study = optuna.create_study(
         study_name=study_name, storage=storage, direction="maximize",
-        sampler=ConfigAwareBoTorchSampler(n_startup_trials=10),
+        sampler=ConfigAwareBoTorchSampler(n_startup_trials=10,
+                                          consider_running_trials=True),
         pruner=optuna.pruners.NopPruner(),
         load_if_exists=True,
     )

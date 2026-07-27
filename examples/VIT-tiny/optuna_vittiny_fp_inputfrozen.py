@@ -617,7 +617,7 @@ def main():
         study_name=study_name,
         storage=storage,
         direction="maximize",
-        sampler=BoTorchSampler(),
+        sampler=BoTorchSampler(consider_running_trials=True),
         pruner=optuna.pruners.NopPruner(),
         load_if_exists=True,
     )

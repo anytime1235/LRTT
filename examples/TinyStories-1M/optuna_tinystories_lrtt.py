@@ -1080,9 +1080,9 @@ def main():
 
     # Choose sampler based on reinit_mode setting
     if OPT_CONFIG['reinit_mode'] is not None:
-        sampler = ReinitModeFixedSampler(fixed_reinit_mode=OPT_CONFIG['reinit_mode'])
+        sampler = ReinitModeFixedSampler(fixed_reinit_mode=OPT_CONFIG['reinit_mode'], consider_running_trials=True)
     else:
-        sampler = BoTorchSampler()
+        sampler = BoTorchSampler(consider_running_trials=True)
 
     # Note: direction="minimize" for perplexity (lower is better)
     study = optuna.create_study(

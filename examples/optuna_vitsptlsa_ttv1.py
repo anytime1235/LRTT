@@ -689,7 +689,7 @@ def main():
         study_name=study_name,
         storage=storage,
         direction="maximize",
-        sampler=SGDOnlyBoTorchSampler(),
+        sampler=SGDOnlyBoTorchSampler(consider_running_trials=True),
         pruner=optuna.pruners.NopPruner(),
         load_if_exists=True,
     )

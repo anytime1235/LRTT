@@ -2019,7 +2019,7 @@ def main():
 
     study = optuna.create_study(
         study_name=study_name, storage=storage, direction="maximize",
-        sampler=ConfigAwareBoTorchSampler(n_startup_trials=10),
+        sampler=ConfigAwareBoTorchSampler(n_startup_trials=10, consider_running_trials=True),
         pruner=optuna.pruners.NopPruner(),
         load_if_exists=True,
     )

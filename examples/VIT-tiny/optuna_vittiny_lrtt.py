@@ -492,7 +492,7 @@ def main():
 
     study = optuna.create_study(
         study_name=study_name, storage=storage, direction="maximize",
-        sampler=ConfigAwareBoTorchSampler(), pruner=optuna.pruners.NopPruner(),
+        sampler=ConfigAwareBoTorchSampler(consider_running_trials=True), pruner=optuna.pruners.NopPruner(),
         load_if_exists=True,
     )
 

@@ -786,7 +786,7 @@ def main():
         study_name=study_name,
         storage=storage,
         direction="maximize",
-        sampler=HybridSGDOnlyBoTorchSampler(),
+        sampler=HybridSGDOnlyBoTorchSampler(consider_running_trials=True),
         pruner=optuna.pruners.NopPruner(),  # Pruning disabled
         load_if_exists=True,  # Enable resume and parallel execution
     )

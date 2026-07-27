@@ -473,7 +473,7 @@ def run_tuning(n_trials: int, study_name: str = None, save_results: bool = True,
         storage=storage,
         load_if_exists=True,  # Resume existing study if DB exists
         direction="maximize",
-        sampler=BoTorchSampler(),
+        sampler=BoTorchSampler(consider_running_trials=True),
         pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=10),
     )
 
